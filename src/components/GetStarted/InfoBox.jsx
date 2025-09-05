@@ -1,7 +1,7 @@
 import React from "react";
 import Button from "../Button";
 
-export default function InfoBox({ title, description, steps , buttonText, buttonVariant }) {
+export default function InfoBox({ title, description, steps, buttonText, buttonVariant, onClick }) {
   return (
     <div className="bg-white border-[0.5px] border-[#D6D6D6] rounded-lg ">
         <div className="bg-[#F9F9F9] p-[16px] rounded-t-lg border-[#D6D6D6] border-b-[0.5px]">
@@ -32,7 +32,7 @@ export default function InfoBox({ title, description, steps , buttonText, button
 
 
         <div className="pt-0 p-4">
-            <Button buttonText={buttonText} buttonVariant={buttonVariant} />
+            <Button buttonText={buttonText} buttonVariant={buttonVariant} onClick={onClick} />
         </div>
 
 

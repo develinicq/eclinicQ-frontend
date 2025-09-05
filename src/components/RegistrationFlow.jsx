@@ -1,0 +1,92 @@
+import React from 'react';
+import { useRegistration } from '../context/RegistrationContext';
+
+// Doctor Registration Steps
+import Step1 from '../pages/Doctor_registration/Step1';
+import Step2 from '../pages/Doctor_registration/Step2';
+import Step3 from '../pages/Doctor_registration/Step3';
+import Step4 from '../pages/Doctor_registration/Step4';
+import Step5 from '../pages/Doctor_registration/Step5';
+import Step6 from '../pages/Doctor_registration/Step6';
+
+// Hospital Registration Steps
+import Hos_1 from '../pages/Hospital_registration/Hos_1';
+import Hos_2 from '../pages/Hospital_registration/Hos_2';
+import Hos_3 from '../pages/Hospital_registration/Hos_3';
+import Hos_4 from '../pages/Hospital_registration/Hos_4';
+import Hos_5 from '../pages/Hospital_registration/Hos_5';
+import Hos_6 from '../pages/Hospital_registration/Hos_6';
+import Hos_7 from '../pages/Hospital_registration/Hos_7';
+
+const RegistrationFlow = ({ type }) => {
+  const { currentStep, formData } = useRegistration();
+
+  // Render the appropriate step component based on registration type and current step
+  const renderStepComponent = () => {
+    if (type === 'doctor') {
+      switch (currentStep) {
+        case 1:
+          return <Step1 />;
+        case 2:
+          return <Step2 />;
+        case 3:
+          return <Step3 />;
+        case 4:
+          return <Step4 />;
+        case 5:
+          return <Step5 />;
+        case 6:
+          return <Step6 />;
+        default:
+          return <Step1 />;
+      }
+    } else if (type === 'hospital') {
+      // Handle conditional step rendering based on isDoctor selection
+      if (formData.isDoctor === 'no') {
+        // User is not a doctor, skip step 2 (Doctor Registration)
+        switch (currentStep) {
+          case 1:
+            return <Hos_1 />;
+          case 2:
+            return <Hos_3 />; // Hospital Details
+          case 3:
+            return <Hos_4 />; // Documents Verification
+          case 4:
+            return <Hos_5 />; // Review & Create
+          case 5:
+            return <Hos_6 />; // Package & Payment
+          case 6:
+            return <Hos_7 />; // Registration Complete
+          default:
+            return <Hos_1 />;
+        }
+      } else {
+        // User is a doctor, show all steps including Doctor Registration
+        switch (currentStep) {
+          case 1:
+            return <Hos_1 />;
+          case 2:
+            return <Hos_2 />;
+          case 3:
+            return <Hos_3 />;
+          case 4:
+            return <Hos_4 />;
+          case 5:
+            return <Hos_5 />;
+          case 6:
+            return <Hos_6 />;
+          case 7:
+            return <Hos_7 />;
+          default:
+            return <Hos_1 />;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  return renderStepComponent();
+};
+
+export default RegistrationFlow;
