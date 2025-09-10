@@ -1,7 +1,7 @@
 import React from "react";
 import { useRegistration } from "../context/RegistrationContext";
 
-const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next →" }) => {
+const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next →", disablePrev = false }) => {
   const { registrationType } = useRegistration();
 
   // For Step 6 (success page), show the button in footer but with different label
@@ -15,7 +15,8 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
         <div className="flex gap-3">
           <button
             onClick={onPrev}
-            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            disabled={true}
           >
             ← Previous
           </button>
@@ -68,7 +69,8 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
         {currentStep > 1 && (
           <button
             onClick={onPrev}
-            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            disabled={disablePrev}
           >
             ← Previous
           </button>

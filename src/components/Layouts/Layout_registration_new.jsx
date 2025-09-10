@@ -3,10 +3,16 @@ import { useRegistration } from "../../context/RegistrationContext";
 import SidebarSteps from "../Sidebar/SidebarSteps";
 import RegistrationFooter from "../RegistrationFooter";
 import RegistrationFlow from "../RegistrationFlow";
-import React from "react";
+import React, { useRef, useState } from "react";
+// import useDoctorRegisterStore from '../../store/useDoctorRegisterStore';
+import Step1 from '../../pages/Doctor_registration/Step1';
 
 const Layout_registration_new = () => {
   const { currentStep, nextStep, prevStep, registrationType, setRegistrationType, formData, updateFormData, setCurrentStep } = useRegistration();
+  // const doctorRegisterStore = useDoctorRegisterStore();
+  const [footerLoading, setFooterLoading] = useState(false);
+  // Ref for Step1 form
+  const step1Ref = useRef();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -21,8 +27,51 @@ const Layout_registration_new = () => {
     }
   }, [location.pathname, setRegistrationType, setCurrentStep]);
 
-  const handleNext = () => {
+  // Map formData to API schema for store
+  const mapToApiSchema = () => {
+    return {
+      specialization: formData.specialization,
+      experienceYears: formData.experience,
+      medicalCouncilName: formData.councilName,
+      medicalCouncilRegYear: formData.regYear,
+      medicalCouncilRegNo: formData.councilNumber,
+      medicalDegreeType: formData.graduation,
+      medicalDegreeUniversityName: formData.graduationCollege,
+      medicalDegreeYearOfCompletion: formData.graduationYear,
+      pgMedicalDegreeType: formData.pgDegree,
+      pgMedicalDegreeUniversityName: formData.pgCollege,
+      pgMedicalDegreeYearOfCompletion: formData.pgYear,
+      hasClinic: !!formData.clinicName,
+      clinicData: {
+        name: formData.clinicName,
+        email: formData.clinicContactEmail,
+        phone: formData.clinicContactNumber,
+        proof: formData.uploadEstablishmentProof,
+        latitude: formData.mapLocation?.lat || '',
+        longitude: formData.mapLocation?.lng || '',
+        blockNo: formData.blockNo,
+        areaStreet: formData.roadAreaStreet,
+        landmark: formData.landmark,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        image: formData.uploadHospitalImage,
+        panCard: formData.panCard || ''
+      },
+      documents: formData.documents || [],
+    };
+  };
+
+  const handleNext = async () => {
     if (registrationType === 'doctor') {
+      // Step 1: trigger form submit via ref, only move if valid
+      if (currentStep === 1 && step1Ref.current && step1Ref.current.submit) {
+        const result = await step1Ref.current.submit();
+        if (result) {
+          nextStep();
+        }
+        return;
+      }
       // Handle Step 4 sub-steps
       if (currentStep === 4) {
         const currentSubStep = formData.step4SubStep || 1;
@@ -40,8 +89,14 @@ const Layout_registration_new = () => {
           }
         }
       } else if (currentStep === 5) {
-        // Move to Step 6 (success page)
-        nextStep();
+        // On Step 5, submit all data to API, then go to Step 6
+        setFooterLoading(true);
+        const apiData = mapToApiSchema();
+  // TODO: Add your API call or form submission logic here
+  // Example: await api.submit(apiData);
+  setFooterLoading(false);
+  alert('Registration successful!');
+  nextStep();
       } else if (currentStep === 6) {
         // Navigate to doctor profile/dashboard
         navigate('/doctor');
@@ -375,8 +430,14 @@ const Layout_registration_new = () => {
       {/* Main + Footer - Fixed height container */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Content - Scrollable */}
+
         <main className="flex-1 overflow-y-auto">
-          <RegistrationFlow type={registrationType} />
+          {/* Render Step1 with ref for doctor step 1, else use RegistrationFlow */}
+          {registrationType === 'doctor' && currentStep === 1 ? (
+            <Step1 ref={step1Ref} />
+          ) : (
+            <RegistrationFlow type={registrationType} />
+          )}
         </main>
 
         {/* Footer - Fixed */}
@@ -387,6 +448,8 @@ const Layout_registration_new = () => {
           currentStep={currentStep}
           maxSteps={maxSteps}
           nextLabel={nextLabel}
+          disablePrev={registrationType === 'doctor' && (currentStep === 1 || currentStep === 2 || currentStep === 6)}
+          loading={footerLoading}
         />
       </div>
     </div>

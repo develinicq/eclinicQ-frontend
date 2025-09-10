@@ -24,11 +24,6 @@ import DummyLogin from "./pages/DummyLogin";
 function App() {
   return (
     <Routes>
-      {/* Landing page */}
-
-      {/* <Route path="/" element={<GetStarted />} /> */}
-
-      {/* <Route path="/" element={<GetStarted />} /> */}
       <Route path="/" element={<DummyLogin />} />
 
       {/* Admin panel routes */}
@@ -39,22 +34,6 @@ function App() {
         <Route path="patients" element={<Patients />} />
         <Route path="settings" element={<Settings />} />
 
-        {/* Registration flow nested under Layout */}
-        {/* <Route path="register" element={<Layout_registration />}>
-          <Route path="account" element={<Step1 />} />
-          <Route path="account1" element={<Step2 />} />
-          <Route path="account2" element={<Step3 />} />
-          <Route path="account3" element={<Step4 />} />
-          <Route path="account4" element={<Step5 />} />
-
-          <Route path="hospital" element={<Hos_1 />} />
-          <Route path="hospital1" element={<Hos_2 />} />
-          <Route path="hospital2" element={<Hos_3 />} />
-          <Route path="hospital3" element={<Step4 />} />
-          <Route path="hospital4" element={<Step5 />} />
-
-
-        </Route> */}
         <Route path="doctor1" element={<MainPage/>} />
         <Route path="hos1" element={<MainPageHos/>} />
 

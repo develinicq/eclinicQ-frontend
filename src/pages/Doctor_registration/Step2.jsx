@@ -9,21 +9,25 @@ import {
   FormFieldRow
 } from '../../components/FormItems';
 
-const Step2 = () => {
-  const [formData, setFormData] = useState({
+
+const Step2 = ({ onNext, initialData }) => {
+  const [formData, setFormData] = useState(initialData || {
     councilNumber: "",
     councilName: "",
     regYear: "",
     graduation: "",
     graduationCollege: "",
     graduationYear: "",
-    hasPG: "", // radio value
+    hasPG: "", 
     pgDegree: "",
     pgCollege: "",
     pgYear: "",
     specialization: "",
     experience: "",
   });
+  const handleNext = () => {
+    if (onNext) onNext(formData);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -215,6 +219,7 @@ const Step2 = () => {
             </FormFieldRow>
           </div>
         </div>
+  {/* Navigation handled by parent, no submit button here */}
       </FormSection>
     </FormContainer>
   );

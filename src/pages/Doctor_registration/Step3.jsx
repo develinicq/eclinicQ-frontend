@@ -9,8 +9,9 @@ import {
   MapLocation
 } from '../../components/FormItems';
 
-const Step3 = () => {
-  const [formData, setFormData] = useState({
+
+const Step3 = ({ onSubmit, initialData, onBack }) => {
+  const [formData, setFormData] = useState(initialData || {
     clinicName: '',
     clinicContactEmail: '',
     clinicContactNumber: '',
@@ -18,6 +19,8 @@ const Step3 = () => {
     uploadFile: '',
     clinicAddress: '',
     mapLocation: '',
+    latitude: '',
+    longitude: '',
     blockNo: '',
     roadAreaStreet: '',
     landmark: '',
@@ -25,8 +28,10 @@ const Step3 = () => {
     city: '',
     state: '',
     uploadHospitalImage: '',
-    emailVerification: false
+    emailVerification: false,
+    smsVerification: false
   });
+
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -36,11 +41,8 @@ const Step3 = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Form submitted:', formData);
-    alert('Clinical details form submitted!');
-  };
+
+  // No submit handler, parent handles navigation and submission
 
   // Common form field props
   const commonFieldProps = {
@@ -67,7 +69,7 @@ const Step3 = () => {
   ];
 
   return (
-    <FormContainer onSubmit={handleSubmit}>
+    <FormContainer>
       <FormSection
         title="Clinical Details & Document Upload"
         subtitle="Enter your clinic information & document"
@@ -125,7 +127,12 @@ const Step3 = () => {
               <label className="block text-sm font-medium text-gray-700">
                 Map Location <span className="text-red-500">*</span>
               </label>
-              <MapLocation heightClass="h-32" />
+              <MapLocation 
+                heightClass="h-32" 
+                onChange={({ lat, lng }) => {
+                  setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                }}
+              />
             </div>
 
             {/* Block No and Road/Area/Street Row */}
@@ -235,6 +242,7 @@ const Step3 = () => {
             </div>
           </div>
         </div>
+  {/* Navigation handled by parent, no submit button here */}
       </FormSection>
     </FormContainer>
   );

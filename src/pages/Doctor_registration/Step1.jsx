@@ -1,4 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, forwardRef, useImperativeHandle, useRef } from 'react'
+import useDoctorStep1Store from "../../store/useDoctorStep1Store";
+import useImageUploadStore from "../../store/useImageUploadStore";
 import { 
   Input, 
   Upload, 
@@ -9,53 +11,74 @@ import {
   MFA
 } from '../../components/FormItems';
 
-const Step1 = () => {
-  const [formData, setFormData] = useState({
-    firstName: 'Milind',
-    lastName: 'Chauhan',
-    workEmail: 'milind.chauhan@gmail.com',
-    contactNumber: '91753 67487',
-    gender: 'Male',
-    city: 'Akola, Maharashtra',
-    emailVerification: true,
-    smsVerification: true
-  });
+const Step1 = forwardRef((props, ref) => {
+  const {
+    firstName,
+    lastName,
+    emailId,
+    phone,
+    gender,
+    city,
+    password,
+    mfa,
+    profilePhotoKey,
+    loading,
+    error,
+    success,
+    setField,
+    setMfaField,
+    submit,
+    reset
+  } = useDoctorStep1Store();
+
+  const uploadUrlData = useImageUploadStore((state) => state.uploadUrl);
+
+  useEffect(() => {
+    if (uploadUrlData && uploadUrlData.key) {
+      setField('profilePhotoKey', uploadUrlData.key);
+    }
+  }, [uploadUrlData, setField]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    if (name === "emailVerification" || name === "smsVerification") {
+      setMfaField(name === "emailVerification" ? "emailId" : "phone", checked);
+    } else {
+      setField(name, type === "checkbox" ? checked : value);
+    }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Form submitted:', formData);
-    alert('Account creation form submitted!');
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const result = await submit();
+    if (result) {
+      alert("Account created successfully!");
+      reset();
+      return true;
+    } else if (error) {
+      alert(error || "Registration failed");
+      return false;
+    }
+    return false;
   };
 
-  // Common form field props
-  const commonFieldProps = {
-    compulsory: true,
-    required: true
-  };
+  useImperativeHandle(ref, () => ({
+    submit: handleSubmit
+  }));
 
-  // Gender options
   const genderOptions = [
-    { value: "Male", label: "Male" },
-    { value: "Female", label: "Female" },
+    { value: "male", label: "Male" },
+    { value: "female", label: "Female" },
     { value: "Other", label: "Other" },
-    { value: "Prefer not to say", label: "Prefer not to say" }
+    { value: "Prefer not to say", label: "Prefer not to say" },
   ];
 
-  // City options
   const cityOptions = [
     { value: "Akola, Maharashtra", label: "Akola, Maharashtra" },
     { value: "Mumbai, Maharashtra", label: "Mumbai, Maharashtra" },
     { value: "Delhi, Delhi", label: "Delhi, Delhi" },
     { value: "Bangalore, Karnataka", label: "Bangalore, Karnataka" },
-    { value: "Chennai, Tamil Nadu", label: "Chennai, Tamil Nadu" }
+    { value: "Chennai, Tamil Nadu", label: "Chennai, Tamil Nadu" },
   ];
 
   return (
@@ -70,16 +93,16 @@ const Step1 = () => {
             <Input
               label="First Name"
               name="firstName"
-              value={formData.firstName}
+              value={firstName}
               onChange={handleInputChange}
-              {...commonFieldProps}
+              compulsory
             />
             <Input
               label="Last Name"
               name="lastName"
-              value={formData.lastName}
+              value={lastName}
               onChange={handleInputChange}
-              {...commonFieldProps}
+              compulsory
             />
           </FormFieldRow>
 
@@ -87,19 +110,19 @@ const Step1 = () => {
           <FormFieldRow>
             <Input
               label="Work Email"
-              name="workEmail"
+              name="emailId"
               type="email"
-              value={formData.workEmail}
+              value={emailId}
               onChange={handleInputChange}
-              {...commonFieldProps}
+              compulsory
             />
             <Input
               label="Contact Number"
-              name="contactNumber"
+              name="phone"
               type="tel"
-              value={formData.contactNumber}
+              value={phone}
               onChange={handleInputChange}
-              {...commonFieldProps}
+              compulsory
             />
           </FormFieldRow>
 
@@ -108,36 +131,47 @@ const Step1 = () => {
             <Dropdown
               label="Gender"
               name="gender"
-              value={formData.gender}
+              value={gender}
               onChange={handleInputChange}
               options={genderOptions}
-              {...commonFieldProps}
+              compulsory
             />
             <Dropdown
               label="City"
               name="city"
-              value={formData.city}
+              value={city}
               onChange={handleInputChange}
               options={cityOptions}
-              {...commonFieldProps}
+              compulsory
             />
           </FormFieldRow>
 
           {/* Upload Profile Picture */}
           <div>
-            <Upload label="Upload Profile Picture" compulsory={true} />
+            <Upload 
+              label="Upload Profile Picture" 
+              compulsory={true} 
+              onUpload={(key) => setField('profilePhotoKey', key)}
+            />
           </div>
 
-          {/* Multi-Factor Authentication */}
-          <MFA formData={formData} handleInputChange={handleInputChange} />
+          {/* Multi-Factor Authentication (always checked & disabled) */}
+          <MFA 
+            formData={{
+              emailVerification: true,
+              smsVerification: true
+            }} 
+            handleInputChange={handleInputChange} 
+            disabled={true}   // <-- pass down a disabled flag
+          />
 
-          {/* Add some bottom padding to ensure content doesn't get cut off by footer */}
           <div className="pb-8"></div>
         </div>
       </FormSection>
+
+  {/* No submit button here; handled by footer */}
     </FormContainer>
   );
-}
+});
 
-export default Step1
-
+export default Step1;

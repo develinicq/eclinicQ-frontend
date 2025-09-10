@@ -48,7 +48,7 @@ const plans = [
   },
 ];
 
-const Hos_6 = () => {
+const Step5 = () => {
   const { updateFormData, formData } = useRegistration();
   
   // keep track of selected plan
@@ -121,4 +121,4 @@ const Hos_6 = () => {
   );
 };
 
-export default Hos_6;
+export default Step5;
