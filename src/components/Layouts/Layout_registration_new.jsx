@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { createHospital } from '../../services/hospitalService';
+import useHospitalRegistrationStore from '../../store/useHospitalRegistrationStore';
 import { useRegistration } from "../../context/RegistrationContext";
 import SidebarSteps from "../Sidebar/SidebarSteps";
 import RegistrationFooter from "../RegistrationFooter";
@@ -63,6 +64,90 @@ const Layout_registration_new = () => {
     };
   };
 
+  // Build Hospital payload from context formData (prunes UI-only wizard fields)
+  const buildHospitalPayloadFromFormData = () => {
+    // Address
+    const address = {
+      blockNo: formData.blockNumber || '',
+      landmark: formData.landmark || '',
+      street: formData.roadAreaStreet || ''
+    };
+
+    // Documents
+    const documents = [];
+    if (formData.gstin) documents.push({ no: formData.gstin, type: 'GST', url: formData.gstinFile || '' });
+    if (formData.stateHealthReg) documents.push({ no: formData.stateHealthReg, type: 'State Health Reg No', url: formData.stateHealthRegFile || '' });
+    if (formData.panCard) documents.push({ no: formData.panCard, type: 'Pan Card', url: formData.panCardFile || '' });
+    if (formData.cinNumber) documents.push({ no: formData.cinNumber, type: 'CIN', url: formData.cinFile || '' });
+    if (formData.rohiniId) documents.push({ no: formData.rohiniId, type: 'Rohini ID', url: formData.rohiniFile || '' });
+    if (formData.nabhAccreditation) documents.push({ no: formData.nabhAccreditation, type: 'NABH', url: formData.nabhFile || '' });
+
+    // Operating Hours
+    const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+    const operatingHours = days.map(day => ({
+      dayOfWeek: day,
+      isAvailable: (formData.operatingHours || []).includes(day.charAt(0).toUpperCase() + day.slice(1)),
+      is24Hours: formData[`${day}24Hours`] || false,
+      timeRanges: [
+        { startTime: formData[`${day}StartTime`] || "09:00", endTime: formData[`${day}EndTime`] || "18:00" }
+      ]
+    }));
+
+    // Compose payload with exact API shape
+    const payload = {
+      name: formData.hospitalName,
+      type: formData.hospitalType,
+      emailId: formData.hospitalEmail,
+      phone: formData.hospitalContact,
+      address,
+      city: formData.city,
+      state: formData.state,
+      pincode: formData.pincode,
+      url: formData.website,
+      logo: formData.logoKey || '',
+      image: formData.hospitalImageKey || '',
+      latitude: formData.latitude || 0,
+      longitude: formData.longitude || 0,
+      medicalSpecialties: formData.medicalSpecialties || [],
+      hospitalServices: formData.hospitalServices || [],
+      establishmentYear: formData.establishedYear,
+      noOfBeds: formData.numberOfBeds,
+      accreditation: formData.accreditations || [],
+      adminId: formData.adminId || '',
+      documents,
+      operatingHours
+    };
+
+    // Prune empty values
+    const prune = (obj) => {
+      if (Array.isArray(obj)) {
+        return obj
+          .map((v) => (typeof v === 'object' && v !== null ? prune(v) : v))
+          .filter((v) => v !== undefined && v !== null && v !== '');
+      }
+      if (typeof obj === 'object' && obj !== null) {
+        const out = {};
+        Object.entries(obj).forEach(([k, v]) => {
+          if (v === undefined || v === null || v === '') return;
+          const nv = typeof v === 'object' ? prune(v) : v;
+          if (
+            nv === undefined ||
+            nv === null ||
+            (Array.isArray(nv) && nv.length === 0) ||
+            (typeof nv === 'object' && !Array.isArray(nv) && Object.keys(nv).length === 0)
+          )
+            return;
+          out[k] = nv;
+        });
+        return out;
+      }
+      return obj;
+    };
+
+    return prune(payload);
+  };
+
+  const store = useHospitalRegistrationStore();
   const handleNext = async () => {
     if (registrationType === 'doctor') {
       // Step 1: trigger form submit via ref, only move if valid
@@ -202,8 +287,8 @@ const Layout_registration_new = () => {
             if (formData.hosTermsAccepted && formData.hosPrivacyAccepted) {
               setFooterLoading(true);
               try {
-                const payload = { ...formData };
-                await createHospital(payload);
+                // Prefer store payload to capture Hos_3 values
+                await store.submit();
                 nextStep();
               } catch (err) {
                 alert(err?.message || 'Submission failed');
@@ -235,8 +320,7 @@ const Layout_registration_new = () => {
         // On Step 6 (Hos_6), POST to API before moving to Step 7
         setFooterLoading(true);
         try {
-          const payload = { ...formData, hosSelectedPlan: formData.hosSelectedPlan };
-          await createHospital(payload);
+          await store.submit();
           nextStep();
         } catch (err) {
           alert(err?.message || 'Submission failed');
