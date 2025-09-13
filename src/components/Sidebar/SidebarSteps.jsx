@@ -1,16 +1,25 @@
 import React from "react";
 import { Check, FileText, User, Building2, ClipboardList, CreditCard, Stethoscope, CheckCircle, Package, ChevronRight } from "lucide-react";
 import { useRegistration } from "../../context/RegistrationContext"; 
+// Use centralized image exports from public/index.js
+import {
+  accountBlue,
+  stethoscopeBlue,
+  documentBlue,
+  reviewBlue,
+  packageBlue,
+  hospitalIcon,
+} from "../../../public/index.js";
 
 const doctorSteps = [
   { 
     id: 1, 
     title: "Account Creation", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Account/account_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Account" 
+      <img
+        src={accountBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Account"
       />
     )
   },
@@ -18,10 +27,10 @@ const doctorSteps = [
     id: 2, 
     title: "Professional Details", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Doctor/sthesoscope_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Stethoscope" 
+      <img
+        src={stethoscopeBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Stethoscope"
       />
     )
   },
@@ -29,10 +38,10 @@ const doctorSteps = [
     id: 3, 
     title: "Documents Verification", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Document/document_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Document" 
+      <img
+        src={documentBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Document"
       />
     )
   },
@@ -40,10 +49,10 @@ const doctorSteps = [
     id: 4, 
     title: "Review & Create", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Review/review_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Review" 
+      <img
+        src={reviewBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Review"
       />
     )
   },
@@ -51,10 +60,10 @@ const doctorSteps = [
     id: 5, 
     title: "Package & Payment", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Package/package_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Package" 
+      <img
+        src={packageBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Package"
       />
     )
   },
@@ -66,10 +75,10 @@ const hospitalSteps = [
     id: 1, 
     title: "Account Creation", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Account/account_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Account" 
+      <img
+        src={accountBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Account"
       />
     )
   },
@@ -77,10 +86,10 @@ const hospitalSteps = [
     id: 2, 
     title: "Doctor Registration", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Doctor/sthesoscope_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Stethoscope" 
+      <img
+        src={stethoscopeBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Stethoscope"
       />
     )
   },
@@ -88,10 +97,10 @@ const hospitalSteps = [
     id: 3, 
     title: "Hospital Details", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Hospital/hospital.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Document" 
+      <img
+        src={hospitalIcon}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Hospital"
       />
     )
   },
@@ -99,10 +108,10 @@ const hospitalSteps = [
     id: 4, 
     title: "Documents Verification", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Document/document_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Document" 
+      <img
+        src={documentBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Document"
       />
     )
   },
@@ -110,10 +119,10 @@ const hospitalSteps = [
     id: 5, 
     title: "Review & Create", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Review/review_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Review" 
+      <img
+        src={reviewBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Review"
       />
     )
   },
@@ -121,10 +130,10 @@ const hospitalSteps = [
     id: 6, 
     title: "Package & Payment", 
     icon: (isCompleted, isCurrent) => (
-      <img 
-        src="/icons/Sidebar/Registration_Steps/Package/package_blue.png" 
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`} 
-        alt="Package" 
+      <img
+        src={packageBlue}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Package"
       />
     )
   },
@@ -184,7 +193,7 @@ export default function SidebarSteps({ currentStep }) {
             const isCompleted = adjustedStepNumber < currentStep;
             const isCurrent = adjustedStepNumber === currentStep;
             const isUpcoming = adjustedStepNumber > currentStep;
-            const isLast = index === steps.length - 1;
+            // removed unused variable isLast
 
             return (
               <div key={step.id} className="flex items-center group cursor-pointer">

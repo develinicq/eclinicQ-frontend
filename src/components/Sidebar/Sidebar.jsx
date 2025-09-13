@@ -1,14 +1,56 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, User, Hospital, Users, Settings, HelpCircle, ArrowRight } from "lucide-react";
+import { HelpCircle, ArrowRight } from "lucide-react";
+// Use icons from public/index.js (MainSidebar icons)
+import {
+  logo,
+  dashboardSelected,
+  dashboardUnselect,
+  doctorSelect,
+  doctorUnselect,
+  hospitalSelected,
+  hospitalUnselect,
+  patientUnselect,
+  settingUnselect,
+} from "../../../public/index.js";
 
 const Sidebar = () => {
   const menuItems = [
-    { name: "Dashboard", icon: <Home size={18} />, path: "/dashboard" },
-    { name: "Doctors", icon: <User size={18} />, path: "/doctor" },
-    { name: "Hospitals", icon: <Hospital size={18} />, path: "/hospital" },
-    { name: "Patients", icon: <Users size={18} />, path: "/patients" },
-    { name: "Settings", icon: <Settings size={18} />, path: "/settings" },
+    {
+      name: "Dashboard",
+      iconSelected: dashboardSelected,
+      iconUnselected: dashboardUnselect,
+      path: "/dashboard",
+      alt: "Dashboard",
+    },
+    {
+      name: "Doctors",
+  iconSelected: doctorSelect,
+  iconUnselected: doctorUnselect,
+      path: "/doctor",
+      alt: "Doctors",
+    },
+    {
+      name: "Hospitals",
+  iconSelected: hospitalSelected,
+  iconUnselected: hospitalUnselect,
+      path: "/hospital",
+      alt: "Hospitals",
+    },
+    {
+      name: "Patients",
+      iconSelected: patientUnselect,
+      iconUnselected: patientUnselect,
+      path: "/patients",
+      alt: "Patients",
+    },
+    {
+      name: "Settings",
+      iconSelected: settingUnselect,
+      iconUnselected: settingUnselect,
+      path: "/settings",
+      alt: "Settings",
+    },
   ];
 
   return (
@@ -17,11 +59,7 @@ const Sidebar = () => {
       <div>
         {/* Logo */}
         <div className="px-4 py-3">
-          <img
-            src="/logo.png"
-            alt="logo"
-            className="w-[128px] h-auto"
-          />
+          <img src={logo} alt="logo" className="w-[128px] h-auto" />
         </div>
 
         {/* Menu Items */}
@@ -38,8 +76,16 @@ const Sidebar = () => {
                 }`
               }
             >
-              {item.icon}
-              <span className="font-normal text-sm">{item.name}</span>
+              {({ isActive }) => (
+                <>
+                  <img
+                    src={isActive ? item.iconSelected : item.iconUnselected}
+                    alt={item.alt}
+                    className="w-5 h-5"
+                  />
+                  <span className="font-normal text-sm">{item.name}</span>
+                </>
+              )}
             </NavLink>
           ))}
         </nav>

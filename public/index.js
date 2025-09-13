@@ -27,6 +27,19 @@ import packageBlue from './icons/Sidebar/Registration_Steps/Package/package_blue
 import review from './icons/Sidebar/Registration_Steps/Review/review.png';
 import reviewBlue from './icons/Sidebar/Registration_Steps/Review/review_blue.png';
 
+// Sidebar MainSidebar Icons
+import dashboardSelected from './icons/Sidebar/MainSidebar/dashboard_selected.png';
+import dashboardUnselect from './icons/Sidebar/MainSidebar/dashboard_unselect.png';
+import doctorSelect from './icons/Sidebar/MainSidebar/doctor_select.png';
+import doctorUnselect from './icons/Sidebar/MainSidebar/doctor_unselect.png';
+import hospitalSelected from './icons/Sidebar/MainSidebar/hos_selected.png';
+import hospitalUnselect from './icons/Sidebar/MainSidebar/hospital_unselect.png';
+import patientUnselect from './icons/Sidebar/MainSidebar/patient_unselect.png';
+import settingUnselect from './icons/Sidebar/MainSidebar/setting_unselect.png';
+
+// Navbar icons
+import bell from './icons/Navbar/bell.png';
+
 export {
   // Root PNGs
   checkbox,
@@ -52,5 +65,17 @@ export {
   packageIcon,
   packageBlue,
   review,
-  reviewBlue
+  reviewBlue,
+  // Sidebar MainSidebar Icons
+  dashboardSelected,
+  dashboardUnselect,
+  doctorSelect,
+  doctorUnselect,
+  hospitalSelected,
+  hospitalUnselect,
+  patientUnselect,
+  settingUnselect
+  ,
+  // Navbar icons
+  bell
 };

@@ -1,6 +1,7 @@
-import { ChevronDown , BellIcon, Stethoscope, Building2 } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { bell, stethoscopeBlue, hospitalIcon } from '../../public/index.js'
 
 const Partition = () => {
   return (
@@ -34,7 +35,7 @@ const AddNewDropdown = ({ isOpen, onClose }) => {
           className=" rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
         >
           <div className="w-4 h-4 ml-1 flex items-center justify-center">
-            <img src="/icons/Sidebar/Registration_Steps/Doctor/sthesoscope_blue.png" alt="" />
+            <img src={stethoscopeBlue} alt="Add Doctor" />
           </div>
           <span className="text-[#424242] font-normal text-sm">Add Doctor</span>
         </button>
@@ -44,7 +45,7 @@ const AddNewDropdown = ({ isOpen, onClose }) => {
           className="w-full rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
         >
           <div className="w-4 h-4 flex items-center justify-center ml-1">
-            <img src="/icons/Sidebar/Registration_Steps/Hospital/hospital.png" alt="" />
+            <img src={hospitalIcon} alt="Add Hospital" />
           </div>
           <span className="text-[#424242] font-normal text-sm">Add Hospital</span>
         </button>
@@ -108,7 +109,7 @@ const Navbar = () => {
             </div>
 
             {/* Bell icon */}
-            <BellIcon className="w-5 h-5" />
+            <img src={bell} alt="Notifications" className="w-5 h-5" />
           </div>
 
           <Partition/>
