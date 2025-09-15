@@ -8,30 +8,63 @@ import {
   FormSection,
   FormFieldRow
 } from '../../components/FormItems';
+import useDoctorRegistrationStore from '../../store/useDoctorRegistrationStore';
 
 const Hos_2 = () => {
-  // Doctor registration form data
-  const [doctorFormData, setDoctorFormData] = useState({
-    councilNumber: "",
-    councilName: "",
-    regYear: "",
-    graduation: "",
-    graduationCollege: "",
-    graduationYear: "",
-    hasPG: "", 
-    pgDegree: "",
-    pgCollege: "",
-    pgYear: "",
-    specialization: "",
-    experience: "",
-  });
+  // Use Doctor Registration Store to keep data for submission at Hos_6
+  const drStore = useDoctorRegistrationStore();
+  const { setField } = drStore;
+  // Minimal local state to control PG conditional fields
+  const [hasPG, setHasPG] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setDoctorFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    switch (name) {
+      case 'councilNumber':
+        setField('medicalCouncilRegNo', value);
+        break;
+      case 'councilName':
+        setField('medicalCouncilName', value);
+        break;
+      case 'regYear':
+        setField('medicalCouncilRegYear', value);
+        break;
+      case 'graduation':
+        setField('medicalDegreeType', value);
+        break;
+      case 'graduationCollege':
+        setField('medicalDegreeUniversityName', value);
+        break;
+      case 'graduationYear':
+        setField('medicalDegreeYearOfCompletion', value);
+        break;
+      case 'hasPG':
+        setHasPG(value);
+        // Clear PG fields if toggled to 'no'
+        if (value !== 'yes') {
+          setField('pgMedicalDegreeType', '');
+          setField('pgMedicalDegreeUniversityName', '');
+          setField('pgMedicalDegreeYearOfCompletion', '');
+        }
+        break;
+      case 'pgDegree':
+        setField('pgMedicalDegreeType', value);
+        break;
+      case 'pgCollege':
+        setField('pgMedicalDegreeUniversityName', value);
+        break;
+      case 'pgYear':
+        setField('pgMedicalDegreeYearOfCompletion', value);
+        break;
+      case 'specialization':
+        setField('specialization', value);
+        break;
+      case 'experience':
+        setField('experienceYears', value);
+        break;
+      default:
+        break;
+    }
   };
 
   const commonFieldProps = {
@@ -55,14 +88,14 @@ const Hos_2 = () => {
               <Input
                 label="Medical Council Registration Number"
                 name="councilNumber"
-                value={doctorFormData.councilNumber}
+                value={drStore.medicalCouncilRegNo || ''}
                 onChange={handleInputChange}
                 {...commonFieldProps}
               />
               <Dropdown
                 label="Registration Council"
                 name="councilName"
-                value={doctorFormData.councilName}
+                value={drStore.medicalCouncilName || ''}
                 onChange={handleInputChange}
                 options={[
                   { value: "Maharashtra Medical Council", label: "Maharashtra Medical Council" },
@@ -77,7 +110,7 @@ const Hos_2 = () => {
                 <Input
                   label="Registration Year"
                   name="regYear"
-                  value={doctorFormData.regYear}
+                  value={drStore.medicalCouncilRegYear || ''}
                   onChange={handleInputChange}
                   {...commonFieldProps}
                 />
@@ -99,14 +132,14 @@ const Hos_2 = () => {
               <Input
                 label="Graduation Degree"
                 name="graduation"
-                value={doctorFormData.graduation}
+                value={drStore.medicalDegreeType || ''}
                 onChange={handleInputChange}
                 {...commonFieldProps}
               />
               <Input
                 label="Graduation College"
                 name="graduationCollege"
-                value={doctorFormData.graduationCollege}
+                value={drStore.medicalDegreeUniversityName || ''}
                 onChange={handleInputChange}
                 {...commonFieldProps}
               />
@@ -115,7 +148,7 @@ const Hos_2 = () => {
               <Input
                 label="Graduation Year"
                 name="graduationYear"
-                value={doctorFormData.graduationYear}
+                value={drStore.medicalDegreeYearOfCompletion || ''}
                 onChange={handleInputChange}
                 {...commonFieldProps}
               />
@@ -128,20 +161,20 @@ const Hos_2 = () => {
             <Radio
               label="Do you have Post Graduation Degree?"
               name="hasPG"
-              value={doctorFormData.hasPG}
+              value={hasPG}
               onChange={handleInputChange}
               options={[
                 { value: "yes", label: "Yes" },
                 { value: "no", label: "No" }
               ]}
             />
-            {doctorFormData.hasPG === "yes" && (
+            {hasPG === "yes" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-4">
                   <Dropdown
                     label="Post Graduate Degree"
                     name="pgDegree"
-                    value={doctorFormData.pgDegree}
+                    value={drStore.pgMedicalDegreeType || ''}
                     onChange={handleInputChange}
                     options={[
                       { value: "MD", label: "MD" },
@@ -156,7 +189,7 @@ const Hos_2 = () => {
                   <Input
                     label="Year of Completion"
                     name="pgYear"
-                    value={doctorFormData.pgYear}
+                    value={drStore.pgMedicalDegreeYearOfCompletion || ''}
                     onChange={handleInputChange}
                     {...commonFieldProps}
                   />
@@ -165,7 +198,7 @@ const Hos_2 = () => {
                   <Input
                     label="College/ University"
                     name="pgCollege"
-                    value={doctorFormData.pgCollege}
+                    value={drStore.pgMedicalDegreeUniversityName || ''}
                     onChange={handleInputChange}
                     placeholder="Search or Enter College"
                     {...commonFieldProps}
@@ -190,14 +223,14 @@ const Hos_2 = () => {
               <Input
                 label="Specialization"
                 name="specialization"
-                value={doctorFormData.specialization}
+                value={typeof drStore.specialization === 'object' ? (drStore.specialization?.name || drStore.specialization?.value || '') : (drStore.specialization || '')}
                 onChange={handleInputChange}
                 {...commonFieldProps}
               />
               <Input
                 label="Years of Experience"
                 name="experience"
-                value={doctorFormData.experience}
+                value={drStore.experienceYears || ''}
                 onChange={handleInputChange}
                 {...commonFieldProps}
               />

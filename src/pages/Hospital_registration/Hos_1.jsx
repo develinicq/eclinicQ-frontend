@@ -14,7 +14,6 @@ const Hos_1 = forwardRef((props, ref) => {
   const { updateFormData } = useRegistration();
 
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState(null);
   const [success, setSuccess] = React.useState(null);
 
   const handleInputChange = (e) => {
@@ -30,7 +29,8 @@ const Hos_1 = forwardRef((props, ref) => {
   };
 
   const handleMfaChange = (mfaField, value) => {
-    setMfa(mfaField, value);
+    // Keep MFA always enabled; ignore attempts to uncheck
+    setMfa(mfaField, true);
   };
 
   const handleUpload = (key) => {
@@ -41,7 +41,6 @@ const Hos_1 = forwardRef((props, ref) => {
   useImperativeHandle(ref, () => ({
     async submit() {
       setLoading(true);
-      setError(null);
       setSuccess(null);
       try {
         await submit();
@@ -49,8 +48,9 @@ const Hos_1 = forwardRef((props, ref) => {
         setLoading(false);
         return true;
       } catch (err) {
-        setError(err?.response?.data?.message || err.message || 'Submission failed');
-        setLoading(false);
+  const msg = err?.response?.data?.message || err.message || 'Submission failed';
+  setLoading(false);
+  alert(msg);
         return false;
       }
     }
@@ -142,33 +142,40 @@ const Hos_1 = forwardRef((props, ref) => {
               {...commonFieldProps}
             />
           </FormFieldRow>
-          <div>
-            <Upload label="Upload Profile Picture" compulsory={true} onUpload={handleUpload} />
-            {form.profilePhotoKey && (
-              <div className="text-xs text-green-600 mt-1">Image uploaded!</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <Radio
+              label="This Hospital Owner is also Practicing Doctor"
+              name="isAlsoDoctor"
+              compulsory={true}
+              value={form.isAlsoDoctor ? 'yes' : 'no'}
+              onChange={handleInputChange}
+              stacked={true}
+              options={[
+                { value: 'yes', label: 'Yes' },
+                { value: 'no', label: 'No' }
+              ]}
+            />
+            {form.isAlsoDoctor ? (
+              <div>
+                <Upload label="Upload Profile Picture" compulsory={true} onUpload={handleUpload} />
+                {form.profilePhotoKey && (
+                  <div className="text-xs text-green-600 mt-1">Image uploaded!</div>
+                )}
+                <p className="text-xs text-gray-400 mt-1">Support Size upto 1MB .png, .jpg, .svg, .webp</p>
+              </div>
+            ) : (
+              <div className="hidden md:block" />
             )}
           </div>
-          <Radio
-            label="Are you a doctor?"
-            name="isAlsoDoctor"
-            compulsory={true}
-            value={form.isAlsoDoctor ? 'yes' : 'no'}
-            onChange={handleInputChange}
-            options={[
-              { value: 'yes', label: 'Yes' },
-              { value: 'no', label: 'No' }
-            ]}
-          />
           <MFA
-            formData={form.mfa}
-            handleInputChange={(e) => handleMfaChange(e.target.name, e.target.checked)}
+            formData={{ emailVerification: true, smsVerification: true }}
+            handleInputChange={(e) => handleMfaChange(e.target.name, true)}
+            disabled={true}
           />
-          {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
           {success && <div className="text-green-600 text-sm mt-2">{success}</div>}
           <div className="pb-8"></div>
         </div>
       </FormSection>
-  {/* Submit button removed; submission is now triggered by parent via ref and Save & Next in footer */}
     </FormContainer>
   );
 });

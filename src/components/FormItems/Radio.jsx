@@ -9,10 +9,11 @@ const Radio = ({
   onChange,
   options,
   required = false,
-  disabled = false
+  disabled = false,
+  stacked = false,
 }) => {
   return (
-    <div className={`${className} flex gap-6`}>
+    <div className={`${className} ${stacked ? 'flex flex-col gap-2' : 'flex gap-6'}`}>
       <div className='flex gap-1 items-center'>
         <label className='text-sm font-medium text-gray-700'>
           {label}
@@ -22,7 +23,7 @@ const Radio = ({
         )}
       </div>
       
-      <div className="flex gap-6">
+      <div className={`${stacked ? 'mt-1' : ''} flex gap-6`}>
         {options.map((option) => (
           <label key={option.value} className="flex items-center gap-2">
             <input

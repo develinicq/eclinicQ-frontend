@@ -175,14 +175,24 @@ const Layout_registration_new = () => {
           }
         }
       } else if (currentStep === 5) {
-        // On Step 5, submit all data to API, then go to Step 6
+        // On Step 5, submit all data to API, then go to Step 6 ONLY on OK
         setFooterLoading(true);
-        const apiData = mapToApiSchema();
-        // TODO: Add your API call or form submission logic here
-        // Example: await api.submit(apiData);
-        setFooterLoading(false);
-        alert('Registration successful!');
-        nextStep();
+        try {
+          // Use the centralized doctor registration store submit
+          const dr = require('../../store/useDoctorRegistrationStore');
+          const useDoctorRegistrationStore = dr?.default || dr;
+          if (!useDoctorRegistrationStore) throw new Error('Registration store not available');
+          const ok = await useDoctorRegistrationStore.getState().submit();
+          if (ok === true) {
+            nextStep();
+          } else {
+            alert('Submission failed. Please fix errors and try again.');
+          }
+        } catch (err) {
+          alert(err?.message || 'Submission failed');
+        } finally {
+          setFooterLoading(false);
+        }
       } else if (currentStep === 6) {
         // Navigate to doctor profile/dashboard
         navigate('/doctor');
@@ -288,8 +298,12 @@ const Layout_registration_new = () => {
               setFooterLoading(true);
               try {
                 // Prefer store payload to capture Hos_3 values
-                await store.submit();
-                nextStep();
+                const ok = await store.submit();
+                if (ok) {
+                  nextStep();
+                } else {
+                  alert('Submission failed. Please review and try again.');
+                }
               } catch (err) {
                 alert(err?.message || 'Submission failed');
               } finally {
@@ -317,10 +331,27 @@ const Layout_registration_new = () => {
           }
         }
       } else if (currentStep === 6) {
-        // On Step 6 (Hos_6), POST to API before moving to Step 7
+        // On Step 6 (Hos_6), if user is a doctor, first post doctor details, then proceed
         setFooterLoading(true);
         try {
-          await store.submit();
+          if (formData.isDoctor === 'yes') {
+            const dr = require('../../store/useDoctorRegistrationStore');
+            const useDoctorRegistrationStore = dr?.default || dr;
+            if (useDoctorRegistrationStore) {
+              const ok = await useDoctorRegistrationStore.getState().submit();
+              if (!ok) {
+                throw new Error('Doctor details submission failed');
+              }
+            }
+          }
+          // Only submit hospital here when isDoctor is 'yes'.
+          let hosOk = true;
+          if (formData.isDoctor === 'yes') {
+            hosOk = await store.submit();
+            if (!hosOk) {
+              throw new Error('Hospital creation failed');
+            }
+          }
           nextStep();
         } catch (err) {
           alert(err?.message || 'Submission failed');
@@ -582,7 +613,10 @@ const Layout_registration_new = () => {
           currentStep={currentStep}
           maxSteps={maxSteps}
           nextLabel={nextLabel}
-          disablePrev={registrationType === 'doctor' && (currentStep === 1 || currentStep === 2 || currentStep === 6)}
+          disablePrev={
+            (registrationType === 'doctor' && (currentStep === 1 || currentStep === 2 || currentStep === 6)) ||
+            (registrationType === 'hospital' && currentStep === 2 && ((formData.hosStep3SubStep || 1) === 1))
+          }
           loading={footerLoading}
         />
       </div>

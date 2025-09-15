@@ -63,63 +63,114 @@ const useHospitalRegistrationStore = create((set, get) => ({
     set({ loading: true, error: null, success: false });
     try {
       const state = get();
+      // Ensure adminId from step 1 is present
+      if (!state.adminId || String(state.adminId).trim() === '') {
+        throw new Error('Missing adminId. Please complete Step 1 (Owner Account Creation) first.');
+      }
       const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
       const toTitle = (d) => d.charAt(0).toUpperCase() + d.slice(1);
 
-      // Always include all fields (empty strings/arrays/0 when not set)
+      // Build address object as required by backend
+      const addressObj = {
+        blockNo: state.address?.blockNo || '',
+        street: state.address?.street || '',
+        landmark: state.address?.landmark || '',
+      };
+
+      // Coerce numeric fields where applicable
+      const toNumberOr = (v, fallback) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+      };
+      const latitude = state.latitude !== '' && state.latitude !== null && state.latitude !== undefined ? toNumberOr(state.latitude, 0) : 0;
+      const longitude = state.longitude !== '' && state.longitude !== null && state.longitude !== undefined ? toNumberOr(state.longitude, 0) : 0;
+      const noOfBeds = state.noOfBeds !== '' && state.noOfBeds !== null && state.noOfBeds !== undefined ? toNumberOr(state.noOfBeds, 0) : 0;
+      // Backend requires Establishment year as string
+      const establishmentYear = state.establishmentYear !== undefined && state.establishmentYear !== null
+        ? String(state.establishmentYear)
+        : '';
+
+      // Operating hours: include only selected days, uppercase dayOfWeek, allow empty timeRanges when 24h
+      const selectedDays = Array.isArray(state.operatingHours) ? state.operatingHours : [];
+      const toLower = (s) => String(s || '').toLowerCase();
+      const toUpper = (s) => String(s || '').toUpperCase();
+      const opHours = selectedDays.map((title) => {
+        const dlow = toLower(title);
+        const is24Hours = !!state[`${dlow}24Hours`];
+        const startTime = state[`${dlow}StartTime`] || '09:00';
+        const endTime = state[`${dlow}EndTime`] || '18:00';
+        return {
+          dayOfWeek: toUpper(title),
+          isAvailable: true,
+          is24Hours,
+          timeRanges: is24Hours ? [] : [{ startTime, endTime }],
+        };
+      });
+
+      const toStringArray = (arr) => {
+        if (!Array.isArray(arr)) return [];
+        return arr
+          .map((v) => {
+            if (v == null) return '';
+            if (typeof v === 'string') return v;
+            if (typeof v === 'object') return v.name || v.value || '';
+            return String(v);
+          })
+          .map((s) => String(s).trim())
+          .filter((s) => s.length > 0);
+      };
+
+      const sanitizeDocuments = (docs) => {
+        if (!Array.isArray(docs)) return [];
+        const out = [];
+        for (const d of docs) {
+          const url = String((d && d.url) || '').trim();
+          const type = String((d && d.type) || '').trim();
+          const noVal = (d && d.no) != null ? String(d.no).trim() : '';
+          if (!url || !type || !noVal) continue; // essentials required
+          const docOut = { type, url, no: noVal };
+          const nameRaw = String((d && d.name) || '').trim();
+          if (nameRaw) docOut.name = nameRaw;
+          out.push(docOut);
+        }
+        return out;
+      };
+
       const body = {
         name: state.name || '',
         type: state.type || '',
-        emailId: state.emailId || '',
-        phone: state.phone || '',
-        address: {
-          blockNo: state.address?.blockNo || '',
-          landmark: state.address?.landmark || '',
-          street: state.address?.street || '',
-        },
+        emailId: String(state.emailId || ''),
+        phone: String(state.phone || ''),
+        address: addressObj,
         city: state.city || '',
         state: state.state || '',
-        pincode: state.pincode || '',
+        pincode: String(state.pincode || ''),
         url: state.url || '',
         logo: state.logo || '',
         image: state.image || '',
-        latitude: state.latitude !== '' && state.latitude !== null && state.latitude !== undefined ? Number(state.latitude) : 0,
-        longitude: state.longitude !== '' && state.longitude !== null && state.longitude !== undefined ? Number(state.longitude) : 0,
-        medicalSpecialties: Array.isArray(state.medicalSpecialties) ? state.medicalSpecialties : [],
-        hospitalServices: Array.isArray(state.hospitalServices) ? state.hospitalServices : [],
-        establishmentYear: state.establishmentYear || '', // string per example
-        noOfBeds: state.noOfBeds !== '' && state.noOfBeds !== null && state.noOfBeds !== undefined ? Number(state.noOfBeds) : 0,
-        accreditation: Array.isArray(state.accreditation) ? state.accreditation : [],
-        adminId: state.adminId || '',
-        // Keep document numbers as strings (GSTIN/CIN/PAN can be alphanumeric)
-        documents: Array.isArray(state.documents)
-          ? state.documents.map((doc) => ({
-              no: (doc && doc.no) != null ? String(doc.no) : '',
-              type: (doc && doc.type) || '',
-              url: (doc && doc.url) || '',
-            }))
-          : [],
-        operatingHours: days.map((day) => {
-          const isAvailable = Array.isArray(state.operatingHours) ? state.operatingHours.includes(toTitle(day)) : false;
-          const is24Hours = !!state[`${day}24Hours`];
-          const startTime = state[`${day}StartTime`] || '09:00';
-          const endTime = state[`${day}EndTime`] || '18:00';
-          return {
-            dayOfWeek: day,
-            isAvailable,
-            is24Hours,
-            timeRanges: [
-              { startTime, endTime }
-            ],
-          };
-        }),
+        latitude,
+        longitude,
+        medicalSpecialties: toStringArray(state.medicalSpecialties),
+        hospitalServices: toStringArray(state.hospitalServices),
+        accreditation: toStringArray(state.accreditation),
+        establishmentYear,
+        noOfBeds,
+        adminId: String(state.adminId || ''),
+        documents: sanitizeDocuments(state.documents),
+        operatingHours: opHours,
       };
 
       const res = await axiosInstance.post('/hospitals/create', body);
-      if (!res || res.status !== 200) throw new Error('Failed to submit');
+      const httpOk = !!res && res.status >= 200 && res.status < 300;
+      const data = res?.data || {};
+      const apiOk = data.ok === true || data.success === true || /created|success/i.test(String(data.message || ''));
+      if (!httpOk || !apiOk) throw new Error(data?.message || 'Failed to submit');
       set({ loading: false, success: true });
+      return true;
     } catch (error) {
-      set({ loading: false, error: error.message, success: false });
+      const msg = error?.response?.data?.message || error.message || 'Failed to submit';
+      set({ loading: false, error: msg, success: false });
+      return false;
     }
   },
 }));

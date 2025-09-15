@@ -13,7 +13,9 @@ axiosInstance.interceptors.request.use(
       const { token } = useAuthStore.getState();
       if (token) {
         config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${token}`;
+        const raw = String(token).trim();
+        const hasBearer = /^Bearer\s+/i.test(raw);
+        config.headers.Authorization = hasBearer ? raw : `Bearer ${raw}`;
       }
     } catch (e) {
       // ignore
