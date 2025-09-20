@@ -11,6 +11,9 @@ import MainPageHos from "./pages/HospitalList/HospitalInfo/MainPageHos";
 import { RegistrationProvider } from "./context/RegistrationContext";
 import DummyLogin from "./pages/DummyLogin";
 import GetStarted from "./pages/GetStarted";
+import Onboarding from "./DoctorModule/Pages/Onboarding";
+import Verification from "./DoctorModule/Pages/Verification";
+import ActivationSuccess from "./DoctorModule/Pages/ActivationSuccess";
 
 function App() {
   return (
@@ -40,6 +43,9 @@ function App() {
           </RegistrationProvider>
         } />
       </Route>
+      <Route path="onboarding" element={<Onboarding />} />
+  <Route path="verification" element={<Verification />} />
+  <Route path="activated" element={<ActivationSuccess />} />
     </Routes>
   );
 }

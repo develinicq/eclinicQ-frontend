@@ -2,7 +2,7 @@ import React from "react";
 import { useRegistration } from "../context/RegistrationContext";
 import useDoctorRegistrationStore from '../store/useDoctorRegistrationStore';
 
-const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next →", disablePrev = false }) => {
+const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next", disablePrev = false }) => {
   const { registrationType, formData } = useRegistration();
   const isHospital = registrationType === 'hospital';
   const hospitalOwnerAlsoDoctor = isHospital && String(formData?.isDoctor || 'no') === 'yes';
