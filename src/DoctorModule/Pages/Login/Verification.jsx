@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/Button';
+import Button from '../../../components/Button';
 
 const Box = ({
   value,
@@ -25,7 +25,7 @@ const Box = ({
   />
 );
 
-export default function Verification() {
+export default function Verification({ onVerified }) {
   const [mobile, setMobile] = useState(Array(6).fill(''));
   const [email, setEmail] = useState(Array(6).fill(''));
   const navigate = useNavigate();
@@ -132,7 +132,10 @@ export default function Verification() {
           </div>
 
           {/* Verify button */}
-          <Button className="w-full" variant="primary" disabled={!isComplete} onClick={() => navigate('/activated')}>
+          <Button className="w-full" variant="primary" disabled={!isComplete} onClick={() => {
+            if (onVerified) return onVerified();
+            navigate('/activated');
+          }}>
             Verify
           </Button>
         </div>

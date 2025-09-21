@@ -2,16 +2,6 @@
 import { ArrowDownRight, ArrowUpRight, CalendarCheck, Users } from 'lucide-react'
 import React from 'react'
 
-/**
- * Overview_cards component
- * Props:
- * - title: string
- * - value: number | string
- * - percent: number | string
- * - periodText: string (e.g., "from last month")
- * - variant: 'profit' | 'loss' (controls green vs red styling)
- * - icon: optional React element to show in the right circular badge
- */
 const Overview_cards = ({
   title = 'Title',
   value = 0,

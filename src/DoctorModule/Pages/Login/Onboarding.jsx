@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/Button';
-import PasswordRequirements from '../../components/FormItems/PasswordRequirements';
-import PasswordStrengthBar from '../../components/FormItems/PasswordStrengthBar';
-import DoctorInfoCard from '../Components/DoctorInfoCard';
-import Input from '../../components/FormItems/Input';
+import Button from '../../../components/Button';
+import PasswordRequirements from '../../../components/FormItems/PasswordRequirements';
+import PasswordStrengthBar from '../../../components/FormItems/PasswordStrengthBar';
+import DoctorInfoCard from '../../Components/Login/DoctorInfoCard';
+import Input from '../../../components/FormItems/Input';
 
-const Onboarding = () => {
+const Onboarding = ({ onContinue }) => {
 
   const [formData, setFormData] = useState({
     password: '',
@@ -133,7 +133,10 @@ const Onboarding = () => {
               variant="primary"
               disabled={!(isPasswordsMatch && isPasswordValid)}
               className="w-full text-center"
-              onClick={() => navigate('/verification')}
+              onClick={() => {
+                if (onContinue) return onContinue();
+                navigate('/verification');
+              }}
             >
               Continue to Verification
             </Button>

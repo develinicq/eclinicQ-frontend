@@ -1,8 +1,8 @@
 import React from 'react';
-import Button from '../../components/Button';
+import Button from '../../../components/Button';
 import { useNavigate } from 'react-router-dom';
 
-export default function ActivationSuccess() {
+export default function ActivationSuccess({ onCompleteProfile }) {
   const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -19,7 +19,10 @@ export default function ActivationSuccess() {
           <hr className="border-gray-200 mb-6" />
 
           <div className="flex items-center justify-center gap-3">
-            <Button variant="secondary" onClick={() => navigate('/onboarding')}>Complete Your Profile</Button>
+            <Button variant="secondary" onClick={() => {
+              if (onCompleteProfile) return onCompleteProfile();
+              navigate('/onboarding');
+            }}>Complete Your Profile</Button>
             <Button variant="primary" trailingIcon={() => (<span>↗</span>)} onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
           </div>
         </div>

@@ -11,9 +11,10 @@ import MainPageHos from "./pages/HospitalList/HospitalInfo/MainPageHos";
 import { RegistrationProvider } from "./context/RegistrationContext";
 import DummyLogin from "./pages/DummyLogin";
 import GetStarted from "./pages/GetStarted";
-import Onboarding from "./DoctorModule/Pages/Onboarding";
-import Verification from "./DoctorModule/Pages/Verification";
-import ActivationSuccess from "./DoctorModule/Pages/ActivationSuccess";
+import OnboardingFlow from "./DoctorModule/Pages/Login/OnboardingFlow";
+import Doctor_layout from "./DoctorModule/Components/Layout/DoctorLayout";
+import DocDashboard from "./DoctorModule/Pages/Dashboard/DocDashboard";
+import Queue from "./DoctorModule/Pages/Queue/Queue";
 
 function App() {
   return (
@@ -43,9 +44,18 @@ function App() {
           </RegistrationProvider>
         } />
       </Route>
-      <Route path="onboarding" element={<Onboarding />} />
-  <Route path="verification" element={<Verification />} />
-  <Route path="activated" element={<ActivationSuccess />} />
+
+  {/* Single onboarding route managing internal steps without URL changes */}
+      <Route path="onboarding" element={<OnboardingFlow />} />
+
+      {/* Doctor Portal */}
+      <Route path="doc" element={<Doctor_layout />}>
+        {/* default doctor dashboard */}
+        <Route index element={<DocDashboard />} />
+        <Route path="queue" element={<Queue />} />
+        {/* future doctor-specific routes can be nested here, e.g., patients, settings */}
+      </Route>
+
     </Routes>
   );
 }
