@@ -14,7 +14,7 @@ const initialState = {
     phone: true,
   },
   profilePhotoKey: '',
-  role: 'doctor',
+  role: 'Doctor',
   loading: false,
   error: null,
   success: false,

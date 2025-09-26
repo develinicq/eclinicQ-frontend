@@ -13,6 +13,7 @@ import {
   patientUnselect,
   settingUnselect,
 } from "../../../public/index.js";
+import AvatarCircle from "../../components/AvatarCircle";
 
 const DocSidebar = () => {
   const location = useLocation();
@@ -77,6 +78,18 @@ const DocSidebar = () => {
         {/* Logo */}
         <div className="px-4 py-3">
           <img src={logo} alt="logo" className="w-[128px] h-auto" />
+        </div>
+
+        {/* Hospital selector card (below logo) */}
+        <div className="px-3 pb-2 mb-3 mt-2">
+          <div className="w-full border-[0.5px] border-[#B8B8B8] rounded-md px-2 py-2 bg-white flex items-center gap-2">
+            <AvatarCircle name="Manipal Hospital" size="s" color="orange" className="shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-medium text-gray-900 truncate">Manipal Hospit...</div>
+              <div className="text-[11px] text-gray-500 leading-tight">Hospital</div>
+            </div>
+            <ChevronDown size={16} className="text-gray-500" />
+          </div>
         </div>
 
         {/* Menu Items */}

@@ -13,7 +13,7 @@ export const hospitalData = [
       validity: "15/01/2025",
       status: "Active",
       logo: "https://via.placeholder.com/50",
-      image: "https://images.pexels.com/photos/247599/pexels-photo-247599.jpeg",
+  image: "/hospital-sample.png",
     },
     {
       id: "HO-0435621",
@@ -28,7 +28,7 @@ export const hospitalData = [
       validity: "20/11/2026",
       status: "Active",
       logo: "https://via.placeholder.com/50",
-      image: "https://via.placeholder.com/400x200?text=Apollo+Hospital",
+  image: "/hospital-sample.png",
     },
     {
       id: "HO-0938123",
@@ -43,7 +43,7 @@ export const hospitalData = [
       validity: "12/06/2027",
       status: "Active",
       logo: "https://via.placeholder.com/50",
-      image: "https://via.placeholder.com/400x200?text=Fortis+Hospital",
+  image: "/hospital-sample.png",
     },
     {
         id: "HO-0938123",
@@ -58,7 +58,7 @@ export const hospitalData = [
         validity: "12/06/2027",
         status: "Active",
         logo: "https://via.placeholder.com/50",
-        image: "https://via.placeholder.com/400x200?text=Fortis+Hospital",
+  image: "/hospital-sample.png",
       },
       {
         id: "HO-0938123",
@@ -73,7 +73,7 @@ export const hospitalData = [
         validity: "12/06/2027",
         status: "Active",
         logo: "https://via.placeholder.com/50",
-        image: "https://via.placeholder.com/400x200?text=Fortis+Hospital",
+  image: "/hospital-sample.png",
       },
       {
         id: "HO-0938123",
@@ -88,7 +88,7 @@ export const hospitalData = [
         validity: "12/06/2027",
         status: "Active",
         logo: "https://via.placeholder.com/50",
-        image: "https://via.placeholder.com/400x200?text=Fortis+Hospital",
+  image: "/hospital-sample.png",
       },
       {
         id: "HO-0938123",
@@ -103,7 +103,7 @@ export const hospitalData = [
         validity: "12/06/2027",
         status: "Active",
         logo: "https://via.placeholder.com/50",
-        image: "https://via.placeholder.com/400x200?text=Fortis+Hospital",
+  image: "/hospital-sample.png",
       },
       {
         id: "HO-0938123",
@@ -118,7 +118,7 @@ export const hospitalData = [
         validity: "12/06/2027",
         status: "Active",
         logo: "https://via.placeholder.com/50",
-        image: "https://via.placeholder.com/400x200?text=Fortis+Hospital",
+  image: "/hospital-sample.png",
       },
       {
         id: "HO-0938123",
@@ -133,7 +133,7 @@ export const hospitalData = [
         validity: "12/06/2027",
         status: "Active",
         logo: "https://via.placeholder.com/50",
-        image: "https://via.placeholder.com/400x200?text=Fortis+Hospital",
+  image: "/hospital-sample.png",
       },
       {
         id: "HO-0938123",
@@ -148,7 +148,7 @@ export const hospitalData = [
         validity: "12/06/2027",
         status: "Active",
         logo: "https://via.placeholder.com/50",
-        image: "https://via.placeholder.com/400x200?text=Fortis+Hospital",
+  image: "/hospital-sample.png",
       },
       {
         id: "HO-0938123",
@@ -163,7 +163,7 @@ export const hospitalData = [
         validity: "12/06/2027",
         status: "Active",
         logo: "https://via.placeholder.com/50",
-        image: "https://via.placeholder.com/400x200?text=Fortis+Hospital",
+  image: "/hospital-sample.png",
       },
       {
         id: "HO-0938123",

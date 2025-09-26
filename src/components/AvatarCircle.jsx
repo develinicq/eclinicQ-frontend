@@ -32,7 +32,7 @@ const AvatarCircle = ({ name, size = 'md', color = 'blue', className = '' }) => 
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full font-semibold ${sz} ${className}`}
+      className={`inline-flex items-center justify-center rounded-full font-base ${sz} ${className}`}
       style={{
         backgroundColor: bg,
         color: text,

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Bell } from "lucide-react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import { createPortal } from "react-dom";
+import { Clock, Calendar, ChevronLeft, ChevronRight, ChevronDown, Bell, Sunrise, Sun, Sunset, Moon, X } from "lucide-react";
 import AvatarCircle from '../../../components/AvatarCircle';
 import Button from '../../../components/Button';
 import Badge from '../../../components/Badge';
@@ -250,10 +251,229 @@ const PreScreeningDrawer = ({ show, patient, onClose, onSave, initialVitals }) =
   );
 };
 
+// Walk-in Appointment Drawer (UI from screenshot)
+const WalkInAppointmentDrawer = ({ show, onClose, timeSlots, slotValue, setSlotValue }) => {
+  const [isExisting, setIsExisting] = useState(false); // default to New Patient
+  const [apptType, setApptType] = useState("New Consultation");
+  const [reason, setReason] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
+  const [bloodGroup, setBloodGroup] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [email, setEmail] = useState("");
+
+  const suggestions = [
+    'New Consultation', 'Follow-up Consultation', 'Review Visit'
+  ];
+  const reasonSuggestions = ['Cough','Cold','Headache','Nausea','Dizziness','Muscle Pain','Sore Throat'];
+  const genders = ['Male','Female','Other'];
+  const bloodGroups = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+
+  return (
+    <>
+      {/* Overlay */}
+      <div
+        className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${show ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+      {/* Drawer */}
+      <div
+        className={`fixed z-50 transition-transform duration-500 ${show ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{
+          top: 24,
+          right: show ? 24 : 0,
+          bottom: 24,
+          width: 520,
+          maxWidth: '100vw',
+          background: 'white',
+          borderTopLeftRadius: 14,
+          borderBottomLeftRadius: 14,
+          boxShadow: '0 8px 32px 0 rgba(0,0,0,0.18)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div className="p-4 flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-[18px] font-semibold">Book Walk-In Appointment</h2>
+            <div className="flex items-center gap-2">
+              <button disabled className="text-gray-400 bg-gray-100 border border-gray-200 text-sm font-medium rounded px-3 py-1.5 cursor-not-allowed">Book Appointment</button>
+              <button className="text-gray-500 hover:text-gray-700" onClick={onClose} aria-label="Close">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Patient Toggle */}
+          <div className="flex items-center gap-6 mt-2 mb-4">
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input type="radio" name="pt" checked={isExisting} onChange={() => setIsExisting(true)} />
+              Existing Patients
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input type="radio" name="pt" checked={!isExisting} onChange={() => setIsExisting(false)} />
+              New Patient
+            </label>
+          </div>
+
+          {/* Form content (scrollable) */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+            {/* Existing patient search OR New patient details */}
+            {isExisting ? (
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Patient <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  placeholder="Search Patient by name, Abha id, Patient ID or Contact Number"
+                />
+              </div>
+            ) : (
+              <>
+                {/* Name row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name <span className="text-red-500">*</span></label>
+                    <input value={firstName} onChange={(e)=>setFirstName(e.target.value)} type="text" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Enter First Name" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name <span className="text-red-500">*</span></label>
+                    <input value={lastName} onChange={(e)=>setLastName(e.target.value)} type="text" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Enter Last Name" />
+                  </div>
+                </div>
+                {/* DOB / Gender */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <input value={dob} onChange={(e)=>setDob(e.target.value)} type="text" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm pr-8 focus:outline-none focus:border-blue-500" placeholder="Select Date Of Birth" />
+                      <Calendar className="w-4 h-4 text-gray-500 absolute right-2 top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender <span className="text-red-500">*</span></label>
+                    <select value={gender} onChange={(e)=>setGender(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                      <option value="" disabled>Select Gender</option>
+                      {genders.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {/* Blood group / Mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Blood Group <span className="text-red-500">*</span></label>
+                    <select value={bloodGroup} onChange={(e)=>setBloodGroup(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                      <option value="" disabled>Select Blood Group</option>
+                      {bloodGroups.map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number <span className="text-red-500">*</span></label>
+                    <input value={mobile} onChange={(e)=>setMobile(e.target.value)} type="tel" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Enter Mobile Number" />
+                  </div>
+                </div>
+                {/* Email */}
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email ID</label>
+                  <input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Enter Email" />
+                </div>
+              </>
+            )}
+
+            {/* Appointment Type */}
+            <div className="mb-3 mt-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Type <span className="text-red-500">*</span></label>
+              <select
+                value={apptType}
+                onChange={(e) => setApptType(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              >
+                {suggestions.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {suggestions.map((s) => (
+                  <button key={s} type="button" className="px-2 py-1 rounded border border-gray-200 text-gray-700 hover:bg-gray-50" onClick={() => setApptType(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Reason for Visit */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Visit</label>
+              <div className="relative">
+                <input
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  type="text"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  placeholder="Enter Reason for Visit"
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {reasonSuggestions.map((s) => (
+                  <button key={s} type="button" className="px-2 py-1 rounded border border-gray-200 text-gray-700 hover:bg-gray-50" onClick={() => setReason(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Row: Date and Slot */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Date <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <input type="text" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm pr-8" defaultValue="Today, 03/04/2025" />
+                  <Calendar className="w-4 h-4 text-gray-500 absolute right-2 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Available Slot <span className="text-red-500">*</span></label>
+                  <span className="text-xs text-green-600">5 Tokens available</span>
+                </div>
+                <div className="relative">
+                  <select
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    value={slotValue}
+                    onChange={(e) => setSlotValue(e.target.value)}
+                  >
+                    {timeSlots.map((t) => (
+                      <option key={t.key} value={t.key}>{t.label} ({t.time})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="pt-3 mt-2 border-t border-gray-200">
+            <div className="flex justify-end gap-3">
+              <button className="px-4 py-2 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50" onClick={onClose}>Cancel</button>
+              <button className="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700">Book Appointment</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 import { appointement } from "../../../../public/index.js";
 const Queue = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedTimeSlot] = useState("Morning (10:00 am - 12:30 pm)");
+  const [slotValue, setSlotValue] = useState("morning");
+  const [slotOpen, setSlotOpen] = useState(false);
+  const slotAnchorRef = useRef(null);
+  const slotMenuRef = useRef(null);
+  const [slotPos, setSlotPos] = useState({ top: 0, left: 0, width: 320 });
   const [currentDate] = useState("Mon, 03/04/2025");
   const [sessionStarted, setSessionStarted] = useState(false);
   const [queuePaused, setQueuePaused] = useState(false);
@@ -295,6 +515,32 @@ const Queue = () => {
   ];
 
   const filters = ["In Waiting", "Engaged", "No show", "Admitted", "All"];
+
+  // Time slot options
+  const timeSlots = [
+    { key: 'morning', label: 'Morning', time: '10:00am-12:00pm', Icon: Sunrise },
+    { key: 'afternoon', label: 'Afternoon', time: '2:00pm-4:00pm', Icon: Sun },
+    { key: 'evening', label: 'Evening', time: '6:00pm-8:00pm', Icon: Sunset },
+    { key: 'night', label: 'Night', time: '8:30pm-10:30pm', Icon: Moon },
+  ];
+
+  // Close dropdown on outside click or Esc
+  useEffect(() => {
+    const onClick = (e) => {
+      const a = slotAnchorRef.current;
+      const m = slotMenuRef.current;
+      if (a && a.contains(e.target)) return; // click on button/anchor
+      if (m && m.contains(e.target)) return; // click inside menu
+      setSlotOpen(false);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') setSlotOpen(false); };
+    window.addEventListener('mousedown', onClick);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onClick);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
 
   const getFilterCount = (filter) => {
     if (filter === "All") return queueData.length;
@@ -409,6 +655,7 @@ const Queue = () => {
   const [showRightDiv, setShowRightDiv] = useState(false);
   const [rightDivPatient, setRightDivPatient] = useState(null);
   const [preScreenData, setPreScreenData] = useState({}); // token -> vitals
+  const [showWalkIn, setShowWalkIn] = useState(false);
 
 
   // Handler for Check-In button
@@ -442,9 +689,59 @@ const Queue = () => {
         <div className="flex items-center justify-between">
           {/* Time Selector */}
           <div className="flex items-center space-x-4">
-            <div className="flex items-center bg-white rounded-lg shadow-sm">
-              <span className="text-gray-700 font-medium">{selectedTimeSlot}</span>
-              <ChevronDown className="ml-2 h-4 w-4 text-gray-500" />
+            <div className="relative" ref={slotAnchorRef}>
+              <button
+                type="button"
+                className="flex items-center bg-white rounded-md border border-gray-200 shadow-sm px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                onClick={(e) => {
+                  setSlotOpen((v) => !v);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const width = 320;
+                  const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+                  const top = Math.min(rect.bottom + 8, window.innerHeight - 8 - 4); // ensure within viewport vertically
+                  setSlotPos({ top, left, width });
+                }}
+              >
+                <span className="font-medium mr-1">
+                  {timeSlots.find((t) => t.key === slotValue)?.label || 'Morning'}
+                </span>
+                <span className="text-gray-500">
+                  ({timeSlots.find((t) => t.key === slotValue)?.time || '10:00am-12:00pm'})
+                </span>
+                <ChevronDown className="ml-2 h-4 w-4 text-gray-500" />
+              </button>
+
+              {slotOpen && createPortal(
+                <div
+                  ref={slotMenuRef}
+                  className="fixed z-[9999]"
+                  style={{ top: slotPos.top, left: slotPos.left, width: slotPos.width }}
+                >
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-xl">
+                    <ul className="py-1">
+                      {timeSlots.map(({ key, label, time, Icon }, idx) => (
+                        <li key={key}>
+                          <button
+                            type="button"
+                            onClick={() => { setSlotValue(key); setSlotOpen(false); }}
+                            className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-blue-50 ${slotValue === key ? 'bg-blue-50' : ''}`}
+                          >
+                            <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 border border-blue-200 text-blue-600">
+                              <Icon className="w-4 h-4" />
+                            </span>
+                            <span className="flex-1">
+                              <span className="block text-[14px] font-semibold text-gray-900">{label}</span>
+                              <span className="block text-[13px] text-gray-600">({time})</span>
+                            </span>
+                          </button>
+                          {idx < timeSlots.length - 1 && <div className="h-px bg-gray-200 mx-4" />}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>,
+                document.body
+              )}
             </div>
           </div>
 
@@ -459,7 +756,7 @@ const Queue = () => {
           </div>
 
           {/* Walk-in Appointment Badge */}
-          <Badge size="large" type="solid" color="blue" hover className="cursor-pointer select-none">
+          <Badge size="large" type="solid" color="blue" hover className="cursor-pointer select-none" onClick={() => setShowWalkIn(true)}>
             Walk-in Appointment
           </Badge>
         </div>
@@ -673,6 +970,19 @@ const Queue = () => {
           onClose={handlePreScreenClose}
           onSave={({ token, vitals }) => setPreScreenData((s) => ({ ...s, [token]: vitals }))}
           initialVitals={checkedInToken ? preScreenData[checkedInToken] : undefined}
+        />
+        {/* Walk-in Appointment Drawer */}
+        <WalkInAppointmentDrawer
+          show={showWalkIn}
+          onClose={() => setShowWalkIn(false)}
+          timeSlots={[
+            { key: 'morning', label: 'Morning', time: '10:00am-12:00pm' },
+            { key: 'afternoon', label: 'Afternoon', time: '2:00pm-4:00pm' },
+            { key: 'evening', label: 'Evening', time: '6:00pm-8:00pm' },
+            { key: 'night', label: 'Night', time: '8:30pm-10:30pm' },
+          ]}
+          slotValue={slotValue}
+          setSlotValue={setSlotValue}
         />
         </div>
         

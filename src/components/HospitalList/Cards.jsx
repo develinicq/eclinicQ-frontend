@@ -9,7 +9,11 @@ const Cards = ({ hospital }) => {
 
           <div className="relative h-[140px] rounded-lg">
             {/* The main hospital image */}
-            <img src={hospital.image} alt="" className="rounded-tl-md rounded-tr-md rounded-br-md rounded-bl-[56px] w-full h-full object-cover"/>
+            <img
+              src={hospital.image || "/hospital-sample.png"}
+              alt="Hospital"
+              className="rounded-tl-md rounded-tr-md rounded-br-md rounded-bl-[56px] w-full h-full object-cover"
+            />
 
             {/* The 'Active' button/tag */}
             <div className="absolute h-7 top-2 right-2 bg-[#F2FFF3] text-[#3EAF3F] text-sm font-medium px-1.5 py-0.5 rounded-md">
