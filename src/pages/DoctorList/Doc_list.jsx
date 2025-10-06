@@ -40,7 +40,7 @@ const Doc_list = () => {
     }
   }, [isAuthed])
 
-  const doctors = useMemo(() => {
+  const doctorsAll = useMemo(() => {
     // Map API response to UI table shape
     const mapOne = (d, status) => ({
   id: d?.docId || '',
@@ -62,11 +62,25 @@ const Doc_list = () => {
     ]
   }, [active, inactive])
 
+  const counts = useMemo(() => ({
+    all: (active?.length || 0) + (inactive?.length || 0),
+    active: active?.length || 0,
+    inactive: inactive?.length || 0,
+  }), [active, inactive])
+
+  const [selected, setSelected] = useState('all')
+
+  const doctors = useMemo(() => {
+    if (selected === 'active') return doctorsAll.filter(d => d.status === 'Active')
+    if (selected === 'inactive') return doctorsAll.filter(d => d.status === 'Inactive')
+    return doctorsAll
+  }, [doctorsAll, selected])
+
   return (
     <div className="pb-2">{/* no fixed footer now; small bottom padding */}
       <div className="mt-2">
         {/* Header sits outside, no outline */}
-        <Header />
+  <Header counts={counts} selected={selected} onChange={setSelected} />
 
         {/* Table has its own outline */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden m-3">

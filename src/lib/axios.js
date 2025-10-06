@@ -1,8 +1,13 @@
 import axios from "axios";
 import useAuthStore from "../store/useAuthStore";
 
+const baseURL = import.meta.env.VITE_API_BASE_URL || "/api";
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:3000/api",
+  // Prefer env override, else use relative '/api' for proxy/same-origin
+  baseURL,
+  headers: {
+    Accept: 'application/json',
+  }
 });
 
 // Attach token to every request if available

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import Details from "../../../pages/HospitalList/HospitalInfo/Sections/Details";
 import Doctor from "../../../pages/HospitalList/HospitalInfo/Sections/Doctor";
-import HosStaff from "../../../pages/HospitalList/HospitalInfo/Sections/HosStaff";
+// Use the exact Staff Access UI from Doctor Details
+import DocStaff from "../../../pages/DoctorList/DoctorInfo/Sections/Staff";
 
 const HospitalNav = ({ hospital }) => {
   const [activeTab, setActiveTab] = useState("details");
@@ -22,7 +23,7 @@ const HospitalNav = ({ hospital }) => {
       case "doctor":
         return <Doctor hospital={hospital} />;
       case "staff":
-        return <HosStaff hospital={hospital} />;
+        return <DocStaff />;
       default:
         return null;
     }

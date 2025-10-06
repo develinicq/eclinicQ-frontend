@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Phone, Mail, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const Cards = ({ hospital }) => {
   const navigate = useNavigate();
@@ -39,25 +39,25 @@ const Cards = ({ hospital }) => {
           <div className="flex flex-col gap-1">
             <span className="font-semibold text-base text-[#424242]">{hospital.name}</span>
 
-            <div className="flex gap-1 items-center">
-                  <MapPin className="h-5 w-5 text-gray-600"/>
-                  <span className="text-[#424242] font-normal text-sm">{hospital.id}</span>
-            </div>
+    <div className="flex gap-1 items-center">
+      <img src="/location.png" alt="Location" className="h-5 w-5 object-contain" loading="lazy"/>
+      <span className="text-[#424242] font-normal text-sm">{hospital.id}</span>
+    </div>
 
-            <div className="flex gap-1 items-center">
-                  <MapPin className="h-5 w-5 text-gray-600"/>
-                  <span className="text-[#424242] font-normal text-sm">{hospital.address}</span>
-            </div>
+    <div className="flex gap-1 items-center">
+      <img src="/location.png" alt="Location" className="h-5 w-5 object-contain" loading="lazy"/>
+      <span className="text-[#424242] font-normal text-sm">{hospital.address}</span>
+    </div>
 
-            <div className="flex gap-1 items-center">
-                  <Mail className="h-5 w-5 text-gray-600"/>
-                  <span className="text-[#424242] font-normal text-sm">{hospital.email}</span>
-            </div>
+    <div className="flex gap-1 items-center">
+      <img src="/mail.png" alt="Email" className="h-5 w-5 object-contain" loading="lazy"/>
+      <span className="text-[#424242] font-normal text-sm">{hospital.email}</span>
+    </div>
 
-            <div className="flex gap-1 items-center">
-                  <Phone className="h-5 w-5 text-gray-600"/>
-                  <span className="text-[#424242] font-normal text-sm">{hospital.phone}</span>
-            </div>
+    <div className="flex gap-1 items-center">
+      <img src="/phone.png" alt="Phone" className="h-5 w-5 object-contain" loading="lazy"/>
+      <span className="text-[#424242] font-normal text-sm">{hospital.phone}</span>
+    </div>
 
             <span className="font-normal text-[#424242] text-sm">{hospital.type} | {hospital.doctors} | {hospital.beds}</span>
 

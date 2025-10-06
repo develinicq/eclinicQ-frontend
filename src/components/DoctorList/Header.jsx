@@ -1,16 +1,55 @@
 import { Search, Filter } from "lucide-react";
 import Badge from "../Badge";
 
-export default function Header() {
+const fmt = (n) => {
+  if (typeof n !== 'number') return String(n ?? 0);
+  if (n >= 1000) return `${Math.round(n/100)/10}K`;
+  return String(n);
+};
+
+export default function Header({
+  counts = { all: 0, active: 0, inactive: 0 },
+  selected = 'all',
+  onChange = () => {},
+  addLabel = 'Add New Doctor',
+  // Optional custom tabs: [{ key: 'active', label: 'Active' }, ...]
+  tabs,
+  // When false, hides counts next to labels
+  showCounts = true,
+}) {
+  const defaultTabs = [
+    { key: 'all', label: 'All' },
+    { key: 'active', label: 'Active' },
+    { key: 'inactive', label: 'Inactive' },
+  ];
+  const activeTabs = Array.isArray(tabs) && tabs.length ? tabs : defaultTabs;
+
   return (
     <div className="flex items-center justify-between px-4 py-2 bg-white">
-      {/* Tabs with counts */}
-      <div className="flex items-center gap-4 text-sm">
-        {/* Active tab styled as blue ghost badge */}
-        <Badge type="ghost" color="blue" size="l" className="!rounded-md">All (2K)</Badge>
-        {/* Inactive tabs as plain links */}
-        <button className="text-gray-600 hover:text-gray-900">Active (1.8K)</button>
-        <button className="text-gray-600 hover:text-gray-900">Inactive (200)</button>
+      {/* Tabs */}
+      <div className="flex items-center gap-1 text-sm" role="tablist" aria-label="Doctor filters">
+        {activeTabs.map((t) => {
+          const isSel = selected === t.key;
+          const label = showCounts
+            ? `${t.label} (${fmt(counts?.[t.key])})`
+            : t.label;
+          return (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={isSel}
+              className={
+                `h-8 inline-flex items-center px-3 rounded-md border font-medium transition-colors ` +
+                (isSel
+                  ? 'border-blue-400 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-200')
+              }
+              onClick={isSel ? undefined : () => onChange(t.key)}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Search + Filter icons and Add button */}
@@ -22,9 +61,9 @@ export default function Header() {
           <Filter className="h-5 w-5" />
         </button>
         <span className="mx-2 h-5 w-px bg-gray-200" aria-hidden="true" />
-        {/* Blue ghost-style button as per screenshot */}
+        {/* Blue ghost-style button */}
         <Badge type="ghost" color="blue" size="l" className="!rounded-md" onClick={() => {}}>
-          Add New Doctor
+          {addLabel}
         </Badge>
       </div>
     </div>

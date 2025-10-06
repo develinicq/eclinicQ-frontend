@@ -42,7 +42,8 @@ function HospitalList() {
 
   const hospitals = useMemo(() => {
     const mapOne = (h, statusLabel) => ({
-      id: h?.id || h?.hospitalCode || "",
+      temp: h?.id || "",
+      id: h?.hospitalCode || "",
       name: h?.name || "",
       address: [h?.address?.street, h?.city, h?.state, h?.pincode].filter(Boolean).join(", "),
       email: h?.emailId || "",
@@ -62,15 +63,29 @@ function HospitalList() {
     ];
   }, [active, inactive]);
 
+  const counts = useMemo(() => ({
+    all: (active?.length || 0) + (inactive?.length || 0),
+    active: active?.length || 0,
+    inactive: inactive?.length || 0,
+  }), [active, inactive]);
+
+  const [selected, setSelected] = useState('all');
+
+  const hospitalsFiltered = useMemo(() => {
+    if (selected === 'active') return hospitals.filter(h => h.status === 'Active');
+    if (selected === 'inactive') return hospitals.filter(h => h.status === 'Inactive');
+    return hospitals;
+  }, [hospitals, selected]);
+
   return(
   <div className="flex flex-col h-full">
     <div className="sticky mt-2 top-0 z-10 bg-white ">
-      <Header className=""/>
+      <Header counts={counts} selected={selected} onChange={setSelected} addLabel="Add New Hospital" />
     </div>
     <div className="flex-1 overflow-y-auto p-3">
       {loading && <div className="p-6 text-gray-600">Loading hospitals…</div>}
       {!loading && error && <div className="p-6 text-red-600">{String(error)}</div>}
-      {!loading && !error && <HospitalGrid hospitals={hospitals} />}
+      {!loading && !error && <HospitalGrid hospitals={hospitalsFiltered} />}
     </div>
   </div>
   )

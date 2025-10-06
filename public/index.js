@@ -3,6 +3,10 @@ import iIcon from './i-icon.png';
 import logo from './logo.png';
 import normalTick from './normal-tick.png';
 import tick from './tick.png';
+// Newly added contact icons
+import location from './location.png';
+import mail from './mail.png';
+import phone from './phone.png';
 
 // Images from /public/images
 import hospitalLogo from './images/hospital_logo.png';
@@ -41,6 +45,11 @@ import settingUnselect from './icons/Sidebar/MainSidebar/setting_unselect.png';
 import bell from './icons/Navbar/bell.png';
 import appointement from './Doctor_module/appointement.png';
 
+// Doctor info icons
+import blueBag from './doctor_info/bluebag.png';
+import docIcon from './doctor_info/doc.png';
+import whiteBag from './doctor_info/whitebag.png';
+
 export {
   // Root PNGs
   checkbox,
@@ -48,6 +57,9 @@ export {
   logo,
   normalTick,
   tick,
+  location,
+  mail,
+  phone,
   // Images
   hospitalLogo,
   hospital,
@@ -68,6 +80,9 @@ export {
   review,
   reviewBlue,
   appointement,
+  blueBag,
+  docIcon,
+  whiteBag,
   // Sidebar MainSidebar Icons
   dashboardSelected,
   dashboardUnselect,

@@ -7,8 +7,14 @@ import ActivationSuccess from './ActivationSuccess';
 export default function OnboardingFlow() {
   // steps: 'create-password' -> 'verify' -> 'activated'
   const [step, setStep] = useState('create-password');
+  const [flowData, setFlowData] = useState({
+    details: null,
+    password: '',
+    confirmPassword: '',
+  });
 
-  const handleContinueFromOnboarding = useCallback(() => {
+  const handleContinueFromOnboarding = useCallback((payload) => {
+    if (payload) setFlowData(payload);
     setStep('verify');
   }, []);
 
@@ -22,7 +28,20 @@ export default function OnboardingFlow() {
   }, []);
 
   if (step === 'verify') {
-    return <Verification onVerified={handleVerified} />;
+    const inv = flowData?.details?.invitation;
+    const ch = flowData?.details?.challengeID;
+    return ( 
+      <Verification
+        onVerified={handleVerified}
+        invitationId={inv?.id}
+        mobileChallengeId={ch?.mobile}
+        emailChallengeId={ch?.email}
+        password={flowData?.password}
+        confirmPassword={flowData?.confirmPassword}
+      userId={inv?.userId}
+      hospitalId={inv?.hospitalId}
+      />
+    );
   }
 
   if (step === 'activated') {

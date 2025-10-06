@@ -6,6 +6,7 @@ import { getHospitalByIdBySuperAdmin } from "../../../services/hospitalService";
 import useAuthStore from "../../../store/useAuthStore";
 
 const HospitalDetailsPage = () => {
+  // Route uses /hospital/:id
   const { id } = useParams();
   const location = useLocation();
 
@@ -23,7 +24,12 @@ const HospitalDetailsPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const hospitalId = decodeURIComponent(String(id || ""));
+        // Prefer backend id coming from state (mapped as `temp` in list),
+        // fallback to the URL param `id`.
+        const stateHospital = location?.state?.hospital || {};
+        const backendId = stateHospital?.temp; // original DB id from backend list
+        const urlParam = id ? decodeURIComponent(String(id)) : "";
+        const hospitalId = backendId || urlParam;
         const resp = await getHospitalByIdBySuperAdmin(hospitalId);
         if (ignore) return;
         const h = resp?.data?.hospital || {};
@@ -44,16 +50,20 @@ const HospitalDetailsPage = () => {
       setError("Not authenticated");
     }
     return () => { ignore = true; };
-  }, [id, isAuthed]);
+  }, [id, location?.state, isAuthed]);
 
   if (loading) return <div className="p-6 text-gray-600">Loading hospital details…</div>;
   if (error) return <div className="p-6 text-red-600">{String(error)}</div>;
   if (!hospital) return <div className="p-6 text-gray-600">Hospital not found.</div>;
 
+  // Determine status from navigation state or fetched hospital
+  const statusRaw = (location?.state?.hospital?.status || hospital?.status || '').toLowerCase();
+  const statusLabel = statusRaw === 'inactive' ? 'Inactive' : (statusRaw === 'active' ? 'Active' : '-');
+
   const bannerData = {
     name: hospital?.name || '-',
-    status: 'Active', // API has no explicit status; infer if needed
-    address: [hospital?.address?.street, hospital?.city, hospital?.state, hospital?.pincode].filter(Boolean).join(', '),
+    status: statusLabel,
+    address: [hospital?.address?.blockNo, hospital?.address?.street,hospital?.address?.landmark, hospital?.city, hospital?.state, hospital?.pincode].filter(Boolean).join(', '),
     type: hospital?.type || '-',
     established: hospital?.establishmentYear || '-',
     website: hospital?.url || '-',

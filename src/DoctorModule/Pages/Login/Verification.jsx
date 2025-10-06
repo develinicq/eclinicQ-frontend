@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../../components/Button';
+import axios from '../../../lib/axios';
 
 const Box = ({
   value,
@@ -25,9 +26,11 @@ const Box = ({
   />
 );
 
-export default function Verification({ onVerified }) {
+export default function Verification({ onVerified, invitationId, mobileChallengeId, emailChallengeId, password, confirmPassword, userId, hospitalId }) {
   const [mobile, setMobile] = useState(Array(6).fill(''));
   const [email, setEmail] = useState(Array(6).fill(''));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const mobileRefs = useRef([...Array(6)].map(() => React.createRef()));
@@ -81,6 +84,52 @@ export default function Verification({ onVerified }) {
 
   const isComplete = useMemo(() => mobile.every(Boolean) && email.every(Boolean), [mobile, email]);
 
+  const handleVerify = async () => {
+    setError(null);
+    if (!isComplete) return;
+    if (!invitationId || !mobileChallengeId || !emailChallengeId) {
+      setError('Missing verification identifiers. Please restart onboarding.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const payload = {
+        invitationId,
+        mobileOtp: mobile.join(''),
+        emailOtp: email.join(''),
+        password,
+        confirmPassword,
+        mobileChallengeId,
+        emailChallengeId,
+      };
+          if (import.meta.env.MODE !== 'production') {
+            // Dev-only: confirm payload values
+            // eslint-disable-next-line no-console
+            console.debug('verifyOtp payload', payload);
+          }
+      // If backend expects these for internal queries, include them; harmless if ignored
+      if (userId) payload.userId = userId;
+      if (hospitalId) payload.hospitalId = hospitalId;
+      const res = await axios.post('/invitations/verifyOtp', payload, {
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      });
+      const data = res?.data;
+      if (data?.success) {
+        onVerified ? onVerified() : navigate('/activated');
+      } else {
+        setError(data?.message || 'Verification failed');
+      }
+    } catch (e) {
+      const status = e?.response?.status;
+      const msg = e?.response?.data?.message || (status ? `Verification failed (${status})` : 'Verification failed');
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-[474px] border-2 border-blue-200 overflow-hidden">
@@ -132,11 +181,11 @@ export default function Verification({ onVerified }) {
           </div>
 
           {/* Verify button */}
-          <Button className="w-full" variant="primary" disabled={!isComplete} onClick={() => {
-            if (onVerified) return onVerified();
-            navigate('/activated');
-          }}>
-            Verify
+          {error ? (
+            <div className="text-red-600 text-sm mb-2 text-center">{error}</div>
+          ) : null}
+          <Button className="w-full" variant="primary" disabled={!isComplete || submitting} onClick={handleVerify}>
+            {submitting ? 'Verifying…' : 'Verify'}
           </Button>
         </div>
 
