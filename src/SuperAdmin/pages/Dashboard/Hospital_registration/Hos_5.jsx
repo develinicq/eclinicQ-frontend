@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Circle } from 'lucide-react';
-import { useRegistration } from '../../../../context/RegistrationContext';
+import { useRegistration } from '../../../context/RegistrationContext';
 import { ProgressBar, AgreementBox, ActionButton } from '../../../../components/FormItems';
 import useHospitalRegistrationStore from '../../../../store/useHospitalRegistrationStore';
 

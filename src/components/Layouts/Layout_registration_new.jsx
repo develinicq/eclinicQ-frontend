@@ -1,8 +1,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { createHospital } from '../../services/hospitalService';
 import useHospitalRegistrationStore from '../../store/useHospitalRegistrationStore';
-import { useRegistration } from "../../context/RegistrationContext";
-import SidebarSteps from "../Sidebar/SidebarSteps";
+import { useRegistration } from "../../SuperAdmin/context/RegistrationContext";
+import SidebarSteps from "../../SuperAdmin/components/RegistrationSidebar/SidebarSteps";
 import RegistrationFooter from "../RegistrationFooter";
 import RegistrationFlow from "../RegistrationFlow";
 import React, { useRef, useState } from "react";

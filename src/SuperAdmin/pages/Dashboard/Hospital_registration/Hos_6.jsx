@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useRegistration } from "../../../../context/RegistrationContext";
+import { useRegistration } from "../../../context/RegistrationContext";
 import useHospitalRegistrationStore from '../../../../store/useHospitalRegistrationStore';
 import { createHospital } from '../../../../services/hospitalService';
 

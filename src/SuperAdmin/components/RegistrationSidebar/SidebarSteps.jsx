@@ -1,7 +1,6 @@
 import React from "react";
 import { Check, FileText, User, Building2, ClipboardList, CreditCard, Stethoscope, CheckCircle, Package, ChevronRight } from "lucide-react";
-import { useRegistration } from "../../context/RegistrationContext"; 
-// Use centralized image exports from public/index.js
+import { useRegistration } from "../../context/RegistrationContext.jsx"; 
 import {
   accountBlue,
   stethoscopeBlue,
@@ -9,7 +8,7 @@ import {
   reviewBlue,
   packageBlue,
   hospitalIcon,
-} from "../../../public/index.js";
+} from "../../../../public/index.js";
 
 const doctorSteps = [
   { 

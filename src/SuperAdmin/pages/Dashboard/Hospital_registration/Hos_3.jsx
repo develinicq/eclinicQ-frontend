@@ -1,6 +1,6 @@
 import React from "react";
 import useHospitalRegistrationStore from '../../../../store/useHospitalRegistrationStore';
-import { useRegistration } from '../../../../context/RegistrationContext';
+import { useRegistration } from '../../../context/RegistrationContext';
 import { Info } from "lucide-react";
 import { 
   Input,

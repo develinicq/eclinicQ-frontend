@@ -3,7 +3,7 @@ import React from 'react'
 import { Input, Upload, MFA, Dropdown, FormContainer, FormSection, FormFieldRow, Radio } from '../../../../components/FormItems';
 import useHospitalStep1Store from '../../../../store/useHospitalStep1Store';
 import { forwardRef, useImperativeHandle } from 'react';
-import { useRegistration } from '../../../../context/RegistrationContext';
+import { useRegistration } from '../../../context/RegistrationContext';
 
 const Hos_1 = forwardRef((props, ref) => {
   const form = useHospitalStep1Store((state) => state.form);

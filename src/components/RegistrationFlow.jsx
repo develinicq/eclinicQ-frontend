@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRegistration } from '../context/RegistrationContext';
+import { useRegistration } from '../SuperAdmin/context/RegistrationContext';
 
 // Doctor Registration Steps
 import Step1 from '../SuperAdmin/pages/Dashboard/Doctor_registration/Step1';

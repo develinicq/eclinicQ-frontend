@@ -1,5 +1,5 @@
 import React from "react";
-import { useRegistration } from "../context/RegistrationContext";
+import { useRegistration } from "../SuperAdmin/context/RegistrationContext";
 import useDoctorRegistrationStore from '../store/useDoctorRegistrationStore';
 
 const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next", disablePrev = false }) => {

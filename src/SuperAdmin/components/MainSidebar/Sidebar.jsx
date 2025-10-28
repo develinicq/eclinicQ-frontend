@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { HelpCircle, ArrowRight } from "lucide-react";
-// Use icons from public/index.js (MainSidebar icons)
+import BaseNavbar from "../../../components/Sidebar/BaseNavbar.jsx";
 import {
   logo,
   dashboardSelected,
@@ -12,7 +12,7 @@ import {
   hospitalUnselect,
   patientUnselect,
   settingUnselect,
-} from "../../../public/index.js";
+} from "../../../../public/index.js";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -75,26 +75,20 @@ const Sidebar = () => {
           <img src={logo} alt="logo" className="w-[128px]" />
         </div>
 
-        {/* Menu Items */}
-        <nav>
+  {/* Quick nav removed as requested */}
+
+        {/* Menu Items using BaseNavbar */}
+        <nav className="">
           {menuItems.map((item) => {
             const active = isItemActive(item.path);
             return (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`flex items-center gap-[6px] py-3 px-4 h-[44px] w-full text-left transition-colors ${
-                  active
-                    ? "bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF] "
-                    : "text-gray-800 hover:bg-gray-100"
-                }`}
-              >
-                <img
-                  src={active ? item.iconSelected : item.iconUnselected}
-                  alt={item.alt}
-                  className="w-5 h-5"
+              <Link key={item.name} to={item.path} className="block ">
+                <BaseNavbar
+                  title={item.name}
+                  active={active}
+                  iconSelected={item.iconSelected}
+                  iconUnselected={item.iconUnselected}
                 />
-                <span className="font-normal text-sm">{item.name}</span>
               </Link>
             );
           })}

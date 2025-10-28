@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import Sidebar from "../Sidebar/Sidebar";
+import Sidebar from "../../SuperAdmin/components/MainSidebar/Sidebar";
 import Navbar from "../Navbar";
 
 export default function Layout() {

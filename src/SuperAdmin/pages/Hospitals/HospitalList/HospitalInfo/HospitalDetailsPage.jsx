@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import HospitalBanner from "../../../../../components/HospitalList/HospitalInfo.jsx/HospitalBanner";
-import HospitalNav from "../../../../../components/HospitalList/HospitalInfo.jsx/HospitalNav";
+import HospitalBanner from "../../../../../components/HospitalList/HospitalInfo.jsx/HospitalBanner.jsx";
+import HospitalNav from "../../../../../components/HospitalList/HospitalInfo.jsx/HospitalNav.jsx";
 import { getHospitalByIdBySuperAdmin } from "../../../../../services/hospitalService";
 import useAuthStore from "../../../../../store/useAuthStore";
 
