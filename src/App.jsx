@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layouts/Layout_sidebar";
 import Dashboard from "./SuperAdmin/pages/Dashboard/Dashboard";
 import Doctor from "./SuperAdmin/pages/Doctors/Doctor";
@@ -18,6 +18,11 @@ import Queue from "./DoctorModule/Pages/Queue/Queue";
 import DocPatients from "./DoctorModule/Pages/Patients/Patient";
 import PatientDetails from "./DoctorModule/Pages/Patients/PatientDetails";
 import Doc_settings from "./DoctorModule/Pages/Settings/Doc_settings";
+import FDLayout from "./FrontDeskModule/Components/Layout/FDLayout";
+import FDDashboard from "./FrontDeskModule/Pages/Dashboard/FDDashboard";
+import FDQueue from "./FrontDeskModule/Pages/Queue/Queue";
+import FDPatients from "./FrontDeskModule/Pages/Patients/Patient";
+import FDPatientDetails from "./FrontDeskModule/Pages/Patients/PatientDetails";
 
 function App() {
   return (
@@ -56,6 +61,15 @@ function App() {
         <Route path="patients" element={<DocPatients />} />
         <Route path="patients/:id" element={<PatientDetails />} />
         <Route path="settings/account" element={<Doc_settings />} />
+      </Route>
+
+      {/* FrontDesk Portal (copy of Doctor Portal) */}
+      <Route path="fd" element={<FDLayout />}>
+        <Route index element={<Navigate to="queue" replace />} />
+        <Route path="queue" element={<FDQueue />} />
+        <Route path="patients" element={<FDPatients />} />
+        <Route path="patients/:id" element={<FDPatientDetails />} />
+        {/* settings/account could later mirror doctor settings if needed */}
       </Route>
 
     </Routes>
