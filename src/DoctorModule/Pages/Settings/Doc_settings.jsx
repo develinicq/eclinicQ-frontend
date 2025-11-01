@@ -445,7 +445,11 @@ const StaffTab = () => {
   )
 }
 
+import { useLocation, useNavigate } from 'react-router-dom'
+
 const Doc_settings = () => {
+  const location = useLocation()
+  const navigate = useNavigate()
   // Tabs under Settings (as per screenshot)
   const tabs = [
     { key: 'personal', label: 'Personal Info' },
@@ -455,7 +459,33 @@ const Doc_settings = () => {
     { key: 'security', label: 'Security Settings' },
   ]
 
-  const [activeTab, setActiveTab] = useState('personal')
+  const pathTab = useMemo(() => {
+    const p = location.pathname
+    if (p.endsWith('/settings/account')) return 'personal'
+    if (p.endsWith('/settings/consultation')) return 'consultation'
+    if (p.endsWith('/settings/clinics')) return 'clinical'
+    if (p.endsWith('/settings/staff-permissions')) return 'staff'
+    if (p.endsWith('/settings/security')) return 'security'
+    if (p.endsWith('/settings/rx-template')) return 'rx'
+    return 'personal'
+  }, [location.pathname])
+
+  const [activeTab, setActiveTab] = useState(pathTab)
+  useEffect(() => { setActiveTab(pathTab) }, [pathTab])
+
+  const tabToPath = (key) => {
+    const seg1 = (location.pathname.split('/')[1] || 'doc')
+    const base = seg1 === 'hospital' ? '/hospital' : '/doc'
+    switch (key) {
+      case 'personal': return `${base}/settings/account`
+      case 'consultation': return `${base}/settings/consultation`
+      case 'clinical': return `${base}/settings/clinics`
+      case 'staff': return `${base}/settings/staff-permissions`
+      case 'security': return `${base}/settings/security`
+      case 'rx': return `${base}/settings/rx-template`
+      default: return `${base}/settings/account`
+    }
+  }
 
   // Mocked data for UI scaffolding (replace with real API later)
   const profile = useMemo(() => ({
@@ -546,7 +576,12 @@ const Doc_settings = () => {
                 return (
                   <button
                     key={t.key}
-                    onClick={() => setActiveTab(t.key)}
+                    onClick={() => {
+                      const next = t.key
+                      setActiveTab(next)
+                      const dest = tabToPath(next)
+                      if (location.pathname !== dest) navigate(dest)
+                    }}
                     className={`whitespace-nowrap pb-3 border-b-2 transition-colors ${
                       active
                         ? 'border-blue-600 text-gray-900'

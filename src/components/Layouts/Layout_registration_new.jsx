@@ -334,7 +334,7 @@ const Layout_registration_new = () => {
       } else if (currentStep === 6) {
         // Final success screen for non-doctor owners: go straight to Hospitals dashboard
         if (String(formData.isDoctor || 'no') === 'no') {
-          navigate('/hospital');
+          navigate('/hospitals');
           return;
         }
         // On Step 6 (Hos_6), if user is a doctor, first post doctor details, then proceed
@@ -362,7 +362,7 @@ const Layout_registration_new = () => {
         }
       } else if (currentStep === 7) {
         // Navigate to hospital profile/dashboard
-        navigate('/hospital');
+  navigate('/hospitals');
       } else if (currentStep < 7) {
         nextStep();
       }

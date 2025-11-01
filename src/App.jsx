@@ -27,6 +27,29 @@ import FDCalendar from "./FrontDeskModule/Pages/Calendar/Calendar";
 import FDClinics from "./FrontDeskModule/Pages/Settings/FDClinics";
 import FDConsultation from "./FrontDeskModule/Pages/Settings/FDConsultation";
 import FDStaffPermissions from "./FrontDeskModule/Pages/Settings/FDStaffPermissions";
+import HospitalLayout from "./HospitalModule/Components/Layout/HospitalLayout";
+import HDashboard from "./HospitalModule/Pages/Dashboard/HDashboard";
+import HQueue from "./HospitalModule/Pages/Queue/Queue";
+import HPatients from "./HospitalModule/Pages/Patients/Patient";
+import HPatientDetails from "./HospitalModule/Pages/Patients/PatientDetails";
+import HAccount from "./HospitalModule/Pages/Settings/HAccount";
+import HCalendar from "./HospitalModule/Pages/Calendar/Calendar";
+import HDoctors from "./HospitalModule/Pages/Doctors/Doctors";
+import HTiming from "./HospitalModule/Pages/Settings/HTiming";
+import HStaffPermissions from "./HospitalModule/Pages/Settings/HStaffPermissions";
+import HRxTemplate from "./HospitalModule/Pages/Settings/HRxTemplate";
+import HSubscriptions from "./HospitalModule/Pages/Settings/HSubscriptions";
+import HSurgeries from "./HospitalModule/Pages/Settings/HSurgeries";
+import HBranches from "./HospitalModule/Pages/Settings/HBranches";
+import HSecurity from "./HospitalModule/Pages/Settings/HSecurity";
+import HFDLayout from "./HospitalFDModule/Components/Layout/HFDLayout";
+import HFDQueue from "./HospitalFDModule/Pages/Queue/Queue";
+import HFDPatients from "./HospitalFDModule/Pages/Patients/Patient";
+import HFDPatientDetails from "./HospitalFDModule/Pages/Patients/PatientDetails";
+import HFDCalendar from "./HospitalFDModule/Pages/Calendar/Calendar";
+import HFDClinics from "./HospitalFDModule/Pages/Settings/HFDClinics";
+import HFDConsultation from "./HospitalFDModule/Pages/Settings/HFDConsultation";
+import HFDStaffPermissions from "./HospitalFDModule/Pages/Settings/HFDStaffPermissions";
 
 function App() {
   return (
@@ -38,7 +61,7 @@ function App() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="doctor" element={<Doctor />} />
         <Route path="doctor/:id" element={<DoctorDetailsPage />} />
-        <Route path="hospital" element={<Hospitals />} />
+  <Route path="hospitals" element={<Hospitals />} />
         <Route path="hospital/:id" element={<HospitalDetailsPage />} />
         <Route path="patients" element={<Patients />} />
         <Route path="settings" element={<Settings />} />
@@ -64,7 +87,13 @@ function App() {
         <Route path="queue" element={<Queue />} />
         <Route path="patients" element={<DocPatients />} />
         <Route path="patients/:id" element={<PatientDetails />} />
-        <Route path="settings/account" element={<Doc_settings />} />
+  {/* Settings subroutes */}
+  <Route path="settings/account" element={<Doc_settings />} />
+  <Route path="settings/consultation" element={<Doc_settings />} />
+  <Route path="settings/clinics" element={<Doc_settings />} />
+  <Route path="settings/staff-permissions" element={<Doc_settings />} />
+  <Route path="settings/security" element={<Doc_settings />} />
+  <Route path="settings/rx-template" element={<Doc_settings />} />
       </Route>
 
       {/* FrontDesk Portal (copy of Doctor Portal) */}
@@ -78,6 +107,37 @@ function App() {
   <Route path="settings/clinics" element={<FDClinics />} />
   <Route path="settings/consultation" element={<FDConsultation />} />
   <Route path="settings/staff-permissions" element={<FDStaffPermissions />} />
+      </Route>
+
+      {/* Hospital Portal (copy of Doctor Portal) */}
+      <Route path="hospital" element={<HospitalLayout />}>
+        <Route index element={<HDashboard />} />
+        <Route path="queue" element={<HQueue />} />
+  <Route path="patients" element={<HPatients />} />
+  <Route path="calendar" element={<HCalendar />} />
+  <Route path="doctors" element={<HDoctors />} />
+        <Route path="patients/:id" element={<HPatientDetails />} />
+  <Route path="settings/account" element={<HAccount />} />
+  <Route path="settings/timing" element={<HTiming />} />
+  <Route path="settings/surgeries" element={<HSurgeries />} />
+  <Route path="settings/branches" element={<HBranches />} />
+  <Route path="settings/staff-permissions" element={<HStaffPermissions />} />
+  <Route path="settings/security" element={<HSecurity />} />
+  <Route path="settings/rx-template" element={<HRxTemplate />} />
+  <Route path="settings/subscriptions-billing" element={<HSubscriptions />} />
+      </Route>
+
+      {/* Hospital FrontDesk Portal (copy of FD) */}
+      <Route path="hfd" element={<HFDLayout />}>
+        <Route index element={<Navigate to="queue" replace />} />
+        <Route path="queue" element={<HFDQueue />} />
+        <Route path="calendar" element={<HFDCalendar />} />
+        <Route path="patients" element={<HFDPatients />} />
+        <Route path="patients/:id" element={<HFDPatientDetails />} />
+        {/* Settings */}
+        <Route path="settings/clinics" element={<HFDClinics />} />
+        <Route path="settings/consultation" element={<HFDConsultation />} />
+        <Route path="settings/staff-permissions" element={<HFDStaffPermissions />} />
       </Route>
 
     </Routes>

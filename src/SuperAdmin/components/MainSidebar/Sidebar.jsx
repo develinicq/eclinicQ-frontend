@@ -36,7 +36,7 @@ const Sidebar = () => {
       name: "Hospitals",
   iconSelected: hospitalSelected,
   iconUnselected: hospitalUnselect,
-      path: "/hospital",
+  path: "/hospitals",
       alt: "Hospitals",
     },
     {
@@ -62,6 +62,10 @@ const Sidebar = () => {
 
     if (itemPath === "/dashboard") {
       return pathname.startsWith("/dashboard") || dashboardLike;
+    }
+    if (itemPath === "/hospitals") {
+      // Consider both list (/hospitals) and details (/hospital/:id) as active for this item
+      return pathname.startsWith("/hospitals") || pathname.startsWith("/hospital/");
     }
     return pathname === itemPath || pathname.startsWith(itemPath + "/");
   };
