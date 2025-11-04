@@ -50,6 +50,11 @@ import HFDCalendar from "./HospitalFDModule/Pages/Calendar/Calendar";
 import HFDClinics from "./HospitalFDModule/Pages/Settings/HFDClinics";
 import HFDConsultation from "./HospitalFDModule/Pages/Settings/HFDConsultation";
 import HFDStaffPermissions from "./HospitalFDModule/Pages/Settings/HFDStaffPermissions";
+import FDOnboardingFlow from "./FrontDeskModule/Pages/Login/OnboardingFlow";
+import HOnboardingFlow from "./HospitalModule/Pages/Login/OnboardingFlow";
+import FDSignIn from "./FrontDeskModule/Pages/Login/SignIn";
+import HFDOnboardingFlow from "./HospitalFDModule/Pages/Login/OnboardingFlow";
+import HFDFSignIn from "./HospitalFDModule/Pages/Login/SignIn";
 
 function App() {
   return (
@@ -80,6 +85,11 @@ function App() {
       </Route>
 
       <Route path="onboarding" element={<OnboardingFlow />} />
+      <Route path="fd/signin" element={<FDSignIn />} />
+      <Route path="fd/onboarding" element={<FDOnboardingFlow />} />
+  <Route path="hospital/onboarding" element={<HOnboardingFlow />} />
+  <Route path="hfd/signin" element={<HFDFSignIn />} />
+  <Route path="hfd/onboarding" element={<HFDOnboardingFlow />} />
 
       {/* Doctor Portal */}
       <Route path="doc" element={<Doctor_layout />}>

@@ -7,23 +7,40 @@ import { useLocation, useNavigate } from 'react-router-dom'
 const InfoField = ({ label, value, right }) => (
   <div className="grid grid-cols-12 gap-2 text-[13px] leading-5">
     <div className="col-span-4 text-gray-500">{label}</div>
-    <div className="col-span-8 text-gray-900 flex items-center gap-2">
+    <div className="col-span-8 text-gray-900 flex items-center gap-2 min-h-[26px]">
       <span className="truncate">{value || '-'}</span>
       {right}
     </div>
   </div>
 )
 
-const SectionCard = ({ title, subtitle, action, children }) => (
+const SectionCard = ({ title, subtitle, action, children, variant = 'default' }) => (
   <div className="bg-white rounded-lg border border-gray-200">
-    <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-      <div className="text-sm">
-        <div className="font-medium text-gray-900">{title}</div>
-        {subtitle ? <div className="text-[12px] text-gray-500">{subtitle}</div> : null}
+    {variant === 'default' ? (
+      <>
+        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <div className="text-sm">
+            <div className="font-medium text-gray-900">{title}</div>
+            {subtitle ? <div className="text-[12px] text-gray-500">{subtitle}</div> : null}
+          </div>
+          {action}
+        </div>
+        <div className="p-4">{children}</div>
+      </>
+    ) : (
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-medium text-gray-900">{title}</div>
+            {subtitle ? (
+              <span className="text-[11px] px-2 py-0.5 rounded border bg-gray-50 text-gray-600">{subtitle}</span>
+            ) : null}
+          </div>
+          {action}
+        </div>
+        <div>{children}</div>
       </div>
-      {action}
-    </div>
-    <div className="p-4">{children}</div>
+    )}
   </div>
 )
 
@@ -114,90 +131,107 @@ export default function HAccount(){
       {/* Account Detail content */}
       {activeTab === 'account' && (
         <div className="mt-4 grid grid-cols-12 gap-4">
-          {/* About */}
-          <div className="col-span-12">
+          {/* Two-column layout: left 7, right 5 */}
+          <div className="col-span-12 xl:col-span-7 space-y-4">
+            {/* About */}
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <p className="text-[13px] leading-6 text-gray-800">{profile.about}</p>
             </div>
-          </div>
 
-          {/* Photos */}
-          <div className="col-span-12">
-            <SectionCard title="Hospital Photos">
+            {/* Photos */}
+            <SectionCard variant="subtle" title="Hospital Photos">
               <div className="flex items-center gap-3 overflow-x-auto">
                 {profile.photos.map((src, i) => (
                   <img key={i} src={src} alt="hospital" className="w-36 h-24 rounded-md object-cover border" />
                 ))}
               </div>
             </SectionCard>
+
+            {/* Medical Specialties */}
+            <SectionCard
+              variant="subtle"
+              title="Medical Specialties"
+              subtitle="Visible to Patient"
+              action={<button className="text-blue-600 text-sm inline-flex items-center gap-1" title="Edit">✎</button>}
+            >
+              <div className="flex flex-wrap gap-2">
+                {profile.specialties.map((s,i)=>(<span key={i} className="text-xs px-2 py-1 rounded border bg-gray-50 text-gray-700">{s}</span>))}
+              </div>
+            </SectionCard>
+
+            {/* Services & Facilities */}
+            <SectionCard
+              variant="subtle"
+              title="Hospital Services & Facilities"
+              subtitle="Visible to Patient"
+              action={<button className="text-blue-600 text-sm inline-flex items-center gap-1" title="Edit">✎</button>}
+            >
+              <div className="flex flex-wrap gap-2">
+                {profile.services.map((s,i)=>(<span key={i} className="text-xs px-2 py-1 rounded border bg-gray-50 text-gray-700">{s}</span>))}
+              </div>
+            </SectionCard>
+
+            {/* Awards */}
+            <SectionCard
+              variant="subtle"
+              title="Awards & Accreditations"
+              subtitle="Visible to Patient"
+              action={<button className="text-blue-600 text-sm inline-flex items-center gap-1"><Upload size={14}/> Add</button>}
+            >
+              <div className="space-y-3">
+                <div className="p-3 border border-gray-200 rounded-md">
+                  <div className="text-sm text-gray-900 font-medium">Best Plasticene Award</div>
+                  <div className="text-[12px] text-gray-600">Manipal hospital</div>
+                </div>
+              </div>
+            </SectionCard>
           </div>
 
-          {/* Details grid */}
-          <div className="col-span-12 grid grid-cols-12 gap-4">
-            <div className="col-span-12 xl:col-span-6 space-y-4">
-              <SectionCard title="Basic Info" subtitle="Visible to Patient">
+          <div className="col-span-12 xl:col-span-5 space-y-4">
+            {/* Basic Info on right */}
+            <SectionCard variant="subtle" title="Basic Info" subtitle="Visible to Patient">
+              <div className="grid grid-cols-2 gap-3 text-[13px]">
+                <InfoField label="Mobile Number" value={profile.phone} right={<span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200"><CheckCircle2 size={14}/> Verified</span>} />
+                <InfoField label="Email" value={profile.email} right={<span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200"><CheckCircle2 size={14}/> Verified</span>} />
+                <InfoField label="Gender" value={profile.gender} />
+                <InfoField label="City" value={profile.city} />
+                <InfoField label="Designation" value={profile.designation} />
+                <InfoField label="Role" value={profile.role} />
+              </div>
+            </SectionCard>
+
+            {/* Verification Documents */}
+            <SectionCard title="Verification Documents" subtitle="Visible to Patient" action={<span className="text-[12px] text-gray-500">To Change your Medical proof please <a href="#" className="text-blue-600" onClick={(e)=>e.preventDefault()}>Call Us</a></span>}>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-[12px] text-gray-500 mb-2">GST Details</div>
+                  <InfoField label="GST Number" value={profile.gst.number} />
+                </div>
+                <div>
+                  <div className="text-[12px] text-gray-500 mb-2">Proof of GST Registration</div>
+                  <div className="mt-1 flex items-center justify-between gap-2 w-full max-w-xs border rounded px-2 py-1 text-[12px] bg-gray-50">
+                    <span className="inline-flex items-center gap-1 text-gray-700"><FileText size={14}/> {profile.gst.proof}</span>
+                    <button className="text-gray-500 hover:text-gray-700" title="More">⋮</button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="my-3 h-px bg-gray-200" />
+
+              <div className="mt-2">
+                <div className="text-[12px] text-gray-500 mb-2">CIN Details</div>
                 <div className="grid grid-cols-2 gap-3 text-[13px]">
-                  <InfoField label="Mobile Number" value={profile.phone} right={<span className="inline-flex items-center text-green-600 text-[12px]"><CheckCircle2 size={14} className="mr-1"/>Verified</span>} />
-                  <InfoField label="Email" value={profile.email} right={<span className="inline-flex items-center text-green-600 text-[12px]"><CheckCircle2 size={14} className="mr-1"/>Verified</span>} />
-                  <InfoField label="Gender" value={profile.gender} />
-                  <InfoField label="City" value={profile.city} />
-                  <InfoField label="Designation" value={profile.designation} />
-                  <InfoField label="Role" value={profile.role} />
+                  <InfoField label="CIN Number" value={profile.cin.number} />
+                  <InfoField label="Registered Company Name" value={profile.cin.company} />
+                  <InfoField label="Company Type" value={profile.cin.type} />
+                  <InfoField label="Date of Incorporation" value={profile.cin.incorporation} />
+                  <InfoField label="Registered Office Address" value={profile.cin.address} />
+                  <InfoField label="State and ROC Code" value={profile.cin.stateCode} />
+                  <InfoField label="Authorized Director" value={profile.cin.director} />
+                  <InfoField label="Director Code" value={profile.cin.code} />
                 </div>
-              </SectionCard>
-
-              <SectionCard title="Medical Specialties" subtitle="Visible to Patient" action={<button className="text-blue-600 text-sm inline-flex items-center gap-1">✎</button>}>
-                <div className="flex flex-wrap gap-2">
-                  {profile.specialties.map((s,i)=>(<span key={i} className="text-xs px-2 py-1 rounded border bg-gray-50 text-gray-700">{s}</span>))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Hospital Services & Facilities" subtitle="Visible to Patient" action={<button className="text-blue-600 text-sm inline-flex items-center gap-1">✎</button>}>
-                <div className="flex flex-wrap gap-2">
-                  {profile.services.map((s,i)=>(<span key={i} className="text-xs px-2 py-1 rounded border bg-gray-50 text-gray-700">{s}</span>))}
-                </div>
-              </SectionCard>
-            </div>
-
-            <div className="col-span-12 xl:col-span-6 space-y-4">
-              <SectionCard title="Verification Documents" subtitle="Visible to Patient" action={<a href="#" className="text-blue-600 text-sm" onClick={(e)=>e.preventDefault()}>Call Us</a>}>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-[12px] text-gray-500 mb-2">GST Details</div>
-                    <InfoField label="GST Number" value={profile.gst.number} />
-                  </div>
-                  <div>
-                    <div className="text-[12px] text-gray-500 mb-2">Proof of GST Registration</div>
-                    <a className="text-[12px] text-blue-600 inline-flex items-center gap-1 mt-1" href="#" onClick={(e)=>e.preventDefault()}>
-                      <FileText size={14}/> {profile.gst.proof}
-                    </a>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <div className="text-[12px] text-gray-500 mb-2">CIN Details</div>
-                  <div className="grid grid-cols-2 gap-3 text-[13px]">
-                    <InfoField label="CIN Number" value={profile.cin.number} />
-                    <InfoField label="Registered Company Name" value={profile.cin.company} />
-                    <InfoField label="Company Type" value={profile.cin.type} />
-                    <InfoField label="Date of Incorporation" value={profile.cin.incorporation} />
-                    <InfoField label="Registered Office Address" value={profile.cin.address} />
-                    <InfoField label="State and ROC Code" value={profile.cin.stateCode} />
-                    <InfoField label="Authorized Director" value={profile.cin.director} />
-                    <InfoField label="Director Code" value={profile.cin.code} />
-                  </div>
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Awards & Accreditations" subtitle="Visible to Patient" action={<button className="text-blue-600 text-sm inline-flex items-center gap-1"><Upload size={14}/> Add</button>}>
-                <div className="space-y-3">
-                  <div className="p-3 border border-gray-200 rounded-md">
-                    <div className="text-sm text-gray-900 font-medium">Best Plasticene Award</div>
-                    <div className="text-[12px] text-gray-600">Manipal hospital</div>
-                  </div>
-                </div>
-              </SectionCard>
-            </div>
+              </div>
+            </SectionCard>
           </div>
         </div>
       )}
