@@ -38,7 +38,7 @@ const rows = [
   { token: 24, name: 'Ojasvi Rao', gender: 'F', dob: '14/02/1993', age: 32, apptType: 'Second Opinion', exptTime: '5:00 PM', bookingType: 'Online', reason: 'PCOD' },
 ];
 
-const QueueTable = ({ onCheckIn, checkedInToken, checkedInTokens, items, removingToken, incomingToken, onRevokeCheckIn, onMarkNoShow }) => {
+const QueueTable = ({ onCheckIn, checkedInToken, checkedInTokens, items, removingToken, incomingToken, onRevokeCheckIn, onMarkNoShow, allowSampleFallback = true }) => {
   const [menuRow, setMenuRow] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   useEffect(() => {
@@ -59,7 +59,7 @@ const QueueTable = ({ onCheckIn, checkedInToken, checkedInTokens, items, removin
         bookingType: p.bookingType,
         reason: p.reasonForVisit,
       }))
-    : rows;
+    : (allowSampleFallback ? rows : []);
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full min-h-0 flex flex-col">
       {/* Scroll area for the table content */}
@@ -96,6 +96,11 @@ const QueueTable = ({ onCheckIn, checkedInToken, checkedInTokens, items, removin
           </thead>
 
   <tbody>
+    {data.length === 0 && (
+      <tr>
+        <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">No appointments for this filter.</td>
+      </tr>
+    )}
     {data.map((row) => (
       <tr key={row.token} className={`group hover:bg-gray-50 ${removingToken === row.token ? 'row-exit' : ''} ${incomingToken === row.token ? 'row-enter' : ''}`}>
                 {/* Token (sticky left) */}

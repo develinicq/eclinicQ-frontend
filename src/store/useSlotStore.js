@@ -48,7 +48,9 @@ export const useSlotStore = create((set, get) => ({
       // Auto-select first slot if none selected; clear selection when empty
       if (arr.length) {
         if (!get().selectedSlotId) {
-          get().selectSlot(arr[0]?.id || null)
+          const first = arr[0] || {}
+          const autoId = first.id || first.slotId || first._id || null
+          get().selectSlot(autoId)
         }
       } else {
         get().selectSlot(null)
@@ -67,7 +69,11 @@ export const useSlotStore = create((set, get) => ({
     set({ slotAppointmentsLoading: true, slotAppointmentsError: '' })
     try {
       const resp = await getAppointmentsForSlot(slotId)
-      set({ slotAppointments: resp?.data || null, slotAppointmentsLoading: false })
+      if (import.meta.env.VITE_DEBUG_QUEUE) {
+        console.debug('[queue] GET /appointments/slot/:id resp', resp)
+      }
+      // Store directly the 'data' payload if present, else object
+      set({ slotAppointments: resp?.data || resp || null, slotAppointmentsLoading: false })
     } catch (e) {
       set({ slotAppointmentsError: e?.response?.data?.message || e.message || 'Failed to load appointments', slotAppointmentsLoading: false })
     }

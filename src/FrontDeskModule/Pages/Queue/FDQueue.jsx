@@ -202,7 +202,7 @@ const WalkInAppointmentDrawer = ({ show, onClose, timeSlots, slotValue, setSlotV
 };
 
 export default function FDQueue() {
-	const [activeFilter, setActiveFilter] = useState('Checked In');
+	const [activeFilter, setActiveFilter] = useState('In Waiting');
 	const [selectedTimeSlot] = useState('Morning (10:00 am - 12:30 pm)');
 	const [slotValue, setSlotValue] = useState('morning');
 	const [slotOpen, setSlotOpen] = useState(false);
@@ -217,9 +217,8 @@ export default function FDQueue() {
 	const [elapsed, setElapsed] = useState(0);
 	const [removingToken, setRemovingToken] = useState(null);
 	const [incomingToken, setIncomingToken] = useState(null);
-	const [queueData, setQueueData] = useState([
-		{ token:1, patientName:'Rahul Sharma', gender:'M', age:'12/05/1985 (39Y)', appointmentType:'Review Visit', expectedTime:'10:30 AM', bookingType:'Online', reasonForVisit:'Fever & Weakness', status:'Waiting' },
-	]);
+	// Holds list currently shown in table (derived from active filter)
+	const [queueData, setQueueData] = useState([]);
 	const [appointmentRequests, setAppointmentRequests] = useState([]);
 	const [apptLoading, setApptLoading] = useState(false);
 	const [apptError, setApptError] = useState('');
@@ -232,8 +231,15 @@ export default function FDQueue() {
 	const doctorId = doctorDetails?.userId || doctorDetails?.id || null;
 	const hospitalId = (Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) && doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id) || undefined;
 
-	useEffect(()=>{ let ignore=false; const load= async()=>{ if(!clinicId) return; setApptLoading(true); setApptError(''); try { const resp= await getPendingAppointmentsForClinic({ clinicId }); const arr = resp?.data || resp?.appointments || []; if(!ignore){ const mapped = arr.map(item=> ({ id:item.id, name:item.patientId?.slice(0,8)+'…'||'Patient', gender:'—', age:'', date:new Date(item.createdAt).toDateString(), time:item.type==='ONLINE'?'Online':'', secondary:item.isRescheduled?'Reschedule':'Cancel', raw:item })); setAppointmentRequests(mapped); } } catch(e){ if(!ignore){ const status = e?.response?.status; if(status===404){ /* ignore 404 silently */ } else { setApptError(e?.response?.data?.message||e.message||'Failed to load'); } } } finally { if(!ignore) setApptLoading(false); } }; load(); return ()=>{ ignore=true; }; },[clinicId]);
-	const filters = ['Waiting','Engaged','No show','Admitted','All'];
+	// Helpers for formatting pending appointment data
+	const fmtDOB = dobIso => { if(!dobIso) return ''; try { const d=new Date(dobIso); const day=String(d.getDate()).padStart(2,'0'); const mo=String(d.getMonth()+1).padStart(2,'0'); const yr=d.getFullYear(); return `${day}/${mo}/${yr}`; } catch { return ''; } };
+	const calcAgeYears = dobIso => { if(!dobIso) return ''; try { const d=new Date(dobIso); const diff=Date.now()-d.getTime(); const ageDate=new Date(diff); return Math.abs(ageDate.getUTCFullYear()-1970); } catch { return ''; } };
+	const fmtApptDate = dateIso => { if(!dateIso) return ''; try { const d=new Date(dateIso); const day=String(d.getDate()).padStart(2,'0'); const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]; const yr=d.getFullYear(); return `${mo} ${day}, ${yr}`; } catch { return ''; } };
+	const fmtTimeRangeIST = (startIso,endIso) => { if(!startIso||!endIso) return ''; try { const toIST = iso => { const d=new Date(iso); return d; }; const s=toIST(startIso); const e=toIST(endIso); const pad=n=> String(n).padStart(2,'0'); const to12 = d=> { let h=d.getHours(); const m=pad(d.getMinutes()); const ampm = h>=12?'PM':'AM'; h = h%12; if(h===0) h=12; return `${h}:${m} ${ampm}`; }; return `${to12(s)} - ${to12(e)}`; } catch { return ''; } };
+	useEffect(()=>{ let ignore=false; const load= async()=>{ if(!clinicId) return; setApptLoading(true); setApptError(''); try { const resp= await getPendingAppointmentsForClinic({ clinicId }); const arr = resp?.data || resp?.appointments || []; if(!ignore){ const mapped = arr.map(item=> { const p=item.patientDetails||{}; const sched=item.schedule||{}; const fullName=[p.firstName,p.lastName].filter(Boolean).join(' ') || 'Patient'; const ageYears=calcAgeYears(p.dob); const ageStr = p.dob ? `${fmtDOB(p.dob)} (${ageYears}Y)` : ''; const apptDate = fmtApptDate(sched.date || item.createdAt); const timeRange = fmtTimeRangeIST(sched.startTime, sched.endTime); const bookingType = item.type==='ONLINE'?'Online':'Walk-In'; return { id:item.id, name:fullName, gender:(p.gender||'').slice(0,1).toUpperCase(), age:ageStr, date:apptDate, time:timeRange, reason:item.reason||'', bookingType, secondary:'Reschedule', raw:item }; }); setAppointmentRequests(mapped); } } catch(e){ if(!ignore){ const status = e?.response?.status; if(status===404){ /* ignore 404 silently */ } else { setApptError(e?.response?.data?.message||e.message||'Failed to load'); } } } finally { if(!ignore) setApptLoading(false); } }; load(); return ()=>{ ignore=true; }; },[clinicId]);
+	// Filters aligned with API categories; UI label -> response key
+	const FILTER_KEY_MAP = { 'In Waiting':'inWaiting', 'Engaged':'engaged', 'Checked In':'checkedIn', 'No Show':'noShow', 'Admitted':'admitted', 'All':'all' };
+	const filters = Object.keys(FILTER_KEY_MAP);
 	const { slots, slotsLoading, slotsError, selectedSlotId, selectSlot, loadSlots, loadAppointmentsForSelectedSlot, slotAppointments, slotAppointmentsLoading } = useSlotStore();
 	// Load today's slots once IDs are available
 	useEffect(()=>{
@@ -244,24 +250,35 @@ export default function FDQueue() {
 	},[doctorId, clinicId, hospitalId, loadSlots]);
 	useEffect(()=>{ if(selectedSlotId){ loadAppointmentsForSelectedSlot(); } },[selectedSlotId]);
 
-	// When appointments for slot change, map them to queue table rows
+	// Map API appointment object to table row shape
+	const mapAppointment = (appt, idx) => {
+		if (!appt) return null;
+		const p = appt.patientDetails || appt.patient || {};
+		const fullName = p.name || [p.firstName, p.lastName].filter(Boolean).join(' ') || 'Patient';
+		const genderRaw = p.gender || appt.gender || ''; const gender = genderRaw ? genderRaw.charAt(0).toUpperCase() : '—';
+		// DOB formatting dd/mm/yyyy
+		let dobStr = ''; let ageStr = '';
+		try { if (p.dob) { const d=new Date(p.dob); const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yyyy=d.getFullYear(); dobStr = `${dd}/${mm}/${yyyy}`; const ageYears = typeof p.age==='number'? p.age : Math.max(0, new Date().getFullYear()-d.getFullYear() - (new Date() < new Date(d.setFullYear(new Date().getFullYear())) ? 1:0)); ageStr = `${dobStr} (${ageYears}Y)`; } } catch { /* ignore */ }
+		const APPT_TYPE_MAP = { NEW:'New Consultation', FOLLOW_UP:'Follow-up Consultation', REVIEW:'Review Visit', SECOND_OPINION:'Second Opinion' };
+		const appointmentType = APPT_TYPE_MAP[appt.appointmentType] || appt.appointmentType || 'Consultation';
+		const formatExpectedTime = iso => { if(!iso) return ''; try { const d=new Date(iso); return d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }); } catch { return ''; } };
+		const expectedTime = formatExpectedTime(appt.expectedTime) || appt.expectedTimeLabel || '';
+		const bookingType = appt.bookingMode === 'ONLINE' ? 'Online' : appt.bookingMode === 'WALK_IN' ? 'Walk-In' : (appt.bookingType || '');
+		const reasonForVisit = appt.reason || appt.reasonForVisit || '';
+		return { token: appt.tokenNo || appt.token || (idx+1), patientName: fullName, gender, age: ageStr, appointmentType, expectedTime, bookingType, reasonForVisit, status: appt.status || 'Waiting' };
+	};
+
+	// When appointments for slot or filter change: derive queueData from categorized response
 	useEffect(()=>{
-		if (!slotAppointments) return;
-		const arr = Array.isArray(slotAppointments?.appointments) ? slotAppointments.appointments : (Array.isArray(slotAppointments) ? slotAppointments : []);
-		if (!Array.isArray(arr)) return;
-		const mapped = arr.map((it, idx) => {
-			const patientName = it.patientName || it.patient?.fullName || it.patient?.name || 'Patient';
-			const gender = (it.gender || it.patient?.gender || '').toString().charAt(0).toUpperCase() || '—';
-			const dob = it.patient?.dob || it.dob || '';
-			const age = dob ? `${dob} (—)` : '';
-			const appointmentType = it.typeLabel || it.type || 'Consultation';
-			const expectedTime = it.time || (it.startTime ? new Date(it.startTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '');
-			const bookingType = it.bookingType || (it.type==='ONLINE'?'Online':'Walk-In');
-			const reasonForVisit = it.reason || it.reasonForVisit || '';
-			return { token: it.token || (idx+1), patientName, gender, age, appointmentType, expectedTime, bookingType, reasonForVisit, status: 'Waiting' };
-		});
+		// Store holds slotAppointments = response.data
+		// Shape: { counts: {...}, appointments: { checkedIn:[], inWaiting:[], engaged:[], noShow:[], admitted:[], all:[] } }
+		const categories = slotAppointments?.appointments;
+		if (!categories) return;
+		const key = FILTER_KEY_MAP[activeFilter] || 'all';
+		const rawList = categories[key] || categories.all || [];
+		const mapped = rawList.map(mapAppointment).filter(Boolean);
 		setQueueData(mapped);
-	}, [slotAppointments]);
+	}, [slotAppointments, activeFilter]);
 
 	// On date change: reload slots for that date
 	const handleDateChange = (d) => {
@@ -304,7 +321,15 @@ export default function FDQueue() {
 		return arr;
 	}, [groupedSlots]);
 	useEffect(()=>{ const onClick=e=>{ const a=slotAnchorRef.current; const m=slotMenuRef.current; if(a&&a.contains(e.target)) return; if(m&&m.contains(e.target)) return; setSlotOpen(false); }; const onKey=e=>{ if(e.key==='Escape') setSlotOpen(false); }; window.addEventListener('mousedown',onClick); window.addEventListener('keydown',onKey); return ()=>{ window.removeEventListener('mousedown',onClick); window.removeEventListener('keydown',onKey); }; },[]);
-	const getFilterCount = f => f==='All'? queueData.length : f==='Waiting'? queueData.filter(p=>p.status==='Waiting').length : 0;
+	// Counts direct from API (fallback to derived lengths)
+	const counts = slotAppointments?.counts || {};
+	const getFilterCount = f => {
+		const key = FILTER_KEY_MAP[f];
+		if (!key) return 0;
+		if (typeof counts[key] === 'number') return counts[key];
+		if (key === 'all') return queueData.length;
+		return queueData.length;
+	};
 	const activePatient = useMemo(()=> queueData[currentIndex] || null,[queueData,currentIndex]);
 	useEffect(()=>{ if(!sessionStarted || queuePaused || !patientStartedAt) return; const id=setInterval(()=>{ const now=Date.now(); setElapsed(Math.max(0,Math.floor((now-patientStartedAt)/1000))); },1000); return ()=> clearInterval(id); },[sessionStarted,queuePaused,patientStartedAt]);
 	const formatTime = s => { const mm=String(Math.floor(s/60)).padStart(2,'0'); const ss=String(s%60).padStart(2,'0'); return `${mm}:${ss}`; };
@@ -324,7 +349,7 @@ export default function FDQueue() {
 				<div className='flex items-center'>
 					{/* Slot dropdown left */}
 					<div className='relative mr-6' ref={slotAnchorRef}>
-							<button type='button' className='flex items-center bg-white rounded-md border border-gray-200 shadow-sm px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50' onClick={e=>{ setSlotOpen(v=>!v); const rect=e.currentTarget.getBoundingClientRect(); const width=320; const left=Math.max(8,Math.min(rect.left, window.innerWidth-width-8)); const top=Math.min(rect.bottom+8, window.innerHeight-8-4); setSlotPos({ top,left,width }); }}>
+							<button type='button' className='flex items-center bg-white rounded-md border border-gray-200 shadow-sm px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50' onClick={e=>{ setSlotOpen(v=>!v); const rect=e.currentTarget.getBoundingClientRect(); const width=360; const left=Math.max(8,Math.min(rect.left, window.innerWidth-width-8)); const top=Math.min(rect.bottom+8, window.innerHeight-8-4); setSlotPos({ top,left,width }); }}>
 								<span className='font-medium mr-1'>{timeSlots.find(t=> t.key===slotValue)?.label || 'Morning'}</span>
 								<span className='text-gray-500'>({timeSlots.find(t=> t.key===slotValue)?.time || '10:00am-12:00pm'})</span>
 								<ChevronDown className='ml-2 h-4 w-4 text-gray-500' />
@@ -332,7 +357,18 @@ export default function FDQueue() {
 							{slotOpen && createPortal(<div ref={slotMenuRef} className='fixed z-[9999]' style={{ top:slotPos.top, left:slotPos.left, width:slotPos.width }}>
 								<div className='bg-white rounded-xl border border-gray-200 shadow-xl'>
 									<ul className='py-1'>
-										{timeSlots.map(({ key,label,time,Icon }, idx)=>(<li key={key}><button type='button' onClick={()=>{ setSlotValue(key); const group = groupedSlots[key] || []; if (group.length) { selectSlot(group[0].id); } setSlotOpen(false); }} className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-blue-50 ${slotValue===key?'bg-blue-50':''}`}><span className='flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 border border-blue-200 text-blue-600'><Icon className='w-4 h-4' /></span><span className='flex-1'><span className='block text-[14px] font-semibold text-gray-900'>{label}</span><span className='block text-[13px] text-gray-600'>({time})</span></span></button>{idx < timeSlots.length-1 && <div className='h-px bg-gray-200 mx-4' />}</li>))}
+										{timeSlots.map(({ key,label,time,Icon }, idx)=>(
+											<li key={key}>
+												<button type='button' onClick={()=>{ setSlotValue(key); const group = groupedSlots[key] || []; if (group.length) { const first = group[0]; const slotIdentifier = first.id || first.slotId || first._id || null; if (slotIdentifier) selectSlot(slotIdentifier); } setSlotOpen(false); }} className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-blue-50 ${slotValue===key?'bg-blue-50':''}`}>
+													<span className='flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 border border-blue-200 text-blue-600'><Icon className='w-4 h-4' /></span>
+													<span className='flex-1'>
+														<span className='block text-[14px] font-semibold text-gray-900'>{label}</span>
+														<span className='block text-[13px] text-gray-600'>({time})</span>
+													</span>
+												</button>
+												{idx < timeSlots.length-1 && <div className='h-px bg-gray-200 mx-4' />}
+											</li>
+										))}
 									</ul>
 								</div>
 							</div>, document.body)}
@@ -341,16 +377,10 @@ export default function FDQueue() {
 					<div className='flex-1 flex justify-center'>
 						<QueueDatePicker date={currentDate} onChange={handleDateChange} />
 					</div>
-					{/* Slot select & Walk-in badge right */}
+					{/* Walk-in badge right (slot select removed, integrated in dropdown) */}
 					<div className='ml-auto flex items-center gap-6'>
-						<div>
-							{slotsLoading ? <span className='text-xs text-gray-500'>Loading slots…</span> : slotsError ? <span className='text-xs text-red-600'>{slotsError}</span> : (
-								<select className='text-sm border border-gray-300 rounded px-2 py-1' value={selectedSlotId || ''} onChange={e=> selectSlot(e.target.value || null)}>
-									<option value=''>Select slot</option>
-									{slots.map(s=> <option key={s.id} value={s.id}>{buildISTRangeLabel(s.startTime, s.endTime)} ({s.availableTokens}/{s.maxTokens})</option>)}
-								</select>
-							)}
-						</div>
+						{slotsLoading && <span className='text-xs text-gray-500'>Loading slots…</span>}
+						{slotsError && !slotsLoading && <span className='text-xs text-red-600'>{slotsError}</span>}
 						<Badge size='large' type='solid' color='blue' hover className='cursor-pointer select-none' onClick={()=> setShowWalkIn(true)}>Walk-in Appointment</Badge>
 					</div>
 				</div>
@@ -359,7 +389,12 @@ export default function FDQueue() {
 			<div className='px-0 pt-0 pb-2 h-[calc(100vh-100px)] flex flex-col overflow-hidden'>
 				{sessionStarted && (<div className=''><div className='w-full bg-[#22C55E] h-[38px] flex items-center relative px-0 rounded-none'><div className='flex-1 flex items-center justify-center gap-3'><span className='text-white font-medium text-[16px]'>Current Token Number</span><span className='inline-flex items-center gap-2 font-bold text-white text-[18px]'><span className='inline-block w-3 h-3 rounded-full bg-[#D1FADF] border border-[#A7F3D0]'></span>{String(activePatient?.token ?? 0).padStart(2,'0')}</span></div><button className='absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 border border-red-200 bg-white text-red-600 text-xs font-semibold px-2 py-1 rounded transition hover:bg-red-50' onClick={()=> setQueuePaused(!queuePaused)}>{queuePaused?'Resume Queue':'Pause Queue'}</button></div></div>)}
 				<div className='p-2 flex flex-col flex-1 min-h-0'>
-					<div className='flex flex-col gap-2'><h3 className='text-[#424242] font-medium'>Overview</h3><div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'><OverviewStatCard title='All Appointments' value={queueData.length} /><OverviewStatCard title='Checked In' value={queueData.filter(q=> q.status==='Check-In').length} /><OverviewStatCard title='Engaged' value={0} /><OverviewStatCard title='No Show/Cancelled' value={0} /></div></div>
+					<div className='flex flex-col gap-2'><h3 className='text-[#424242] font-medium'>Overview</h3><div className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4'>
+						<OverviewStatCard title='All Appointments' value={counts.all ?? queueData.length} />
+						<OverviewStatCard title='Checked In' value={counts.checkedIn ?? counts['checkedIn'] ?? 0} />
+						<OverviewStatCard title='Engaged' value={counts.engaged ?? counts['engaged'] ?? 0} />
+						<OverviewStatCard title='No Show/Cancelled' value={(counts.noShow ?? counts['noShow'] ?? 0) + (counts.cancelled ?? 0)} />
+					</div></div>
 					{sessionStarted && activePatient && (<div className='mb-2 p-2'><h3 className='text-gray-800 font-semibold mb-2'>Active Patient</h3><div id='active-patient-card' className='bg-white rounded-lg border border-blue-200 px-4 py-3 flex items-center justify-between text-sm active-card-enter'><div className='flex items-center gap-4 min-w-0'><AvatarCircle name={activePatient.patientName} size='s' /><div className='flex items-center gap-4 min-w-0'><div className='min-w-0'><div className='flex items-center gap-1'><span className='font-semibold text-gray-900 truncate max-w-[160px]'>{activePatient.patientName}</span><span className='text-gray-400 text-xs leading-none'>↗</span></div><div className='text-[11px] text-gray-500 mt-0.5'>{activePatient.gender} | {activePatient.age}</div></div><div className='h-10 w-px bg-gray-200' /><div><div className='flex items-center gap-2 shrink-0'><span className='text-gray-500'>Token Number</span><span className='inline-flex items-center justify-center w-5 h-5 rounded border border-blue-300 bg-blue-50 text-[11px] font-medium text-blue-700'>{activePatient.token}</span></div><div className='flex items-center gap-1 text-gray-500'><span className=''>Reason for Visit :</span><span className='font-xs whitespace-nowrap text-gray-700'>{activePatient.reasonForVisit}</span></div></div></div></div><div className='flex items-center gap-3 shrink-0 pl-4'><div className='inline-flex items-center gap-1 rounded-md border border-green-200 bg-green-50 px-2 py-1 text-[12px] font-medium text-green-700'><span className='inline-block w-2 h-2 rounded-full bg-green-500' />{formatTime(elapsed)}</div><button onClick={completeCurrentPatient} className='inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors'>End Session</button><button className='text-gray-500 hover:text-gray-700 px-2 py-1'>⋯</button></div></div></div>)}
 					<div className='flex items-center justify-between px-1 py-3'>
 						<div className='flex gap-3'>{filters.map(f=> <button key={f} onClick={()=> setActiveFilter(f)} className={` px-[6px] py-1 rounded-lg font-medium text-sm transition-colors ${activeFilter===f? 'bg-white text-blue-600 shadow-sm':'text-gray-600 hover:text-gray-800'}`}>{f} <span className='ml-1 text-xs'>{getFilterCount(f)}</span></button>)}</div>
@@ -367,7 +402,7 @@ export default function FDQueue() {
 					</div>
 					<div className='w-full flex flex-col lg:flex-row gap-3 flex-1 min-h-0 overflow-hidden'>
 						<div className='flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col'>
-							<QueueTable onCheckIn={handleCheckIn} checkedInToken={checkedInToken} checkedInTokens={checkedInTokens} items={queueData} removingToken={removingToken} incomingToken={incomingToken} onRevokeCheckIn={token=>{ setCheckedInTokens(prev=>{ const n=new Set(prev); n.delete(token); return n; }); if(checkedInToken===token) setCheckedInToken(null); }} onMarkNoShow={token=> setQueueData(prev=> prev.filter(p=> p.token!== token))} />
+							<QueueTable allowSampleFallback={false} onCheckIn={handleCheckIn} checkedInToken={checkedInToken} checkedInTokens={checkedInTokens} items={queueData} removingToken={removingToken} incomingToken={incomingToken} onRevokeCheckIn={token=>{ setCheckedInTokens(prev=>{ const n=new Set(prev); n.delete(token); return n; }); if(checkedInToken===token) setCheckedInToken(null); }} onMarkNoShow={token=> setQueueData(prev=> prev.filter(p=> p.token!== token))} />
 						</div>
 						<div className='shrink-0 w-[400px] bg-white rounded-[12px] border-[0.5px] border-[#D6D6D6] h-full overflow-y-auto'>
 							<div className=''>
