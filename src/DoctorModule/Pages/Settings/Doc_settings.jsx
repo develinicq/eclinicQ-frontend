@@ -8,6 +8,15 @@ import Toggle from '../../../components/FormItems/Toggle'
 import TimeInput from '../../../components/FormItems/TimeInput'
 import MapLocation from '../../../components/FormItems/MapLocation'
 
+import useProfileStore from '../../../store/settings/useProfileStore.js';
+import usePracticeStore from "../../../store/settings/usePracticeStore.js";
+import useEducationStore from "../../../store/settings/useEducationStore.js";
+import useExperienceStore from "../../../store/settings/useExperienceStore.js";
+import useAwardsPublicationsStore from "../../../store/settings/useAwardsPublicationsStore.js";
+
+
+
+
 // Global drawer animation keyframes (used by all drawers in this page)
 const DrawerKeyframes = () => (
   <style>{`
@@ -48,12 +57,34 @@ const SectionCard = ({ title, subtitle, action, children }) => (
 
 // ======== Drawer: Edit Basic Info ========
 const BasicInfoDrawer = ({ open, onClose, initial, onSave }) => {
-  const [form, setForm] = useState(() => ({...initial}))
+  const [form, setForm] = useState(() => ({
+    firstName: initial?.firstName || '',
+    lastName: initial?.lastName || '',
+    phone: initial?.phone || '',
+    email: initial?.email || '',
+    gender: initial?.gender || 'Male',
+    city: initial?.city || '',
+    website: initial?.website || '',
+    headline: initial?.headline || '',
+    about: initial?.about || '',
+    languages: initial?.languages || [],
+  }))
   const [headlineCount, setHeadlineCount] = useState(initial?.headline?.length || 0)
   const [closing, setClosing] = useState(false)
 
   useEffect(() => {
-    setForm({ ...initial })
+    setForm({
+      firstName: initial?.firstName || '',
+      lastName: initial?.lastName || '',
+      phone: initial?.phone || '',
+      email: initial?.email || '',
+      gender: initial?.gender || 'Male',
+      city: initial?.city || '',
+      website: initial?.website || '',
+      headline: initial?.headline || '',
+      about: initial?.about || '',
+      languages: initial?.languages || [],
+    })
     setHeadlineCount(initial?.headline?.length || 0)
   }, [initial, open])
 
@@ -228,14 +259,32 @@ const SelectInput = ({ children, ...props }) => (
 // Drawer: Education (Add/Edit)
 const EducationDrawer = ({ open, onClose, initial, onSave, mode = 'add' }) => {
   const [closing, setClosing] = useState(false)
-  const [data, setData] = useState(() => initial || { school: '', gradType: '', degree: '', field: '', start: '', end: '', proof: '' })
+  const [data, setData] = useState({ school: '', gradType: '', degree: '', field: '', start: '', end: '', proof: '' })
 
-  useEffect(() => { setData(initial || { school: '', gradType: '', degree: '', field: '', start: '', end: '', proof: '' }) }, [initial, open])
+  useEffect(() => {
+    if (open) {
+      if (initial && mode === 'edit') {
+        // initial is already mapped from the onClick handler
+        setData({
+          school: initial.school || '',
+          gradType: initial.gradType || '',
+          degree: initial.degree || '',
+          field: initial.field || '',
+          start: initial.start || '',
+          end: initial.end || '',
+          proof: initial.proof || ''
+        });
+      } else {
+        setData({ school: '', gradType: '', degree: '', field: '', start: '', end: '', proof: '' });
+      }
+    }
+  }, [initial, open, mode])
+  
   useEffect(() => { const onEsc = (e)=> e.key==='Escape' && requestClose(); window.addEventListener('keydown', onEsc); return ()=>window.removeEventListener('keydown', onEsc) }, [])
   if (!open && !closing) return null
   const requestClose = () => { setClosing(true); setTimeout(()=>{ setClosing(false); onClose?.() }, 220) }
   const set = (k,v)=> setData((d)=>({ ...d, [k]: v }))
-  const canSave = data.school && data.gradType && data.degree && data.field && data.start && data.end
+  const canSave = data.school && data.gradType && data.degree && data.start && data.end
 
   return (
     <div className="fixed inset-0 z-50">
@@ -257,23 +306,17 @@ const EducationDrawer = ({ open, onClose, initial, onSave, mode = 'add' }) => {
             <FieldLabel required>Graduation Type</FieldLabel>
             <SelectInput value={data.gradType} onChange={(e)=>set('gradType', e.target.value)}>
               <option value="" disabled>Select Type</option>
-              <option>Graduation</option>
-              <option>Post-Graduation</option>
-              <option>Fellowship</option>
+              <option value="UG">Graduation</option>
+              <option value="PG">Post-Graduation</option>
+              <option value="Fellowship">Fellowship</option>
             </SelectInput>
           </label>
           <label className="block">
             <FieldLabel required>Degree</FieldLabel>
-            <SelectInput value={data.degree} onChange={(e)=>set('degree', e.target.value)}>
-              <option value="" disabled>Select or Enter Degree</option>
-              <option>MBBS</option>
-              <option>MD</option>
-              <option>DNB</option>
-              <option>MS</option>
-            </SelectInput>
+            <TextInput placeholder="Select or Enter Degree" value={data.degree} onChange={(e)=>set('degree', e.target.value)} />
           </label>
           <label className="block">
-            <FieldLabel required>Field Of Study</FieldLabel>
+            <FieldLabel>Field Of Study</FieldLabel>
             <TextInput placeholder="Select or Enter your Field of Study" value={data.field} onChange={(e)=>set('field', e.target.value)} />
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -303,10 +346,28 @@ const EducationDrawer = ({ open, onClose, initial, onSave, mode = 'add' }) => {
 }
 
 // Drawer: Experience
-const ExperienceDrawer = ({ open, onClose, onSave }) => {
+const ExperienceDrawer = ({ open, onClose, onSave, initial, mode = 'add' }) => {
   const [closing, setClosing] = useState(false)
-  const [data, setData] = useState({ role: '', type: '', org: '', start: '', end: '', current: false, location: '', desc: '' })
-  useEffect(() => { if(open){ setData({ role: '', type: '', org: '', start: '', end: '', current: false, location: '', desc: '' }) } }, [open])
+  const [data, setData] = useState({ role: '', type: '', org: '', start: '', end: '', current: false, desc: '' })
+  
+  useEffect(() => {
+    if (open) {
+      if (initial && mode === 'edit') {
+        setData({
+          role: initial.jobTitle || '',
+          type: initial.employmentType || '',
+          org: initial.hospitalOrClinicName || '',
+          start: initial.startDate ? initial.startDate.split('T')[0] : '',
+          end: initial.endDate ? initial.endDate.split('T')[0] : '',
+          current: initial.isCurrentlyWorking || false,
+          desc: initial.description || ''
+        });
+      } else {
+        setData({ role: '', type: '', org: '', start: '', end: '', current: false, desc: '' });
+      }
+    }
+  }, [initial, open, mode]);
+  
   if (!open && !closing) return null
   const requestClose = ()=>{ setClosing(true); setTimeout(()=>{ setClosing(false); onClose?.() }, 220) }
   const set = (k,v)=> setData((d)=>({ ...d, [k]: v }))
@@ -316,7 +377,7 @@ const ExperienceDrawer = ({ open, onClose, onSave }) => {
       <div className={`absolute inset-0 bg-black/30 ${closing ? 'animate-[fadeOut_.2s_ease-in_forwards]' : 'animate-[fadeIn_.25s_ease-out_forwards]'}`} onClick={requestClose} />
       <aside className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${closing ? 'animate-[drawerOut_.22s_ease-in_forwards]' : 'animate-[drawerIn_.25s_ease-out_forwards]'}`} role="dialog" aria-modal="true">
         <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[#424242]">Add Experience</h3>
+          <h3 className="text-[16px] font-semibold text-[#424242]">{mode === 'edit' ? 'Edit Experience' : 'Add Experience'}</h3>
           <div className="flex items-center gap-3">
             <button disabled={!canSave} onClick={()=> canSave && onSave?.(data)} className={'text-xs md:text-sm h-8 px-3 rounded-md transition ' + (!canSave ? 'bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed' : 'bg-[#2F66F6] text-white hover:bg-[#1e4cd8]')}>Save</button>
             <button onClick={requestClose} className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100" aria-label="Close">✕</button>
@@ -327,11 +388,10 @@ const ExperienceDrawer = ({ open, onClose, onSave }) => {
           <label className="block"><FieldLabel required>Employment Type</FieldLabel><SelectInput value={data.type} onChange={(e)=>set('type', e.target.value)}><option value="" disabled>Select</option><option>Full-Time</option><option>Part-Time</option><option>Contract</option></SelectInput></label>
           <label className="block"><FieldLabel required>Hospital or Clinic Name</FieldLabel><TextInput placeholder="Chauhan Clinic, Akola" value={data.org} onChange={(e)=>set('org', e.target.value)} /></label>
           <div className="grid grid-cols-2 gap-3 items-end">
-            <label className="block"><FieldLabel required>Start Date</FieldLabel><TextInput placeholder="Aug, 2014" value={data.start} onChange={(e)=>set('start', e.target.value)} /></label>
-            <label className="block"><FieldLabel required>End Date</FieldLabel><TextInput placeholder="Present or Aug, 2018" value={data.end} onChange={(e)=>set('end', e.target.value)} disabled={data.current} /></label>
+            <label className="block"><FieldLabel required>Start Date</FieldLabel><TextInput type="date" value={data.start} onChange={(e)=>set('start', e.target.value)} /></label>
+            <label className="block"><FieldLabel required>End Date</FieldLabel><TextInput type="date" value={data.end} onChange={(e)=>set('end', e.target.value)} disabled={data.current} /></label>
           </div>
           <label className="inline-flex items-center gap-2 text-[13px] text-[#424242]"><input type="checkbox" checked={data.current} onChange={(e)=>set('current', e.target.checked)} /> I am currently working in this role</label>
-          <label className="block"><FieldLabel>Location</FieldLabel><TextInput placeholder="Akola, Maharashtra" value={data.location} onChange={(e)=>set('location', e.target.value)} /></label>
           <div>
             <FieldLabel>Description</FieldLabel>
             <div className="border border-gray-200 rounded-md">
@@ -347,10 +407,27 @@ const ExperienceDrawer = ({ open, onClose, onSave }) => {
 }
 
 // Drawer: Award
-const AwardDrawer = ({ open, onClose, onSave }) => {
+const AwardDrawer = ({ open, onClose, onSave, initial, mode = 'add' }) => {
   const [closing, setClosing] = useState(false)
   const [data, setData] = useState({ title: '', issuer: '', with: '', date: '', url: '', desc: '' })
-  useEffect(()=>{ if(open){ setData({ title: '', issuer: '', with: '', date: '', url: '', desc: '' })}}, [open])
+  
+  useEffect(() => {
+    if (open) {
+      if (initial && mode === 'edit') {
+        setData({
+          title: initial.awardName || '',
+          issuer: initial.issuerName || '',
+          with: initial.associatedWith || '',
+          date: initial.issueDate ? initial.issueDate.split('T')[0] : '',
+          url: initial.awardUrl || '',
+          desc: initial.description || ''
+        });
+      } else {
+        setData({ title: '', issuer: '', with: '', date: '', url: '', desc: '' });
+      }
+    }
+  }, [initial, open, mode]);
+  
   if(!open && !closing) return null
   const requestClose = ()=>{ setClosing(true); setTimeout(()=>{ setClosing(false); onClose?.() }, 220) }
   const set = (k,v)=> setData((d)=>({ ...d, [k]: v }))
@@ -360,7 +437,7 @@ const AwardDrawer = ({ open, onClose, onSave }) => {
       <div className={`absolute inset-0 bg-black/30 ${closing ? 'animate-[fadeOut_.2s_ease-in_forwards]' : 'animate-[fadeIn_.25s_ease-out_forwards]'}`} onClick={requestClose} />
       <aside className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${closing ? 'animate-[drawerOut_.22s_ease-in_forwards]' : 'animate-[drawerIn_.25s_ease-out_forwards]'}`} role="dialog" aria-modal="true">
         <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[#424242]">Add Award</h3>
+          <h3 className="text-[16px] font-semibold text-[#424242]">{mode === 'edit' ? 'Edit Award' : 'Add Award'}</h3>
           <div className="flex items-center gap-3"><button disabled={!canSave} onClick={()=>canSave && onSave?.(data)} className={'text-xs md:text-sm h-8 px-3 rounded-md transition ' + (!canSave ? 'bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed' : 'bg-[#2F66F6] text-white hover:bg-[#1e4cd8]')}>Save</button><button onClick={requestClose} className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100" aria-label="Close">✕</button></div>
         </div>
   <div className="p-3 overflow-y-auto  grid grid-cols-1 gap-2">
@@ -384,10 +461,26 @@ const AwardDrawer = ({ open, onClose, onSave }) => {
 }
 
 // Drawer: Publication
-const PublicationDrawer = ({ open, onClose, onSave }) => {
+const PublicationDrawer = ({ open, onClose, onSave, initial, mode = 'add' }) => {
   const [closing, setClosing] = useState(false)
-  const [data, setData] = useState({ title: '', publisher: '', citation: '', date: '', url: '', desc: '' })
-  useEffect(()=>{ if(open){ setData({ title: '', publisher: '', citation: '', date: '', url: '', desc: '' })}}, [open])
+  const [data, setData] = useState({ title: '', publisher: '', date: '', url: '', desc: '' })
+  
+  useEffect(() => {
+    if (open) {
+      if (initial && mode === 'edit') {
+        setData({
+          title: initial.title || '',
+          publisher: initial.publisher || '',
+          date: initial.publicationDate?.split('T')[0] || '',
+          url: initial.publicationUrl || '',
+          desc: initial.description || ''
+        });
+      } else {
+        setData({ title: '', publisher: '', date: '', url: '', desc: '' });
+      }
+    }
+  }, [initial, open, mode]);
+  
   if(!open && !closing) return null
   const requestClose = ()=>{ setClosing(true); setTimeout(()=>{ setClosing(false); onClose?.() }, 220) }
   const set = (k,v)=> setData((d)=>({ ...d, [k]: v }))
@@ -397,13 +490,12 @@ const PublicationDrawer = ({ open, onClose, onSave }) => {
       <div className={`absolute inset-0 bg-black/30 ${closing ? 'animate-[fadeOut_.2s_ease-in_forwards]' : 'animate-[fadeIn_.25s_ease-out_forwards]'}`} onClick={requestClose} />
       <aside className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${closing ? 'animate-[drawerOut_.22s_ease-in_forwards]' : 'animate-[drawerIn_.25s_ease-out_forwards]'}`} role="dialog" aria-modal="true">
         <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[#424242]">Add Publication</h3>
+          <h3 className="text-[16px] font-semibold text-[#424242]">{mode === 'edit' ? 'Edit Publication' : 'Add Publication'}</h3>
           <div className="flex items-center gap-3"><button disabled={!canSave} onClick={()=>canSave && onSave?.(data)} className={'text-xs md:text-sm h-8 px-3 rounded-md transition ' + (!canSave ? 'bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed' : 'bg-[#2F66F6] text-white hover:bg-[#1e4cd8]')}>Save</button><button onClick={requestClose} className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100" aria-label="Close">✕</button></div>
         </div>
   <div className="p-3 overflow-y-auto  grid grid-cols-1 gap-2">
           <label className="block"><FieldLabel required>Title</FieldLabel><TextInput placeholder="Title" value={data.title} onChange={(e)=>set('title', e.target.value)} /></label>
           <label className="block"><FieldLabel required>Publication / Publisher</FieldLabel><TextInput placeholder="Publisher" value={data.publisher} onChange={(e)=>set('publisher', e.target.value)} /></label>
-          <label className="block"><FieldLabel>Citation</FieldLabel><TextInput placeholder="APA/MLA or reference" value={data.citation} onChange={(e)=>set('citation', e.target.value)} /></label>
           <label className="block"><FieldLabel required>Publication Date</FieldLabel><TextInput type="date" value={data.date} onChange={(e)=>set('date', e.target.value)} /></label>
           <label className="block"><FieldLabel>Publication URL</FieldLabel><TextInput placeholder="https://..." value={data.url} onChange={(e)=>set('url', e.target.value)} /></label>
           <div>
@@ -457,14 +549,29 @@ const ProfessionalDrawer = ({ open, onClose, initial, onSave }) => {
 // Drawer: Practice Details
 const PracticeDrawer = ({ open, onClose, initial, onSave }) => {
   const [closing, setClosing] = useState(false)
-  const [form, setForm] = useState(initial || { experience: '', type: '', specialization: '', areas: [] })
-  useEffect(()=>{ setForm(initial || { experience: '', type: '', specialization: '', areas: [] }) }, [initial, open])
+  const [form, setForm] = useState({
+    workExperience: initial?.workExperience || '',
+    medicalPracticeType: initial?.medicalPracticeType || '',
+    practiceArea: initial?.practiceArea || [],
+    specialties: initial?.specialties || []
+  })
+  
+  useEffect(() => {
+    setForm({
+      workExperience: initial?.workExperience || '',
+      medicalPracticeType: initial?.medicalPracticeType || '',
+      practiceArea: initial?.practiceArea || [],
+      specialties: initial?.specialties || []
+    })
+  }, [initial, open])
+  
   if(!open && !closing) return null
   const requestClose = ()=>{ setClosing(true); setTimeout(()=>{ setClosing(false); onClose?.() }, 220) }
   const set = (k,v)=> setForm((f)=>({ ...f, [k]: v }))
-  const toggleArea = (a)=> setForm((f)=> ({ ...f, areas: f.areas.includes(a) ? f.areas.filter(x=>x!==a) : [...f.areas, a] }))
-  const canSave = form.experience && form.type && form.specialization
+  const toggleArea = (a)=> setForm((f)=> ({ ...f, practiceArea: f.practiceArea.includes(a) ? f.practiceArea.filter(x=>x!==a) : [...f.practiceArea, a] }))
+  const canSave = form.workExperience && form.medicalPracticeType
   const areaOptions = ['Cough','Cold','Headache','Nausea','Dizziness','Muscle Pain','Sore Throat']
+  
   return (
     <div className="fixed inset-0 z-50">
       <div className={`absolute inset-0 bg-black/30 ${closing ? 'animate-[fadeOut_.2s_ease-in_forwards]' : 'animate-[fadeIn_.25s_ease-out_forwards]'}`} onClick={requestClose} />
@@ -473,15 +580,14 @@ const PracticeDrawer = ({ open, onClose, initial, onSave }) => {
           <h3 className="text-[16px] font-semibold text-[#424242]">Edit Practice Details</h3>
           <div className="flex items-center gap-3"><button disabled={!canSave} onClick={()=>canSave && onSave?.(form)} className={'text-xs md:text-sm h-8 px-3 rounded-md transition ' + (!canSave ? 'bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed' : 'bg-[#2F66F6] text-white hover:bg-[#1e4cd8]')}>Save</button><button onClick={requestClose} className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100" aria-label="Close">✕</button></div>
         </div>
-        <div className="p-4 overflow-y-auto  grid grid-cols-1 gap-3">
-          <label className="block"><FieldLabel required>Work Experience</FieldLabel><div className="flex items-center gap-2"><TextInput placeholder="20" value={form.experience} onChange={(e)=>set('experience', e.target.value)} className="!mt-0" /><span className="text-xs text-gray-500">Years</span></div></label>
-          <label className="block"><FieldLabel required>Medical Practice Type</FieldLabel><SelectInput value={form.type} onChange={(e)=>set('type', e.target.value)}><option value="" disabled>Select</option><option>Homeopathy</option><option>Allopathy</option><option>Ayurveda</option></SelectInput></label>
-          <label className="block"><FieldLabel required>Specialization</FieldLabel><TextInput placeholder="General Medicine (Exp: 19 years)" value={form.specialization} onChange={(e)=>set('specialization', e.target.value)} /></label>
+        <div className="p-4 overflow-y-auto grid grid-cols-1 gap-3">
+          <label className="block"><FieldLabel required>Work Experience</FieldLabel><div className="flex items-center gap-2"><TextInput placeholder="15" value={form.workExperience} onChange={(e)=>set('workExperience', e.target.value)} className="!mt-0" /><span className="text-xs text-gray-500">Years</span></div></label>
+          <label className="block"><FieldLabel required>Medical Practice Type</FieldLabel><SelectInput value={form.medicalPracticeType} onChange={(e)=>set('medicalPracticeType', e.target.value)}><option value="" disabled>Select</option><option>Homeopathy</option><option>Allopathy</option><option>Ayurveda</option></SelectInput></label>
           <div>
             <FieldLabel>Practice Area</FieldLabel>
             <div className="mt-2 flex flex-wrap gap-2">
               {areaOptions.map((a)=> (
-                <button key={a} type="button" onClick={()=>toggleArea(a)} className={`px-2 h-7 rounded-md border text-[12px] ${form.areas.includes(a) ? 'bg-[#EAF2FF] border-[#BFD3FF] text-[#2F66F6]' : 'bg-white border-[#E6E6E6] text-[#424242] hover:bg-gray-50'}`}>{a}</button>
+                <button key={a} type="button" onClick={()=>toggleArea(a)} className={`px-2 h-7 rounded-md border text-[12px] ${form.practiceArea.includes(a) ? 'bg-[#EAF2FF] border-[#BFD3FF] text-[#2F66F6]' : 'bg-white border-[#E6E6E6] text-[#424242] hover:bg-gray-50'}`}>{a}</button>
               ))}
             </div>
           </div>
@@ -907,6 +1013,54 @@ import { useLocation, useNavigate } from 'react-router-dom'
 const Doc_settings = () => {
   const location = useLocation()
   const navigate = useNavigate()
+
+  // Grab global profile + actions from Zustand
+  const {
+      profile,
+      fetchBasicInfo,
+      updateBasicInfo,
+    } = useProfileStore();
+
+  // Education store
+  const {
+    education,
+    fetchEducation,
+    addEducation,
+    updateEducation,
+    deleteEducation,
+  } = useEducationStore();
+
+  // Experience store
+  const {
+    experiences,
+    fetchExperiences,
+    addExperience,
+    updateExperience,
+    deleteExperience,
+  } = useExperienceStore();
+
+  // Awards & Publications store
+  const {
+    awards,
+    publications,
+    fetchAwardsAndPublications,
+    addAward,
+    updateAward,
+    deleteAward,
+    addPublication,
+    updatePublication,
+    deletePublication,
+  } = useAwardsPublicationsStore();
+
+  // Practice store (professional details)
+  const {
+    medicalRegistration,
+    practiceDetails,
+    fetchProfessionalDetails,
+    updateMedicalRegistration,
+    updatePracticeDetails,
+  } = usePracticeStore();
+    
   // Tabs under Settings (as per screenshot)
   const tabs = [
     { key: 'personal', label: 'Personal Info' },
@@ -944,82 +1098,52 @@ const Doc_settings = () => {
     }
   }
 
-  // Mocked data for UI scaffolding (replace with real API later)
-  const initialProfile = useMemo(() => ({
-    name: 'Dr. Milind Chauhan',
-    firstName: 'Milind',
-    lastName: 'Chauhan',
-    phone: '91753 67487',
-    email: 'milindchauhan@gmail.com',
-    gender: 'Male',
-    languages: ['English', 'Hindi', 'Marathi'],
-    city: 'Akola, Maharashtra',
-    website: '-',
-    headline:
-      'Dr. Milind Chauhan practices Gynaecologist and Obstetrician in Andheri East, Mumbai and has 13 years of experience in this field.',
-    about:
-      'Dr. Milind Chauhan practices Gynaecologist and Obstetrician in Andheri East, Mumbai and has 13 years of experience in this field. He has completed his DNB - Obstetric and Gynecology and MBBS. Dr. Milind Chauhan has gained the confidence of patients and is a popular Gynaecologist and Obstetrician expert in Mumbai who performs treatment and procedures for various health issues related to Gynaecologist and Obstetrician.',
-    registration: {
-      mrn: 'MCMI789456',
-      year: '2015',
-      council: 'Maharashtra Medical Council',
-      proof: 'MRN Proof.pdf',
-    },
-    practice: {
-      experience: '20 Years',
-      type: 'Homeopathy',
-      specialization: 'General Medicine (Exp: 19 years)',
-      areas: ['Cough', 'Cold', 'Headache', 'Nausea', 'Dizziness', 'Muscle Pain', 'Sore Throat'],
-    },
-    education: [
-      {
-        title: 'MBBS in General Medicine',
-        tag: 'Graduation',
-        college: 'Grant Medical College, Mumbai',
-        duration: '2010 - 2014',
-        certificate: 'Degree_Certificate.pdf',
-      },
-      {
-        title: 'MD in General Medicine',
-        tag: 'Post-Graduation',
-        college: 'Grant Medical College, Mumbai',
-        duration: '2014 - 2017',
-        certificate: 'Degree_Certificate.pdf',
-      },
-    ],
-    experienceList: [
-      {
-        role: 'General Physician - CEO',
-        type: 'Full-Time',
-        org: 'Chauhan Clinic, Jawahar Nagar, Akola',
-        duration: 'Aug, 2014 – Present  |  4 Yrs',
-        location: 'Akola, Maharashtra',
-        desc:
-          'As a dedicated personal clinic owner, I bring over a decade of experience in the healthcare field, passionately guiding aspiring medical professionals. My training sessions are interactive and focused on real-world challenges.',
-      },
-      {
-        role: 'Trainee General Physician',
-        type: 'Part-Time',
-        org: 'Manipal Hospital, Baner Pune',
-        duration: 'Sept, 2010 – Aug, 2014  |  4 Yrs',
-        location: 'Pune, Maharashtra',
-        desc:
-          'As a part-time trainer, I bring over ten years of expertise in the healthcare sector, dedicated to mentoring future medical professionals. I lead engaging training sessions focused on practical learning.',
-      },
-    ],
-    awards: [
-      { title: 'Best Plasticene Award', org: 'Manipal hospital', date: 'May, 2017', link: 'Certificate' },
-      { title: 'Best Plasticene Award', org: 'Manipal hospital', date: 'May, 2017', link: 'Certificate' },
-    ],
-  }), [])
-  const [profile, setProfile] = useState(initialProfile)
   const [basicOpen, setBasicOpen] = useState(false)
   const [eduOpen, setEduOpen] = useState(false)
+  const [eduEditMode, setEduEditMode] = useState('add') // 'add' or 'edit'
+  const [eduEditData, setEduEditData] = useState(null) // holds education entry being edited
   const [expOpen, setExpOpen] = useState(false)
+  const [expEditMode, setExpEditMode] = useState('add') // 'add' or 'edit'
+  const [expEditData, setExpEditData] = useState(null) // holds experience being edited
   const [awardOpen, setAwardOpen] = useState(false)
+  const [awardEditMode, setAwardEditMode] = useState('add') // 'add' or 'edit'
+  const [awardEditData, setAwardEditData] = useState(null) // holds award being edited
   const [pubOpen, setPubOpen] = useState(false)
+  const [pubEditMode, setPubEditMode] = useState('add') // 'add' or 'edit'
+  const [pubEditData, setPubEditData] = useState(null) // holds publication being edited
   const [profOpen, setProfOpen] = useState(false)
   const [practiceOpen, setPracticeOpen] = useState(false)
+
+   useEffect(() => {
+    // Fetch all settings data on component mount
+    fetchBasicInfo().catch(() => {
+      console.log("Error in fetch basic info");
+    });
+    
+    fetchEducation().catch(() => {
+      console.log("Error in fetch education");
+    });
+
+    fetchExperiences().catch(() => {
+      console.log("Error in fetch experiences");
+    });
+
+    fetchAwardsAndPublications().catch(() => {
+      console.log("Error in fetch awards and publications");
+    });
+
+    fetchProfessionalDetails().catch(() => {
+      console.log("Error in fetch professional details");
+    });
+  }, [fetchBasicInfo, fetchEducation, fetchExperiences, fetchAwardsAndPublications, fetchProfessionalDetails]);
+
+  if (!profile) {
+  return (
+    <div className="px-6 py-10 text-sm text-gray-600">
+      Loading profile...
+    </div>
+  );
+}
 
   return (
     <div className="px-6 pb-10">
@@ -1030,7 +1154,7 @@ const Doc_settings = () => {
           <img src={hospital} alt="cover" className="w-full h-40 object-cover" />
           <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
             <div className="rounded-full ring-4 ring-white shadow-md">
-              <AvatarCircle name={profile.name} size="l" color="blue" className="w-24 h-24 text-3xl" />
+              <AvatarCircle name={profile.basic?.name} size="l" color="blue" className="w-24 h-24 text-3xl" />
             </div>
           </div>
         </div>
@@ -1075,24 +1199,24 @@ const Doc_settings = () => {
             >
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3 text-[13px]">
-                  <InfoField label="First Name" value={profile.firstName} />
-                  <InfoField label="Last Name" value={profile.lastName} />
-                  <InfoField label="Mobile Number" value={profile.phone} right={<span className="inline-flex items-center text-green-600 text-[12px]"><CheckCircle2 size={14} className="mr-1"/>Verified</span>} />
-                  <InfoField label="Email" value={profile.email} right={<span className="inline-flex items-center text-green-600 text-[12px]"><CheckCircle2 size={14} className="mr-1"/>Verified</span>} />
-                  <InfoField label="Gender" value={profile.gender} />
-                  <InfoField label="Language" value={profile.languages?.join(' ')} />
-                  <InfoField label="City" value={profile.city} />
-                  <InfoField label="Website" value={profile.website} />
+                  <InfoField label="First Name" value={profile.basic?.firstName} />
+                  <InfoField label="Last Name" value={profile.basic?.lastName} />
+                  <InfoField label="Mobile Number" value={profile.basic?.phone} right={<span className="inline-flex items-center text-green-600 text-[12px]"><CheckCircle2 size={14} className="mr-1"/>Verified</span>} />
+                  <InfoField label="Email" value={profile.basic?.email} right={<span className="inline-flex items-center text-green-600 text-[12px]"><CheckCircle2 size={14} className="mr-1"/>Verified</span>} />
+                  <InfoField label="Gender" value={profile.basic?.gender?.charAt(0).toUpperCase() + profile.basic?.gender?.slice(1).toLowerCase()} />
+                  <InfoField label="Language" value={profile.basic?.languages?.join(', ')} />
+                  <InfoField label="City" value={profile.basic?.city} />
+                  <InfoField label="Website" value={profile.basic?.website} />
                 </div>
 
                 <div className="mt-1">
                   <div className="text-gray-500 text-[13px]">Profile Headline</div>
-                  <div className="text-[13px] text-gray-900 mt-1">{profile.headline}</div>
+                  <div className="text-[13px] text-gray-900 mt-1">{profile.basic?.headline}</div>
                 </div>
 
                 <div className="mt-1">
                   <div className="text-gray-500 text-[13px]">About</div>
-                  <div className="text-[13px] text-gray-900 mt-1">{profile.about}</div>
+                  <div className="text-[13px] text-gray-900 mt-1">{profile.basic?.about}</div>
                 </div>
               </div>
             </SectionCard>
@@ -1101,49 +1225,152 @@ const Doc_settings = () => {
               title="Educational Details"
               subtitle="Visible to Patient"
               action={<div className="flex items-center gap-2">
-                <button onClick={()=>setEduOpen(true)} className="text-blue-600 text-sm inline-flex items-center gap-1"><Upload size={14}/> Add</button>
+                <button onClick={() => {
+                  setEduEditData(null);
+                  setEduEditMode('add');
+                  setEduOpen(true);
+                }} className="text-blue-600 text-sm inline-flex items-center gap-1"><Upload size={14}/> Add</button>
               </div>}
             >
               <div className="space-y-3">
-                {profile.education.map((ed, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-3 border border-gray-200 rounded-md">
-                    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">🎓</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-gray-900 font-medium flex items-center gap-2">
-                        {ed.title}
-                        <span className="text-[11px] text-gray-600 border border-gray-300 bg-gray-50 rounded px-1.5 py-0.5">{ed.tag}</span>
+                {Array.isArray(education) && education.length > 0 ? (
+                  education.map((ed, idx) => (
+                    <div key={ed.id || idx} className="flex items-start gap-3 p-3 border border-gray-200 rounded-md">
+                      <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">🎓</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-gray-900 font-medium flex items-center gap-2">
+                          {ed.degree}{ed.fieldOfStudy && ` in ${ed.fieldOfStudy}`}
+                          <span className="text-[11px] text-gray-600 border border-gray-300 bg-gray-50 rounded px-1.5 py-0.5">{ed.graduationType}</span>
+                        </div>
+                        <div className="text-[12px] text-gray-600">{ed.instituteName}</div>
+                        <div className="text-[12px] text-gray-600">{ed.startYear} - {ed.completionYear}</div>
+                        {ed.proofDocumentUrl && (
+                          <a className="text-[12px] text-blue-600 inline-flex items-center gap-1 mt-1" href={ed.proofDocumentUrl} target="_blank" rel="noreferrer" onClick={(e)=>e.preventDefault()}>
+                            <FileText size={14}/> Document
+                          </a>
+                        )}
+                        {ed.isVerified && (
+                          <span className="inline-flex items-center text-green-600 text-[11px] ml-2">
+                            <CheckCircle2 size={12} className="mr-1"/>Verified
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[12px] text-gray-600">{ed.college}</div>
-                      <div className="text-[12px] text-gray-600">{ed.duration}</div>
-                      <a className="text-[12px] text-blue-600 inline-flex items-center gap-1 mt-1" href="#" onClick={(e)=>e.preventDefault()}>
-                        <FileText size={14}/> {ed.certificate}
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => {
+                            // Map API fields to drawer fields
+                            const mappedData = {
+                              id: ed.id,
+                              school: ed.instituteName,
+                              gradType: ed.graduationType,
+                              degree: ed.degree,
+                              field: ed.fieldOfStudy || '',
+                              start: ed.startYear?.toString() || '',
+                              end: ed.completionYear?.toString() || '',
+                              proof: ed.proofDocumentUrl || ''
+                            };
+                            setEduEditData(mappedData);
+                            setEduEditMode('edit');
+                            setEduOpen(true);
+                          }}
+                          className="text-gray-400 hover:text-blue-600 transition"
+                          title="Edit"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm('Delete this education entry?')) {
+                              await deleteEducation(ed.id);
+                            }
+                          }}
+                          className="text-gray-400 hover:text-red-600 transition"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div className="text-sm text-gray-500 text-center py-4">No education entries yet. Click Add to create one.</div>
+                )}
               </div>
             </SectionCard>
 
             <SectionCard title="Awards & Publications" subtitle="Visible to Patient" action={<div className="flex items-center gap-2"><button onClick={()=>setAwardOpen(true)} className="text-blue-600 text-sm inline-flex items-center gap-1"><Upload size={14}/> Add Award</button><button onClick={()=>setPubOpen(true)} className="text-blue-600 text-sm inline-flex items-center gap-1"><Upload size={14}/> Add Publication</button></div>}>
               <div className="space-y-3">
-                {profile.awards.map((aw, i) => (
-                  <div key={i} className="p-3 border border-gray-200 rounded-md">
-                    <div className="text-sm text-gray-900 font-medium">{aw.title}</div>
-                    <div className="text-[12px] text-gray-600">{aw.org}</div>
-                    <div className="text-[12px] text-gray-600">{aw.date}</div>
-                    <a className="text-[12px] text-blue-600" href="#" onClick={(e)=>e.preventDefault()}>{aw.link} ↗</a>
+                {Array.isArray(awards) && awards.map((aw) => (
+                  <div key={aw.id} className="p-3 border border-gray-200 rounded-md flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-gray-900 font-medium">{aw.awardName}</div>
+                      <div className="text-[12px] text-gray-600">{aw.issuerName}</div>
+                      <div className="text-[12px] text-gray-600">{new Date(aw.issueDate).toLocaleDateString()}</div>
+                      {aw.awardUrl && <a className="text-[12px] text-blue-600" href={aw.awardUrl} target="_blank" rel="noreferrer">View Certificate ↗</a>}
+                      {aw.description && <div className="text-[12px] text-gray-700 mt-1">{aw.description}</div>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          setAwardEditData(aw);
+                          setAwardEditMode('edit');
+                          setAwardOpen(true);
+                        }}
+                        className="text-gray-400 hover:text-blue-600 transition"
+                        title="Edit"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          if (window.confirm('Delete this award?')) {
+                            await deleteAward(aw.id);
+                          }
+                        }}
+                        className="text-gray-400 hover:text-red-600 transition"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))}
-                {profile.publications?.length ? (
+                {Array.isArray(publications) && publications?.length > 0 ? (
                   <div className="pt-1">
                     <div className="text-[12px] text-gray-500 mb-1">Publications</div>
                     <div className="space-y-2">
-                      {profile.publications.map((p, idx)=>(
-                        <div key={idx} className="p-3 border border-gray-200 rounded-md">
-                          <div className="text-sm text-gray-900 font-medium">{p.title}</div>
-                          <div className="text-[12px] text-gray-600">{p.publisher}</div>
-                          <div className="text-[12px] text-gray-600">{p.date}</div>
-                          {p.url && <a className="text-[12px] text-blue-600" href={p.url} target="_blank" rel="noreferrer">Link ↗</a>}
+                      {publications.map((p)=>(
+                        <div key={p.id} className="p-3 border border-gray-200 rounded-md flex items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-gray-900 font-medium">{p.title}</div>
+                            <div className="text-[12px] text-gray-600">{p.publisher}</div>
+                            <div className="text-[12px] text-gray-600">{new Date(p.publicationDate).toLocaleDateString()}</div>
+                            {p.publicationUrl && <a className="text-[12px] text-blue-600" href={p.publicationUrl} target="_blank" rel="noreferrer">Link ↗</a>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => {
+                                setPubEditData(p);
+                                setPubEditMode('edit');
+                                setPubOpen(true);
+                              }}
+                              className="text-gray-400 hover:text-blue-600 transition"
+                              title="Edit"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button 
+                              onClick={async () => {
+                                if (window.confirm('Delete this publication?')) {
+                                  await deletePublication(p.id);
+                                }
+                              }}
+                              className="text-gray-400 hover:text-red-600 transition"
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1163,27 +1390,34 @@ const Doc_settings = () => {
                 <div className="col-span-12 text-[12px] text-gray-500">Medical Registration Details</div>
                 <div className="col-span-12 -mt-1 text-[12px] text-[#6B7280]">To change your MRN proof please <a className="text-[#2F66F6]" href="#" onClick={(e)=>e.preventDefault()}>Call Us</a></div>
                 <div className="col-span-12 md:col-span-6 space-y-3">
-                  <InfoField label="Medical Council Registration Number" value={profile.registration.mrn} />
-                  <InfoField label="Registration Year" value={profile.registration.year} />
+                  <InfoField label="Medical Council Registration Number" value={medicalRegistration?.medicalCouncilRegistrationNumber || '-'} />
+                  <InfoField label="Registration Year" value={medicalRegistration?.registrationYear || '-'} />
                 </div>
                 <div className="col-span-12 md:col-span-6 space-y-3">
-                  <InfoField label="Registration Council" value={profile.registration.council} />
-                  <InfoField label="" value={
-                    <span className="inline-flex items-center gap-1 text-blue-600"><FileText size={14}/> {profile.registration.proof}</span>
-                  } />
+                  <InfoField label="Registration Council" value={medicalRegistration?.registrationCouncil || '-'} />
+                  {medicalRegistration?.proofDocumentUrl && <InfoField label="" value={
+                    <a href={medicalRegistration.proofDocumentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600"><FileText size={14}/> View Document</a>
+                  } />}
                 </div>
               </div>
             </SectionCard>
 
             <SectionCard title="Practice Details" action={<button onClick={()=>setPracticeOpen(true)} className="text-blue-600 text-sm inline-flex items-center gap-1"><Pencil size={14}/> Edit</button>}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InfoField label="Work Experience" value={profile.practice.experience} />
-                <InfoField label="Medical Practice Type" value={profile.practice.type} />
-                <InfoField label="Specialization" value={profile.practice.specialization} />
+                <InfoField label="Work Experience" value={practiceDetails?.workExperience ? `${practiceDetails.workExperience} years` : '-'} />
+                <InfoField label="Medical Practice Type" value={practiceDetails?.medicalPracticeType || '-'} />
+                <div className="md:col-span-2">
+                  <div className="text-[13px] text-gray-500">Specialization</div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {Array.isArray(practiceDetails?.specialties) && practiceDetails.specialties.map((spec) => (
+                      <Badge key={spec.id} color="blue" size="s">{spec.specialtyName} ({spec.expYears}y)</Badge>
+                    ))}
+                  </div>
+                </div>
                 <div className="md:col-span-2">
                   <div className="text-[13px] text-gray-500">Practice Area</div>
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    {profile.practice.areas.map((a) => (
+                    {Array.isArray(practiceDetails?.practiceArea) && practiceDetails.practiceArea.map((a) => (
                       <Badge key={a} color="gray" size="s">{a}</Badge>
                     ))}
                   </div>
@@ -1193,16 +1427,44 @@ const Doc_settings = () => {
 
             <SectionCard title="Experience Details" subtitle="Visible to Patient" action={<button onClick={()=>setExpOpen(true)} className="text-blue-600 text-sm inline-flex items-center gap-1"><Upload size={14}/> Add</button>}>
               <div className="space-y-3">
-                {profile.experienceList.map((ex, idx) => (
-                  <div key={idx} className="p-3 border border-gray-200 rounded-md">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
-                      {ex.role}
-                      <span className="text-[11px] text-gray-600 border border-gray-300 bg-gray-50 rounded px-1.5 py-0.5">{ex.type}</span>
+                {Array.isArray(experiences) && experiences.map((ex) => (
+                  <div key={ex.id} className="p-3 border border-gray-200 rounded-md flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
+                        {ex.jobTitle}
+                        <span className="text-[11px] text-gray-600 border border-gray-300 bg-gray-50 rounded px-1.5 py-0.5">{ex.employmentType}</span>
+                        {ex.isCurrentlyWorking && <span className="text-[11px] text-green-600 border border-green-300 bg-green-50 rounded px-1.5 py-0.5">Current</span>}
+                      </div>
+                      <div className="text-[12px] text-gray-600">{ex.hospitalOrClinicName}</div>
+                      <div className="text-[12px] text-gray-600">
+                        {new Date(ex.startDate).toLocaleDateString()} - {ex.isCurrentlyWorking ? 'Present' : new Date(ex.endDate).toLocaleDateString()}
+                      </div>
+                      {ex.description && <div className="text-[13px] text-gray-800 mt-1">{ex.description}</div>}
                     </div>
-                    <div className="text-[12px] text-gray-600">{ex.org}</div>
-                    <div className="text-[12px] text-gray-600">{ex.duration}</div>
-                    <div className="text-[12px] text-gray-600 flex items-center gap-1"><MapPin size={14}/>{ex.location}</div>
-                    <div className="text-[13px] text-gray-800 mt-1">{ex.desc}</div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          setExpEditData(ex);
+                          setExpEditMode('edit');
+                          setExpOpen(true);
+                        }}
+                        className="text-gray-400 hover:text-blue-600 transition"
+                        title="Edit"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          if (window.confirm('Delete this experience?')) {
+                            await deleteExperience(ex.id);
+                          }
+                        }}
+                        className="text-gray-400 hover:text-red-600 transition"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1413,47 +1675,188 @@ const Doc_settings = () => {
       <BasicInfoDrawer
         open={basicOpen}
         onClose={()=>setBasicOpen(false)}
-        initial={profile}
-        onSave={(data) => { setProfile((p) => ({ ...p, ...data, name: `Dr. ${data.firstName} ${data.lastName}` })); setBasicOpen(false) }}
+        initial={profile.basic}
+        // onSave={(data) => { setProfile((p) => ({ ...p, ...data, name: `Dr. ${data.firstName} ${data.lastName}` })); setBasicOpen(false) }}
+       
+        onSave={async (data) => {
+          try {
+            // Only include fields that have values (partial update)
+            const payload = {};
+            
+            if (data.firstName) payload.firstName = data.firstName;
+            if (data.lastName) payload.lastName = data.lastName;
+            if (data.gender) payload.gender = data.gender.toLowerCase();
+            if (data.city) payload.city = data.city;
+            // Only include website if it's a valid URL (not empty, not just '-' or placeholder)
+            if (data.website && data.website.trim() !== '' && data.website.trim() !== '-' && (data.website.startsWith('http://') || data.website.startsWith('https://'))) {
+              payload.website = data.website;
+            }
+            if (data.headline) payload.headline = data.headline;
+            if (data.about) payload.about = data.about;
+            if (data.languages && data.languages.length > 0) payload.languages = data.languages;
+
+            const result = await updateBasicInfo(payload);
+            
+            if (result) {
+              await fetchBasicInfo();
+              setBasicOpen(false);
+            } else {
+              console.error('Update failed: no result returned');
+              alert('Failed to update basic info. Please check the console for details.');
+            }
+          } catch (err) {
+            console.error('Error updating basic info:', err);
+            alert(`Failed to update: ${err.message || 'Unknown error'}`);
+          }
+        }}
+
       />
 
       {/* Drawer: Education */}
       <EducationDrawer
         open={eduOpen}
-        onClose={()=>setEduOpen(false)}
-        onSave={(ed)=>{
-          setProfile((p)=> ({ ...p, education: [{ title: ed.degree, tag: ed.gradType, college: ed.school, duration: `${ed.start} - ${ed.end}`, certificate: ed.proof || 'Degree_Certificate.pdf' }, ...(p.education||[]) ] }))
-          setEduOpen(false)
+        onClose={() => {
+          setEduOpen(false);
+          setEduEditData(null);
+          setEduEditMode('add');
+        }}
+        initial={eduEditData}
+        mode={eduEditMode}
+        onSave={async (ed) => {
+          try {
+            // Map drawer fields to API fields
+            const payload = {
+              instituteName: ed.school,
+              graduationType: ed.gradType,
+              degree: ed.degree,
+              fieldOfStudy: ed.field || null,
+              startYear: parseInt(ed.start) || null,
+              completionYear: parseInt(ed.end) || null,
+              proofDocumentUrl: ed.proof || null
+            };
+
+            if (eduEditMode === 'edit' && eduEditData?.id) {
+              console.log('Updating education with ID:', eduEditData.id, 'Payload:', payload);
+              await updateEducation(eduEditData.id, payload);
+            } else {
+              console.log('Adding new education. Payload:', payload);
+              await addEducation(payload);
+            }
+            await fetchEducation(); // Refresh data
+            setEduOpen(false);
+            setEduEditData(null);
+            setEduEditMode('add');
+          } catch (err) {
+            console.error('Failed to save education:', err);
+          }
         }}
       />
 
       {/* Drawer: Experience */}
       <ExperienceDrawer
         open={expOpen}
-        onClose={()=>setExpOpen(false)}
-        onSave={(ex)=>{
-          setProfile((p)=> ({ ...p, experienceList: [{ role: ex.role, type: ex.type, org: ex.org, duration: ex.current ? `${ex.start} – Present` : `${ex.start} – ${ex.end}`, location: ex.location || p.practice?.city || 'Akola, Maharashtra', desc: ex.desc }, ...(p.experienceList||[]) ] }))
-          setExpOpen(false)
+        onClose={() => {
+          setExpOpen(false);
+          setExpEditData(null);
+          setExpEditMode('add');
+        }}
+        initial={expEditData}
+        mode={expEditMode}
+        onSave={async (ex) => {
+          try {
+            const payload = {
+              jobTitle: ex.role,
+              employmentType: ex.type,
+              hospitalOrClinicName: ex.org,
+              startDate: ex.start,
+              endDate: ex.current ? null : ex.end,
+              isCurrentlyWorking: ex.current,
+              description: ex.desc || null
+            };
+
+            if (expEditMode === 'edit' && expEditData?.id) {
+              await updateExperience({ id: expEditData.id, ...payload });
+            } else {
+              await addExperience(payload);
+            }
+            await fetchExperiences(); // Refresh data
+            setExpOpen(false);
+            setExpEditData(null);
+            setExpEditMode('add');
+          } catch (err) {
+            console.error('Failed to save experience:', err);
+          }
         }}
       />
 
       {/* Drawer: Award */}
       <AwardDrawer
         open={awardOpen}
-        onClose={()=>setAwardOpen(false)}
-        onSave={(aw)=>{
-          setProfile((p)=> ({ ...p, awards: [{ title: aw.title, org: aw.issuer, date: new Date(aw.date).toLocaleDateString('en-GB') || aw.date, link: aw.url ? 'Link' : 'Certificate' }, ...(p.awards||[]) ] }))
-          setAwardOpen(false)
+        onClose={() => {
+          setAwardOpen(false);
+          setAwardEditData(null);
+          setAwardEditMode('add');
+        }}
+        initial={awardEditData}
+        mode={awardEditMode}
+        onSave={async (aw) => {
+          try {
+            const payload = {
+              awardName: aw.title,
+              issuerName: aw.issuer,
+              associatedWith: aw.with || null,
+              issueDate: aw.date,
+              awardUrl: aw.url || null,
+              description: aw.desc || null
+            };
+
+            if (awardEditMode === 'edit' && awardEditData?.id) {
+              await updateAward({ id: awardEditData.id, ...payload });
+            } else {
+              await addAward(payload);
+            }
+            await fetchAwardsAndPublications(); // Refresh data
+            setAwardOpen(false);
+            setAwardEditData(null);
+            setAwardEditMode('add');
+          } catch (err) {
+            console.error('Failed to save award:', err);
+          }
         }}
       />
 
       {/* Drawer: Publication */}
       <PublicationDrawer
         open={pubOpen}
-        onClose={()=>setPubOpen(false)}
-        onSave={(pub)=>{
-          setProfile((p)=> ({ ...p, publications: [{ title: pub.title, publisher: pub.publisher, date: new Date(pub.date).toLocaleDateString('en-GB') || pub.date, url: pub.url }, ...(p.publications||[]) ] }))
-          setPubOpen(false)
+        onClose={() => {
+          setPubOpen(false);
+          setPubEditData(null);
+          setPubEditMode('add');
+        }}
+        initial={pubEditData}
+        mode={pubEditMode}
+        onSave={async (pub) => {
+          try {
+            const payload = {
+              title: pub.title,
+              publisher: pub.publisher,
+              publicationDate: pub.date,
+              publicationUrl: pub.url || null,
+              description: pub.desc || null
+            };
+
+            if (pubEditMode === 'edit' && pubEditData?.id) {
+              await updatePublication({ id: pubEditData.id, ...payload });
+            } else {
+              await addPublication(payload);
+            }
+            await fetchAwardsAndPublications(); // Refresh data
+            setPubOpen(false);
+            setPubEditData(null);
+            setPubEditMode('add');
+          } catch (err) {
+            console.error('Failed to save publication:', err);
+          }
         }}
       />
 
@@ -1462,16 +1865,38 @@ const Doc_settings = () => {
         open={profOpen}
         onClose={()=>setProfOpen(false)}
         initial={profile.registration}
-        onSave={(reg)=>{ setProfile((p)=> ({ ...p, registration: { ...p.registration, ...reg } })); setProfOpen(false) }}
+        onSave={async (reg) => {
+  try {
+    await usePracticeStore.getState().updateProfessionalDetails(reg);
+    await fetchProfessionalDetails(); // Refresh data
+    setProfOpen(false);
+  } catch (err) { console.error(err); }
+}}
+
       />
 
       {/* Drawer: Practice Details */}
       <PracticeDrawer
         open={practiceOpen}
         onClose={()=>setPracticeOpen(false)}
-        initial={profile.practice}
-        onSave={(pr)=>{ setProfile((p)=> ({ ...p, practice: { ...p.practice, ...pr } })); setPracticeOpen(false) }}
+        initial={practiceDetails}
+        onSave={async (data) => {
+          try {
+            const payload = {};
+            if (data.workExperience) payload.workExperience = parseInt(data.workExperience);
+            if (data.medicalPracticeType) payload.medicalPracticeType = data.medicalPracticeType;
+            if (data.practiceArea && data.practiceArea.length > 0) payload.practiceArea = data.practiceArea;
+            
+            await updatePracticeDetails(payload);
+            await fetchProfessionalDetails(); // Refresh data
+            setPracticeOpen(false);
+          } catch (err) {
+            console.error('Error updating practice details:', err);
+            alert('Failed to update practice details');
+          }
+        }}
       />
+
     </div>
   )
 }

@@ -1,7 +1,7 @@
-import axios from "../lib/axios";
+import axios from "../../lib/axios";
 
 // GET Doctor Basic Info
-export const getMyBasicInfo = async () => {
+export const getDoctorBasicInfo = async () => {
   try {
     const res = await axios.get(
       "/doctors/my-account/personal-info/basic-info"
@@ -17,7 +17,7 @@ export const getMyBasicInfo = async () => {
 };
 
 // UPDATE Doctor Basic Info
-export const updateMyBasicInfo = async (payload) => {
+export const updateDoctorBasicInfo = async (payload) => {
   try {
     const res = await axios.put(
       "/doctors/my-account/personal-info/basic-info",
