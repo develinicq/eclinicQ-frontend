@@ -33,22 +33,31 @@ const MapLocation = ({
   addButtonLabel = 'Add Location',
   captionText,
   onChange, // callback to return lat/lng
+  initialPosition = null, // [lat, lng] to show initial marker
 }) => {
-  const [position, setPosition] = useState(null);
+  const [position, setPosition] = useState(initialPosition);
 
   const handleSetPosition = (pos) => {
     setPosition(pos);
     if (onChange) onChange({ lat: pos[0], lng: pos[1] });
   };
 
+  // Update position when initialPosition changes
+  React.useEffect(() => {
+    if (initialPosition) {
+      setPosition(initialPosition);
+    }
+  }, [initialPosition]);
+
   return (
     <div className={`w-full ${heightClass} bg-gray-100 border border-gray-300 rounded-lg relative overflow-hidden ${className}`}>
       <style>{`.leaflet-control-attribution { display: none !important; }`}</style>
       <MapContainer
-        center={[20.5937, 78.9629]} // Centered on India
-        zoom={5}
+        center={position || [20.5937, 78.9629]} // Centered on position or India
+        zoom={position ? 13 : 5} // Zoom in if position exists
         style={{ height: '100%', width: '100%' }}
         className="rounded-lg"
+        key={position ? `${position[0]}-${position[1]}` : 'default'} // Force re-render on position change
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
