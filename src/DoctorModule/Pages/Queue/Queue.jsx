@@ -554,10 +554,14 @@ const Queue = () => {
   const [queuePaused, setQueuePaused] = useState(false);
   // removed: startCheckups toggle; only one toggle remains (Start Session)
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [patientStartedAt, setPatientStartedAt] = useState(null); // ms timestamp
-  const [elapsed, setElapsed] = useState(0); // seconds for active patient
+  // Timer state: baseElapsed accumulates seconds when paused; runStartAt when actively running
+  const [runStartAt, setRunStartAt] = useState(null); // ms timestamp when timer last started/resumed
+  const [baseElapsed, setBaseElapsed] = useState(0); // accumulated seconds excluding current running span
+  const [elapsed, setElapsed] = useState(0); // displayed seconds for active patient
   const [removingToken, setRemovingToken] = useState(null);
   const [incomingToken, setIncomingToken] = useState(null);
+  // Track if timer was running when pause was triggered
+  const wasRunningOnPauseRef = useRef(false);
 
   // Sample queue data matching the design
   const [queueData, setQueueData] = useState([
@@ -628,15 +632,22 @@ const Queue = () => {
   // Derive the active patient from currentIndex
   const activePatient = useMemo(() => queueData[currentIndex] || null, [queueData, currentIndex]);
 
-  // Start/stop timer for active patient
+  // Start/stop timer for active patient: elapsed = baseElapsed + time since runStartAt
   useEffect(() => {
-    if (!sessionStarted || queuePaused || !patientStartedAt) return;
+    // When not running, show frozen baseElapsed
+    if (!sessionStarted || queuePaused || !runStartAt) {
+      setElapsed(baseElapsed);
+      return;
+    }
     const id = setInterval(() => {
       const now = Date.now();
-      setElapsed(Math.max(0, Math.floor((now - patientStartedAt) / 1000)));
+      setElapsed(baseElapsed + Math.max(0, Math.floor((now - runStartAt) / 1000)));
     }, 1000);
+    // Immediate update once
+    const now = Date.now();
+    setElapsed(baseElapsed + Math.max(0, Math.floor((now - runStartAt) / 1000)));
     return () => clearInterval(id);
-  }, [sessionStarted, queuePaused, patientStartedAt]);
+  }, [sessionStarted, queuePaused, runStartAt, baseElapsed]);
 
   const formatTime = (s) => {
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
@@ -649,17 +660,21 @@ const Queue = () => {
       // end session
       setSessionStarted(false);
       setQueuePaused(false);
-  // nothing else to reset
-      setPatientStartedAt(null);
+      // reset timer state
+      setRunStartAt(null);
+      setBaseElapsed(0);
       setElapsed(0);
+  wasRunningOnPauseRef.current = false;
     } else {
-  // start session at first waiting patient
-  const firstIdx = Math.max(0, queueData.findIndex((p) => p.status === 'Waiting'));
+      // start session at first waiting patient, but do NOT auto-start timer
+      const firstIdx = Math.max(0, queueData.findIndex((p) => p.status === 'Waiting'));
       setCurrentIndex(firstIdx === -1 ? 0 : firstIdx);
       setSessionStarted(true);
       setQueuePaused(false);
-      setPatientStartedAt(Date.now());
+      setRunStartAt(null);
+      setBaseElapsed(0);
       setElapsed(0);
+  wasRunningOnPauseRef.current = false;
     }
   };
 
@@ -667,8 +682,11 @@ const Queue = () => {
     const next = currentIndex + 1;
     if (next < queueData.length) {
       setCurrentIndex(next);
-      setPatientStartedAt(Date.now());
+      // prepare next patient without auto-start
+      setRunStartAt(null);
+      setBaseElapsed(0);
       setElapsed(0);
+  wasRunningOnPauseRef.current = false;
     }
   };
 
@@ -689,15 +707,15 @@ const Queue = () => {
         // decide new index (stay at same index to naturally advance to next row)
         const nextIdx = newArr.length === 0 ? 0 : Math.min(currentIndex, newArr.length - 1);
         setCurrentIndex(nextIdx);
+        // Do NOT auto-start next patient; require explicit Start
         if (newArr.length > 0) {
           const nextToken = newArr[nextIdx]?.token;
           setIncomingToken(nextToken);
-          setPatientStartedAt(Date.now());
-          setElapsed(0);
-        } else {
-          setPatientStartedAt(null);
-          setElapsed(0);
         }
+        setRunStartAt(null);
+        setBaseElapsed(0);
+        setElapsed(0);
+  wasRunningOnPauseRef.current = false;
         return newArr;
       });
       setRemovingToken(null);
@@ -717,8 +735,11 @@ const Queue = () => {
     const prev = currentIndex - 1;
     if (prev >= 0) {
       setCurrentIndex(prev);
-      setPatientStartedAt(Date.now());
+      // prepare previous patient without auto-start
+      setRunStartAt(null);
+      setBaseElapsed(0);
       setElapsed(0);
+  wasRunningOnPauseRef.current = false;
     }
   };
 
@@ -836,7 +857,24 @@ const Queue = () => {
               </div>
               <button
                 className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 border border-red-200 bg-white text-red-600 text-xs font-semibold px-2 py-1 rounded transition hover:bg-red-50"
-                onClick={() => setQueuePaused(!queuePaused)}
+        onClick={() => {
+                  // Toggle pause with proper time freezing
+                  if (!sessionStarted) return setQueuePaused((v)=>!v);
+                  if (!queuePaused) {
+                    // pausing: roll running time into baseElapsed and stop
+                    if (runStartAt) {
+                      const delta = Math.floor((Date.now() - runStartAt) / 1000);
+                      setBaseElapsed((b) => b + Math.max(0, delta));
+                      setRunStartAt(null);
+                    }
+          wasRunningOnPauseRef.current = !!runStartAt;
+                    setQueuePaused(true);
+                  } else {
+                    // resuming: only resume if previously running before pause
+          if (wasRunningOnPauseRef.current) setRunStartAt(Date.now());
+                    setQueuePaused(false);
+                  }
+                }}
               >
                 <svg width="16" height="16" fill="none" viewBox="0 0 16 16" className="text-red-500"><rect x="4" y="4" width="2" height="8" rx="1" fill="#EF4444"/><rect x="10" y="4" width="2" height="8" rx="1" fill="#EF4444"/></svg>
                 {queuePaused ? 'Resume Queue' : 'Pause Queue'}
@@ -899,9 +937,15 @@ const Queue = () => {
                   <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
                   {formatTime(elapsed)}
                 </div>
-                <button onClick={completeCurrentPatient} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                  End Session
-                </button>
+                {runStartAt ? (
+                  <button onClick={completeCurrentPatient} className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                    End Session
+                  </button>
+                ) : (
+                  <button onClick={() => { setRunStartAt(Date.now()); /* start patient timer */ }} className="inline-flex items-center rounded-md border border-blue-300 bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors">
+                    Start Session
+                  </button>
+                )}
                 <button className="text-gray-500 hover:text-gray-700 px-2 py-1">⋯</button>
               </div>
             </div>

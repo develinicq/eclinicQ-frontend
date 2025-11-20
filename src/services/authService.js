@@ -194,3 +194,41 @@ export const getDoctorMe = async () => {
     throw error;
   }
 };
+
+// Start ETA tracking for a slot (session start)
+export const startSlotEta = async (slotId) => {
+  if (!slotId) throw new Error('slotId is required');
+  try {
+    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/start`, {});
+    return response.data; // expecting { success, data: {...} } or similar
+  } catch (error) {
+    console.error('Start slot ETA failed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Start ETA for a specific patient's session (by token number) within a slot
+export const startPatientSessionEta = async (slotId, tokenNumber) => {
+  if (!slotId) throw new Error('slotId is required');
+  if (tokenNumber == null) throw new Error('tokenNumber is required');
+  try {
+    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/start`, {});
+    return response.data;
+  } catch (error) {
+    console.error('Start patient session ETA failed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+// End ETA for a specific patient's session within a slot
+export const endPatientSessionEta = async (slotId, tokenNumber) => {
+  if (!slotId) throw new Error('slotId is required');
+  if (tokenNumber == null) throw new Error('tokenNumber is required');
+  try {
+    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/end`, {});
+    return response.data;
+  } catch (error) {
+    console.error('End patient session ETA failed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
