@@ -1,7 +1,7 @@
 // Front Desk Queue: full API-integrated version copied from original before doctor static simplification
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { getPendingAppointmentsForClinic, bookWalkInAppointment, approveAppointment, rejectAppointment, checkInAppointment, markNoShowAppointment, startSlotEta, startPatientSessionEta, endPatientSessionEta, findPatientSlots } from '../../../services/authService';
+import { getPendingAppointmentsForClinic, bookWalkInAppointment, approveAppointment, rejectAppointment, checkInAppointment, markNoShowAppointment, startSlotEta, endSlotEta, getSlotEtaStatus, startPatientSessionEta, endPatientSessionEta, findPatientSlots, pauseSlotEta, resumeSlotEta } from '../../../services/authService';
 import { Clock, Calendar, ChevronDown, Sunrise, Sun, Sunset, Moon, X } from 'lucide-react';
 import QueueDatePicker from '../../../components/QueueDatePicker';
 import AvatarCircle from '../../../components/AvatarCircle';
@@ -290,7 +290,21 @@ export default function FDQueue() {
 	const [slotPos, setSlotPos] = useState({ top:0,left:0,width:320 });
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [sessionStarted, setSessionStarted] = useState(false);
+	const [slotStarting, setSlotStarting] = useState(false);
+	const [startError, setStartError] = useState(null);
 	const [queuePaused, setQueuePaused] = useState(false);
+	// Paused state UI: countdown to auto-resume
+	const [pauseEndsAt, setPauseEndsAt] = useState(null); // ms timestamp
+	const [pauseRemaining, setPauseRemaining] = useState(0); // seconds
+	const pauseTickerRef = useRef(null);
+	// Pause modal and auto-resume state
+	const [showPauseModal, setShowPauseModal] = useState(false);
+	const [pauseMinutes, setPauseMinutes] = useState(null); // in minutes
+	const [pauseSubmitting, setPauseSubmitting] = useState(false);
+	const [pauseError, setPauseError] = useState('');
+	const [resumeSubmitting, setResumeSubmitting] = useState(false);
+	const [resumeError, setResumeError] = useState('');
+	const autoResumeTimerRef = useRef(null);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	// Timer state similar to Doctor Queue
 	const [runStartAt, setRunStartAt] = useState(null); // ms when timer last started/resumed
@@ -299,6 +313,8 @@ export default function FDQueue() {
 	const wasRunningOnPauseRef = useRef(false);
 	const [removingToken, setRemovingToken] = useState(null);
 	const [incomingToken, setIncomingToken] = useState(null);
+	// Current token reported by backend status, used to focus the engaged patient
+	const [backendCurrentToken, setBackendCurrentToken] = useState(null);
 	// Holds list currently shown in table (derived from active filter)
 	const [queueData, setQueueData] = useState([]);
 	const [appointmentRequests, setAppointmentRequests] = useState([]);
@@ -333,6 +349,56 @@ export default function FDQueue() {
 		loadSlots({ doctorId, date: dateIso, clinicId, hospitalId });
 	},[doctorId, clinicId, hospitalId, loadSlots]);
 	useEffect(()=>{ if(selectedSlotId){ loadAppointmentsForSelectedSlot(); } },[selectedSlotId]);
+	// Auto-sync sessionStarted based on slot ETA status
+		useEffect(()=>{
+			let ignore=false;
+			let inFlight=false;
+			const sync= async()=>{
+				if(!selectedSlotId || inFlight) return;
+				inFlight=true;
+				try {
+					const status = await getSlotEtaStatus(selectedSlotId);
+					if (ignore) return;
+					const slotMsg = status?.message || {};
+					const slotStatus = slotMsg?.slotStatus;
+					// Timer sync: use backend active patient startedAt to align elapsed
+					const backendStartedAtIso = slotMsg?.activePatientDetails?.startedAt;
+					if(backendStartedAtIso){ const ts=new Date(backendStartedAtIso).getTime(); if(!isNaN(ts)){ const drift = Math.abs((Date.now()-ts) - (runStartAt? (Date.now()-runStartAt):0)); if(!runStartAt || drift>1500){ setRunStartAt(ts); setBaseElapsed(Math.floor((Date.now()-ts)/1000)); setElapsed(Math.floor((Date.now()-ts)/1000)); } } }
+					switch (slotStatus) {
+						case 'CREATED':
+							setSessionStarted(false);
+							setQueuePaused(false);
+							break;
+						case 'STARTED':
+							setSessionStarted(true);
+							setQueuePaused(false);
+							setActiveFilter('Engaged');
+							try { await loadAppointmentsForSelectedSlot(); } catch {}
+							break;
+						case 'DELAYED':
+							setSessionStarted(false);
+							setQueuePaused(false);
+							break;
+						case 'PAUSED':
+							setSessionStarted(true);
+							setQueuePaused(true);
+							break;
+						case 'COMPLETED':
+						case 'CANCELLED':
+							setSessionStarted(false);
+							setQueuePaused(false);
+							break;
+						default:
+							console.warn('Unknown slot status:', slotStatus);
+					}
+					if (typeof slotMsg?.currentToken === 'number') { setBackendCurrentToken(slotMsg.currentToken); }
+				} catch(e){ /* silent */ }
+				finally { inFlight=false; }
+			};
+			sync();
+			const id=setInterval(sync,45000);
+			return ()=>{ ignore=true; clearInterval(id); };
+		}, [selectedSlotId, sessionStarted, runStartAt, loadAppointmentsForSelectedSlot]);
 
 	// Map API appointment object to table row shape
 	const mapAppointment = (appt, idx) => {
@@ -361,9 +427,11 @@ export default function FDQueue() {
 		// If session is started, force data source from In Waiting list regardless of UI label
 		let rawList;
 		if(sessionStarted){
-			// Prefer checkedIn list; if empty fallback to inWaiting; else all
+			// Prefer engaged list (currently running), else checkedIn, else inWaiting, else all
+			const engaged = categories.engaged || [];
 			const checked = categories.checkedIn || [];
-			if(checked.length){ rawList = checked; }
+			if(engaged.length){ rawList = engaged; }
+			else if(checked.length){ rawList = checked; }
 			else if(categories.inWaiting && categories.inWaiting.length){ rawList = categories.inWaiting; }
 			else { rawList = categories.all || []; }
 		} else {
@@ -372,6 +440,23 @@ export default function FDQueue() {
 		}
 		const mapped = rawList.map(mapAppointment).filter(Boolean);
 		setQueueData(mapped);
+		// If backend reports a current token, focus that patient index
+		if (backendCurrentToken != null) {
+			const idx = mapped.findIndex(item => item?.token === backendCurrentToken);
+			if (idx >= 0) setCurrentIndex(idx);
+		}
+		// Auto-start first patient ETA if session already started, timer not running, and data just arrived
+		if (sessionStarted && !runStartAt && mapped.length) {
+			const first = mapped[0];
+			if (selectedSlotId && first?.token != null) {
+					// Start patient session ETA (POST)
+				startPatientSessionEta(selectedSlotId, first.token).then(()=> {
+					setRunStartAt(Date.now());
+				}).catch(err=>{
+					console.error('Delayed auto-start patient ETA failed', err?.response?.data || err.message);
+				});
+			}
+		}
 	}, [slotAppointments, activeFilter]);
 
 	// On date change: reload slots for that date
@@ -443,6 +528,22 @@ export default function FDQueue() {
 	const handleToggleSession = async () => {
 		if(sessionStarted){
 			// End overall session and reset timer state
+			// If a patient session timer is running, end that patient's session ETA first (GET endpoint)
+			try {
+				if (runStartAt && selectedSlotId) {
+					const current = queueData[currentIndex];
+					if (current?.token != null) {
+						await endPatientSessionEta(selectedSlotId, current.token);
+					}
+				}
+			} catch(err) {
+				console.error('Failed to end active patient ETA before slot end', err?.response?.data || err.message);
+			}
+			if (autoResumeTimerRef.current) { clearTimeout(autoResumeTimerRef.current); autoResumeTimerRef.current = null; }
+			if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; }
+			setPauseEndsAt(null); setPauseRemaining(0);
+			// Fire slot end ETA
+			try { if (selectedSlotId) { await endSlotEta(selectedSlotId); window.dispatchEvent(new CustomEvent('slot-session-status', { detail:{ slotId: selectedSlotId, started:false }})); } } catch(e){ console.error('Failed to end slot ETA', e?.response?.data || e.message); }
 			setSessionStarted(false);
 			setQueuePaused(false);
 			setRunStartAt(null);
@@ -450,23 +551,65 @@ export default function FDQueue() {
 			setElapsed(0);
 			wasRunningOnPauseRef.current = false;
 		} else {
-			// Start from Checked In list; if empty will fallback later
+			// Smooth start: show loading, then transition
+			setSlotStarting(true);
+			setStartError(null);
+			// Optimistically set running state
+			setSessionStarted(true);
 			setActiveFilter('Checked In');
 			setCurrentIndex(0);
-			setSessionStarted(true);
 			setQueuePaused(false);
 			setRunStartAt(null);
 			setBaseElapsed(0);
 			setElapsed(0);
 			wasRunningOnPauseRef.current = false;
-			// Fire ETA start for slot if available
 			try {
-				if (selectedSlotId) {
-					await startSlotEta(selectedSlotId);
-				}
-			} catch (e) {
+				if (selectedSlotId) { await startSlotEta(selectedSlotId); window.dispatchEvent(new CustomEvent('slot-session-status', { detail:{ slotId: selectedSlotId, started:true }})); }
+				// After slot session start, attempt auto-start of first patient if available
+				// Prefer checked-in patient list already mapped into queueData; fallback to current derived activePatient after small delay
+				setTimeout(async () => {
+					// Only if still in started state and timer not running yet
+					if (!sessionStarted || runStartAt) return;
+					const first = queueData[0];
+					if (first && selectedSlotId && first.token != null) {
+						try {
+							await startPatientSessionEta(selectedSlotId, first.token);
+							setRunStartAt(Date.now());
+						} catch(err) {
+							console.error('Auto-start first patient ETA failed', err?.response?.data || err.message);
+						}
+					}
+				}, 300); // slight delay to allow queueData mapping
+			} catch(e){
 				console.error('Failed to start slot ETA', e?.response?.data || e.message);
+				setStartError('Failed to start');
+				// Rollback UI
+				setSessionStarted(false);
+			} finally {
+				setSlotStarting(false);
 			}
+		}
+	};
+
+	const resumeQueue = async () => {
+		if (!selectedSlotId) {
+			setResumeError('No slot selected');
+			return;
+		}
+		setResumeError('');
+		setResumeSubmitting(true);
+		try {
+			await resumeSlotEta(selectedSlotId);
+			// Clear timers and resume local state
+			if (autoResumeTimerRef.current) { clearTimeout(autoResumeTimerRef.current); autoResumeTimerRef.current = null; }
+			if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; }
+			setPauseEndsAt(null); setPauseRemaining(0);
+			if (wasRunningOnPauseRef.current) setRunStartAt(Date.now());
+			setQueuePaused(false);
+		} catch(err) {
+			setResumeError(err?.response?.data?.message || err.message || 'Failed to resume');
+		} finally {
+			setResumeSubmitting(false);
 		}
 	};
 	const completeCurrentPatient = async () => {
@@ -523,6 +666,20 @@ export default function FDQueue() {
 		}
 	};
 	const handlePreScreenClose = () => { /* disabled current flow */ };
+	// Cleanup auto-resume timer on unmount
+	useEffect(()=>()=>{ 
+		if (autoResumeTimerRef.current) { clearTimeout(autoResumeTimerRef.current); autoResumeTimerRef.current = null; }
+		if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; }
+	},[]);
+
+	// While paused, tick remaining time every second
+	useEffect(()=>{
+		if (!queuePaused || !pauseEndsAt) return;
+		const tick = () => { setPauseRemaining(Math.max(0, Math.floor((pauseEndsAt - Date.now())/1000))); };
+		tick();
+		pauseTickerRef.current = setInterval(tick, 1000);
+		return ()=> { if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; } };
+	}, [queuePaused, pauseEndsAt]);
 	return (
 		<div className='h-screen overflow-hidden bg-gray-50'>
 			<div className='sticky top-0 z-10 bg-white border-b-[0.5px] border-gray-200 px-4 py-2'>
@@ -558,7 +715,7 @@ export default function FDQueue() {
 						<QueueDatePicker date={currentDate} onChange={handleDateChange} />
 					</div>
 					{/* Walk-in badge right (slot select removed, integrated in dropdown) */}
-					<div className='ml-auto flex items-center gap-6'>
+					<div className='ml-auto flex items-center gap-4'>
 						{slotsLoading && <span className='text-xs text-gray-500'>Loading slots…</span>}
 						{slotsError && !slotsLoading && <span className='text-xs text-red-600'>{slotsError}</span>}
 						<Badge size='large' type='solid' color='blue' hover className='cursor-pointer select-none' onClick={()=> setShowWalkIn(true)}>Walk-in Appointment</Badge>
@@ -569,36 +726,40 @@ export default function FDQueue() {
 			<div className='px-0 pt-0 pb-2 h-[calc(100vh-100px)] flex flex-col overflow-hidden'>
 				{sessionStarted && (
 					<div className=''>
-						<div className='w-full bg-[#22C55E] h-[38px] flex items-center relative px-0 rounded-none'>
+						<div className={`w-full h-[38px] flex items-center relative px-0 rounded-none ${queuePaused ? 'bg-[#FFF4E5]' : 'bg-[#22C55E]'}`}>
 							<div className='flex-1 flex items-center justify-center gap-3'>
-								<span className='text-white font-medium text-[16px]'>Current Token Number</span>
-								<span className='inline-flex items-center gap-2 font-bold text-white text-[18px]'>
-									<span className='inline-block w-3 h-3 rounded-full bg-[#D1FADF] border border-[#A7F3D0]'></span>
+								<span className={`font-medium text-[16px] ${queuePaused ? 'text-[#92400E]' : 'text-white'}`}>Current Token Number</span>
+								<span className={`inline-flex items-center gap-2 font-bold text-[18px] ${queuePaused ? 'text-[#92400E]' : 'text-white'}`}>
+									<span className={`inline-block w-3 h-3 rounded-full ${queuePaused ? 'bg-[#FDBA74] border border-[#FDBA74]' : 'bg-[#D1FADF] border border-[#A7F3D0]'}`}></span>
 									{String(activePatient?.token ?? 0).padStart(2,'0')}
 								</span>
+								{queuePaused && (
+									<span className='inline-flex items-center gap-2 text-[13px] font-medium text-[#92400E] bg-[#FED7AA] px-2 py-0.5 rounded'>
+										<span className='inline-block w-2 h-2 rounded-full bg-[#F97316]'></span>
+										Paused ({formatTime(pauseRemaining)} Mins)
+									</span>
+								)}
 							</div>
-							<button
-								className='absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 border border-red-200 bg-white text-red-600 text-xs font-semibold px-2 py-1 rounded transition hover:bg-red-50'
-								onClick={() => {
-									if (!sessionStarted) return setQueuePaused(v=>!v);
-									if (!queuePaused) {
-										// Pause: roll running time into baseElapsed and stop run
-										if (runStartAt) {
-											const delta = Math.floor((Date.now() - runStartAt) / 1000);
-											setBaseElapsed(b => b + Math.max(0, delta));
-											setRunStartAt(null);
-										}
-										wasRunningOnPauseRef.current = !!runStartAt;
-										setQueuePaused(true);
-									} else {
-										// Resume: only if previously running
-										if (wasRunningOnPauseRef.current) setRunStartAt(Date.now());
-										setQueuePaused(false);
-									}
-								}}
-							>
-								{queuePaused?'Resume Queue':'Pause Queue'}
-							</button>
+							{!queuePaused ? (
+								<button
+									className='absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 border border-red-200 bg-white text-red-600 text-xs font-semibold px-2 py-1 rounded transition hover:bg-red-50'
+									onClick={() => { setPauseMinutes(null); setShowPauseModal(true); }}
+									/* Pause is allowed at any time during session; no need to end active patient first */
+								>
+									Pause Queue
+								</button>
+							) : (
+								<div className='absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end'>
+									<button
+										onClick={resumeQueue}
+										disabled={resumeSubmitting}
+										className={`flex items-center gap-2 bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded border border-blue-600 hover:bg-blue-700 ${resumeSubmitting?'opacity-70 cursor-not-allowed':''}`}
+									>
+										{resumeSubmitting ? 'Resuming…' : 'Restart Queue'}
+									</button>
+									{resumeError && <span className='mt-1 text-[11px] text-red-600'>{resumeError}</span>}
+								</div>
+							)}
 						</div>
 					</div>
 				)}
@@ -646,7 +807,9 @@ export default function FDQueue() {
 											// Safety: ensure active patient is from In Waiting
 											if (activeFilter !== 'In Waiting') setActiveFilter('In Waiting');
 											setRunStartAt(Date.now());
-											try { if (selectedSlotId && activePatient?.token != null) { await startPatientSessionEta(selectedSlotId, activePatient.token); } } catch(e) { console.error('Failed to start patient ETA', e?.response?.data || e.message); }
+											try { 
+												if (selectedSlotId && activePatient?.token != null) { await startPatientSessionEta(selectedSlotId, activePatient.token); } 
+											} catch(e) { console.error('Failed to start patient ETA', e?.response?.data || e.message); }
 										}} className='inline-flex items-center rounded-md border border-blue-300 bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors'>
 											Start Session
 										</button>
@@ -658,7 +821,18 @@ export default function FDQueue() {
 					)}
 					<div className='flex items-center justify-between px-1 py-3'>
 						<div className='flex gap-3'>{filters.map(f=> <button key={f} onClick={()=> { if (!sessionStarted) setActiveFilter(f); }} disabled={sessionStarted} className={` px-[6px] py-1 rounded-lg font-medium text-sm transition-colors ${activeFilter===f? 'bg-white text-blue-600 shadow-sm':'text-gray-600 hover:text-gray-800'} ${sessionStarted? 'opacity-60 cursor-not-allowed':''}`}>{f} <span className='ml-1 text-xs'>{getFilterCount(f)}</span></button>)}</div>
-						<div className='flex items-center gap-6'><div className='flex items-center gap-2'><span className='text-gray-700 text-sm'>Start Session</span><Toggle checked={sessionStarted} onChange={handleToggleSession} /></div><div className='flex items-center space-x-2'><span className='text-gray-600 text-sm'>Tokens Available</span><Badge size='small' type='ghost' color='green' hover>5 Out of 100</Badge></div></div>
+						<div className='flex items-center gap-6'>
+							<div className='flex items-center gap-2'>
+								<span className='text-gray-700 text-sm'>Start Session</span>
+								<Toggle checked={sessionStarted} disabled={slotStarting} onChange={handleToggleSession} />
+								{slotStarting && <span className='text-xs text-blue-600 animate-pulse'>Starting…</span>}
+								{startError && !slotStarting && !sessionStarted && <span className='text-xs text-red-600'>Retry</span>}
+							</div>
+							<div className='flex items-center space-x-2'>
+								<span className='text-gray-600 text-sm'>Tokens Available</span>
+								<Badge size='small' type='ghost' color='green' hover>5 Out of 100</Badge>
+							</div>
+						</div>
 					</div>
 					<div className='w-full flex flex-col lg:flex-row gap-3 flex-1 min-h-0 overflow-hidden'>
 						<div className='flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col'>
@@ -737,6 +911,74 @@ export default function FDQueue() {
 					</div>
 						{/* PreScreeningDrawer disabled for now per requirement */}
 						<WalkInAppointmentDrawer show={showWalkIn} onClose={()=> setShowWalkIn(false)} onBookedRefresh={()=> { if(selectedSlotId){ loadAppointmentsForSelectedSlot(); } }} doctorId={doctorId} clinicId={clinicId} hospitalId={hospitalId} />
+
+						{/* Pause Queue Modal */}
+						{showPauseModal && createPortal(
+							<div className='fixed inset-0 z-[10000] flex items-center justify-center'>
+								<div className='absolute inset-0 bg-black/40' onClick={()=> setShowPauseModal(false)} />
+								<div className='relative bg-white rounded-xl shadow-2xl border border-gray-200 w-[420px] max-w-[90vw] p-4'>
+									<div className='flex items-center justify-center mb-2'>
+										<div className='w-10 h-10 rounded-full border-2 border-red-300 flex items-center justify-center text-red-500'>⏸</div>
+									</div>
+									<h3 className='text-center text-[16px] font-semibold text-gray-900'>Set Pause Duration</h3>
+									<p className='text-center text-[12px] text-gray-600 mt-1'>Select the duration to pause your queue. It will resume automatically afterward.</p>
+									<div className='grid grid-cols-3 gap-2 mt-3'>
+										{[5,10,15,20,30,45,60].map(min => (
+											<button key={min} onClick={()=> setPauseMinutes(min)} className={`px-3 py-2 rounded-md text-sm border ${pauseMinutes===min? 'bg-blue-600 text-white border-blue-600':'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>{min} min</button>
+										))}
+									</div>
+									<div className='flex items-center gap-2 mt-4'>
+										<button className='flex-1 px-3 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50' onClick={()=> setShowPauseModal(false)}>Cancel</button>
+										<button disabled={!pauseMinutes} className={`flex-1 px-3 py-2 rounded-md text-sm ${pauseMinutes? 'bg-gray-900 text-white hover:bg-black':'bg-gray-200 text-gray-500 cursor-not-allowed'}`} onClick={()=>{
+											if (!pauseMinutes || !selectedSlotId) return;
+											setPauseError('');
+											setPauseSubmitting(true);
+											(async () => {
+												try {
+													const pauseResp = await pauseSlotEta(selectedSlotId, pauseMinutes);
+													// Extract server-provided pauseEndsAt if available
+													const serverEnds = pauseResp?.data?.pauseEndsAt || pauseResp?.pauseEndsAt || null;
+													// Confirm pause locally only after API success
+													const wasRunning = !!runStartAt;
+													if (wasRunning) {
+														const delta = Math.floor((Date.now() - runStartAt) / 1000);
+														setBaseElapsed(b => b + Math.max(0, delta));
+														setRunStartAt(null);
+													}
+													wasRunningOnPauseRef.current = wasRunning;
+													setQueuePaused(true);
+													setShowPauseModal(false);
+													// Setup countdown and auto-resume using serverEnds if present
+													const ends = serverEnds ? new Date(serverEnds).getTime() : Date.now() + (pauseMinutes||0)*60*1000;
+													setPauseEndsAt(ends);
+													const initialRemaining = Math.max(0, Math.floor((ends - Date.now())/1000));
+													setPauseRemaining(initialRemaining);
+													if (autoResumeTimerRef.current) { clearTimeout(autoResumeTimerRef.current); }
+													autoResumeTimerRef.current = setTimeout(()=>{
+														// Auto resume
+														if (wasRunningOnPauseRef.current) setRunStartAt(Date.now());
+														setQueuePaused(false);
+														if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; }
+														setPauseEndsAt(null); setPauseRemaining(0);
+														autoResumeTimerRef.current = null;
+													}, (pauseMinutes||0)*60*1000);
+												} catch(err) {
+													setPauseError(err?.response?.data?.message || err.message || 'Failed to pause');
+												} finally {
+													setPauseSubmitting(false);
+												}
+											})();
+										}}>
+											{pauseSubmitting ? 'Pausing…' : 'Confirm'}
+										</button>
+									</div>
+									<div className='mt-2 text-[11px] text-gray-500 flex items-center'>
+										<span className='inline-block w-4 h-4 mr-1 text-gray-400'>ℹ️</span>
+										Queue will automatically resume after selected time.
+									</div>
+									{pauseError && <div className='mt-2 text-[12px] text-red-600 text-center'>{pauseError}</div>}
+								</div>
+							</div>, document.body)}
 				</div>
 			</div>
 		</div>

@@ -10,11 +10,11 @@ const useAuthStore = create(
       doctorDetails: null,
       doctorLoading: false,
       doctorError: '',
-  _doctorFetchPromise: null,
-  _doctorLastErrorAt: 0,
-  _doctorErrorCooldownMs: 15000,
+      _doctorFetchPromise: null,
+      _doctorLastErrorAt: 0,
+      _doctorErrorCooldownMs: 15000,
   // Set or update the access token (no implicit /doctors/me fetch)
-  setToken: (token) => set({ token }),
+      setToken: (token) => set({ token }),
       // Optionally keep minimal user info if available from login
       setUser: (user) => set({ user }),
       // Clear all auth data (e.g., on logout or 401)

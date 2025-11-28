@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
-import { Eye, MoreVertical, Plus, ChevronDown } from 'lucide-react';
+import { Eye, MoreVertical, Plus, ChevronDown, List, BarChart2 } from 'lucide-react';
 import Badge from '../../../components/Badge';
 
 const vitals = [
@@ -51,14 +51,16 @@ const biometrics = [
   ]},
 ];
 
-function SectionHeader({ title, actionLabel }) {
+function SectionHeader({ title, actionLabel, hideActions = false }) {
   return (
     <div className="flex items-center justify-between">
       <div className="text-sm font-semibold text-gray-800">{title}</div>
-      <div className="flex items-center gap-2 text-sm">
-        <button className="text-blue-600 hover:underline flex items-center gap-1">+ {actionLabel}</button>
-        <button className="p-1.5 rounded hover:bg-gray-100" aria-label="Columns"><ChevronDown className="h-4 w-4 text-gray-600"/></button>
-      </div>
+      {!hideActions && (
+        <div className="flex items-center gap-2 text-sm">
+          <button className="text-blue-600 hover:underline flex items-center gap-1">+ {actionLabel}</button>
+          <button className="p-1.5 rounded hover:bg-gray-100" aria-label="Columns"><ChevronDown className="h-4 w-4 text-gray-600"/></button>
+        </div>
+      )}
     </div>
   );
 }
@@ -68,10 +70,10 @@ function VitalsTable() {
     <div className="mt-2 border border-gray-200 rounded-md">
       <table className="min-w-full table-fixed text-sm text-left text-gray-700">
         <colgroup>
-          <col className="w-[240px]" />
-          <col />
-          <col className="w-[180px]" />
-          <col className="w-[160px]" />
+          <col className="w-[220px]" />
+          <col className="w-[420px]" />
+          <col className="w-[120px]" />
+          <col className="w-[140px]" />
           <col className="w-[64px]" />
         </colgroup>
         <thead className="bg-gray-50 text-[12px] uppercase font-medium text-gray-500 border-b">
@@ -93,7 +95,7 @@ function VitalsTable() {
                 </div>
               </td>
               <td className="py-2">
-                <div className="flex items-center gap-8">
+                <div className="grid grid-cols-3 gap-6">
                   {v.trend.map((t, idx) => (
                     <div key={idx} className="flex flex-col">
                       <span className={`text-sm ${/↑/.test(t.value) ? 'text-red-600' : /↓/.test(t.value) ? 'text-green-600' : 'text-gray-800'}`}>{t.value}</span>
@@ -125,8 +127,8 @@ function BiometricsTable() {
     <div className="mt-2 border border-gray-200 rounded-md">
       <table className="min-w-full table-fixed text-sm text-left text-gray-700">
         <colgroup>
-          <col className="w-[240px]" />
-          <col />
+          <col className="w-[220px]" />
+          <col className="w-[580px]" />
           <col className="w-[64px]" />
         </colgroup>
         <thead className="bg-gray-50 text-[12px] uppercase font-medium text-gray-500 border-b">
@@ -146,7 +148,7 @@ function BiometricsTable() {
                 </div>
               </td>
               <td className="py-2">
-                <div className="flex items-center gap-8 flex-wrap">
+                <div className="grid grid-cols-5 gap-6">
                   {b.trend.map((t, idx) => (
                     <div key={idx} className="flex flex-col">
                       <span className={`text-sm ${/↑/.test(t.value) ? 'text-red-600' : /↓/.test(t.value) ? 'text-green-600' : 'text-gray-800'}`}>{t.value}</span>
@@ -171,13 +173,85 @@ function BiometricsTable() {
 
 export default function PatientVitals({ embedded = false }) {
   const { id } = useParams();
+  const [selected, setSelected] = useState(vitals[0].name);
+  const [viewMode, setViewMode] = useState('chart'); // 'chart' or 'table'
   if (embedded) {
     return (
       <>
-        <div className="py-3">
-          <SectionHeader title="Vitals" actionLabel="Add Vitals" />
-          <VitalsTable />
+        <div className="">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div>
+                <div className="text-sm font-semibold text-gray-800">Vitals</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button className="text-blue-600 hover:underline flex items-center gap-1">+ Add Vitals</button>
+              <button onClick={() => setViewMode('table')} className={`p-2 rounded ${viewMode==='table' ? 'bg-gray-50 text-gray-800' : 'text-gray-500 hover:bg-gray-50'}`} aria-label="list view"><List className="h-4 w-4"/></button>
+              <button onClick={() => setViewMode('chart')} className={`p-2 rounded ${viewMode==='chart' ? 'bg-gray-50 text-gray-800' : 'text-gray-500 hover:bg-gray-50'}`} aria-label="chart view"><BarChart2 className="h-4 w-4"/></button>
+            </div>
+          </div>
+
+          {/* vitals content: stacked views with max-height + opacity transitions to avoid overlap */}
+          <div className="mt-3">
+            <div className={`overflow-hidden transition-all duration-300 ${viewMode==='chart' ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+              <div className="flex gap-4">
+                <div className="w-[220px] border border-gray-100 rounded bg-white">
+                  <div className="text-xs text-gray-500 px-3 py-2">Vitals</div>
+                  <div className="divide-y">
+                    {vitals.map((v, i) => (
+                      <button key={i} onClick={() => setSelected(v.name)} className={`w-full text-left px-3 py-3 flex items-center gap-3 ${selected === v.name ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'}`}>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{v.name}</div>
+                          <div className="text-[12px] text-gray-500">{v.unit}</div>
+                        </div>
+                        <div className="text-xs text-gray-500">{v.trend[0]?.value}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex-1 bg-white border border-gray-100 rounded p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-gray-800">{selected} <span className="text-xs text-gray-500">{vitals.find(v=>v.name===selected)?.unit}</span></div>
+                      <div className="text-xs text-gray-500 mt-1">{vitals.find(v=>v.name===selected)?.normal}</div>
+                    </div>
+                    <div className="text-sm text-gray-500">1 Month <button className="ml-2 p-1 rounded hover:bg-gray-100"><ChevronDown className="h-4 w-4" /></button></div>
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-3 text-xs text-gray-600">
+                    <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-orange-300 inline-block" /> Systolic</div>
+                    <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-blue-300 inline-block" /> Diastolic</div>
+                    <div className="px-2 py-1 text-xs text-gray-500 bg-gray-50 rounded ml-2">Normal Range: {vitals.find(v=>v.name===selected)?.normal}</div>
+                  </div>
+
+                  <div className="mt-4 h-[220px]">
+                    <svg className="w-full h-full" viewBox="0 0 800 220" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="0%" stopColor="#fef3c7" stopOpacity="0.9" />
+                          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <rect x="0" y="0" width="800" height="220" fill="transparent" />
+                      <path d="M20 140 C80 130,140 120,200 130 C260 140,320 125,380 135 C440 145,500 138,560 150 C620 162,680 150,760 130" fill="url(#g1)" stroke="#f6ad55" strokeWidth="2" opacity="0.9" />
+                      <path d="M20 90 C80 95,140 85,200 95 C260 98,320 90,380 100 C440 102,500 95,560 110 C620 118,680 110,760 95" fill="none" stroke="#93c5fd" strokeWidth="2" opacity="0.95" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className={`overflow-hidden transition-all duration-300 ${viewMode==='table' ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+              <div className="bg-white p-0">
+                <VitalsTable />
+              </div>
+            </div>
+          </div>
         </div>
+
         <div className="py-3">
           <SectionHeader title="Biometrics" actionLabel="Add Biometrics" />
           <BiometricsTable />
