@@ -68,7 +68,7 @@ const DocSidebar = () => {
     { label: "Consultation Details", to: "/doc/settings/consultation" },
     { label: "Clinics Details", to: "/doc/settings/clinics" },
     { label: "Staff Permissions", to: "/doc/settings/staff-permissions" },
-    { label: "My Rx Template", to: "/doc/settings/rx-template" },
+    { label: "Security Settings", to: "/doc/settings/security" },
   ];
 
   return (
@@ -149,17 +149,47 @@ const DocSidebar = () => {
                 {openSettings && (
                   <div className="ml-5 pl-3 border-l border-gray-200">
                     {settingsSubItems.map((s) => (
-                      <NavLink
-                        key={s.to}
-                        to={s.to}
-                        className={({ isActive }) =>
-                          `block text-sm px-3 py-2 my-[2px] rounded-sm ${
-                            isActive ? "bg-blue-50 text-gray-900" : "text-gray-700 hover:bg-gray-50"
-                          }`
-                        }
-                      >
-                        {s.label}
-                      </NavLink>
+                      s.subItems ? (
+                        <div key={s.to}>
+                          <NavLink
+                            to={s.to}
+                            className={({ isActive }) =>
+                              `block text-sm px-3 py-2 my-[2px] rounded-sm ${
+                                isActive ? "bg-blue-50 text-gray-900" : "text-gray-700 hover:bg-gray-50"
+                              }`
+                            }
+                          >
+                            {s.label}
+                          </NavLink>
+                          <div className="ml-4">
+                            {s.subItems.map((sub) => (
+                              <NavLink
+                                key={sub.to}
+                                to={sub.to}
+                                className={({ isActive }) =>
+                                  `block text-xs px-3 py-1 my-[2px] rounded-sm ${
+                                    isActive ? "bg-blue-100 text-gray-900" : "text-gray-700 hover:bg-gray-50"
+                                  }`
+                                }
+                              >
+                                {sub.label}
+                              </NavLink>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <NavLink
+                          key={s.to}
+                          to={s.to}
+                          className={({ isActive }) =>
+                            `block text-sm px-3 py-2 my-[2px] rounded-sm ${
+                              isActive ? "bg-blue-50 text-gray-900" : "text-gray-700 hover:bg-gray-50"
+                            }`
+                          }
+                        >
+                          {s.label}
+                        </NavLink>
+                      )
                     ))}
                   </div>
                 )}

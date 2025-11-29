@@ -65,61 +65,108 @@ function SectionHeader({ title, actionLabel, hideActions = false }) {
   );
 }
 
-function VitalsTable() {
-  return (
-    <div className="mt-2 border border-gray-200 rounded-md">
-      <table className="min-w-full table-fixed text-sm text-left text-gray-700">
-        <colgroup>
-          <col className="w-[220px]" />
-          <col className="w-[420px]" />
-          <col className="w-[120px]" />
-          <col className="w-[140px]" />
-          <col className="w-[64px]" />
-        </colgroup>
-        <thead className="bg-gray-50 text-[12px] uppercase font-medium text-gray-500 border-b">
-          <tr className="h-8">
-            <th className="pl-3">Name</th>
-            <th className="">Last 3 Recorded Values</th>
-            <th className="">Status</th>
-            <th className="">Normal Range</th>
-            <th className="pr-2 text-right"> </th>
-          </tr>
-        </thead>
-        <tbody>
-          {vitals.map((v, i) => (
-            <tr key={i} className="border-b border-gray-200">
-              <td className="pl-3 py-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-800">{v.name}</span>
-                  <span className="text-xs text-gray-500">{v.unit}</span>
-                </div>
-              </td>
-              <td className="py-2">
-                <div className="grid grid-cols-3 gap-6">
-                  {v.trend.map((t, idx) => (
-                    <div key={idx} className="flex flex-col">
-                      <span className={`text-sm ${/↑/.test(t.value) ? 'text-red-600' : /↓/.test(t.value) ? 'text-green-600' : 'text-gray-800'}`}>{t.value}</span>
-                      <span className="text-[11px] text-gray-500">{t.date}</span>
-                    </div>
-                  ))}
-                </div>
-              </td>
-              <td className="py-2">
-                <Badge size="s" type="ghost" color={v.status === 'Improved' ? 'green' : v.status === 'Worse' ? 'red' : 'gray'}>{v.status}</Badge>
-              </td>
-              <td className="py-2 text-gray-700">{v.normal}</td>
-              <td className="py-2 pr-2">
-                <div className="flex items-center justify-end gap-2 text-gray-600">
-                  <button className="p-1.5 rounded hover:bg-gray-100" aria-label="View"><Eye className="h-4 w-4" /></button>
-                  <button className="p-1.5 rounded hover:bg-gray-100" aria-label="More"><MoreVertical className="h-4 w-4" /></button>
-                </div>
-              </td>
+function VitalsTable({ history = [], loading = false, error = null }) {
+  const fmt = (iso) => {
+    try {
+      return new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return iso; }
+  };
+
+  if (loading) return <div className="p-4 text-sm text-gray-600">Loading vitals...</div>;
+  if (error) return <div className="p-4 text-sm text-red-600">Failed to load vitals</div>;
+
+  // If history provided, render it in the existing table design: one row per vital, last 3 values with small dates
+  if (history && history.length > 0) {
+    // Build series for each vital type from history (latest first)
+    const byVital = {
+      'Blood Pressure': history.slice().reverse().map(r => {
+        const bp = r.data?.blood_pressure;
+        if (!bp) return null;
+        return { value: `${bp.systolic}/${bp.diastolic}` + ' mmHg', date: fmt(r.recordedAt) };
+      }).filter(Boolean).slice(0, 3),
+      'Oxygen Saturation': history.slice().reverse().map(r => (
+        r.data?.oxygen_saturation != null ? { value: String(r.data.oxygen_saturation), date: fmt(r.recordedAt) } : null
+      )).filter(Boolean).slice(0, 3),
+      'Pulse Rate': history.slice().reverse().map(r => (
+        r.data?.pulse_rate != null ? { value: String(r.data.pulse_rate), date: fmt(r.recordedAt) } : null
+      )).filter(Boolean).slice(0, 3),
+      'Respiratory Rate': history.slice().reverse().map(r => (
+        r.data?.respiratory_rate != null ? { value: String(r.data.respiratory_rate), date: fmt(r.recordedAt) } : null
+      )).filter(Boolean).slice(0, 3),
+      'Body Temperature': history.slice().reverse().map(r => (
+        r.data?.body_temperature != null ? { value: String(r.data.body_temperature), date: fmt(r.recordedAt) } : null
+      )).filter(Boolean).slice(0, 3),
+      'Blood Glucose Level': history.slice().reverse().map(r => (
+        r.data?.blood_glucose_level != null ? { value: String(r.data.blood_glucose_level), date: fmt(r.recordedAt) } : null
+      )).filter(Boolean).slice(0, 3),
+    };
+
+    const rows = vitals.map(v => ({
+      name: v.name,
+      unit: v.unit,
+      normal: v.normal,
+      status: v.status,
+      trend: byVital[v.name] && byVital[v.name].length ? byVital[v.name] : [],
+    }));
+
+    return (
+      <div className="mt-2 border border-gray-200 rounded-md">
+        <table className="min-w-full table-fixed text-sm text-left text-gray-700">
+          <colgroup>
+            <col className="w-[220px]" />
+            <col className="w-[420px]" />
+            <col className="w-[120px]" />
+            <col className="w-[140px]" />
+            <col className="w-[64px]" />
+          </colgroup>
+          <thead className="bg-gray-50 text-[12px] uppercase font-medium text-gray-500 border-b">
+            <tr className="h-8">
+              <th className="pl-3">Name</th>
+              <th className="">Last 3 Recorded Values</th>
+              <th className="">Status</th>
+              <th className="">Normal Range</th>
+              <th className="pr-2 text-right"> </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+          </thead>
+          <tbody>
+            {rows.map((v, i) => (
+              <tr key={i} className="border-b border-gray-200">
+                <td className="pl-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-800">{v.name}</span>
+                    <span className="text-xs text-gray-500">{v.unit}</span>
+                  </div>
+                </td>
+                <td className="py-2">
+                  <div className="grid grid-cols-3 gap-6">
+                    {(v.trend.length ? v.trend : vitals.find(x=>x.name===v.name)?.trend || []).map((t, idx) => (
+                      <div key={idx} className="flex flex-col">
+                        <span className={`text-sm ${/↑/.test(t.value) ? 'text-red-600' : /↓/.test(t.value) ? 'text-green-600' : 'text-gray-800'}`}>{t.value}</span>
+                        <span className="text-[11px] text-gray-500">{t.date}</span>
+                      </div>
+                    ))}
+                  </div>
+                </td>
+                <td className="py-2">
+                  <Badge size="s" type="ghost" color={v.status === 'Improved' ? 'green' : v.status === 'Worse' ? 'red' : 'gray'}>{v.status}</Badge>
+                </td>
+                <td className="py-2 text-gray-700">{v.normal}</td>
+                <td className="py-2 pr-2">
+                  <div className="flex items-center justify-end gap-2 text-gray-600">
+                    <button className="p-1.5 rounded hover:bg-gray-100" aria-label="View"><Eye className="h-4 w-4" /></button>
+                    <button className="p-1.5 rounded hover:bg-gray-100" aria-label="More"><MoreVertical className="h-4 w-4" /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // If no history, show a simple empty state (no dummy data)
+  return <div className="p-4 text-sm text-gray-500">No vitals recorded</div>;
 }
 
 function BiometricsTable() {
@@ -171,14 +218,14 @@ function BiometricsTable() {
   );
 }
 
-export default function PatientVitals({ embedded = false }) {
+export default function PatientVitals({ embedded = false, onAdd, history = [], loading = false, error = null }) {
   const { id } = useParams();
   const [selected, setSelected] = useState(vitals[0].name);
   const [viewMode, setViewMode] = useState('chart'); // 'chart' or 'table'
   if (embedded) {
     return (
       <>
-        <div className="">
+        <div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div>
@@ -187,7 +234,7 @@ export default function PatientVitals({ embedded = false }) {
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="text-blue-600 hover:underline flex items-center gap-1">+ Add Vitals</button>
+              <button onClick={onAdd} className="text-blue-600 hover:underline flex items-center gap-1">+ Add Vitals</button>
               <button onClick={() => setViewMode('table')} className={`p-2 rounded ${viewMode==='table' ? 'bg-gray-50 text-gray-800' : 'text-gray-500 hover:bg-gray-50'}`} aria-label="list view"><List className="h-4 w-4"/></button>
               <button onClick={() => setViewMode('chart')} className={`p-2 rounded ${viewMode==='chart' ? 'bg-gray-50 text-gray-800' : 'text-gray-500 hover:bg-gray-50'}`} aria-label="chart view"><BarChart2 className="h-4 w-4"/></button>
             </div>
@@ -244,9 +291,9 @@ export default function PatientVitals({ embedded = false }) {
               </div>
             </div>
 
-            <div className={`overflow-hidden transition-all duration-300 ${viewMode==='table' ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+      <div className={`overflow-hidden transition-all duration-300 ${viewMode==='table' ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
               <div className="bg-white p-0">
-                <VitalsTable />
+        <VitalsTable history={history} loading={loading} error={error} />
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import PatientHeader from '../../../components/PatientList/Header';
 import PatientTable from '../../../components/PatientList/Table';
+import useDoctorPatientListStore from '../../../store/useDoctorPatientListStore';
 
 const demoPatients = [
   { name: 'Rahul Sharma', gender: 'M', dob: '03/14/1990 (33Y)', patientId: 'P654321', contact: '+91 9876543210', email: 'rajesh.kumar@example.com', location: 'Akola, MH', lastVisit: '02/02/2025 | 12:30 PM', reason: 'Routine check-up for overall health assessment.' },
@@ -10,13 +11,43 @@ const demoPatients = [
 
 export default function Patient() {
   const [selected, setSelected] = useState('all');
-  const [patients] = useState(demoPatients);
-  const counts = useMemo(() => ({ all: patients.length, online: 0, walkin: 0 }), [patients]);
+  const { patients, loading, error, fetchPatients, clearPatientsStore } = useDoctorPatientListStore();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        await fetchPatients();
+      } catch (e) {
+        // If fetch fails, keep using demoPatients as fallback
+        if (mounted) {
+          // noop - patient table will render demo data below if patients empty
+        }
+      }
+    })();
+    return () => {
+      mounted = false;
+      // keep store clean when unmounting page
+      clearPatientsStore();
+    };
+  }, [fetchPatients, clearPatientsStore]);
+
+  const displayPatients = loading ? [] : (patients && patients.length > 0 ? patients : (error ? demoPatients : []));
+  const counts = useMemo(() => ({ all: displayPatients.length, online: 0, walkin: 0 }), [displayPatients]);
 
   return (
     <div className="flex flex-col gap-2">
       <PatientHeader counts={counts} selected={selected} onChange={setSelected} />
-      <PatientTable patients={patients} />
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+            <div className="text-sm text-gray-600">Loading patients...</div>
+          </div>
+        </div>
+      ) : (
+        <PatientTable patients={displayPatients} />
+      )}
     </div>
   );
 }

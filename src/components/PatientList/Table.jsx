@@ -6,8 +6,9 @@ import { useNavigate } from "react-router-dom";
 export default function PatientTable({ patients = [], onView, onEdit, onDelete }) {
   const navigate = useNavigate();
   const openPatient = (p) => {
-    const id = p?.patientId || p?.id || p?.mrn || p?.name;
-    navigate(`/doc/patients/${encodeURIComponent(id)}`, { state: { patient: p } });
+    // Always use the UUID patientId for routing; show patientCode in the table if available.
+    const routeId = p?.patientId;
+    navigate(`/doc/patients/${encodeURIComponent(routeId)}`, { state: { patient: p } });
   };
   return (
     <div className="bg-white flex flex-col">
@@ -59,13 +60,13 @@ export default function PatientTable({ patients = [], onView, onEdit, onDelete }
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{p.patientId}</td>
+                  <td className="px-4 py-3 text-gray-700">{p.patientCode || p.patientId}</td>
                   <td className="px-4 py-3 text-gray-700">{p.contact}</td>
                   <td className="px-4 py-3 text-gray-700 whitespace-normal break-words">{p.email}</td>
-                  <td className="px-4 py-3 text-gray-700">{p.location}</td>
                   <td className="px-4 py-3 text-gray-700">
-                    <Badge size="s" type="ghost" color="gray" className="!h-6 !text-[12px] !px-2 whitespace-nowrap">{p.lastVisit}</Badge>
+                    <Badge size="s" type="ghost" color="gray" className="!h-6 !text-[12px] !px-2 whitespace-nowrap">{p.location}</Badge>
                   </td>
+                  <td className="px-4 py-3 text-gray-700">{p.lastVisit}</td>
                   <td className="px-4 py-3 text-gray-700">
                     <span className="truncate block max-w-[280px]" title={p.reason}>{p.reason}</span>
                   </td>
