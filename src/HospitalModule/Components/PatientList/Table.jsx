@@ -1,16 +1,23 @@
-import { MoreVertical, ChevronsUpDown, Trash2, Edit, Eye } from "lucide-react";
-import AvatarCircle from "../AvatarCircle";
-import Badge from "../Badge";
+import { MoreVertical, ChevronsUpDown, Eye } from "lucide-react";
+import AvatarCircle from "../../../components/AvatarCircle";
+import Badge from "../../../components/Badge";
 import { useNavigate } from "react-router-dom";
 
-export default function PatientTable({ patients = [], onView, onEdit, onDelete, onRowClick }) {
+// Hospital-specific Patients table.
+// Differences:
+// - Default row click navigates to Hospital patients route.
+// - UI fine-tuned spacing and fewer action buttons.
+// - This component is data-display only; fetching should be handled by its parent
+//   using the Hospital API endpoint.
+
+export default function HospitalPatientTable({ patients = [], onView, onRowClick }) {
   const navigate = useNavigate();
   const openPatient = (p) => {
-    if (typeof onRowClick === 'function') { onRowClick(p); return; }
-    // Default behavior: navigate to doctor module patient details
-    const routeId = p?.patientId;
-    navigate(`/doc/patients/${encodeURIComponent(routeId)}`, { state: { patient: p } });
+    if (typeof onRowClick === "function") { onRowClick(p); return; }
+    const routeId = p?.patientId || p?.patientCode;
+    navigate(`/hospital/patients/${encodeURIComponent(routeId)}`, { state: { patient: p } });
   };
+
   return (
     <div className="bg-white flex flex-col">
       <div className="overflow-x-auto">
@@ -18,12 +25,10 @@ export default function PatientTable({ patients = [], onView, onEdit, onDelete, 
           <table className="min-w-full table-fixed text-sm text-left text-gray-700">
             <colgroup>
               <col className="w-[300px]" />
-              <col className="w-[110px]" />
-              <col className="w-[160px]" />
-              <col className="w-[220px]" />
-              <col className="w-[140px]" />
-              <col className="w-[240px]" />
               <col className="w-[120px]" />
+              <col className="w-[180px]" />
+              <col className="w-[220px]" />
+              <col className="w-[160px]" />
               <col className="w-[84px]" />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-white text-[12px] uppercase font-medium text-gray-500 border-b">
@@ -34,19 +39,11 @@ export default function PatientTable({ patients = [], onView, onEdit, onDelete, 
                     <span className="inline-flex items-center gap-1 whitespace-nowrap">Patient <ChevronsUpDown className="h-3.5 w-3.5" /></span>
                   </span>
                 </th>
-                <th className="px-4 py-0 h-8 whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Patient ID <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                </th>
-                <th className="px-4 py-0 h-8 whitespace-nowrap"><span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Contact Number <ChevronsUpDown className="h-3.5 w-3.5" /></span></th>
+                <th className="px-4 py-0 h-8 whitespace-nowrap">Patient ID</th>
+                <th className="px-4 py-0 h-8 whitespace-nowrap">Contact</th>
                 <th className="px-4 py-0 h-8 whitespace-nowrap">Email</th>
-                <th className="px-4 py-0 h-8 whitespace-nowrap">Location</th>
-                <th className="px-4 py-0 h-8 whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Last Visit Date & Time <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                </th>
-                <th className="px-4 py-0 h-8 whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Reason for Last Visit <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                </th>
-                <th className="px-11 py-0 h-8 whitespace-nowrap text-right">Actions</th>
+                <th className="px-4 py-0 h-8 whitespace-nowrap">Last Visit</th>
+                <th className="px-6 py-0 h-8 whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -64,25 +61,12 @@ export default function PatientTable({ patients = [], onView, onEdit, onDelete, 
                   <td className="px-4 py-3 text-gray-700">{p.patientCode || p.patientId}</td>
                   <td className="px-4 py-3 text-gray-700">{p.contact}</td>
                   <td className="px-4 py-3 text-gray-700 whitespace-normal break-words">{p.email}</td>
-                  <td className="px-4 py-3 text-gray-700">
-                    <Badge size="s" type="ghost" color="gray" className="!h-6 !text-[12px] !px-2 whitespace-nowrap">{p.location}</Badge>
-                  </td>
                   <td className="px-4 py-3 text-gray-700">{p.lastVisit}</td>
-                  <td className="px-4 py-3 text-gray-700">
-                    <span className="truncate block max-w-[280px]" title={p.reason}>{p.reason}</span>
-                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1 text-gray-600" onClick={(e) => e.stopPropagation()}>
                       <button className="p-1.5 rounded hover:bg-gray-100" aria-label="View" onClick={() => (onView ? onView(p) : openPatient(p))}>
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button className="p-1.5 rounded hover:bg-gray-100" aria-label="Edit" onClick={() => onEdit && onEdit(p)}>
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button className="p-1.5 rounded hover:bg-gray-100" aria-label="Delete" onClick={() => onDelete && onDelete(p)}>
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                      <span className="mx-2 h-4 w-px bg-gray-200" aria-hidden="true" />
                       <button className="p-1.5 rounded hover:bg-gray-100" aria-label="More">
                         <MoreVertical className="h-4 w-4" />
                       </button>

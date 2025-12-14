@@ -14,6 +14,7 @@ import useEducationStore from "../../../store/settings/useEducationStore.js";
 import useExperienceStore from "../../../store/settings/useExperienceStore.js";
 import useAwardsPublicationsStore from "../../../store/settings/useAwardsPublicationsStore.js";
 import useClinicStore from "../../../store/settings/useClinicStore.js";
+import { fetchAllPermissions } from '../../../services/rbac/permissionService';
 
 
 
@@ -855,50 +856,62 @@ const StaffTab = () => {
   const RoleDrawer = ({ open, onClose, onCreate }) => {
     const [name, setName] = useState('')
     const [desc, setDesc] = useState('')
+    // selection map by permission id => boolean
     const [checked, setChecked] = useState({})
     const [closing, setClosing] = useState(false)
-    const groups = [
-      { key: 'patient', title: 'Patient Management', items: [
-        { k: 'read_patient', label: 'Read Patient Record' },
-        { k: 'view_patient_list', label: 'View Patient List' },
-        { k: 'create_patient', label: 'Create Patient' },
-        { k: 'edit_patient', label: 'Edit Patient' },
-        { k: 'delete_patient', label: 'Delete Patient' },
-        { k: 'add_patient_data', label: 'Add Data' },
-      ]},
-      { key: 'queue', title: 'Queue Management', items: [
-        { k: 'queue_read', label: 'Read Only' },
-        { k: 'queue_full', label: 'Full Access' },
-        { k: 'queue_create', label: 'Create Appointments' },
-        { k: 'queue_manage', label: 'Manage Appts' },
-      ]},
-      { key: 'consult', title: 'Consultation Management', items: [
-        { k: 'consult_read', label: 'Read Only' },
-        { k: 'consult_token', label: 'Edit Consultation Token Availability' },
-        { k: 'consult_timing', label: 'Edit Consultation Timing' },
-      ]},
-      { key: 'rx', title: 'Rx Template Management', items: [
-        { k: 'rx_read', label: 'Read Only' },
-        { k: 'rx_edit', label: 'Edit Template' },
-      ]},
-      { key: 'staff', title: 'Staff Management', items: [
-        { k: 'staff_view', label: 'View Staff' },
-        { k: 'staff_edit', label: 'Edit Staff' },
-        { k: 'staff_add', label: 'Add Staff' },
-        { k: 'staff_manage', label: 'Manage Staff' },
-      ]},
-    ]
-  if (!open && !closing) return null
-  const requestClose = () => { setClosing(true); setTimeout(()=>{ setClosing(false); onClose?.() }, 220) }
-    const toggle = (k) => setChecked((c) => ({ ...c, [k]: !c[k] }))
-    const groupAll = (gKey, value) => {
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+    // groupedPermissions: { [moduleName]: [{ id, name, description }] }
+    const [grouped, setGrouped] = useState({})
+
+    // fetch permissions when drawer opens
+    useEffect(() => {
+      if (!open) return
+      let cancelled = false
+      const load = async () => {
+        setLoading(true)
+        setError('')
+        try {
+          const res = await fetchAllPermissions()
+          const gp = res?.data?.groupedPermissions
+          const list = res?.data?.permissions
+          let groupedPermissions = gp
+          if (!groupedPermissions && Array.isArray(list)) {
+            groupedPermissions = list.reduce((acc, p) => {
+              const mod = p.module || 'Other'
+              if (!acc[mod]) acc[mod] = []
+              acc[mod].push({ id: p.id, name: p.name, description: p.description })
+              return acc
+            }, {})
+          }
+          if (!cancelled) {
+            setGrouped(groupedPermissions || {})
+            // reset selection on open
+            setChecked({})
+          }
+        } catch (e) {
+          if (!cancelled) setError(e?.message || e?.error || 'Failed to load permissions')
+        } finally {
+          if (!cancelled) setLoading(false)
+        }
+      }
+      load()
+      return () => { cancelled = true }
+    }, [open])
+
+    if (!open && !closing) return null
+    const requestClose = () => { setClosing(true); setTimeout(()=>{ setClosing(false); onClose?.() }, 220) }
+
+    const toggle = (id) => setChecked((c) => ({ ...c, [id]: !c[id] }))
+    const groupAll = (moduleName, value) => {
       const up = { ...checked }
-      const g = groups.find((g) => g.key === gKey)
-      g.items.forEach((it) => (up[it.k] = value))
+      const items = grouped[moduleName] || []
+      items.forEach((it) => (up[it.id] = value))
       setChecked(up)
     }
     const selectedCount = Object.values(checked).filter(Boolean).length
     const canCreate = name.trim().length > 0 && selectedCount > 0
+
     return (
       <div className="fixed inset-0 z-50">
         <div className={`absolute inset-0 bg-black/30 ${closing ? 'animate-[fadeOut_.2s_ease-in_forwards]' : 'animate-[fadeIn_.25s_ease-out_forwards]'}`} onClick={requestClose} />
@@ -906,35 +919,93 @@ const StaffTab = () => {
           <div className="flex items-center justify-between px-3 py-2 border-b border-[#EFEFEF]">
             <h3 className="text-[16px] font-semibold text-[#424242]">Create User Role</h3>
             <div className="flex items-center gap-3">
-              <button disabled={!canCreate} className={'text-xs md:text-sm h-8 px-3 rounded-md transition ' + (!canCreate ? 'bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed' : 'bg-[#2F66F6] text-white hover:bg-[#1e4cd8]')} onClick={() => canCreate && onCreate({ name, subtitle: 'Limited System Access', staffCount: 0, permissions: selectedCount, created: new Date().toLocaleDateString('en-GB'), icon: 'clipboard', description: desc })}>Create</button>
+              <button
+                disabled={!canCreate}
+                className={'text-xs md:text-sm h-8 px-3 rounded-md transition ' + (!canCreate ? 'bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed' : 'bg-[#2F66F6] text-white hover:bg-[#1e4cd8]')}
+                onClick={() => {
+                  if (!canCreate) return
+                  const permissionIds = Object.entries(checked).filter(([, v]) => v).map(([k]) => k)
+                  onCreate({
+                    name,
+                    subtitle: 'Limited System Access',
+                    staffCount: 0,
+                    permissions: selectedCount,
+                    created: new Date().toLocaleDateString('en-GB'),
+                    icon: 'clipboard',
+                    description: desc,
+                    permissionIds,
+                  })
+                }}
+              >
+                Create
+              </button>
               <button onClick={requestClose} className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100" aria-label="Close">✕</button>
             </div>
           </div>
           <div className="px-3 py-2 flex flex-col gap-2 overflow-y-auto h-[calc(100%-48px)]">
             <label className="block"><span className="text-[12px] text-[#424242] font-medium">Role Name <span className="text-red-500">*</span></span><input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Enter staff full name" className="w-full h-9 px-3 mt-1 rounded-md border border-[#E6E6E6] focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF] outline-none text-sm" /></label>
             <label className="block"><span className="text-[12px] text-[#424242] font-medium">Description</span><textarea value={desc} onChange={(e)=>setDesc(e.target.value)} placeholder="Describe the role" rows={3} className="w-full px-3 py-2 mt-1 rounded-md border border-[#E6E6E6] focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF] outline-none text-sm" /></label>
-            <div><div className="text-[12px] text-[#424242] font-medium">Permissions <span className="text-red-500">*</span></div>
-              <div className="mt-2 flex flex-col gap-3">
-                {groups.map((g) => {
-                  const allChecked = g.items.every((it) => checked[it.k])
-                  return (
-                    <div key={g.key} className="border rounded-md border-[#E6E6E6]">
-                      <div className="flex items-center justify-between px-3 py-2 bg-[#F9FBFF] text-[12px] text-[#424242] rounded-t-md">
-                        <span className="font-semibold">{g.title}</span>
-                        <label className="inline-flex items-center gap-2 text-[#626060]"><input type="checkbox" checked={allChecked} onChange={(e)=>groupAll(g.key, e.target.checked)} /> Select All</label>
+            <div>
+              <div className="text-[12px] text-[#424242] font-medium">Permissions <span className="text-red-500">*</span></div>
+
+              {loading ? (
+                <div className="mt-3 text-[12px] text-[#626060]">Loading permissions…</div>
+              ) : error ? (
+                <div className="mt-3 text-[12px] text-red-600 flex items-center gap-2">
+                  <span>{String(error)}</span>
+                  <button
+                    className="text-[#2F66F6] underline"
+                    onClick={() => {
+                      // retrigger load by flipping open state quickly is complex; call fetch directly
+                      (async () => {
+                        setLoading(true); setError('')
+                        try {
+                          const res = await fetchAllPermissions()
+                          const gp = res?.data?.groupedPermissions
+                          const list = res?.data?.permissions
+                          let groupedPermissions = gp
+                          if (!groupedPermissions && Array.isArray(list)) {
+                            groupedPermissions = list.reduce((acc, p) => {
+                              const mod = p.module || 'Other'
+                              if (!acc[mod]) acc[mod] = []
+                              acc[mod].push({ id: p.id, name: p.name, description: p.description })
+                              return acc
+                            }, {})
+                          }
+                          setGrouped(groupedPermissions || {})
+                          setChecked({})
+                        } catch (e) {
+                          setError(e?.message || e?.error || 'Failed to load permissions')
+                        } finally {
+                          setLoading(false)
+                        }
+                      })()
+                    }}
+                  >Retry</button>
+                </div>
+              ) : (
+                <div className="mt-2 flex flex-col gap-3">
+                  {Object.entries(grouped).map(([moduleName, items]) => {
+                    const allChecked = (items || []).every((it) => checked[it.id])
+                    return (
+                      <div key={moduleName} className="border rounded-md border-[#E6E6E6]">
+                        <div className="flex items-center justify-between px-3 py-2 bg-[#F9FBFF] text-[12px] text-[#424242] rounded-t-md">
+                          <span className="font-semibold">{moduleName}</span>
+                          <label className="inline-flex items-center gap-2 text-[#626060]"><input type="checkbox" checked={allChecked} onChange={(e)=>groupAll(moduleName, e.target.checked)} /> Select All</label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 p-3">
+                          {(items || []).map((it)=> (
+                            <label key={it.id} className="flex items-start gap-2 text-[12px] text-[#424242]"><input type="checkbox" checked={!!checked[it.id]} onChange={()=>toggle(it.id)} className="mt-0.5" /><span>{it.name}</span></label>
+                          ))}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 p-3">
-                        {g.items.map((it)=> (
-                          <label key={it.k} className="flex items-start gap-2 text-[12px] text-[#424242]"><input type="checkbox" checked={!!checked[it.k]} onChange={()=>toggle(it.k)} className="mt-0.5" /><span>{it.label}</span></label>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
-  </aside>
+        </aside>
       </div>
     )
   }
@@ -1098,8 +1169,7 @@ const Doc_settings = () => {
     if (p.endsWith('/settings/consultation')) return 'consultation'
     if (p.endsWith('/settings/clinics')) return 'clinical'
     if (p.endsWith('/settings/staff-permissions')) return 'staff'
-    if (p.endsWith('/settings/security')) return 'security'
-    if (p.endsWith('/settings/rx-template')) return 'rx'
+    if (p.startsWith('/doc/settings/security')) return 'security'
     return 'personal'
   }, [location.pathname])
 
@@ -1115,7 +1185,6 @@ const Doc_settings = () => {
       case 'clinical': return `${base}/settings/clinics`
       case 'staff': return `${base}/settings/staff-permissions`
       case 'security': return `${base}/settings/security`
-      case 'rx': return `${base}/settings/rx-template`
       default: return `${base}/settings/account`
     }
   }
@@ -1853,7 +1922,36 @@ const Doc_settings = () => {
       ) : activeTab === 'staff' ? (
         <StaffTab />
       ) : (
-        <div className="mt-6 text-sm text-gray-600">This section is under construction.</div>
+        <div className="mt-6 flex justify-left">
+          <div className="bg-white rounded-lg p-4 shadow-sm w-full max-w-md">
+            <h2 className="text-base font-semibold text-gray-900 mb-2">Change Password</h2>
+            <form className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Current Password <span className="text-red-500">*</span></label>
+                <input type="password" className="w-full h-8 px-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-100" placeholder="Enter current password" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">New Password <span className="text-red-500">*</span></label>
+                <input type="password" className="w-full h-8 px-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-100" placeholder="Enter new password" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Confirm Password <span className="text-red-500">*</span></label>
+                <input type="password" className="w-full h-8 px-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-100" placeholder="Enter Password" />
+              </div>
+              <button type="submit" className="w-1/2 h-8 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition">Send OTP and Verify</button>
+            </form>
+            <div className="mt-4">
+              <h3 className="text-xs font-semibold text-gray-800 mb-1">Password Requirements</h3>
+              <ul className="list-none pl-0 text-xs text-gray-700 space-y-1">
+                <li className="flex items-center gap-1"><span className="text-green-600">&#10003;</span> At least 8–15 characters long</li>
+                <li className="flex items-center gap-1"><span className="text-green-600">&#10003;</span> Contains uppercase letter (A-Z)</li>
+                <li className="flex items-center gap-1"><span className="text-green-600">&#10003;</span> Contains lowercase letter (a-z)</li>
+                <li className="flex items-center gap-1"><span className="text-green-600">&#10003;</span> Contains number (0-9)</li>
+                <li className="flex items-center gap-1"><span className="text-green-600">&#10003;</span> Contains special character (!@#$%^&amp;*)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Drawer: Edit Basic Info */}

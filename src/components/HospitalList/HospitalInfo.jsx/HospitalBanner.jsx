@@ -1,5 +1,6 @@
 import { LocateIcon } from 'lucide-react'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { getDownloadUrl } from '../../../services/uploadsService'
 
 // Reusable Stat Card Component
 const StatCard = ({ label, value, valueColor = "text-[#2372EC]" }) => (
@@ -43,6 +44,30 @@ const HospitalBanner = ({
   }
 }) => {
   const { name, status, address, type, established, website, bannerImage, logoImage, stats } = hospitalData
+  const [resolvedBanner, setResolvedBanner] = useState('')
+  const [resolvedLogo, setResolvedLogo] = useState('')
+  useEffect(() => {
+    let ignore = false
+    const run = async () => {
+      try {
+        const [b, l] = await Promise.all([
+          getDownloadUrl(bannerImage),
+          getDownloadUrl(logoImage)
+        ])
+        if (!ignore) {
+          setResolvedBanner(b || '')
+          setResolvedLogo(l || '')
+        }
+      } catch {
+        if (!ignore) {
+          setResolvedBanner('')
+          setResolvedLogo('')
+        }
+      }
+    }
+    run()
+    return () => { ignore = true }
+  }, [bannerImage, logoImage])
 
   const statCards = [
   { label: "Patients Served", value: stats.patientsManaged },
@@ -60,15 +85,16 @@ const HospitalBanner = ({
       {/* Banner Section */}
       <div className='relative w-full h-[179px]'>
         <img 
-          src={bannerImage} 
+          src={resolvedBanner || bannerImage} 
           className='h-[140px] w-full object-cover' 
           alt={`${name} banner`} 
+          onError={(e)=>{ e.currentTarget.onerror=null; e.currentTarget.src='/hospital-sample.png'; }}
         />
         {/* Circular logo with verified tick overlay */}
         <div className='absolute z-10 bottom-2 left-1/2 -translate-x-1/2 w-[60px] h-[60px]'>
           <div className='relative w-full h-full'>
             <img 
-              src={logoImage}
+              src={resolvedLogo || logoImage}
               alt={`${name} logo`}
               loading="lazy"
               crossOrigin="anonymous"

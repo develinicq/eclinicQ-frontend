@@ -38,7 +38,7 @@ const rows = [
   { token: 24, name: 'Ojasvi Rao', gender: 'F', dob: '14/02/1993', age: 32, apptType: 'Second Opinion', exptTime: '5:00 PM', bookingType: 'Online', reason: 'PCOD' },
 ];
 
-const QueueTable = ({ onCheckIn, checkedInToken, checkedInTokens, items, removingToken, incomingToken, onRevokeCheckIn, onMarkNoShow, allowSampleFallback = true, prescreeningEnabled = true }) => {
+const QueueTable = ({ onCheckIn, checkedInToken, checkedInTokens, checkingInTokens, items, removingToken, incomingToken, onRevokeCheckIn, onMarkNoShow, allowSampleFallback = true, prescreeningEnabled = true, hideCheckIn = false }) => {
   const [menuRow, setMenuRow] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   useEffect(() => {
@@ -129,36 +129,40 @@ const QueueTable = ({ onCheckIn, checkedInToken, checkedInTokens, items, removin
                 {/* Actions (sticky right) */}
                 <td className="px-3 py-3 sticky right-0 z-20 bg-white group-hover:bg-gray-50 transition-colors border-l border-b border-gray-200" style={{ minWidth: COL_W.actions, width: COL_W.actions }}>
                   <div className="relative flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-          {prescreeningEnabled ? (
-            checkedInTokens && checkedInTokens.has?.(row.token) ? (
-              <Button
-                size="large"
-                variant="primary"
-                className="h-9 py-0 text-sm w-full flex-1 shadow-lg"
-                style={{ boxShadow: '0 4px 24px 0 rgba(37, 99, 235, 0.15)' }}
-                onClick={() => onCheckIn(row)}
-              >
-                Add Pre-screening
-              </Button>
+          {!hideCheckIn && (
+            prescreeningEnabled ? (
+              checkedInTokens && checkedInTokens.has?.(row.token) ? (
+                <Button
+                  size="large"
+                  variant="primary"
+                  className="h-9 py-0 text-sm w-full flex-1 shadow-lg whitespace-nowrap"
+                  style={{ boxShadow: '0 4px 24px 0 rgba(37, 99, 235, 0.15)' }}
+                  onClick={() => onCheckIn(row)}
+                >
+                  {checkingInTokens && checkingInTokens.has?.(row.token) ? 'Checking in…' : 'Add Pre-screening'}
+                </Button>
+              ) : (
+                <Button
+                  size="large"
+                  variant="secondary"
+                  className="h-9 py-0 px-4 text-sm w-full flex-1 whitespace-nowrap"
+                  disabled={!!(checkingInTokens && checkingInTokens.has?.(row.token))}
+                  onClick={() => onCheckIn(row)}
+                >
+                  {checkingInTokens && checkingInTokens.has?.(row.token) ? 'Checking in…' : 'Check-In'}
+                </Button>
+              )
             ) : (
               <Button
                 size="large"
                 variant="secondary"
-                className="h-9 py-0 px-4 text-sm w-full flex-1"
+                className="h-9 py-0 px-4 text-sm w-full flex-1 whitespace-nowrap"
+                disabled={!!(checkingInTokens && checkingInTokens.has?.(row.token))}
                 onClick={() => onCheckIn(row)}
               >
-                Check-In
+                {checkingInTokens && checkingInTokens.has?.(row.token) ? 'Checking in…' : 'Check-In'}
               </Button>
             )
-          ) : (
-            <Button
-              size="large"
-              variant="secondary"
-              className="h-9 py-0 px-4 text-sm w-full flex-1"
-              onClick={() => onCheckIn(row)}
-            >
-              Check-In
-            </Button>
           )}
                     {/* 3-dots action */}
                     <button

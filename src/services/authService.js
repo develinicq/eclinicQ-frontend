@@ -179,7 +179,25 @@ export const bookWalkInAppointment = async (payload) => {
     const response = await axiosInstance.post('/appointments/walk-in', payload);
     return response.data; // expecting { success, data: {...} }
   } catch (error) {
+    if (error?.response?.status === 404) {
+      try {
+        const response = await axiosInstance.post('/appointments/walk-in/', payload);
+        return response.data;
+      } catch (e2) {
+        console.error('Walk-in booking fallback failed:', e2?.response?.data || e2.message);
+        // Attach details for UI
+        if (e2 && e2.response) {
+          e2.validation = e2.response.data?.errors || e2.response.data?.details || null;
+          e2.message = e2.response.data?.message || e2.message;
+        }
+        throw e2;
+      }
+    }
     console.error('Walk-in booking failed:', error?.response?.data || error.message);
+    if (error && error.response) {
+      error.validation = error.response.data?.errors || error.response.data?.details || null;
+      error.message = error.response.data?.message || error.message;
+    }
     throw error;
   }
 };
@@ -207,12 +225,37 @@ export const startSlotEta = async (slotId) => {
   }
 };
 
+// End ETA tracking for a slot (session end)
+export const endSlotEta = async (slotId) => {
+  if (!slotId) throw new Error('slotId is required');
+  try {
+    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/end`, {});
+    return response.data;
+  } catch (error) {
+    console.error('End slot ETA failed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Get ETA status for a slot (whether started/end timestamps)
+export const getSlotEtaStatus = async (slotId) => {
+  if (!slotId) throw new Error('slotId is required');
+  try {
+    const response = await axiosInstance.get(`/eta/slot/${encodeURIComponent(slotId)}/status`);
+    return response.data; // Expecting { started: boolean, startTime?, endTime? }
+  } catch (error) {
+    console.error('Get slot ETA status failed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
 // Start ETA for a specific patient's session (by token number) within a slot
 export const startPatientSessionEta = async (slotId, tokenNumber) => {
   if (!slotId) throw new Error('slotId is required');
   if (tokenNumber == null) throw new Error('tokenNumber is required');
   try {
-    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/start`, {});
+  // Use POST for mutating start action
+  const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/start`, {});
     return response.data;
   } catch (error) {
     console.error('Start patient session ETA failed:', error?.response?.data || error.message);
@@ -225,10 +268,36 @@ export const endPatientSessionEta = async (slotId, tokenNumber) => {
   if (!slotId) throw new Error('slotId is required');
   if (tokenNumber == null) throw new Error('tokenNumber is required');
   try {
-    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/end`, {});
+  // Use POST for mutating end action
+  const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/end`, {});
     return response.data;
   } catch (error) {
     console.error('End patient session ETA failed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Pause an active slot session for a duration (minutes)
+export const pauseSlotEta = async (slotId, durationMinutes) => {
+  if (!slotId) throw new Error('slotId is required');
+  if (durationMinutes == null) throw new Error('durationMinutes is required');
+  try {
+    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/pause`, { durationMinutes: String(durationMinutes) });
+    return response.data; // expecting { success, data: { pauseEndsAt, ... } }
+  } catch (error) {
+    console.error('Pause slot ETA failed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Resume a paused slot session
+export const resumeSlotEta = async (slotId) => {
+  if (!slotId) throw new Error('slotId is required');
+  try {
+    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/resume`, {});
+    return response.data; // expecting { success, data: { resumedAt } }
+  } catch (error) {
+    console.error('Resume slot ETA failed:', error?.response?.data || error.message);
     throw error;
   }
 };

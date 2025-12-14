@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { getDownloadUrl } from '../../../../../../services/uploadsService'
 
 // Fixed label width to keep consistent spacing between labels and values
 const labelWidth = 'min-w-[220px]'
@@ -120,9 +121,26 @@ const Details = ({ hospital }) => {
   const docVal = (primary, keys = []) => primary || findDoc(keys)?.docNo || '-'
   const docUrl = (keys = []) => findDoc(keys)?.docUrl || undefined
   const primaryAdmin = Array.isArray(hospital?.adminDetails) && hospital.adminDetails.length ? hospital.adminDetails[0] : null
-    const photos = Array.isArray(hospital?.photos)
+  const photos = Array.isArray(hospital?.photos)
       ? hospital.photos
       : (Array.isArray(hospital?.images) ? hospital.images : [])
+
+  // Resolve photo keys to URLs (best-effort, memoized via internal state)
+  const [resolvedPhotos, setResolvedPhotos] = useState([])
+  useEffect(() => {
+    let ignore = false
+    const run = async () => {
+      try {
+        const keys = photos || []
+        const urls = await Promise.all(keys.map((k) => getDownloadUrl(k)))
+        if (!ignore) setResolvedPhotos(urls.map((u) => u || ''))
+      } catch {
+        if (!ignore) setResolvedPhotos([])
+      }
+    }
+    run()
+    return () => { ignore = true }
+  }, [JSON.stringify(photos)])
   return (
     <div className="flex flex-col pt-3 px-3 pb-6 gap-6">
       {/* About Hospital */}
@@ -194,14 +212,14 @@ const Details = ({ hospital }) => {
             <div className="flex flex-col gap-2">
               <span className="text-[#424242] font-medium text-sm">Hospital Photos</span>
                   <div className="border-t border-[#D6D6D6] pt-3 grid grid-cols-[repeat(auto-fill,minmax(100px,100px))] justify-start gap-4">
-                    {(photos && photos.length ? photos : [
+                    {(resolvedPhotos && resolvedPhotos.filter(Boolean).length ? resolvedPhotos.filter(Boolean) : [
                       '/hospital-sample.png',
                       '/hospital-sample.png',
                       '/hospital-sample.png',
                       '/hospital-sample.png'
                     ]).map((src, idx) => (
                       <div key={idx} className="w-[100px] h-[100px] rounded-lg overflow-hidden border border-[#E3E3E3] bg-white">
-                        <img src={src} alt={`Hospital photo ${idx+1}`} className="w-full h-full object-cover" loading="lazy" />
+                        <img src={src} alt={`Hospital photo ${idx+1}`} className="w-full h-full object-cover" loading="lazy" onError={(e)=>{e.currentTarget.onerror=null; e.currentTarget.src='/hospital-sample.png';}} />
                       </div>
                     ))}
                   </div>

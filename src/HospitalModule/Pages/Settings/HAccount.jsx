@@ -52,7 +52,6 @@ export default function HAccount(){
     { key: 'account', label: 'Account Detail', path: '/hospital/settings/account' },
     { key: 'timing', label: 'Timing and Schedule', path: '/hospital/settings/timing' },
     { key: 'surgeries', label: 'Surgeries', path: '/hospital/settings/surgeries' },
-    { key: 'branches', label: 'Branches', path: '/hospital/settings/branches' },
     { key: 'staff', label: 'Staff Permissions', path: '/hospital/settings/staff-permissions' },
     { key: 'security', label: 'Security Settings', path: '/hospital/settings/security' },
   ]
@@ -62,7 +61,6 @@ export default function HAccount(){
     if (p.endsWith('/settings/account')) return 'account'
     if (p.endsWith('/settings/timing')) return 'timing'
     if (p.endsWith('/settings/surgeries')) return 'surgeries'
-    if (p.endsWith('/settings/branches')) return 'branches'
     if (p.endsWith('/settings/staff-permissions')) return 'staff'
     if (p.endsWith('/settings/security')) return 'security'
     return 'account'

@@ -80,7 +80,7 @@ const Doc_list = () => {
     <div className="pb-2">{/* no fixed footer now; small bottom padding */}
       <div className="mt-2">
         {/* Header sits outside, no outline */}
-  <Header counts={counts} selected={selected} onChange={setSelected} />
+  <Header counts={counts} selected={selected} onChange={setSelected} addLabel="Add New Doctor" addPath="/register/doctor" />
 
         {/* Table has its own outline */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden m-3">

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { bell } from '../../../public/index.js';
 import useAuthStore from '../../store/useAuthStore';
 import AvatarCircle from '../../components/AvatarCircle';
+import NotificationDrawer from '../../components/NotificationDrawer.jsx';
+import AddPatientDrawer from '../../components/PatientList/AddPatientDrawer.jsx';
 
 const Partition = () => (
 	<div className='w-[8.5px] h-[20px] flex gap-[10px] items-center justify-center'>
@@ -16,7 +18,9 @@ const FDNavbar = () => {
 	const searchRef = useRef(null);
 	const { user } = useAuthStore();
 	const [showProfile, setShowProfile] = useState(false);
-	const profileRef = useRef(null);
+	const [showNotifications, setShowNotifications] = useState(false);
+		const profileRef = useRef(null);
+		const [addPatientOpen, setAddPatientOpen] = useState(false);
 
 	useEffect(() => {
 		const handler = (e) => {
@@ -61,8 +65,8 @@ const FDNavbar = () => {
 				</div>
 			</div>
 			<div className='flex items-center gap-2'>
-				<button
-					onClick={() => navigate('/register/patient')}
+						<button
+							onClick={() => setAddPatientOpen(true)}
 					className='flex items-center bg-[#2372EC] px-3 h-8 rounded-[4px] gap-2 hover:bg-blue-600 transition-colors'
 				>
 					<span className='text-white text-sm font-medium'>Add New Patient</span>
@@ -72,7 +76,9 @@ const FDNavbar = () => {
 					<div className='absolute -top-1 -right-1 flex items-center justify-center rounded-full w-[14px] h-[14px] bg-[#F04248]'>
 						<span className='font-medium text-[10px] text-white'>8</span>
 					</div>
-					<img src={bell} alt='Notifications' className='w-5 h-5' />
+					<button onClick={()=>setShowNotifications(true)} style={{background:'none',border:'none',padding:0}}>
+						<img src={bell} alt='Notifications' className='w-5 h-5' />
+					</button>
 				</div>
 				<Partition />
 				<div className='relative flex items-center gap-2' ref={profileRef}>
@@ -117,6 +123,8 @@ const FDNavbar = () => {
 					)}
 				</div>
 			</div>
+			<NotificationDrawer show={showNotifications} onClose={()=>setShowNotifications(false)} />
+			<AddPatientDrawer open={addPatientOpen} onClose={()=>setAddPatientOpen(false)} onSave={()=>setAddPatientOpen(false)} />
 		</div>
 	);
 };

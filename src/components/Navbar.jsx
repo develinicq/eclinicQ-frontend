@@ -1,7 +1,11 @@
 import { ChevronDown } from 'lucide-react'
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { bell, stethoscopeBlue, hospitalIcon } from '../../public/index.js'
+import { bell, stethoscopeBlue, hospitalIcon, patientUnselect, appointement } from '../../public/index.js'
+import NotificationDrawer from './NotificationDrawer.jsx'
+import AddPatientDrawer from './PatientList/AddPatientDrawer.jsx'
+import BookAppointmentDrawer from './Appointment/BookAppointmentDrawer.jsx'
+import AvatarCircle from './AvatarCircle.jsx'
 
 const Partition = () => {
   return (
@@ -12,7 +16,7 @@ const Partition = () => {
   )
 }
 
-const AddNewDropdown = ({ isOpen, onClose }) => {
+const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment }) => {
   const navigate = useNavigate();
 
   const handleAddDoctor = () => {
@@ -22,6 +26,17 @@ const AddNewDropdown = ({ isOpen, onClose }) => {
 
   const handleAddHospital = () => {
     navigate('/register/hospital');
+    onClose();
+  };
+
+  const handleAddPatient = () => {
+    // Open drawer instead of route navigation
+    onAddPatient?.();
+    onClose();
+  };
+
+  const handleBookAppointment = () => {
+    onBookAppointment?.();
     onClose();
   };
 
@@ -49,14 +64,60 @@ const AddNewDropdown = ({ isOpen, onClose }) => {
           </div>
           <span className="text-[#424242] font-normal text-sm">Add Hospital</span>
         </button>
+
+        <button
+          onClick={handleAddPatient}
+          className="w-full rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
+        >
+          <div className="w-4 h-4 flex items-center justify-center ml-1">
+            <img src={patientUnselect} alt="Add Patient" />
+          </div>
+          <span className="text-[#424242] font-normal text-sm">Add Patient</span>
+        </button>
+
+        <button
+          onClick={handleBookAppointment}
+          className="w-full rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
+        >
+          <div className="w-4 h-4 flex items-center justify-center ml-1">
+            <img src={appointement} alt="Book Appointment" />
+          </div>
+          <span className="text-[#424242] font-normal text-sm">Book Appointment</span>
+        </button>
       </div>
     </div>
   );
 };
 
+// NotificationDrawer extracted to shared component
+
 const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [addPatientOpen, setAddPatientOpen] = useState(false);
+  const [bookApptOpen, setBookApptOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const profileRef = useRef(null);
+  const navigate = useNavigate();
+
+  // module switcher state derived from pathname (hospital/doctor)
+  const [activeModule, setActiveModule] = useState('hospital');
+  useEffect(() => {
+    const path = window.location.pathname.toLowerCase();
+    if (path.includes('doctor')) setActiveModule('doctor');
+    else setActiveModule('hospital');
+  }, []);
+
+  const switchToHospital = () => {
+    setActiveModule('hospital');
+    navigate('/hospital');
+  };
+
+  const switchToDoctor = () => {
+    setActiveModule('doctor');
+    navigate('/doctor');
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -64,11 +125,16 @@ const Navbar = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setShowProfile(false);
+      }
     };
-
+    const onKey = (e)=>{ if(e.key==='Escape'){ setIsDropdownOpen(false); setShowProfile(false);} };
     document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', onKey);
     };
   }, []);
 
@@ -81,9 +147,10 @@ const Navbar = () => {
   };
 
   return (
-    <div className='w-full h-12 border-b-[0.5px]  border-[#D6D6D6] flex items-center px-4 justify-between'>
+    <>
+      <div className='w-full h-12 border-b-[0.5px]  border-[#D6D6D6] flex items-center px-4 justify-between'>
         <div>
-            <span className='text-sm text=[#424242]'>Doctors</span>
+          <span className='text-sm text=[#424242]'>Super Admin</span>
         </div>
         <div className='flex gap-2 items-center'>
           <div className="relative" ref={dropdownRef}>
@@ -96,38 +163,61 @@ const Navbar = () => {
                     <ChevronDown className={`w-4 h-4 text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}/>
                 </div>
             </button>
-            
-            <AddNewDropdown isOpen={isDropdownOpen} onClose={closeDropdown} />
+            <AddNewDropdown isOpen={isDropdownOpen} onClose={closeDropdown} onAddPatient={() => setAddPatientOpen(true)} onBookAppointment={() => setBookApptOpen(true)} />
           </div>
-
           <Partition/>
-
           <div className="w-7 h-7 p-1 relative">
             {/* Notification badge */}
             <div className="absolute -top-1 -right-1 flex items-center justify-center rounded-full w-[14px] h-[14px] bg-[#F04248]">
               <span className="font-medium text-[10px] text-white">8</span>
             </div>
-
             {/* Bell icon */}
-            <img src={bell} alt="Notifications" className="w-5 h-5" />
+            <button onClick={() => setShowNotifications(true)} style={{background:'none',border:'none',padding:0}}>
+              <img src={bell} alt="Notifications" className="w-5 h-5" />
+            </button>
           </div>
-
           <Partition/>
-
-          <div className='flex items-center gap-2'>
+          <div className='relative flex items-center gap-2' ref={profileRef}>
             <span className='font-semibold text-base text-[#424242]'>Super Admin</span>
-
-            <div className='flex justify-center rounded-full border-[0.5px] border-[#D6D6D6] bg-[#F9F9F9] w-8 h-8 items-center'>
-                <span className='text-sm font-normal text-[#424242]'>S</span>
-            </div>
-
+            <button type='button' onClick={()=>setShowProfile(v=>!v)} className='cursor-pointer'>
+              <AvatarCircle name={'Super Admin'} size='s' color='orange' />
+            </button>
+            {showProfile && (
+              <div className='absolute top-10 right-0 w-72 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50'>
+                <div className='p-4 flex items-start gap-3'>
+                  <AvatarCircle name={'Super Admin'} size='md' color='orange' />
+                  <div className='flex flex-col'>
+                    <div className='text-sm font-semibold text-gray-900'>Super Admin</div>
+                    <div className='text-xs text-gray-600'>Hospital Workspace</div>
+                  </div>
+                </div>
+                <div className='px-4 pb-3 space-y-2 text-xs'>
+                  <div className='flex items-center gap-2 text-gray-700'>
+                    <span className='text-[#597DC3] font-medium'>Role</span>
+                    <span>Super Admin</span>
+                  </div>
+                  <div className='flex items-center gap-2 text-gray-700'>
+                    <span className='text-[#597DC3] font-medium'>Context</span>
+                    <span>Hospitals</span>
+                  </div>
+                </div>
+                <div className='border-t border-gray-200 divide-y text-sm'>
+                  <button className='w-full flex items-center justify-between px-4 h-10 hover:bg-gray-50 text-gray-700'>
+                    <span className='flex items-center gap-2 text-[13px]'>Manage Account</span>
+                  </button>
+                  <button className='w-full flex items-center justify-between px-4 h-10 hover:bg-gray-50 text-gray-700'>
+                    <span className='flex items-center gap-2 text-[13px]'>Logout</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-
-
-
-
         </div>
-    </div>
+      </div>
+  <NotificationDrawer show={showNotifications} onClose={() => setShowNotifications(false)} />
+  <AddPatientDrawer open={addPatientOpen} onClose={() => setAddPatientOpen(false)} onSave={(data)=>{ /* TODO: API hook */ setAddPatientOpen(false) }} />
+  <BookAppointmentDrawer open={bookApptOpen} onClose={() => setBookApptOpen(false)} onSave={() => setBookApptOpen(false)} />
+    </>
   )
 }
 

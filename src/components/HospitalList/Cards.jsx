@@ -1,9 +1,34 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { getDownloadUrl } from "../../services/uploadsService";
 
 const Cards = ({ hospital }) => {
   const navigate = useNavigate();
+  const [resolvedBanner, setResolvedBanner] = useState("");
+  const [resolvedLogo, setResolvedLogo] = useState("");
+  useEffect(() => {
+    let ignore = false;
+    const run = async () => {
+      try {
+        const [b, l] = await Promise.all([
+          getDownloadUrl(hospital?.image),
+          getDownloadUrl(hospital?.logo)
+        ]);
+        if (!ignore) {
+          setResolvedBanner(b || "");
+          setResolvedLogo(l || "");
+        }
+      } catch {
+        if (!ignore) {
+          setResolvedBanner("");
+          setResolvedLogo("");
+        }
+      }
+    };
+    run();
+    return () => { ignore = true; };
+  }, [hospital?.image, hospital?.logo]);
   const openHospital = () => navigate(`/hospital/${encodeURIComponent(hospital.id)}`, { state: { hospital } });
   const isActive = (hospital?.status || '').toLowerCase() === 'active';
   const initial = (hospital?.name?.[0] || 'H').toUpperCase();
@@ -15,9 +40,10 @@ const Cards = ({ hospital }) => {
           <div className="relative h-[140px] rounded-lg">
             {/* The main hospital image */}
             <img
-              src={hospital.image || "/hospital-sample.png"}
+              src={resolvedBanner || hospital.image || "/hospital-sample.png"}
               alt="Hospital"
               className="rounded-tl-md rounded-tr-md rounded-br-md rounded-bl-[56px] w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/hospital-sample.png'; }}
             />
 
             {/* Status tag */}
@@ -30,10 +56,20 @@ const Cards = ({ hospital }) => {
             </div>
 
             {/* Your existing circle with 'M' and tick */}
-      <div className="flex items-center justify-center absolute bg-[#F8FAFF] -bottom-0 rounded-full h-16 w-16 border-[0.5px] border-[#96BFFF] ">
-        <span className="font-normal text-3xl text-[#2372EC]">{initial}</span>
-                <img src="/tick.png" alt="Verified" className="absolute -top-1 right-0 h-5 w-5" />
-            </div>
+      <div className="flex items-center justify-center absolute bg-[#F8FAFF] -bottom-0 rounded-full h-16 w-16 border-[0.5px] border-[#96BFFF] overflow-hidden">
+        {resolvedLogo || hospital?.logo ? (
+          <img
+            src={resolvedLogo || hospital.logo}
+            alt={`${hospital?.name || 'Hospital'} logo`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/images/hospital_logo.png'; }}
+          />
+        ) : (
+          <span className="font-normal text-3xl text-[#2372EC]">{initial}</span>
+        )}
+        <img src="/tick.png" alt="Verified" className="absolute -top-1 right-0 h-5 w-5" />
+      </div>
           </div>
 
           <div className="flex flex-col gap-1">

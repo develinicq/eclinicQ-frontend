@@ -1,4 +1,5 @@
 import { Search, Filter } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Badge from "../Badge";
 
 const fmt = (n) => {
@@ -12,11 +13,13 @@ export default function Header({
   selected = 'all',
   onChange = () => {},
   addLabel = 'Add New Doctor',
+  addPath,
   // Optional custom tabs: [{ key: 'active', label: 'Active' }, ...]
   tabs,
   // When false, hides counts next to labels
   showCounts = true,
 }) {
+  const navigate = useNavigate();
   const defaultTabs = [
     { key: 'all', label: 'All' },
     { key: 'active', label: 'Active' },
@@ -62,7 +65,7 @@ export default function Header({
         </button>
         <span className="mx-2 h-5 w-px bg-gray-200" aria-hidden="true" />
         {/* Blue ghost-style button */}
-        <Badge type="ghost" color="blue" size="l" className="!rounded-md" onClick={() => {}}>
+  <Badge type="ghost" color="blue" size="l" className="!rounded-md" onClick={() => { if (typeof (/** @type any */addPath) === 'function') { (addPath)(); } else if (addPath) { navigate(addPath); } }}>
           {addLabel}
         </Badge>
       </div>

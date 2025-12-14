@@ -21,3 +21,25 @@ export const getDoctorDetailsByIdBySuperAdmin = async (userId) => {
     throw error.response?.data || error;
   }
 };
+
+// Get patient overview and demographics for a doctor view
+export const getPatientOverviewForDoctor = async (patientId) => {
+  if (!patientId) throw new Error('patientId is required');
+  try {
+    const res = await axios.get(`/patients/for-doctor/patient-details/overview-and-demographics/${encodeURIComponent(patientId)}`);
+    return res.data; // { success, data: { patientId, overview: { ... } } }
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+// Get vitals and biometrics history for a patient (doctor view)
+export const getPatientVitalsForDoctor = async (patientId) => {
+  if (!patientId) throw new Error('patientId is required');
+  try {
+    const res = await axios.get(`/patients/for-doctor/patient-details/vitals-and-biometrics/${encodeURIComponent(patientId)}`);
+    return res.data; // { success, data: { vitals: [...] } }
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};

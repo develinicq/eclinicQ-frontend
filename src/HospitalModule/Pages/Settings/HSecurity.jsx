@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import AvatarCircle from '../../../components/AvatarCircle'
+import Input from '../../../components/FormItems/Input'
 import { hospital as coverImg } from '../../../../public/index.js'
 
 const SectionCard = ({ title, children }) => (
@@ -20,7 +21,6 @@ export default function HSecurity(){
     { key: 'account', label: 'Account Details', path: '/hospital/settings/account' },
     { key: 'timing', label: 'Timing and Schedule', path: '/hospital/settings/timing' },
     { key: 'surgeries', label: 'Surgeries', path: '/hospital/settings/surgeries' },
-    { key: 'branches', label: 'Branches', path: '/hospital/settings/branches' },
     { key: 'staff', label: 'Staff Permissions', path: '/hospital/settings/staff-permissions' },
     { key: 'security', label: 'Security Settings', path: '/hospital/settings/security' },
   ]
@@ -30,7 +30,6 @@ export default function HSecurity(){
     if (p.endsWith('/settings/account')) return 'account'
     if (p.endsWith('/settings/timing')) return 'timing'
     if (p.endsWith('/settings/surgeries')) return 'surgeries'
-    if (p.endsWith('/settings/branches')) return 'branches'
     if (p.endsWith('/settings/staff-permissions')) return 'staff'
     if (p.endsWith('/settings/security')) return 'security'
     return 'security'
@@ -40,6 +39,10 @@ export default function HSecurity(){
   useEffect(() => setActiveTab(activeKey), [activeKey])
 
   const profile = useMemo(() => ({ name: 'Manipal Hospital - Baner', status: 'Active', location: 'Baner, Pune' }), [])
+
+  // Local UI state for password fields (UI-only)
+  const [form, setForm] = useState({ current: '', next: '', confirm: '' })
+  const onChange = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   return (
     <div className="px-6 pb-10">
@@ -74,7 +77,22 @@ export default function HSecurity(){
 
       <div className="mt-4">
         <SectionCard title="Security Settings">
-          <div className="text-sm text-gray-600">Available soon.</div>
+          <div className="max-w-xl space-y-3">
+            <Input label="Enter Current Password" compulsory type="password" placeholder="Enter Password" value={form.current} onChange={onChange('current')} />
+            <Input label="New Password" compulsory type="password" placeholder="Enter Password" value={form.next} onChange={onChange('next')} />
+            <Input label="Confirm Password" compulsory type="password" placeholder="Enter Password" value={form.confirm} onChange={onChange('confirm')} />
+            <button type="button" className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm">Send OTP and Verify</button>
+            <div className="mt-4">
+              <div className="text-sm font-medium text-gray-800 mb-2">Password Requirements</div>
+              <ul className="text-[13px] text-gray-700 space-y-1">
+                <li>○ At least 8 -15 characters long</li>
+                <li>○ Contains uppercase letter (A-Z)</li>
+                <li>○ Contains lowercase letter (a-z)</li>
+                <li>○ Contains number (0-9)</li>
+                <li>○ Contains special character (!@#$%*^&*)</li>
+              </ul>
+            </div>
+          </div>
         </SectionCard>
       </div>
     </div>

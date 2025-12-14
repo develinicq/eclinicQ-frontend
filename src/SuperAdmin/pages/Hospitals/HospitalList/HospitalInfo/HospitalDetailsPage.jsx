@@ -4,6 +4,7 @@ import HospitalBanner from "../../../../../components/HospitalList/HospitalInfo.
 import HospitalNav from "../../../../../components/HospitalList/HospitalInfo.jsx/HospitalNav.jsx";
 import { getHospitalByIdBySuperAdmin } from "../../../../../services/hospitalService";
 import useAuthStore from "../../../../../store/useAuthStore";
+import { getDownloadUrl } from "../../../../../services/uploadsService";
 
 const HospitalDetailsPage = () => {
   // Route uses /hospital/:id
@@ -17,6 +18,8 @@ const HospitalDetailsPage = () => {
   const [subscriptionName, setSubscriptionName] = useState(null);
   const [specialties, setSpecialties] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [resolvedLogo, setResolvedLogo] = useState("");
+  const [resolvedBanner, setResolvedBanner] = useState("");
 
   useEffect(() => {
     let ignore = false;
@@ -37,6 +40,19 @@ const HospitalDetailsPage = () => {
         setSubscriptionName(resp?.data?.subscriptionName || null);
         setSpecialties(resp?.data?.specialties || []);
         setDocuments(resp?.data?.documents || []);
+        // Resolve banner/logo keys to presigned URLs in parallel (best-effort)
+        const logoKey = h?.logo;
+        const bannerKey = h?.image;
+        try {
+          const [logoUrl, bannerUrl] = await Promise.all([
+            getDownloadUrl(logoKey),
+            getDownloadUrl(bannerKey)
+          ]);
+          if (!ignore) {
+            setResolvedLogo(logoUrl || "");
+            setResolvedBanner(bannerUrl || "");
+          }
+        } catch { /* ignore */ }
       } catch (e) {
         if (ignore) return;
         setError(e?.message || "Failed to fetch hospital details");
@@ -67,8 +83,8 @@ const HospitalDetailsPage = () => {
     type: hospital?.type || '-',
     established: hospital?.establishmentYear || '-',
     website: hospital?.url || '-',
-    bannerImage: hospital?.image || '/hospital-sample.png',
-    logoImage: hospital?.logo || '/images/hospital_logo.png',
+  bannerImage: resolvedBanner || hospital?.image || '/hospital-sample.png',
+  logoImage: resolvedLogo || hospital?.logo || '/images/hospital_logo.png',
     stats: {
   patientsManaged: '1,000',
   appointmentsBooked: '1,000',

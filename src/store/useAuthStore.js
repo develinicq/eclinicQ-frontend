@@ -10,7 +10,10 @@ const useAuthStore = create(
       doctorDetails: null,
       doctorLoading: false,
       doctorError: '',
-      // Set or update the access token
+      _doctorFetchPromise: null,
+      _doctorLastErrorAt: 0,
+      _doctorErrorCooldownMs: 15000,
+  // Set or update the access token (no implicit /doctors/me fetch)
       setToken: (token) => set({ token }),
       // Optionally keep minimal user info if available from login
       setUser: (user) => set({ user }),
@@ -22,17 +25,33 @@ const useAuthStore = create(
         const t = get().token;
         return t ? { Authorization: `Bearer ${t}` } : {};
       },
-      fetchDoctorDetails: async (svc) => {
+      fetchDoctorDetails: async (svc, { force = false } = {}) => {
         // svc should be getDoctorMe
-        if (!get().token || !svc) return;
-        set({ doctorLoading: true, doctorError: '' });
-        try {
-          const data = await svc();
-          const doc = data?.data || data?.doctor || null;
-          set({ doctorDetails: doc, doctorLoading: false });
-        } catch (e) {
-          set({ doctorError: e?.response?.data?.message || e.message || 'Failed to load doctor', doctorLoading: false });
+        if (!get().token || !svc) return null;
+        const state = get();
+        const now = Date.now();
+        // Cooldown after an error unless force
+        if (!force && state.doctorError && (now - state._doctorLastErrorAt) < state._doctorErrorCooldownMs) {
+          return null;
         }
+        // If we already have details and not forcing, skip
+        if (state.doctorDetails && !force) return state.doctorDetails;
+        // If a request is already in-flight, return same promise
+        if (state._doctorFetchPromise) return state._doctorFetchPromise;
+        const promise = (async () => {
+          set({ doctorLoading: true, doctorError: '' });
+          try {
+            const data = await svc();
+            const doc = data?.data || data?.doctor || null;
+            set({ doctorDetails: doc, doctorLoading: false, doctorFetchedAt: Date.now(), _doctorFetchPromise: null });
+            return doc;
+          } catch (e) {
+            set({ doctorError: e?.response?.data?.message || e.message || 'Failed to load doctor', doctorLoading: false, _doctorFetchPromise: null, _doctorLastErrorAt: Date.now() });
+            throw e;
+          }
+        })();
+        set({ _doctorFetchPromise: promise });
+        return promise;
       },
     }),
     {

@@ -40,7 +40,6 @@ import HStaffPermissions from "./HospitalModule/Pages/Settings/HStaffPermissions
 import HRxTemplate from "./HospitalModule/Pages/Settings/HRxTemplate";
 import HSubscriptions from "./HospitalModule/Pages/Settings/HSubscriptions";
 import HSurgeries from "./HospitalModule/Pages/Settings/HSurgeries";
-import HBranches from "./HospitalModule/Pages/Settings/HBranches";
 import HSecurity from "./HospitalModule/Pages/Settings/HSecurity";
 import HFDLayout from "./HospitalFDModule/Components/Layout/HFDLayout";
 import HFDQueue from "./HospitalFDModule/Pages/Queue/Queue";
@@ -57,12 +56,15 @@ import HOnboardingFlow from "./HospitalModule/Pages/Login/OnboardingFlow";
 import HFDOnboardingFlow from "./HospitalFDModule/Pages/Login/OnboardingFlow";
 // import HFDFSignIn from "./HospitalFDModule/Pages/Login/SignIn";
 import UnifiedSignIn from "./pages/UnifiedSignIn";
+import TabDemo from "./pages/TabDemo";
 // DocSignIn route intentionally not wired per requirement
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<DummyLogin/>} />
+  {/* Demo route for Tab component */}
+  <Route path="tab-demo" element={<TabDemo />} />
 
       {/* Admin panel routes */}
       <Route element={<Layout />}>
@@ -81,6 +83,11 @@ function App() {
           </RegistrationProvider>
         } />
         <Route path="register/hospital" element={
+          <RegistrationProvider>
+            <Layout_registration_new />
+          </RegistrationProvider>
+        } />
+        <Route path="register/patient" element={
           <RegistrationProvider>
             <Layout_registration_new />
           </RegistrationProvider>
@@ -138,7 +145,6 @@ function App() {
   <Route path="settings/account" element={<HAccount />} />
   <Route path="settings/timing" element={<HTiming />} />
   <Route path="settings/surgeries" element={<HSurgeries />} />
-  <Route path="settings/branches" element={<HBranches />} />
   <Route path="settings/staff-permissions" element={<HStaffPermissions />} />
   <Route path="settings/security" element={<HSecurity />} />
   <Route path="settings/rx-template" element={<HRxTemplate />} />

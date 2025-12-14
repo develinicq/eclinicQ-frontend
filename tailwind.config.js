@@ -10,11 +10,11 @@ export default {
       colors: {
         blue: {
           primary400: '#1E3A8A',
-          primary300: '#2563EB',
-          primary250: '#3B82F6',
-          primary150: '#60A5FA',
+          primary300: '#0D47A1',
+          primary250: '#2372EC',
+          primary150: '#96BFFF',
           primary100: '#BFDBFE',
-          primary50: '#EFF6FF',
+          primary50: '#F8FAFF',
         },
         error: {
           400: '#DC2626',
@@ -32,11 +32,11 @@ export default {
         },
         secondary: {
           grey400: '#374151',
-          grey300: '#6B7280',
+          grey300: '#626060',
           grey200: '#9CA3AF',
           grey150: '#D1D5DB',
           grey100: '#E5E7EB',
-          grey50: '#F9FAFB',
+          grey50: '#F9F9F9',
         },
         warning: {
           400: '#F59E42',

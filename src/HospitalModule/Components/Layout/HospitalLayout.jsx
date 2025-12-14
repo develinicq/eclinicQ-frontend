@@ -5,7 +5,7 @@ import { Outlet } from 'react-router-dom'
 
 export default function HospitalLayout(){
   return (
-    <div className="min-h-screen bg-[#F3F6FB] flex">
+    <div className="min-h-screen bg-white flex">
       <HSidebar />
       <div className="flex-1 min-w-0">
         <div className="sticky top-0 z-10 bg-white border-b"><HNavbar /></div>

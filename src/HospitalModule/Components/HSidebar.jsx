@@ -18,9 +18,9 @@ export default function HSidebar(){
   const settingsSubItems = [
     { label: 'Hospital Account', to: '/hospital/settings/account' },
     { label: 'Timing and Schedule', to: '/hospital/settings/timing' },
+  { label: 'Surgeries', to: '/hospital/settings/surgeries' },
     { label: 'Staff Permissions', to: '/hospital/settings/staff-permissions' },
-    { label: 'My Rx Template', to: '/hospital/settings/rx-template' },
-    { label: 'Subscriptions/Billing', to: '/hospital/settings/subscriptions-billing' },
+  { label: 'Security Settings', to: '/hospital/settings/security' },
   ]
   return (
     <aside className="min-h-screen w-[210px] bg-white border-r border-[#D6D6D6]">
