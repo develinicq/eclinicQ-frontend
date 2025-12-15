@@ -72,6 +72,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
     }
   },[doctorDetails, doctorLoading, fetchDoctorDetails, _doctorFetchPromise]);
 
+
   return (
     <div className='w-full h-12 border-b-[0.5px] border-[#D6D6D6] flex items-center px-4 gap-3'>
       {/* Left: Title */}
@@ -207,7 +208,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
                     { doctorLoading ? 'Loading…' : doctorError ? 'Failed to load profile' : (doctorDetails?.name || '—') }
                   </div>
                   <div className='text-xs text-gray-600'>
-                    { doctorLoading ? 'Please wait' : doctorError ? (doctorError || 'Error fetching doctor') : (doctorDetails?.specializations?.[0] || 'Specialist') }
+                    { doctorLoading ? 'Please wait' : doctorError ? (doctorError || 'Error fetching doctor') : (doctorDetails?.specializations?.[0] || '') }
                   </div>
                 </div>
               </div>

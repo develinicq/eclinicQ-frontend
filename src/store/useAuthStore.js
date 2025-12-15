@@ -14,7 +14,10 @@ const useAuthStore = create(
       _doctorLastErrorAt: 0,
       _doctorErrorCooldownMs: 15000,
   // Set or update the access token (no implicit /doctors/me fetch)
-      setToken: (token) => set({ token }),
+      setToken: (token) => {
+        // When the auth token changes (new login), clear previous cached doctorDetails
+        set({ token, doctorDetails: null, doctorError: '', doctorLoading: false, _doctorFetchPromise: null });
+      },
       // Optionally keep minimal user info if available from login
       setUser: (user) => set({ user }),
       // Clear all auth data (e.g., on logout or 401)
