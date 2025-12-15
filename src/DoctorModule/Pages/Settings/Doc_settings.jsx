@@ -15,6 +15,11 @@ import useExperienceStore from "../../../store/settings/useExperienceStore.js";
 import useAwardsPublicationsStore from "../../../store/settings/useAwardsPublicationsStore.js";
 import useClinicStore from "../../../store/settings/useClinicStore.js";
 import { fetchAllPermissions } from '../../../services/rbac/permissionService';
+import { fetchAllRoles, createRole } from '../../../services/rbac/roleService';
+import useAuthStore from '../../../store/useAuthStore';
+import axiosClient from '../../../lib/axios';
+import { fetchClinicStaff } from '../../../services/staffService';
+import { registerStaff } from '../../../services/staff/registerStaffService';
 
 
 
@@ -736,8 +741,8 @@ const StaffTab = () => {
       <div className='mt-2 text-[13px] text-[#4C4C4C]'>
         <div className='flex justify-between py-1'><span>Role:</span><span className='text-right font-medium text-[#2B2B2B]'>{data.role}</span></div>
         <div className='flex justify-between py-1'><span>Contact Number:</span><span className='text-right font-medium text-[#2B2B2B]'>{data.phone || '-'}</span></div>
-        <div className='flex justify-between py-1'><span>Last Active:</span><span className='text-right text-[#505050]'>-</span></div>
-        <div className='flex justify-between py-1'><span>Joined:</span><span className='text-right text-[#505050]'>-</span></div>
+  <div className='flex justify-between py-1'><span>Last Active:</span><span className='text-right text-[#505050]'>-</span></div>
+  <div className='flex justify-between py-1'><span>Joined:</span><span className='text-right font-medium text-[#2B2B2B]'>{data.joined || '-'}</span></div>
       </div>
       <div className='mt-2 flex items-center gap-2'>
         <button className='h-8 px-3 rounded-md border text-[12px] text-[#424242] hover:bg-gray-50 inline-flex items-center gap-1'>
@@ -782,9 +787,9 @@ const StaffTab = () => {
     )
   }
 
-  const InviteStaffDrawer = ({ open, onClose, onSend }) => {
+  const InviteStaffDrawer = ({ open, onClose, onSend, roleOptions = [] }) => {
     const [mode, setMode] = useState('individual')
-    const [rows, setRows] = useState([{ id: 0, fullName: '', email: '', phone: '', position: '', role: '' }])
+  const [rows, setRows] = useState([{ id: 0, fullName: '', email: '', phone: '', position: '', roleId: '' }])
     const [closing, setClosing] = useState(false)
     
     const requestClose = React.useCallback(() => { 
@@ -800,10 +805,10 @@ const StaffTab = () => {
     
     if (!open && !closing) return null
     const removeRow = (id) => setRows((r) => (r.length > 1 ? r.filter((x) => x.id !== id) : r))
-    const addRow = () => setRows((r) => [...r, { id: (r[r.length - 1]?.id ?? 0) + 1, fullName: '', email: '', phone: '', position: '', role: '' }])
+  const addRow = () => setRows((r) => [...r, { id: (r[r.length - 1]?.id ?? 0) + 1, fullName: '', email: '', phone: '', position: '', roleId: '' }])
     const onChangeRow = (id, field, value) => setRows((r) => r.map((row) => (row.id === id ? { ...row, [field]: value } : row)))
     const emailOk = (e) => /.+@.+\..+/.test(e)
-    const allValid = rows.every((x) => x.fullName && emailOk(x.email) && x.phone && x.position && x.role)
+  const allValid = rows.every((x) => x.fullName && emailOk(x.email) && x.phone && x.position && x.roleId)
     return (
       <div className="fixed inset-0 z-50">
         <div className={`absolute inset-0 bg-black/30 ${closing ? 'animate-[fadeOut_.2s_ease-in_forwards]' : 'animate-[fadeIn_.25s_ease-out_forwards]'}`} onClick={requestClose} />
@@ -832,12 +837,15 @@ const StaffTab = () => {
                     <Field label="Phone Number" required><TextInput placeholder="Enter phone number" value={row.phone} onChange={(e) => onChangeRow(row.id, 'phone', e.target.value)} /></Field>
                     <Field label="Position" required><TextInput placeholder="Enter User Job Role" value={row.position} onChange={(e) => onChangeRow(row.id, 'position', e.target.value)} /></Field>
                     <Field label="Assign Roles" required>
-                      <Select value={row.role} onChange={(e) => onChangeRow(row.id, 'role', e.target.value)}>
+                      <Select value={row.roleId} onChange={(e) => onChangeRow(row.id, 'roleId', e.target.value)}>
                         <option value="" disabled>Select role</option>
-                        <option>Receptionist</option>
-                        <option>Nurse</option>
-                        <option>Assistant</option>
-                        <option>Billing</option>
+                        {roleOptions.length === 0 ? (
+                          <option value="" disabled>Loading roles…</option>
+                        ) : (
+                          roleOptions.map((r, idx) => (
+                            <option key={idx} value={r.id}>{r.name}</option>
+                          ))
+                        )}
                       </Select>
                     </Field>
                   </div>
@@ -859,8 +867,10 @@ const StaffTab = () => {
     // selection map by permission id => boolean
     const [checked, setChecked] = useState({})
     const [closing, setClosing] = useState(false)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
     // groupedPermissions: { [moduleName]: [{ id, name, description }] }
     const [grouped, setGrouped] = useState({})
 
@@ -922,26 +932,35 @@ const StaffTab = () => {
               <button
                 disabled={!canCreate}
                 className={'text-xs md:text-sm h-8 px-3 rounded-md transition ' + (!canCreate ? 'bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed' : 'bg-[#2F66F6] text-white hover:bg-[#1e4cd8]')}
-                onClick={() => {
+                onClick={async () => {
                   if (!canCreate) return
                   const permissionIds = Object.entries(checked).filter(([, v]) => v).map(([k]) => k)
-                  onCreate({
-                    name,
-                    subtitle: 'Limited System Access',
-                    staffCount: 0,
-                    permissions: selectedCount,
-                    created: new Date().toLocaleDateString('en-GB'),
-                    icon: 'clipboard',
-                    description: desc,
-                    permissionIds,
-                  })
+                  // Resolve clinicId
+                  const authSnap = useAuthStore.getState()
+                  const clinicId = authSnap?.doctorDetails?.associatedWorkplaces?.clinic?.id || authSnap?.user?.clinicId || authSnap?.clinicId
+                  if (!clinicId) { console.error('No clinicId available for create-role'); setCreateError('No clinic selected. Please sign in and ensure doctor profile is loaded.'); return }
+                  try {
+                    setCreating(true); setCreateError('')
+                    const res = await createRole({ name, description: desc, permissions: permissionIds, clinicId })
+                    // Update roles UI list if onCreate provided
+                    onCreate?.(res?.data || res)
+                    requestClose()
+                  } catch (e) {
+                    console.error('Failed to create role', e)
+                    setCreateError(e?.message || 'Failed to create role')
+                  } finally {
+                    setCreating(false)
+                  }
                 }}
               >
-                Create
+                {creating ? 'Creating…' : 'Create'}
               </button>
               <button onClick={requestClose} className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100" aria-label="Close">✕</button>
             </div>
           </div>
+          {createError ? (
+            <div className="px-3 py-2 text-[12px] text-red-600">{String(createError)}</div>
+          ) : null}
           <div className="px-3 py-2 flex flex-col gap-2 overflow-y-auto h-[calc(100%-48px)]">
             <label className="block"><span className="text-[12px] text-[#424242] font-medium">Role Name <span className="text-red-500">*</span></span><input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Enter staff full name" className="w-full h-9 px-3 mt-1 rounded-md border border-[#E6E6E6] focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF] outline-none text-sm" /></label>
             <label className="block"><span className="text-[12px] text-[#424242] font-medium">Description</span><textarea value={desc} onChange={(e)=>setDesc(e.target.value)} placeholder="Describe the role" rows={3} className="w-full px-3 py-2 mt-1 rounded-md border border-[#E6E6E6] focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF] outline-none text-sm" /></label>
@@ -1014,10 +1033,128 @@ const StaffTab = () => {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [roleOpen, setRoleOpen] = useState(false)
   const [staff, setStaff] = useState([])
-  const [roles, setRoles] = useState([
-    { name: 'Super User', subtitle: 'Full System Access', staffCount: 0, permissions: 26, created: '20/01/2024', icon: 'crown' },
-    { name: 'Front Desk', subtitle: 'Limited System Access', staffCount: 1, permissions: 13, created: '20/01/2024', icon: 'clipboard' },
-  ])
+  const [roles, setRoles] = useState([])
+  const [rolesLoading, setRolesLoading] = useState(false)
+  const [rolesError, setRolesError] = useState('')
+
+  // Resolve clinicId dynamically from auth/profile stores
+  const resolveClinicId = () => {
+    try {
+  const { user, doctorDetails } = useAuthStore.getState()
+  console.log('[StaffTab] Auth store snapshot:', { user, doctorDetails })
+      // Common places to find clinicId
+  const fromUser = user?.clinicId || user?.clinic?.id || user?.currentClinicId || user?.currentClinic?.id
+      const fromDoctor = (
+        doctorDetails?.clinicId ||
+        doctorDetails?.clinic?.id ||
+        doctorDetails?.currentClinicId ||
+        doctorDetails?.currentClinic?.id ||
+        doctorDetails?.primaryClinic?.id ||
+        doctorDetails?.associatedWorkplaces?.clinic?.id // from provided /doctors/me shape
+      )
+      // Fallback from clinic store if loaded
+      const maybeClinic = clinic?.id || clinic?.clinicId
+  // Last resort: persisted value
+  const persisted = (() => { try { return JSON.parse(localStorage.getItem('auth-store')||'{}')?.state?.user?.clinicId || null } catch { return null } })()
+  const resolved = fromUser || fromDoctor || maybeClinic || persisted || null
+  console.log('[StaffTab] Resolved clinicId:', resolved, { fromUser, fromDoctor, maybeClinic, persisted })
+  return resolved
+    } catch (e) {
+      return null
+    }
+  }
+
+  // Fetch roles immediately when Settings opens and when auth changes
+  useEffect(() => {
+    let unsub
+    const loadRoles = async () => {
+      // Prefer direct path from getMe response
+      const { doctorDetails } = useAuthStore.getState()
+      const clinicId = doctorDetails?.associatedWorkplaces?.clinic?.id || resolveClinicId()
+      if (!clinicId) {
+        console.warn('[StaffTab] No clinicId resolved; skipping roles fetch')
+        return
+      }
+      try {
+        setRolesLoading(true)
+        setRolesError('')
+        const base = axiosClient?.defaults?.baseURL
+        const url = `${base}/rbac/all-roles?clinicId=${clinicId}`
+        console.log('[StaffTab] Fetching roles for clinicId:', clinicId, 'baseURL:', base, 'url:', url)
+        const data = await fetchAllRoles(clinicId)
+        const list = data?.data || []
+        const mapped = list.map((r) => ({
+          id: r.id,
+          name: r.name,
+          subtitle: r.description || '',
+          staffCount: r._count?.userRoles || 0,
+          permissions: Array.isArray(r.permissions) ? r.permissions.length : 0,
+          created: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '',
+          icon: /senior|admin|super/i.test(r.name) ? 'crown' : 'clipboard',
+        }))
+        setRoles(mapped)
+        setRolesLoading(false)
+      } catch (e) {
+        console.error('Failed to load roles', e)
+        setRolesError(e?.response?.data?.message || e?.message || 'Failed to load roles')
+        setRolesLoading(false)
+      }
+    }
+    // initial fetch on mount
+    loadRoles()
+    // subscribe to auth store for relevant changes (user/doctorDetails)
+    try {
+      unsub = useAuthStore.subscribe((state, prev) => {
+        const changed = state.user !== prev.user || state.doctorDetails !== prev.doctorDetails
+        if (changed) {
+          console.log('[StaffTab] Auth store changed; re-evaluating clinicId and roles fetch')
+          loadRoles()
+        }
+      })
+    } catch {}
+    return () => { if (typeof unsub === 'function') unsub() }
+  }, [])
+
+  // Fetch staff list for the clinic on mount and when auth changes
+  useEffect(() => {
+    let unsub
+    const loadStaff = async () => {
+      const { doctorDetails } = useAuthStore.getState()
+      const clinicId = doctorDetails?.associatedWorkplaces?.clinic?.id || resolveClinicId()
+      if (!clinicId) {
+        console.warn('[StaffTab] No clinicId resolved; skipping staff fetch')
+        return
+      }
+      try {
+        console.log('[StaffTab] Fetching staff for clinicId:', clinicId, 'baseURL:', axiosClient?.defaults?.baseURL)
+        const data = await fetchClinicStaff(clinicId)
+        const list = data?.data || []
+        // Map API staff to UI StaffRow shape
+        const mapped = list.map((s) => ({
+          name: s.name,
+          email: s.email,
+          phone: s.phone,
+          position: s.position,
+          role: s.role,
+          joined: (() => { const d = s.joinedAt || s.joinedDate || s.createdAt; return d ? new Date(d).toLocaleDateString('en-GB') : '' })(),
+          status: 'Active',
+        }))
+        setStaff(mapped)
+      } catch (e) {
+        console.error('Failed to load staff', e)
+      }
+    }
+    // initial fetch
+    loadStaff()
+    // subscribe to auth changes to refetch when doctorDetails is set
+    try {
+      unsub = useAuthStore.subscribe((state, prev) => {
+        const changed = state.user !== prev.user || state.doctorDetails !== prev.doctorDetails
+        if (changed) loadStaff()
+      })
+    } catch {}
+    return () => { if (typeof unsub === 'function') unsub() }
+  }, [])
 
   return (
     <div className=' py-2 flex flex-col gap-3'>
@@ -1065,6 +1202,12 @@ const StaffTab = () => {
         )
       ) : (
         <div className='grid grid-cols-[repeat(auto-fill,minmax(280px,280px))] justify-start gap-4 pt-1'>
+          {rolesLoading && (
+            <div className='col-span-full text-[12px] text-[#626060]'>Loading roles…</div>
+          )}
+          {!!rolesError && (
+            <div className='col-span-full text-[12px] text-red-600'>Error: {rolesError}</div>
+          )}
           {roles.map((role, i) => (
             <RoleCard key={i} role={role} />
           ))}
@@ -1081,10 +1224,34 @@ const StaffTab = () => {
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
         onSend={(rows) => {
-          const mapped = rows.map((r) => ({ name: r.fullName, email: r.email, phone: r.phone, position: r.position, role: r.role, status: 'Inactive' }))
-          setStaff((s) => [...mapped, ...s])
-          setInviteOpen(false)
+          // Resolve clinicId
+          const { doctorDetails } = useAuthStore.getState()
+          const clinicId = doctorDetails?.associatedWorkplaces?.clinic?.id || resolveClinicId()
+          // Fire POST for each row
+          Promise.all(rows.map(async (r) => {
+            const [firstName='', lastName=''] = String(r.fullName||'').split(' ').length>1 ? [String(r.fullName).split(' ')[0], String(r.fullName).split(' ').slice(1).join(' ')] : [r.fullName||'', '']
+            const payload = {
+              firstName,
+              lastName,
+              emailId: r.email,
+              phone: r.phone,
+              position: r.position,
+              clinicId,
+              roleId: r.roleId || null,
+            }
+            try {
+              await registerStaff(payload)
+            } catch (e) {
+              console.error('Failed to register staff', payload, e)
+            }
+            const selectedRole = roles.find(x => x.id === r.roleId)
+            return { name: r.fullName, email: r.email, phone: r.phone, position: r.position, role: selectedRole?.name || '', status: 'Inactive' }
+          })).then((created) => {
+            setStaff((s) => [...created, ...s])
+            setInviteOpen(false)
+          })
         }}
+        roleOptions={roles}
       />
       <RoleDrawer
         open={roleOpen}
@@ -1107,6 +1274,7 @@ const Doc_settings = () => {
       fetchBasicInfo,
       updateBasicInfo,
     } = useProfileStore();
+  const { fetchDoctorDetails, doctorDetails, doctorLoading } = useAuthStore.getState()
 
   // Education store
   const {
@@ -1198,6 +1366,16 @@ const Doc_settings = () => {
   const [expEditData, setExpEditData] = useState(null) // holds experience being edited
   const [awardOpen, setAwardOpen] = useState(false)
   const [awardEditMode, setAwardEditMode] = useState('add') // 'add' or 'edit'
+  // Ensure /doctors/me is fetched on Settings mount so clinicId is available for roles
+  useEffect(() => {
+    try {
+      if (!doctorDetails && !doctorLoading && typeof fetchDoctorDetails === 'function') {
+        import('../../../services/authService').then(({ getDoctorMe }) => {
+          fetchDoctorDetails(getDoctorMe)
+        }).catch(() => {})
+      }
+    } catch {}
+  }, [])
   const [awardEditData, setAwardEditData] = useState(null) // holds award being edited
   const [pubOpen, setPubOpen] = useState(false)
   const [pubEditMode, setPubEditMode] = useState('add') // 'add' or 'edit'

@@ -217,6 +217,7 @@ const WalkInAppointmentDrawer = ({ show, onClose, doctorId, clinicId, hospitalId
 
 const Queue = () => {
   const [slotEnding, setSlotEnding] = useState(false);
+  // Queue is restricted to Checked-In only for both Doctor & FD views
   const [activeFilter, setActiveFilter] = useState('Checked In');
   const [currentDate, setCurrentDate] = useState(new Date());
   // Auth
@@ -239,6 +240,8 @@ const Queue = () => {
   const [slotStarting, setSlotStarting] = useState(false);
   const [startError, setStartError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  // Pin the currently active token when a session is running so UI interactions don't change it
+  const pinnedTokenRef = useRef(null);
   const [runStartAt, setRunStartAt] = useState(null);
   const [baseElapsed, setBaseElapsed] = useState(0);
   const [elapsed, setElapsed] = useState(0);
@@ -254,10 +257,48 @@ const Queue = () => {
   const [pauseError, setPauseError] = useState('');
   const [resumeSubmitting, setResumeSubmitting] = useState(false);
   const [resumeError, setResumeError] = useState('');
-  // Backend-reported current token to align active selection
+  // Backend-reported current token and active patient details to align active selection/UI
   const [backendCurrentToken, setBackendCurrentToken] = useState(null);
+  const [backendActiveDetails, setBackendActiveDetails] = useState(null);
 
   const activePatient = useMemo(()=> queueData[currentIndex] || null, [queueData, currentIndex]);
+  const activeUIDetails = useMemo(()=>{
+    const b = backendActiveDetails;
+    if (b && (b.tokenNumber != null || b.patientId)) {
+      const fullName = [b.firstName, b.lastName].filter(Boolean).join(' ') || 'Patient';
+      const genderMap = { MALE: 'M', FEMALE: 'F', OTHER: 'O' };
+      let ageStr = '';
+      try {
+        if (b.dob) {
+          const d = new Date(b.dob);
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const yyyy = d.getFullYear();
+          const now = new Date();
+          let age = now.getFullYear() - yyyy - (now < new Date(now.getFullYear(), d.getMonth(), d.getDate()) ? 1 : 0);
+          ageStr = `${dd}/${mm}/${yyyy} (${age}Y)`;
+        }
+      } catch {}
+      return {
+        patientName: fullName,
+        gender: genderMap[(b.gender||'').toUpperCase()] || (b.gender || '—')[0] || '—',
+        age: ageStr,
+        token: b.tokenNumber,
+        reasonForVisit: b.reason || '',
+        appointmentStatus: b.appointmentStatus || '',
+        startedAt: b.startedAt || null,
+      };
+    }
+    return activePatient ? {
+      patientName: activePatient.patientName,
+      gender: activePatient.gender,
+      age: activePatient.age,
+      token: activePatient.token,
+      reasonForVisit: activePatient.reasonForVisit,
+      appointmentStatus: activePatient.status,
+      startedAt: activePatient.startedAt,
+    } : null;
+  }, [backendActiveDetails, activePatient]);
 
   // Timer interval
   useEffect(()=>{
@@ -270,18 +311,18 @@ const Queue = () => {
 
   // Slot status auto-sync (poll every 45s with in-flight guard) and timer sync from backend
   useEffect(()=>{ let ignore=false; let inFlight=false; const sync= async()=>{ if(!selectedSlotId || inFlight) return; inFlight=true; try { const st = await getSlotEtaStatus(selectedSlotId); if(ignore) return; const msg = st?.message || {}; const started = msg?.slotStatus === 'STARTED' || !!(st?.started || st?.inProgress || st?.active); if(typeof msg?.currentToken === 'number'){ setBackendCurrentToken(msg.currentToken); }
-      // Sync timer from backend active patient startedAt if available
-      const backendStartedAtIso = msg?.activePatientDetails?.startedAt; if(backendStartedAtIso){ const ts = new Date(backendStartedAtIso).getTime(); if(!isNaN(ts)){ const drift = Math.abs((Date.now()-ts) - (runStartAt? (Date.now()-runStartAt):0)); if(!runStartAt || drift > 1500){ setRunStartAt(ts); const secs=Math.floor((Date.now()-ts)/1000); setBaseElapsed(secs); setElapsed(secs); } } }
-  if(started !== sessionStarted){ if(started){ setSessionStarted(true); setQueuePaused(false); try { await loadAppointmentsForSelectedSlot(); } catch {} } else { setSessionStarted(false); setRunStartAt(null); setBaseElapsed(0); setElapsed(0); } } } catch{} finally { inFlight=false; } }; sync(); const id=setInterval(sync,45000); return ()=>{ ignore=true; clearInterval(id); }; },[selectedSlotId, sessionStarted, loadAppointmentsForSelectedSlot, runStartAt]);
+      // Capture backend active details and sync timer
+      if (msg?.activePatientDetails) { setBackendActiveDetails(msg.activePatientDetails); const iso = msg.activePatientDetails.startedAt; if(iso){ const ts = new Date(iso).getTime(); if(!isNaN(ts)){ const drift = Math.abs((Date.now()-ts) - (runStartAt? (Date.now()-runStartAt):0)); if(!runStartAt || drift > 1500){ setRunStartAt(ts); const secs=Math.floor((Date.now()-ts)/1000); setBaseElapsed(secs); setElapsed(secs); } } } }
+  if(started !== sessionStarted){ if(started){ setSessionStarted(true); setQueuePaused(false); try { await loadAppointmentsForSelectedSlot(); } catch {} } else { setSessionStarted(false); setRunStartAt(null); setBaseElapsed(0); setElapsed(0); setBackendActiveDetails(null); } } } catch{} finally { inFlight=false; } }; sync(); const id=setInterval(sync,45000); return ()=>{ ignore=true; clearInterval(id); }; },[selectedSlotId, sessionStarted, loadAppointmentsForSelectedSlot, runStartAt]);
   
 
   // Map appointments to queueData after sessionStarted & backend token state available
   useEffect(()=>{
-    const categories = slotAppointments?.appointments;
+  const categories = slotAppointments?.appointments;
     if (!categories) { setQueueData([]); return; }
-    const engaged = categories.engaged || [];
-    const checked = categories.checkedIn || [];
-    const admitted = categories.admitted || [];
+  const engaged = categories.engaged || [];
+  const checked = categories.checkedIn || [];
+  const admitted = categories.admitted || [];
   const mapAppt = appt => {
       if (!appt) return null;
       const p = appt.patientDetails || appt.patient || {};
@@ -319,30 +360,24 @@ const Queue = () => {
         startedAt: appt.startedAt || null,
       };
     };
-    let base;
-    if (activeFilter === 'Admitted') {
-      base = admitted;
-    } else if (activeFilter === 'Engaged') {
-      base = engaged;
-    } else if (activeFilter === 'No Show') {
-      base = categories.noShow || [];
-    } else if (activeFilter === 'All') {
-      // Compose All excluding inWaiting
-      base = [...engaged, ...checked, ...admitted, ...(categories.noShow || [])];
-    } else {
-      // Default Checked In
-      base = checked;
-    }
+    // Force queue to Checked-In only regardless of filter selection
+    const base = checked;
     const mapped = base.map(mapAppt).filter(Boolean);
     setQueueData(mapped);
+    // Maintain current token selection: prefer backend currentToken, else pinned token during session
+    let desiredToken = null;
     if (backendCurrentToken != null) {
-      const targetToken = Number(backendCurrentToken);
-      const idx = mapped.findIndex(item => Number(item?.token) === targetToken);
+      desiredToken = Number(backendCurrentToken);
+    } else if (sessionStarted && pinnedTokenRef.current != null) {
+      desiredToken = Number(pinnedTokenRef.current);
+    }
+    if (desiredToken != null) {
+      const idx = mapped.findIndex(item => Number(item?.token) === desiredToken);
       if (idx >= 0) {
         setCurrentIndex(idx);
-        // clear once applied to avoid stale focus
-        setBackendCurrentToken(null);
       }
+      // clear backend token once applied
+      if (backendCurrentToken != null) setBackendCurrentToken(null);
     }
     // Sync timer with backend startedAt if available
     if (categories && categories.engaged && categories.engaged.length > 0) {
@@ -379,10 +414,10 @@ const Queue = () => {
   // This prevents triggering when no patients are checked in (doctor should only see checked-in list).
   useEffect(()=>{
     if(sessionStarted && !runStartAt && queueData.length > 0 && selectedSlotId){
-      const first = queueData[0];
+    const first = queueData[0];
       if(first?.token != null){
         startPatientSessionEta(selectedSlotId, first.token)
-          .then(()=>{ setRunStartAt(Date.now()); })
+      .then(()=>{ setRunStartAt(Date.now()); pinnedTokenRef.current = first.token; })
           .catch(e=> console.error('Auto patient start failed', e?.response?.data || e.message));
       }
     }
@@ -411,6 +446,7 @@ const Queue = () => {
         setElapsed(0);
         wasRunningOnPauseRef.current=false;
         setCurrentIndex(0);
+  pinnedTokenRef.current = null;
       } catch(e){
         console.error('End slot ETA failed', e?.response?.data || e.message);
         // Optionally show error and keep sessionStarted true
@@ -424,6 +460,8 @@ const Queue = () => {
     try {
       await startSlotEta(selectedSlotId);
       setSessionStarted(true);
+  const first = queueData[0];
+  if (first?.token != null) pinnedTokenRef.current = first.token;
     } catch(e){
       console.error('Start slot failed', e?.response?.data || e.message);
       setStartError('Failed to start');
@@ -433,7 +471,14 @@ const Queue = () => {
     }
   };
 
-  const completeCurrentPatient = async () => { const active=activePatient; if(!active || !selectedSlotId) return; try { await endPatientSessionEta(selectedSlotId, active.token); } catch(e){ console.error('End patient ETA failed', e?.response?.data || e.message); } try { await loadAppointmentsForSelectedSlot(); } catch{} setRunStartAt(null); setBaseElapsed(0); setElapsed(0); wasRunningOnPauseRef.current=false; setCurrentIndex(0); };
+  const completeCurrentPatient = async () => {
+    const active=activePatient; if(!active || !selectedSlotId) return;
+    try { await endPatientSessionEta(selectedSlotId, active.token); } catch(e){ console.error('End patient ETA failed', e?.response?.data || e.message); }
+    try { await loadAppointmentsForSelectedSlot(); } catch{}
+    setRunStartAt(null); setBaseElapsed(0); setElapsed(0); wasRunningOnPauseRef.current=false; setCurrentIndex(0);
+    // Unpin token after completion so next auto-select uses first checked-in
+    pinnedTokenRef.current = null;
+  };
 
   // Doctor actions: Mark No-Show from actions menu, then refresh the slot appointments
   const handleMarkNoShow = async (row) => {
@@ -455,6 +500,7 @@ const Queue = () => {
   useEffect(()=>{ if(!queuePaused || !pauseEndsAt) return; const tick=()=>{ setPauseRemaining(Math.max(0, Math.floor((pauseEndsAt-Date.now())/1000))); }; tick(); pauseTickerRef.current=setInterval(tick,1000); return ()=>{ if(pauseTickerRef.current){ clearInterval(pauseTickerRef.current); pauseTickerRef.current=null; } }; },[queuePaused, pauseEndsAt]);
   const resumeQueue = async () => { if(!selectedSlotId) return; setResumeError(''); setResumeSubmitting(true); try { await resumeSlotEta(selectedSlotId); if(autoResumeTimerRef.current){ clearTimeout(autoResumeTimerRef.current); autoResumeTimerRef.current=null; } if(pauseTickerRef.current){ clearInterval(pauseTickerRef.current); pauseTickerRef.current=null; } setPauseEndsAt(null); setPauseRemaining(0); if(wasRunningOnPauseRef.current) setRunStartAt(Date.now()); setQueuePaused(false); } catch(e){ setResumeError(e?.response?.data?.message || e.message || 'Failed to resume'); } finally { setResumeSubmitting(false); } };
 
+  // Show all tabs as before, but queue remains bound to Checked-In.
   const filters = ['Checked In','Engaged','No Show','Admitted','All'];
   const getFilterCount = (filter) => {
     const categories = slotAppointments?.appointments || {};
@@ -462,7 +508,7 @@ const Queue = () => {
     const engaged = Array.isArray(categories.engaged) ? categories.engaged.length : 0;
     const noShow = Array.isArray(categories.noShow) ? categories.noShow.length : 0;
     const admitted = Array.isArray(categories.admitted) ? categories.admitted.length : 0;
-  const all = checkedIn + engaged + noShow + admitted; // exclude inWaiting from All
+    const all = checkedIn + engaged + noShow + admitted; // exclude inWaiting from All
     switch (filter) {
       case 'Checked In': return checkedIn;
       case 'Engaged': return engaged;
@@ -585,30 +631,31 @@ const Queue = () => {
             })()}
           </div>
 
-          {sessionStarted && activePatient && (
+          {sessionStarted && activeUIDetails && (
             <div className='mb-2 p-2'>
               <h3 className='text-gray-800 font-semibold mb-2'>Active Patient</h3>
               <div id='active-patient-card' className='bg-white rounded-lg border border-blue-200 px-4 py-3 flex items-center justify-between text-sm active-card-enter'>
                 <div className='flex items-center gap-4 min-w-0'>
-                  <AvatarCircle name={activePatient.patientName} size='s' />
+                  <AvatarCircle name={activeUIDetails.patientName} size='s' />
                   <div className='flex items-center gap-4 min-w-0'>
                     <div className='min-w-0'>
                       <div className='flex items-center gap-1'>
-                        <span className='font-semibold text-gray-900 truncate max-w-[160px]'>{activePatient.patientName}</span>
+                        <span className='font-semibold text-gray-900 truncate max-w-[160px]'>{activeUIDetails.patientName}</span>
                         <span className='text-gray-400 text-xs leading-none'>↗</span>
                       </div>
-                      <div className='text-[11px] text-gray-500 mt-0.5'>{activePatient.gender} | {activePatient.age}</div>
+                      <div className='text-[11px] text-gray-500 mt-0.5'>{activeUIDetails.gender} | {activeUIDetails.age}</div>
                     </div>
                     <div className='h-10 w-px bg-gray-200' />
                     <div>
                       <div className='flex items-center gap-2 shrink-0'>
                         <span className='text-gray-500'>Token Number</span>
-                        <span className='inline-flex items-center justify-center w-5 h-5 rounded border border-blue-300 bg-blue-50 text-[11px] font-medium text-blue-700'>{activePatient.token}</span>
+                        <span className='inline-flex items-center justify-center w-5 h-5 rounded border border-blue-300 bg-blue-50 text-[11px] font-medium text-blue-700'>{activeUIDetails.token}</span>
                       </div>
                       <div className='flex items-center gap-1 text-gray-500'>
                         <span>Reason :</span>
-                        <span className='font-xs whitespace-nowrap text-gray-700'>{activePatient.reasonForVisit}</span>
+                        <span className='font-xs whitespace-nowrap text-gray-700'>{activeUIDetails.reasonForVisit}</span>
                       </div>
+                      {/* Removed ENGAGED status badge from UI as requested */}
                     </div>
                   </div>
                 </div>
@@ -620,7 +667,7 @@ const Queue = () => {
                   {runStartAt ? (
                     <button onClick={completeCurrentPatient} className='inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors'>End Session</button>
                   ) : (
-                    <button onClick={()=> setRunStartAt(Date.now())} className='inline-flex items-center rounded-md border border-blue-300 bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors'>Start Session</button>
+                    <button onClick={()=>{ setRunStartAt(Date.now()); if(activeUIDetails?.token!=null) pinnedTokenRef.current = activeUIDetails.token; }} className='inline-flex items-center rounded-md border border-blue-300 bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors'>Start Session</button>
                   )}
                 </div>
               </div>
