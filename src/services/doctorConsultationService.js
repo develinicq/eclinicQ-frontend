@@ -9,4 +9,10 @@ export const getDoctorConsultationDetails = async (hospitalId) => {
   return response.data; // { success, message, data: { consultationFees, slotTemplates }, ... }
 };
 
-export default { getDoctorConsultationDetails };
+// PUT /api/doctors/consultation-details
+export const putDoctorConsultationDetails = async (payload) => {
+  const response = await axiosInstance.put('/doctors/consultation-details', payload);
+  return response.data;
+};
+
+export default { getDoctorConsultationDetails, putDoctorConsultationDetails };

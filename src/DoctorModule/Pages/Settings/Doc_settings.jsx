@@ -1263,7 +1263,7 @@ const StaffTab = () => {
 }
 
 import { useLocation, useNavigate } from 'react-router-dom'
-import { getDoctorConsultationDetails } from '../../../services/doctorConsultationService'
+import { getDoctorConsultationDetails, putDoctorConsultationDetails } from '../../../services/doctorConsultationService'
 import { toISTDate } from '../../../lib/timeUtils'
 
 const Doc_settings = () => {
@@ -1389,6 +1389,8 @@ const Doc_settings = () => {
   const [consultationLoading, setConsultationLoading] = useState(false)
   const [consultationError, setConsultationError] = useState('')
   const [consultationDetails, setConsultationDetails] = useState(null)
+  const [consultationDirty, setConsultationDirty] = useState(false)
+  const [savingConsultation, setSavingConsultation] = useState(false)
 
   // Clinic form state
   const [clinicForm, setClinicForm] = useState({
@@ -1813,12 +1815,48 @@ const Doc_settings = () => {
             <div className="grid md:grid-cols-2 gap-6">
               <div className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-8">
-                  <Input label="First Time Consultation Fees:" placeholder="Value" value={consultationDetails?.consultationFees?.[0]?.consultationFee || ''} icon={<span className='text-xs text-gray-500'>Rupees</span>} />
+                  <div>
+                    <div className="text-[12px] text-gray-600 mb-1">First Time Consultation Fees:</div>
+                    <input
+                      className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-white"
+                      placeholder="Value"
+          value={consultationDetails?.consultationFees?.[0]?.consultationFee || ''}
+          onChange={(e)=>{
+                        const v = e.target.value;
+                        setConsultationDetails((d)=>({
+                          ...d,
+                          consultationFees: [{
+                            ...(d?.consultationFees?.[0]||{}),
+            consultationFee: v
+                          }]
+                        }));
+                        setConsultationDirty(true);
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-8">
-                  <Input label="Follow-up Consultation Fees:" placeholder="Value" value={consultationDetails?.consultationFees?.[0]?.followUpFee || ''} icon={<span className='text-xs text-gray-500'>Rupees</span>} />
+                  <div>
+                    <div className="text-[12px] text-gray-600 mb-1">Follow-up Consultation Fees:</div>
+                    <input
+                      className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-white"
+                      placeholder="Value"
+          value={consultationDetails?.consultationFees?.[0]?.followUpFee || ''}
+          onChange={(e)=>{
+                        const v = e.target.value;
+                        setConsultationDetails((d)=>({
+                          ...d,
+                          consultationFees: [{
+                            ...(d?.consultationFees?.[0]||{}),
+            followUpFee: v
+                          }]
+                        }));
+                        setConsultationDirty(true);
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1837,17 +1875,39 @@ const Doc_settings = () => {
           >
             <div className="grid grid-cols-12 gap-3 items-end">
               <div className="col-span-6 md:col-span-4 lg:col-span-3">
-                <Input label="Average Consultation Min per Patient :" placeholder="Value" value={(consultationDetails?.consultationFees?.[0]?.avgDurationMinutes ?? consultationDetails?.slotTemplates?.avgDurationMinutes ?? '')} icon={<span className='text-xs text-gray-500'>Mins</span>} />
+                <div>
+                  <div className="text-[12px] text-gray-600 mb-1">Average Consultation Min per Patient :</div>
+                  <input
+                    className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-white"
+                    placeholder="Value"
+                    value={(consultationDetails?.consultationFees?.[0]?.avgDurationMinutes ?? consultationDetails?.slotTemplates?.avgDurationMinutes ?? '')}
+                    onChange={(e)=>{
+                      const v = e.target.value;
+                      setConsultationDetails((d)=>({
+                        ...d,
+                        consultationFees: [{
+                          ...(d?.consultationFees?.[0]||{}),
+                          avgDurationMinutes: Number(v)||0
+                        }],
+                        slotTemplates: {
+                          ...(d?.slotTemplates||{}),
+                          avgDurationMinutes: Number(v)||0
+                        }
+                      }));
+                      setConsultationDirty(true);
+                    }}
+                  />
+                </div>
               </div>
               <div className="col-span-6 md:col-span-4 lg:col-span-3">
                 <div className="text-[12px] text-gray-600 mb-1">Set Availability Duration</div>
-                <select className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-white" value={consultationDetails?.consultationFees?.[0]?.availabilityDurationDays || ''} disabled>
+                <select className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-white" value={consultationDetails?.consultationFees?.[0]?.availabilityDurationDays || ''} onChange={(e)=>{ setConsultationDetails((d)=> ({ ...d, consultationFees: [{ ...(d?.consultationFees?.[0]||{}), availabilityDurationDays: Number(e.target.value) }] })); setConsultationDirty(true); }}>
                   <option value="">Select</option>
-                  <option value={1}>1 Day</option>
-                  <option value={3}>3 Days</option>
+                  <option value={2}>2 Days</option>
                   <option value={7}>7 Days</option>
                   <option value={14}>14 Days</option>
-                  <option value={30}>30 Days</option>
+                  <option value={21}>21 Days</option>
+                  <option value={28}>28 Days</option>
                 </select>
               </div>
             </div>
@@ -1880,12 +1940,12 @@ const Doc_settings = () => {
                         d.sessions.map((s) => (
                           <div key={s.id || s.sessionNumber} className={`flex items-center flex-wrap gap-2 ${disabledCls}`}>
                             <span className="text-xs text-gray-600">Session {s.sessionNumber}:</span>
-                            <TimeInput value={toHM(s.startTime)} onChange={()=>{}} />
+                            <TimeInput value={toHM(s.startTime)} onChange={(ev)=>{ const v=ev.target.value; setConsultationDetails((cd)=>{ const next = JSON.parse(JSON.stringify(cd||{})); const day = next.slotTemplates?.schedule?.find(x=>x.day===d.day); const ss = day?.sessions?.find(x=> (x.id||x.sessionNumber) === (s.id||s.sessionNumber)); if(ss) ss.startTime = `1970-01-01T${v}:00.000Z`; return next; }); setConsultationDirty(true); }} />
                             <span className="text-xs text-gray-400">-</span>
-                            <TimeInput value={toHM(s.endTime)} onChange={()=>{}} />
+                            <TimeInput value={toHM(s.endTime)} onChange={(ev)=>{ const v=ev.target.value; setConsultationDetails((cd)=>{ const next = JSON.parse(JSON.stringify(cd||{})); const day = next.slotTemplates?.schedule?.find(x=>x.day===d.day); const ss = day?.sessions?.find(x=> (x.id||x.sessionNumber) === (s.id||s.sessionNumber)); if(ss) ss.endTime = `1970-01-01T${v}:00.000Z`; return next; }); setConsultationDirty(true); }} />
                             <span className="ml-2 text-xs text-gray-600 whitespace-nowrap">Token Available:</span>
                             <div className="w-24">
-                              <input className="h-8 w-full text-xs border border-gray-300 rounded px-2" placeholder="Value" value={s.maxTokens ?? ''} readOnly />
+                              <input className="h-8 w-full text-xs border border-gray-300 rounded px-2" placeholder="Value" value={s.maxTokens ?? ''} onChange={(e)=>{ const v=e.target.value; setConsultationDetails((cd)=>{ const next = JSON.parse(JSON.stringify(cd||{})); const day = next.slotTemplates?.schedule?.find(x=>x.day===d.day); const ss = day?.sessions?.find(x=> (x.id||x.sessionNumber) === (s.id||s.sessionNumber)); if(ss) ss.maxTokens = Number(v)||0; return next; }); setConsultationDirty(true); }} />
                             </div>
                           </div>
                         ))
@@ -1913,7 +1973,41 @@ const Doc_settings = () => {
                 <input type="checkbox" defaultChecked className="h-4 w-4" />
                 In order to use the platform to its full potential and continue using your benefits, kindly accept our <a href="#" className="text-blue-600">Terms and conditions</a> and <a href="#" className="text-blue-600">Privacy policy</a>.
               </label>
-              <button className="px-4 h-9 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Save</button>
+              <button disabled={!consultationDirty || savingConsultation} onClick={async ()=>{
+                try {
+                  setSavingConsultation(true);
+                  const hospitalId = doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id;
+                  // Build payload per spec
+                  const fees = consultationDetails?.consultationFees?.[0] || {};
+                  const schedule = consultationDetails?.slotTemplates?.schedule || [];
+                  const dayMap = { Monday:'MONDAY', Tuesday:'TUESDAY', Wednesday:'WEDNESDAY', Thursday:'THURSDAY', Friday:'FRIDAY', Saturday:'SATURDAY', Sunday:'SUNDAY' };
+                  const toHM = (iso)=>{ const d = new Date(iso); const hh = String(d.getUTCHours()).padStart(2,'0'); const mm = String(d.getUTCMinutes()).padStart(2,'0'); return `${hh}:${mm}`; };
+                  const slotData = schedule.filter(x=>x.available).map((d)=>({
+                    day: dayMap[d.day] || String(d.day).toUpperCase(),
+                    timings: (d.sessions||[]).map((s)=>({ startTime: toHM(s.startTime), endTime: toHM(s.endTime), maxTokens: Number(s.maxTokens)||0 }))
+                  }));
+                  const payload = {
+                    consultationFees: {
+                      hospitalId,
+                      consultationFee: String(fees.consultationFee ?? ''),
+                      followUpFee: String(fees.followUpFee ?? ''),
+                      autoApprove: Boolean(fees.autoApprove),
+                      avgDurationMinutes: Number(fees.avgDurationMinutes)||0,
+                      availabilityDurationDays: Number(fees.availabilityDurationDays)||undefined,
+                    },
+                    slotDetails: {
+                      hospitalId,
+                      slotData,
+                    }
+                  };
+                  await putDoctorConsultationDetails(payload);
+                  setConsultationDirty(false);
+                } catch (e) {
+                  alert(e?.response?.data?.message || e.message || 'Failed to save consultation details');
+                } finally {
+                  setSavingConsultation(false);
+                }
+              }} className={`px-4 h-9 rounded text-sm font-medium ${(!consultationDirty||savingConsultation)?'bg-gray-300 text-gray-600 cursor-not-allowed':'bg-blue-600 text-white hover:bg-blue-700'}`}>{savingConsultation? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
