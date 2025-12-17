@@ -35,7 +35,7 @@ export default {
           grey300: '#626060',
           grey200: '#9CA3AF',
           grey150: '#D1D5DB',
-          grey100: '#E5E7EB',
+          grey100: '#D6D6D6',
           grey50: '#F9F9F9',
         },
         warning: {

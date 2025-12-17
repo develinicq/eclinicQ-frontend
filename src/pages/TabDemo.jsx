@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import Tab from "../components/Tab";
 import Button from "../components/Button";
 import GeneralDrawer from "../components/GeneralDrawer";
+import SampleTable from "./SampleTable";
 
 const TabDemo = () => {
   const [open, setOpen] = useState(false);
 
   return (
+    <>
     <div className="p-6 ">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Tab Component Demo</h1>
@@ -80,6 +82,9 @@ const TabDemo = () => {
         </div>
       </section>
     </div>
+
+    <SampleTable/>
+    </>
   );
 };
 
