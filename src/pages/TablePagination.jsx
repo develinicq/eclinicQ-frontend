@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 
 export default function TablePagination() {
   return (
-    <div className="flex items-center justify-center border-t bg-white py-1">
+    <div className="flex items-center justify-center border rounded-lg bg-white py-1">
       <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-sm text-gray-600">
 
         {/* Left Arrow */}

@@ -1,7 +1,7 @@
 import { Search } from 'lucide-react'
 import React, { useRef, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { bell, hospitalIcon, stethoscopeBlue, collapse_white } from '../../../public/index.js'
+import { bell, hospitalIcon, stethoscopeBlue, collapse_white, whiteSubscription, whiteOutOfOffice, whiteProfileLink, whiteLogout } from '../../../public/index.js'
 import useAuthStore from '../../store/useAuthStore'
 import AvatarCircle from '../../components/AvatarCircle'
 import { getDoctorMe } from '../../services/authService'
@@ -9,7 +9,9 @@ import { Mail, Phone, IdCard, User, LogOut, ChevronRight, ChevronDown, UserPlus,
 import NotificationDrawer from '../../components/NotificationDrawer.jsx'
 import AddPatientDrawer from '../../components/PatientList/AddPatientDrawer.jsx'
 import BookAppointmentDrawer from '../../components/Appointment/BookAppointmentDrawer.jsx'
-import { vertical } from '../../../public/index.js'
+import { vertical ,whiteProfile, blueId, blueMail, blueCall } from '../../../public/index.js'
+
+
 
 const Partition = () => {
   return (
@@ -36,7 +38,12 @@ const ProfileMenuItem = ({
       className={`w-full flex items-center justify-between px-2 h-8 hover:bg-gray-50 text-gray-700 ${className}`}
     >
       <span className="flex items-center gap-2 text-[14px]">
-        <Icon className="w-4 h-4 text-gray-500" />
+        {/* Support both React icon components and image src */}
+        {typeof Icon === 'string' ? (
+          <img src={Icon} alt="" className="w-4 h-4" />
+        ) : (
+          <Icon className="w-4 h-4 text-gray-500" />
+        )}
         {label}
       </span>
 
@@ -288,15 +295,15 @@ const DocNavbar = ({ moduleSwitcher }) => {
                     {!doctorError && (
                 <div className='flex flex-col gap-1 text-[14px] leading-[22px] border-gray-200'>
                   <div className='flex items-center gap-2 text-gray-700'>
-                    <Mail className='w-5 h-5 text-[#597DC3]' />
+                    <img src={blueMail} className='w-4' alt='' />
                     <span className=''>{doctorDetails?.emailId || '—'}</span>
                   </div>
                   <div className='flex items-center gap-2 text-gray-700'>
-                    <Mail className='w-5 h-5 text-[#597DC3]' />
+                    <img src={blueCall} className='w-4' alt='' />
                     <span>{doctorDetails?.contactNumber || '—'}</span>
                   </div>
                   <div className='flex items-center gap-2 text-gray-700'>
-                    <Mail className='w-5 h-5 text-[#597DC3]' />
+                    <img src={blueId} className='w-4' alt='' />
                     <span>{doctorDetails?.doctorCode || doctorDetails?.userId?.slice(0,8)+'…' || '—'}</span>
                   </div>
                 </div>
@@ -320,7 +327,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
               {/* Actions */}
              <div className="p-2 gap-1 flex flex-col text-sm">
   <ProfileMenuItem
-    icon={User}
+    icon={whiteProfile}
     label="My Profile"
     onClick={() => {
       setShowProfile(false);
@@ -329,7 +336,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
   />
 
   <ProfileMenuItem
-    icon={Wallet}
+    icon={whiteSubscription}
     label="Subscription"
     onClick={() => {
       setShowProfile(false);
@@ -338,7 +345,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
   />
 
   <ProfileMenuItem
-    icon={CalendarX2}
+    icon={whiteOutOfOffice}
     label="Out Of Office"
     onClick={() => {
       setShowProfile(false);
@@ -347,13 +354,13 @@ const DocNavbar = ({ moduleSwitcher }) => {
   />
 
   <ProfileMenuItem
-    icon={LinkIcon}
+    icon={whiteProfileLink}
     label={copied ? 'Link Copied' : 'Copy Profile Link'}
     onClick={handleCopyProfileLink}
   />
 
   <ProfileMenuItem
-    icon={LogOut}
+    icon={whiteLogout}
     label="Logout"
     onClick={() => {
       setShowProfile(false);

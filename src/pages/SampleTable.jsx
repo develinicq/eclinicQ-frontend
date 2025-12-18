@@ -270,7 +270,7 @@ export default function SampleTable({
 			</div>
 
 			{/* Sticky pagination footer */}
-			<div className="sticky bottom-0 left-0 right-0 z-50 bg-white border-t">
+			<div className="sticky bottom-0 left-0 right-0 z-50 bg-white ">
 				<TablePagination
 					page={page}
 					pageSize={pageSize}

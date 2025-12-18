@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Download, ChevronDown, ChevronRight , ChevronLeft, UserPlus, Check } from 'lucide-react'
 import Overview_cards from '../../../components/Dashboard/Overview_cards'
 import BookAppointmentDrawer from '../../../components/Appointment/BookAppointmentDrawer.jsx'
-import { walkInBlue , appointementWhite} from '../../../../public/index.js'
+import { walkInBlue , appointementWhite, engageWhite, admitWhite, avgTimeWhite, tokenWhite, waitingWhite, newPatientWhite } from '../../../../public/index.js'
 
 
 const PeriodTabs = ({ value, onChange }) => {
@@ -160,17 +160,15 @@ const DocDashboard = () => {
     
 
       {/* Overview cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-        <Overview_cards title="Avg. Appointment Booked" value={103} percent={12} periodText="from last Year" variant="profit" />
-        <Overview_cards title="Avg. Engage Patient" value={80} percent={-8} periodText="from last Year" variant="loss" />
-        <Overview_cards title="Avg. Patient Admitted" value={4} percent={12} periodText="from last Year" variant="profit" />
-        <Overview_cards title="Avg. No-Show Patients" value={5} percent={-12} periodText="from last Year" variant="loss" />
-        <Overview_cards title="Avg. time Spent/ Patient" value={'06:05 min'} percent={5} periodText="from last Year" variant="profit" />
-        <Overview_cards title="Avg. Token Utilization" value={'85 Tokens'} percent={12} periodText="from last Year" variant="profit" />
-        <Overview_cards title="Avg. Waiting Time" value={'12:30 min / Patient'} percent={12} periodText="from last year" variant="profit" />
-        <Overview_cards title="Avg. New Patient Visit" value={'12 Patients'} percent={12} periodText="from last year" variant="profit" />
-        <Overview_cards title="Total Patients" value={12043} percent={12} periodText="from last month" variant="profit" />
-        <Overview_cards title="Total Appointments Booked" value={15000} percent={8} periodText="from last month" variant="profit" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 mb-6">
+  <Overview_cards title="Avg. Appointment Booked" value={103} percent={12} periodText="from last Year" variant="profit" icon={<img src={appointementWhite} alt="" className="w-5 h-5"/>} />
+  <Overview_cards title="Avg. Engage Patient" value={80} percent={-8} periodText="from last Year" variant="loss" icon={<img src={engageWhite} alt="" className="w-5 h-5"/>} />
+  <Overview_cards title="Avg. Patient Admitted" value={4} percent={12} periodText="from last Year" variant="profit" icon={<img src={admitWhite} alt="" className="w-5 h-5"/>} />
+  <Overview_cards title="Avg. No-Show Patients" value={5} percent={-12} periodText="from last Year" variant="loss" icon={<img src={admitWhite} alt="" className="w-5 h-5"/>} />
+  <Overview_cards title="Avg. time Spent/ Patient" value={'06:05 min'} percent={5} periodText="from last Year" variant="profit" icon={<img src={avgTimeWhite} alt="" className="w-5 h-5"/>} />
+  <Overview_cards title="Avg. Token Utilization" value={'85 Tokens'} percent={12} periodText="from last Year" variant="profit" icon={<img src={tokenWhite} alt="" className="w-5 h-5"/>} />
+  <Overview_cards title="Avg. Waiting Time" value={'12:30 min / Patient'} percent={12} periodText="from last year" variant="profit" icon={<img src={waitingWhite} alt="" className="w-5 h-5"/>} />
+  <Overview_cards title="Avg. New Patient Visit" value={'12 Patients'} percent={12} periodText="from last year" variant="profit" icon={<img src={newPatientWhite} alt="" className="w-5 h-5"/>} />
       </div>
 
       {/* Analytics Overview section */}

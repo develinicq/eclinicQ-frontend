@@ -24,7 +24,7 @@ const Overview_cards = ({
     : 'text-red-500 bg-red-50'
 
   const RightIcon = ({ className = '' }) => (
-    <div className={`w-11 h-11 rounded-full border flex items-center justify-center bg-white shadow-sm ${className}`}>
+    <div className={`w-12 h-12 rounded-full border flex items-center justify-center bg-white shadow-sm ${className}`}>
       {icon ? (
         icon
       ) : isProfit ? (
