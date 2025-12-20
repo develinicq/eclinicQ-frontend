@@ -19,7 +19,9 @@ import QueueDatePicker from "../../../components/QueueDatePicker";
 import AvatarCircle from "../../../components/AvatarCircle";
 import Button from "../../../components/Button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import Badge from "../../../components/Badge";
+import { calendarMinimalistic } from "../../../../public/index.js";
 import OverviewStatCard from "../../../components/OverviewStatCard";
 import Toggle from "../../../components/FormItems/Toggle";
 import QueueTable from "./QueueTable";
@@ -92,6 +94,8 @@ const WalkInAppointmentDrawer = ({
   const [booking, setBooking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showDobCalendar, setShowDobCalendar] = useState(false);
+  const [showApptDateCalendar, setShowApptDateCalendar] = useState(false);
   // Local slots state
   const [grouped, setGrouped] = useState({
     morning: [],
@@ -197,6 +201,25 @@ const WalkInAppointmentDrawer = ({
       ignore = true;
     };
   }, [show, apptDate, doctorId, clinicId, hospitalId]);
+
+  // Close calendars on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      const isCalendarClick = target.closest(".shadcn-calendar-dropdown");
+      if (!isCalendarClick) {
+        setShowDobCalendar(false);
+        setShowApptDateCalendar(false);
+      }
+    };
+
+    if (showDobCalendar || showApptDateCalendar) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showDobCalendar, showApptDateCalendar]);
+
   const canBook = () => !booking;
   const handleBook = async () => {
     if (!canBook()) return;
@@ -414,10 +437,10 @@ const WalkInAppointmentDrawer = ({
                     </label>
                     <div className="relative">
                       <input
-                        ref={dobRef}
                         value={dob}
                         onChange={(e) => setDob(e.target.value)}
-                        type="date"
+                        type="text"
+                        placeholder="YYYY-MM-DD"
                         className={`w-full rounded-md border px-3 py-2 text-sm pr-8 focus:outline-none ${
                           fieldErrors.dob
                             ? "border-red-400 focus:border-red-500"
@@ -426,15 +449,41 @@ const WalkInAppointmentDrawer = ({
                       />
                       <button
                         type="button"
-                        onClick={() =>
-                          dobRef.current?.showPicker
-                            ? dobRef.current.showPicker()
-                            : dobRef.current?.focus()
-                        }
+                        onClick={() => setShowDobCalendar(!showDobCalendar)}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
                       >
-                        <Calendar className="w-4 h-4" />
+                        <img
+                          src={calendarMinimalistic}
+                          alt="Calendar"
+                          className="w-4 h-4"
+                        />
                       </button>
+                      {showDobCalendar && (
+                        <div className="shadcn-calendar-dropdown absolute z-[9999] mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                          <ShadcnCalendar
+                            mode="single"
+                            selected={dob ? new Date(dob) : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                const year = date.getFullYear();
+                                const month = String(
+                                  date.getMonth() + 1
+                                ).padStart(2, "0");
+                                const day = String(date.getDate()).padStart(
+                                  2,
+                                  "0"
+                                );
+                                setDob(`${year}-${month}-${day}`);
+                              }
+                              setShowDobCalendar(false);
+                            }}
+                            captionLayout="dropdown"
+                            fromYear={1900}
+                            toYear={new Date().getFullYear()}
+                            className="rounded-md"
+                          />
+                        </div>
+                      )}
                     </div>
                     {fieldErrors.dob && (
                       <div className="text-[11px] text-red-600 mt-1">
@@ -613,23 +662,49 @@ const WalkInAppointmentDrawer = ({
                 </label>
                 <div className="relative">
                   <input
-                    ref={apptDateRef}
-                    type="date"
+                    type="text"
                     value={apptDate}
                     onChange={(e) => setApptDate(e.target.value)}
+                    placeholder="YYYY-MM-DD"
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm pr-8 focus:outline-none focus:border-blue-500"
                   />
                   <button
                     type="button"
                     onClick={() =>
-                      apptDateRef.current?.showPicker
-                        ? apptDateRef.current.showPicker()
-                        : apptDateRef.current?.focus()
+                      setShowApptDateCalendar(!showApptDateCalendar)
                     }
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
                   >
-                    <Calendar className="w-4 h-4" />
+                    <img
+                      src={calendarMinimalistic}
+                      alt="Calendar"
+                      className="w-4 h-4"
+                    />
                   </button>
+                  {showApptDateCalendar && (
+                    <div className="shadcn-calendar-dropdown absolute z-[9999] mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                      <ShadcnCalendar
+                        mode="single"
+                        selected={apptDate ? new Date(apptDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(
+                              2,
+                              "0"
+                            );
+                            const day = String(date.getDate()).padStart(2, "0");
+                            setApptDate(`${year}-${month}-${day}`);
+                          }
+                          setShowApptDateCalendar(false);
+                        }}
+                        captionLayout="dropdown"
+                        fromYear={new Date().getFullYear() - 1}
+                        toYear={new Date().getFullYear() + 1}
+                        className="rounded-md"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
