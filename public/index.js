@@ -57,7 +57,7 @@ import collapse_white from './Doctor_module/navbar/header/collapse_white.png';
 import vertical from './Doctor_module/vertical.png';
 // Doctor module dashboard icons
 import arrowRightNav from './Doctor_module/dashboard/arrowRightNav.svg';
-import appointementNav from './Doctor_module/dashboard/appointement.svg'; 
+import appointementNav from './Doctor_module/dashboard/appointementNav.svg'; 
 import mapPoint from './Doctor_module/dashboard/mapPoint.svg';
 import staff from './Doctor_module/dashboard/staff.svg';
 import vector from './Doctor_module/dashboard/vector.svg';
@@ -93,7 +93,7 @@ import blueBag from './doctor_info/bluebag.png';
 import docIcon from './doctor_info/doc.png';
 import whiteBag from './doctor_info/whitebag.png';
 
-import morningQueue from "/public/Doctor_module/queue/morningQueue.svg";
+import morningQueue from "/public/Doctor_module/queue/morningQueuee.svg";
 import eveningQueue from './Doctor_module/queue/eveningQueue.svg';
 import nightQueue from './Doctor_module/queue/nightQueue.svg';
 import afternoonQueue from './Doctor_module/queue/afternoonQueue.svg';  

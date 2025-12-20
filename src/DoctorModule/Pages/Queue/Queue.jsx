@@ -561,8 +561,8 @@ const Queue = () => {
                     {timeSlots.map(({ key, label, time, Icon }, idx) => (
                       <li key={key}>
                         <button type='button' onClick={() => { setSlotValue(key); const group = groupedSlots[key] || []; if (group.length) { const first = group[0]; const id = first.id || first.slotId || first._id || null; if (id) selectSlot(id); } setSlotOpen(false); }} className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-blue-50 ${slotValue === key ? 'bg-blue-50' : ''}`}>
-
-                            <img src={Icon} alt={label} className='text-gray-600 w-7 h-7' />
+                      
+                            <img src={Icon} alt={label} className={`${slotValue === key ? 'text-white' : ''} w-7 h-7`} />
                     
                           <span className='flex-1'>
                             <span className='block text-[14px] font-semibold text-gray-900'>{label}</span>
