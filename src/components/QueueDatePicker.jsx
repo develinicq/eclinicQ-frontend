@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 
 // Reusable popover calendar for queue headers (doctor & front desk)
 // Props: date (Date), onChange(newDate:Date)
@@ -18,10 +19,15 @@ export default function QueueDatePicker({ date, onChange }) {
       if (popRef.current && popRef.current.contains(e.target)) return;
       setShowCal(false);
     };
-    const onKey = (e) => { if (e.key === 'Escape') setShowCal(false); };
-    window.addEventListener('mousedown', onClick);
-    window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('mousedown', onClick); window.removeEventListener('keydown', onKey); };
+    const onKey = (e) => {
+      if (e.key === "Escape") setShowCal(false);
+    };
+    window.addEventListener("mousedown", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   // Build days matrix
@@ -40,7 +46,20 @@ export default function QueueDatePicker({ date, onChange }) {
   };
   const weeks = buildDays();
 
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const currentKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 
   const apply = (d) => {
@@ -49,17 +68,59 @@ export default function QueueDatePicker({ date, onChange }) {
     setShowCal(false);
   };
 
-  const goToday = () => { const t = new Date(); setViewYear(t.getFullYear()); setViewMonth(t.getMonth()); onChange?.(t); };
-  const goPrevDay = () => { const nd = new Date(date.getTime() - 24*3600*1000); onChange?.(nd); setViewYear(nd.getFullYear()); setViewMonth(nd.getMonth()); };
-  const goNextDay = () => { const nd = new Date(date.getTime() + 24*3600*1000); onChange?.(nd); setViewYear(nd.getFullYear()); setViewMonth(nd.getMonth()); };
+  const goToday = () => {
+    const t = new Date();
+    setViewYear(t.getFullYear());
+    setViewMonth(t.getMonth());
+    onChange?.(t);
+  };
+  const goPrevDay = () => {
+    const nd = new Date(date.getTime() - 24 * 3600 * 1000);
+    onChange?.(nd);
+    setViewYear(nd.getFullYear());
+    setViewMonth(nd.getMonth());
+  };
+  const goNextDay = () => {
+    const nd = new Date(date.getTime() + 24 * 3600 * 1000);
+    onChange?.(nd);
+    setViewYear(nd.getFullYear());
+    setViewMonth(nd.getMonth());
+  };
+
+  // Get relative day label
+  const getRelativeDay = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    const diff = Math.floor((compareDate - today) / (24 * 3600 * 1000));
+
+    if (diff === 0) return "Today";
+    if (diff === 1) return "Tomorrow";
+    if (diff === -1) return "Yesterday";
+    return null;
+  };
+
+  // Format date as "Mon, 03/04/2025"
+  const getFormattedDate = () => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayName = days[date.getDay()];
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${dayName}, ${month}/${day}/${year}`;
+  };
+
+  const relativeDay = getRelativeDay();
+  const formattedDate = getFormattedDate();
 
   // Compute portal container lazily
   const [portalEl, setPortalEl] = useState(null);
   useEffect(() => {
-    let el = document.getElementById('queue-date-picker-root');
+    let el = document.getElementById("queue-date-picker-root");
     if (!el) {
-      el = document.createElement('div');
-      el.id = 'queue-date-picker-root';
+      el = document.createElement("div");
+      el.id = "queue-date-picker-root";
       document.body.appendChild(el);
     }
     setPortalEl(el);
@@ -84,52 +145,67 @@ export default function QueueDatePicker({ date, onChange }) {
 
   return (
     <div className="flex items-center space-x-4" ref={anchorRef}>
-      <ChevronLeft className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" onClick={goPrevDay} />
+      <ChevronLeft
+        className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600"
+        onClick={goPrevDay}
+      />
       <div className="flex items-center space-x-2">
-        <button className="text-blue-600 font-medium" onClick={goToday}>Today</button>
+        {relativeDay && (
+          <button
+            className="font-medium px-2 py-1 rounded-md"
+            style={{
+              backgroundColor: "rgba(248, 250, 255, 1)",
+              color: "rgba(35, 114, 236, 1)",
+            }}
+            onClick={goToday}
+          >
+            {relativeDay}
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => setShowCal(v => !v)}
+          onClick={() => setShowCal((v) => !v)}
           className="text-gray-700 font-medium hover:text-gray-900"
         >
-          {date.toDateString().replace(/^[A-Za-z]{3} /,'')}
+          {formattedDate}
         </button>
       </div>
-      <ChevronRight className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600" onClick={goNextDay} />
-      {showCal && portalEl && createPortal(
-        <div ref={popRef} style={{ top: pos.top, left: pos.left, width: 260 }} className="absolute bg-white border border-gray-200 rounded-2xl shadow-xl z-[999] p-4">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <select className="text-sm font-medium bg-gray-50 border border-gray-200 rounded-md px-2 py-1" value={viewMonth} onChange={e=> setViewMonth(parseInt(e.target.value))}>
-                {months.map((m,i)=> <option key={m} value={i}>{m}</option>)}
-              </select>
-              <select className="text-sm font-medium bg-gray-50 border border-gray-200 rounded-md px-2 py-1" value={viewYear} onChange={e=> setViewYear(parseInt(e.target.value))}>
-                {Array.from({length:7},(_,i)=> viewYear-3+i).map(y=> <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            <button onClick={goToday} className="text-xs text-blue-600 font-medium hover:text-blue-700">Today</button>
-          </div>
-          {/* Weekday labels */}
-          <div className="grid grid-cols-7 text-[11px] text-gray-500 mb-2">
-            {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=> <div key={d} className="text-center font-medium">{d}</div>)}
-          </div>
-          {/* Weeks */}
-          <div className="space-y-1">
-            {weeks.map((w,wi)=> (
-              <div key={wi} className="grid grid-cols-7 text-xs">
-                {w.map((d,i)=> d ? (
-                  <button
-                    key={i}
-                    onClick={()=> apply(d)}
-                    className={`h-8 w-8 mx-auto rounded-full flex items-center justify-center transition-colors ${currentKey===`${viewYear}-${viewMonth}-${d}` ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-700 hover:bg-blue-50'}`}
-                  >{d}</button>
-                ) : <div key={i} className="h-8 w-8" />)}
-              </div>
-            ))}
-          </div>
-        </div>, portalEl
-      )}
+      <ChevronRight
+        className="h-5 w-5 text-gray-400 cursor-pointer hover:text-gray-600"
+        onClick={goNextDay}
+      />
+      {showCal &&
+        portalEl &&
+        createPortal(
+          <div
+            ref={popRef}
+            style={{ top: pos.top, left: pos.left }}
+            className="absolute bg-white border border-gray-200 rounded-lg shadow-xl z-[999] p-3"
+          >
+            <ShadcnCalendar
+              mode="single"
+              selected={date}
+              onSelect={(newDate) => {
+                if (newDate) {
+                  onChange?.(newDate);
+                  setViewYear(newDate.getFullYear());
+                  setViewMonth(newDate.getMonth());
+                  setShowCal(false);
+                }
+              }}
+              month={new Date(viewYear, viewMonth)}
+              onMonthChange={(newMonth) => {
+                setViewYear(newMonth.getFullYear());
+                setViewMonth(newMonth.getMonth());
+              }}
+              className="rounded-md border-0 p-0"
+              captionLayout="dropdown"
+              fromYear={viewYear - 10}
+              toYear={viewYear + 10}
+            />
+          </div>,
+          portalEl
+        )}
     </div>
   );
 }

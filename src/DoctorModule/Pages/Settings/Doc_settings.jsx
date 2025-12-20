@@ -17,7 +17,12 @@ import {
 } from "lucide-react";
 import AvatarCircle from "../../../components/AvatarCircle";
 import Badge from "../../../components/Badge";
-import { cap, hospital } from "../../../../public/index.js";
+import {
+  cap,
+  hospital,
+  verifiedTick,
+  inviteUserIcon,
+} from "../../../../public/index.js";
 import Input from "../../../components/FormItems/Input";
 import Toggle from "../../../components/FormItems/Toggle";
 import TimeInput from "../../../components/FormItems/TimeInput";
@@ -2472,7 +2477,11 @@ const StaffTab = () => {
               className="rounded-lg w-[280px] min-h-[228px] flex items-center justify-center flex-col gap-2 text-[#2F66F6] border-2 border-dashed border-[#CFE0FF] hover:bg-[#F8FBFF] p-3"
             >
               <span className="w-10 h-10 rounded-full grid place-items-center border border-[#BFD3FF] text-[#2F66F6]">
-                <UserPlus size={18} />
+                <img
+                  src={inviteUserIcon}
+                  alt="Invite User"
+                  className="w-6 h-6"
+                />
               </span>
               <span className="text-[13px]">Invite More Users</span>
             </button>
@@ -2881,7 +2890,11 @@ const Doc_settings = () => {
                     value={profile.basic?.phone}
                     right={
                       <span className="inline-flex items-center text-green-600 border border-green-400 py-0.5 px-1 rounded-md text-[12px]">
-                        <CheckCircle2 size={14} className="mr-1" />
+                        <img
+                          src={verifiedTick}
+                          alt="Verified"
+                          className="w-3.5 h-3.5 mr-1"
+                        />
                         Verified
                       </span>
                     }
@@ -2891,7 +2904,11 @@ const Doc_settings = () => {
                     value={profile.basic?.email}
                     right={
                       <span className="inline-flex items-center text-green-600 border border-green-400 py-0.5 px-1 rounded-md text-[12px]">
-                        <CheckCircle2 size={14} className="mr-1" />
+                        <img
+                          src={verifiedTick}
+                          alt="Verified"
+                          className="w-3.5 h-3.5 mr-1"
+                        />
                         Verified
                       </span>
                     }
@@ -3207,12 +3224,12 @@ const Doc_settings = () => {
           >
             <div className="grid md:grid-cols-2 gap-6">
               {/* First Time Consultation */}
-              <div>
-                <div className="text-[12px] text-gray-600 mb-1">
+              <div className="flex items-center gap-4">
+                <label className="text-[12px] text-gray-600 whitespace-nowrap">
                   First Time Consultation Fees:
-                </div>
+                </label>
 
-                <div className="flex h-8">
+                <div className="flex h-8 flex-1">
                   <input
                     className="flex-1 text-xs border border-gray-300 rounded-l px-2 bg-white focus:outline-none"
                     placeholder="Value"
@@ -3242,12 +3259,12 @@ const Doc_settings = () => {
               </div>
 
               {/* Follow-up Consultation */}
-              <div>
-                <div className="text-[12px] text-gray-600 mb-1">
+              <div className="flex items-center gap-4">
+                <label className="text-[12px] text-gray-600 whitespace-nowrap">
                   Follow-up Consultation Fees:
-                </div>
+                </label>
 
-                <div className="flex h-8">
+                <div className="flex h-8 flex-1">
                   <input
                     className="flex-1 text-xs border border-gray-300 rounded-l px-2 bg-white focus:outline-none"
                     placeholder="Value"
@@ -3692,7 +3709,11 @@ const Doc_settings = () => {
                     value="91753 67487"
                     right={
                       <span className="inline-flex items-center text-green-600 border border-green-400 py-0.5 px-1 rounded-md text-[12px]">
-                        <CheckCircle2 size={14} className="mr-1" />
+                        <img
+                          src={verifiedTick}
+                          alt="Verified"
+                          className="w-3.5 h-3.5 mr-1"
+                        />
                         Verified
                       </span>
                     }
@@ -3703,7 +3724,11 @@ const Doc_settings = () => {
                     value="milindchachun@gmail.com"
                     right={
                       <span className="inline-flex items-center text-green-600 border border-green-400 py-0.5 px-1 rounded-md text-[12px]">
-                        <CheckCircle2 size={14} className="mr-1" />
+                        <img
+                          src={verifiedTick}
+                          alt="Verified"
+                          className="w-3.5 h-3.5 mr-1"
+                        />
                         Verified
                       </span>
                     }

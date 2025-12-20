@@ -810,7 +810,7 @@ const WalkInAppointmentDrawer = ({
 const Queue = () => {
   const [slotEnding, setSlotEnding] = useState(false);
   // Queue is restricted to Checked-In only for both Doctor & FD views
-  const [activeFilter, setActiveFilter] = useState("Checked In");
+  const [activeFilter, setActiveFilter] = useState("All");
   const [currentDate, setCurrentDate] = useState(new Date());
   // Auth
   const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
@@ -1342,7 +1342,7 @@ const Queue = () => {
   };
 
   // Show all tabs as before, but queue remains bound to Checked-In.
-  const filters = ["Checked In", "Engaged", "No Show", "Admitted", "All"];
+  const filters = ["All", "Checked In", "Engaged", "No Show", "Admitted"];
   const getFilterCount = (filter) => {
     const categories = slotAppointments?.appointments || {};
     const checkedIn = Array.isArray(categories.checkedIn)
@@ -1485,11 +1485,11 @@ const Queue = () => {
   return (
     <>
       <div className="h-screen overflow-hidden bg-gray-50">
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-2 flex items-center">
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-1 flex items-center">
           <div className="relative mr-6" ref={slotAnchorRef}>
             <button
               type="button"
-              className="flex items-center bg-white rounded-md px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+              className="flex items-center bg-white rounded-md px-3  text-sm text-gray-700 hover:bg-gray-50"
               onClick={(e) => {
                 setSlotOpen((v) => !v);
                 const r = e.currentTarget.getBoundingClientRect();
@@ -1505,10 +1505,10 @@ const Queue = () => {
               <span className="font-medium mr-1 ">
                 {timeSlots.find((t) => t.key === slotValue)?.label || "Morning"}
               </span>
-              <span className="text-gray-500 p-2 border-r border-gray-300">
+              <span className="text-gray-500 py-2 border-gray-300">
                 ({timeSlots.find((t) => t.key === slotValue)?.time || ""})
               </span>
-              <ChevronDown className="ml-2 h-4 w-4   text-gray-500" />
+              <ChevronDown className="ml-2 h-4 w-4 border-gray-300 border-l text-gray-500" />
             </button>
             {slotOpen &&
               createPortal(
