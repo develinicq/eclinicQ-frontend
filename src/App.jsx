@@ -18,6 +18,7 @@ import Queue from "./DoctorModule/Pages/Queue/Queue";
 import DocPatients from "./DoctorModule/Pages/Patients/Patient";
 import PatientDetails from "./DoctorModule/Pages/Patients/PatientDetails";
 import Doc_settings from "./DoctorModule/Pages/Settings/Doc_settings";
+import DocCalendar from "./DoctorModule/Pages/Calendar/DocCalendar";
 import FDLayout from "./FrontDeskModule/Components/Layout/FDLayout";
 import FDDashboard from "./FrontDeskModule/Pages/Dashboard/FDDashboard";
 import FDQueue from "./FrontDeskModule/Pages/Queue/FDQueue";
@@ -62,9 +63,9 @@ import TabDemo from "./pages/TabDemo";
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<DummyLogin/>} />
-  {/* Demo route for Tab component */}
-  <Route path="tab-demo" element={<TabDemo />} />
+      <Route path="/" element={<DummyLogin />} />
+      {/* Demo route for Tab component */}
+      <Route path="tab-demo" element={<TabDemo />} />
 
       {/* Admin panel routes */}
       <Route element={<Layout />}>
@@ -77,78 +78,103 @@ function App() {
         <Route path="settings" element={<Settings />} />
 
         {/* Registration flow with single routes */}
-        <Route path="register/doctor" element={
-          <RegistrationProvider>
-            <Layout_registration_new />
-          </RegistrationProvider>
-        } />
-        <Route path="register/hospital" element={
-          <RegistrationProvider>
-            <Layout_registration_new />
-          </RegistrationProvider>
-        } />
-        <Route path="register/patient" element={
-          <RegistrationProvider>
-            <Layout_registration_new />
-          </RegistrationProvider>
-        } />
+        <Route
+          path="register/doctor"
+          element={
+            <RegistrationProvider>
+              <Layout_registration_new />
+            </RegistrationProvider>
+          }
+        />
+        <Route
+          path="register/hospital"
+          element={
+            <RegistrationProvider>
+              <Layout_registration_new />
+            </RegistrationProvider>
+          }
+        />
+        <Route
+          path="register/patient"
+          element={
+            <RegistrationProvider>
+              <Layout_registration_new />
+            </RegistrationProvider>
+          }
+        />
       </Route>
 
-  <Route path="onboarding" element={<OnboardingFlow />} />
-  {/* Unified sign-in for doctor / hospital / fd / hfd */}
-    <Route path="signin" element={<UnifiedSignIn />} />
-  {/* Back-compat redirects */}
-  <Route path="fd/signin" element={<Navigate to="/signin?variant=fd" replace />} />
-  <Route path="hfd/signin" element={<Navigate to="/signin?variant=hfd" replace />} />
-    {/* Keep existing onboarding routes */}
-    <Route path="fd/onboarding" element={<FDOnboardingFlow />} />
-  <Route path="hospital/onboarding" element={<HOnboardingFlow />} />
-  {/* Legacy: dedicated signin components removed in favor of /signin?variant=... */}
-  <Route path="hfd/onboarding" element={<HFDOnboardingFlow />} />
+      <Route path="onboarding" element={<OnboardingFlow />} />
+      {/* Unified sign-in for doctor / hospital / fd / hfd */}
+      <Route path="signin" element={<UnifiedSignIn />} />
+      {/* Back-compat redirects */}
+      <Route
+        path="fd/signin"
+        element={<Navigate to="/signin?variant=fd" replace />}
+      />
+      <Route
+        path="hfd/signin"
+        element={<Navigate to="/signin?variant=hfd" replace />}
+      />
+      {/* Keep existing onboarding routes */}
+      <Route path="fd/onboarding" element={<FDOnboardingFlow />} />
+      <Route path="hospital/onboarding" element={<HOnboardingFlow />} />
+      {/* Legacy: dedicated signin components removed in favor of /signin?variant=... */}
+      <Route path="hfd/onboarding" element={<HFDOnboardingFlow />} />
 
       {/* Doctor Portal */}
       <Route path="doc" element={<Doctor_layout />}>
         <Route index element={<DocDashboard />} />
         <Route path="queue" element={<Queue />} />
+        <Route path="calendar" element={<DocCalendar />} />
         <Route path="patients" element={<DocPatients />} />
         <Route path="patients/:id" element={<PatientDetails />} />
-  {/* Settings subroutes */}
-  <Route path="settings/account" element={<Doc_settings />} />
-  <Route path="settings/consultation" element={<Doc_settings />} />
-  <Route path="settings/clinics" element={<Doc_settings />} />
-  <Route path="settings/staff-permissions" element={<Doc_settings />} />
-  <Route path="settings/security" element={<Doc_settings />} />
-  <Route path="settings/rx-template" element={<Doc_settings />} />
+        {/* Settings subroutes */}
+        <Route path="settings/account" element={<Doc_settings />} />
+        <Route path="settings/consultation" element={<Doc_settings />} />
+        <Route path="settings/clinics" element={<Doc_settings />} />
+        <Route path="settings/staff-permissions" element={<Doc_settings />} />
+        <Route path="settings/security" element={<Doc_settings />} />
+        <Route path="settings/rx-template" element={<Doc_settings />} />
       </Route>
 
       {/* FrontDesk Portal (copy of Doctor Portal) */}
       <Route path="fd" element={<FDLayout />}>
         <Route index element={<Navigate to="queue" replace />} />
         <Route path="queue" element={<FDQueue />} />
-  <Route path="calendar" element={<FDCalendar />} />
+        <Route path="calendar" element={<FDCalendar />} />
         <Route path="patients" element={<FDPatients />} />
         <Route path="patients/:id" element={<FDPatientDetails />} />
-  {/* Settings */}
-  <Route path="settings/clinics" element={<FDClinics />} />
-  <Route path="settings/consultation" element={<FDConsultation />} />
-  <Route path="settings/staff-permissions" element={<FDStaffPermissions />} />
+        {/* Settings */}
+        <Route path="settings/clinics" element={<FDClinics />} />
+        <Route path="settings/consultation" element={<FDConsultation />} />
+        <Route
+          path="settings/staff-permissions"
+          element={<FDStaffPermissions />}
+        />
       </Route>
 
       {/* Hospital Portal (copy of Doctor Portal) */}
       <Route path="hospital" element={<HospitalLayout />}>
         <Route index element={<HDashboard />} />
         <Route path="queue" element={<HQueue />} />
-  <Route path="patients" element={<HPatients />} />
-  <Route path="calendar" element={<HCalendar />} />
-  <Route path="doctors" element={<HDoctors />} />
+        <Route path="patients" element={<HPatients />} />
+        <Route path="calendar" element={<HCalendar />} />
+        <Route path="doctors" element={<HDoctors />} />
         <Route path="patients/:id" element={<HPatientDetails />} />
-  <Route path="settings/account" element={<HAccount />} />
-  <Route path="settings/timing" element={<HTiming />} />
-  <Route path="settings/surgeries" element={<HSurgeries />} />
-  <Route path="settings/staff-permissions" element={<HStaffPermissions />} />
-  <Route path="settings/security" element={<HSecurity />} />
-  <Route path="settings/rx-template" element={<HRxTemplate />} />
-  <Route path="settings/subscriptions-billing" element={<HSubscriptions />} />
+        <Route path="settings/account" element={<HAccount />} />
+        <Route path="settings/timing" element={<HTiming />} />
+        <Route path="settings/surgeries" element={<HSurgeries />} />
+        <Route
+          path="settings/staff-permissions"
+          element={<HStaffPermissions />}
+        />
+        <Route path="settings/security" element={<HSecurity />} />
+        <Route path="settings/rx-template" element={<HRxTemplate />} />
+        <Route
+          path="settings/subscriptions-billing"
+          element={<HSubscriptions />}
+        />
       </Route>
 
       {/* Hospital FrontDesk Portal (copy of FD) */}
@@ -161,9 +187,11 @@ function App() {
         {/* Settings */}
         <Route path="settings/clinics" element={<HFDClinics />} />
         <Route path="settings/consultation" element={<HFDConsultation />} />
-        <Route path="settings/staff-permissions" element={<HFDStaffPermissions />} />
+        <Route
+          path="settings/staff-permissions"
+          element={<HFDStaffPermissions />}
+        />
       </Route>
-
     </Routes>
   );
 }
