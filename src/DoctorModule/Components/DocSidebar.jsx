@@ -1,6 +1,15 @@
 import React, { useEffect, useState, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { HelpCircle, ArrowRight, ChevronDown, ChevronUp, Building2, Circle, CircleDot, Plus } from "lucide-react";
+import {
+  HelpCircle,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Building2,
+  Circle,
+  CircleDot,
+  Plus,
+} from "lucide-react";
 // Use icons from public/index.js (MainSidebar + Doctor module sidebar icons)
 import {
   logo,
@@ -64,8 +73,10 @@ const DocSidebar = () => {
   // Close popover on outside click / escape
   useEffect(() => {
     const onClick = (e) => {
-      const clickedInsideTrigger = switchRef.current && switchRef.current.contains(e.target);
-      const clickedInsidePopover = popoverRef.current && popoverRef.current.contains(e.target);
+      const clickedInsideTrigger =
+        switchRef.current && switchRef.current.contains(e.target);
+      const clickedInsidePopover =
+        popoverRef.current && popoverRef.current.contains(e.target);
       if (showSwitch && !clickedInsideTrigger && !clickedInsidePopover) {
         setShowSwitch(false);
       }
@@ -90,10 +101,12 @@ const DocSidebar = () => {
       const GAP_Y = 4; // small vertical gap
       let left = rect.left + INSET_X;
       let top = rect.bottom + GAP_Y;
-      if (left + WIDTH > window.innerWidth - 8) left = window.innerWidth - WIDTH - 8;
+      if (left + WIDTH > window.innerWidth - 8)
+        left = window.innerWidth - WIDTH - 8;
       if (left < 8) left = 8;
       const EST_HEIGHT = 300;
-      if (top + EST_HEIGHT > window.innerHeight - 8) top = Math.max(8, window.innerHeight - EST_HEIGHT - 8);
+      if (top + EST_HEIGHT > window.innerHeight - 8)
+        top = Math.max(8, window.innerHeight - EST_HEIGHT - 8);
       setPopoverPos({ top, left });
     }
   }, [showSwitch]);
@@ -160,17 +173,34 @@ const DocSidebar = () => {
           <button
             type="button"
             onClick={() => setShowSwitch((v) => !v)}
-            className={`w-full border-[0.5px] border-[#B8B8B8] rounded-md px-2 py-2 bg-white flex items-center gap-2 hover:bg-gray-50 ${showSwitch ? 'ring-1 ring-[#2372EC]/30' : ''}`}
+            className={`w-full border-[0.5px] border-[#B8B8B8] rounded-md px-2 py-2 bg-white flex items-center gap-2 hover:bg-gray-50 ${
+              showSwitch ? "ring-1 ring-[#2372EC]/30" : ""
+            }`}
             ref={triggerRef}
             aria-haspopup="true"
             aria-expanded={showSwitch}
           >
-            <AvatarCircle name="Manipal Hospital" size="s" color="orange" icon={<Building2 size={14} />} className="shrink-0" />
+            <AvatarCircle
+              name="Manipal Hospital"
+              size="s"
+              color="orange"
+              icon={<Building2 size={14} />}
+              className="shrink-0"
+            />
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-[13px] font-medium text-gray-900 truncate">Manipal Hospit...</div>
-              <div className="text-[11px] text-gray-500 leading-tight">Hospital</div>
+              <div className="text-[13px] font-medium text-gray-900 truncate">
+                Manipal Hospit...
+              </div>
+              <div className="text-[11px] text-gray-500 leading-tight">
+                Hospital
+              </div>
             </div>
-            <ChevronDown size={16} className={`text-gray-500 transition-transform ${showSwitch ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              size={16}
+              className={`text-gray-500 transition-transform ${
+                showSwitch ? "rotate-180" : ""
+              }`}
+            />
           </button>
 
           {showSwitch && (
@@ -183,7 +213,9 @@ const DocSidebar = () => {
             >
               <div className="absolute -top-2 left-8 w-0 h-0 border-l-6 border-r-6 border-b-6 border-l-transparent border-r-transparent border-b-white" />
               <div className="px-3 pt-3 pb-2">
-                <div className="text-[11px] font-semibold tracking-wide text-gray-600">SWITCH ACCOUNT</div>
+                <div className="text-[11px] font-semibold tracking-wide text-gray-600">
+                  SWITCH ACCOUNT
+                </div>
               </div>
               <div className="px-2 pb-2">
                 {accounts.map((acc, i) => (
@@ -191,21 +223,46 @@ const DocSidebar = () => {
                     <button
                       type="button"
                       onClick={() => setSelectedAccount(acc.id)}
-                      className={`w-full flex items-center gap-3 px-2 py-2 border border-blue-200 rounded text-left ${selectedAccount === acc.id ? 'bg-[#F7FAFF]' : 'hover:bg-gray-50'}`}
+                      className={`w-full flex items-center gap-3 px-2 py-2 rounded text-left ${
+                        selectedAccount === acc.id
+                          ? "bg-[#F7FAFF] border border-blue-200"
+                          : "hover:bg-gray-50"
+                      }`}
                     >
                       {/* custom radio */}
-                      <span className={`shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${selectedAccount === acc.id ? 'border-[#2372EC] bg-[#2372EC]' : 'border-gray-400 bg-white'}`}>
-                        {selectedAccount === acc.id && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      <span
+                        className={`shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${
+                          selectedAccount === acc.id
+                            ? "border-[#2372EC] bg-[#2372EC]"
+                            : "border-gray-400 bg-white"
+                        }`}
+                      >
+                        {selectedAccount === acc.id && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                        )}
                       </span>
                       <span className="shrink-0 w-5 h-5 rounded-sm bg-[#F3F8FF] border border-[#BFD6FF] flex items-center justify-center">
-                        <AvatarCircle name="Manipal Hospital" size="s" color="orange" icon={<Building2 size={14} />} className="shrink-0" />
+                        <AvatarCircle
+                          name="Manipal Hospital"
+                          size="s"
+                          color="orange"
+                          icon={<Building2 size={14} />}
+                          className="shrink-0"
+                        />
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-medium text-gray-700 truncate">{acc.name}</div>
-                        <div className="text-[11px] text-gray-500 truncate">{acc.type}{acc.location ? ` | ${acc.location}` : ''}</div>
+                        <div className="text-[13px] font-medium text-gray-700 truncate">
+                          {acc.name}
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">
+                          {acc.type}
+                          {acc.location ? ` | ${acc.location}` : ""}
+                        </div>
                       </div>
                       {acc.isSelf && (
-                        <span className="ml-2 text-[14px]  px-1.5 py-0.5 rounded border border-green-300 bg-green-50 text-green-500 font-light">Self</span>
+                        <span className="ml-2 text-[14px]  px-1.5 py-0.5 rounded border border-green-300 bg-green-50 text-green-500 font-light">
+                          Self
+                        </span>
                       )}
                     </button>
                     {i === 0 && (
@@ -217,7 +274,6 @@ const DocSidebar = () => {
                         <span className="text-[13px]">Add Branch</span>
                       </button>
                     )}
-                    {i === 0 && <div className="my-1 border-t border-gray-200" />}
                   </React.Fragment>
                 ))}
               </div>
@@ -235,9 +291,10 @@ const DocSidebar = () => {
                   to={item.path}
                   end={item.path === "/doc"}
                   className={({ isActive }) =>
-                    `flex items-center gap-[6px] py-3 px-4 h-[44px] w-full text-left transition-colors ${isActive
-                      ? "  bg-gradient-to-r from-[#2372EC] via-[#68A3FF] to-[#2373EC] hover:from-[#1760cd] hover:via-[#1760cd] hover:to-[#1760cd] text-white border-l-[3px] border-[#96BFFF] "
-                      : "text-gray-800 hover:bg-gray-100"
+                    `flex items-center gap-[6px] py-3 px-4 h-[44px] w-full text-left transition-colors ${
+                      isActive
+                        ? "  bg-gradient-to-r from-[#2372EC] via-[#68A3FF] to-[#2373EC] hover:from-[#1760cd] hover:via-[#1760cd] hover:to-[#1760cd] text-white border-l-[3px] border-[#96BFFF] "
+                        : "text-gray-800 hover:bg-gray-100"
                     }`
                   }
                 >
@@ -261,13 +318,18 @@ const DocSidebar = () => {
                 <button
                   type="button"
                   onClick={() => setOpenSettings((v) => !v)}
-                  className={`w-full flex items-center justify-between py-3 px-4 h-[44px] transition-colors ${isSettingsRoute
-                    ? "bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF]"
-                    : "text-gray-800 hover:bg-gray-100"
-                    }`}
+                  className={`w-full flex items-center justify-between py-3 px-4 h-[44px] transition-colors ${
+                    isSettingsRoute
+                      ? "bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF]"
+                      : "text-gray-800 hover:bg-gray-100"
+                  }`}
                 >
                   <span className="inline-flex items-center gap-[6px]">
-                    <img src={isSettingsRoute ? settingBlue : settingUnselect} alt="Settings" className="w-5 h-5" />
+                    <img
+                      src={isSettingsRoute ? settingBlue : settingUnselect}
+                      alt="Settings"
+                      className="w-5 h-5"
+                    />
                     <span className="font-normal text-sm">Settings</span>
                   </span>
                   {openSettings ? (
@@ -279,13 +341,16 @@ const DocSidebar = () => {
 
                 {openSettings && (
                   <div className="ml-5 pl-2 border-l border-gray-200">
-                    {settingsSubItems.map((s) => (
+                    {settingsSubItems.map((s) =>
                       s.subItems ? (
                         <div key={s.to}>
                           <NavLink
                             to={s.to}
                             className={({ isActive }) =>
-                              `block text-sm px-3 py-2 my-[2px] rounded-sm ${isActive ? "bg-blue-50 text-gray-900" : "text-gray-700 hover:bg-gray-50"
+                              `block text-sm px-3 py-2 my-[2px] rounded-sm ${
+                                isActive
+                                  ? "bg-blue-50 text-gray-900"
+                                  : "text-gray-700 hover:bg-gray-50"
                               }`
                             }
                           >
@@ -297,7 +362,10 @@ const DocSidebar = () => {
                                 key={sub.to}
                                 to={sub.to}
                                 className={({ isActive }) =>
-                                  `block text-xs px-3 py-1 my-[2px] rounded-sm ${isActive ? "bg-blue-100 text-gray-900" : "text-gray-700 hover:bg-gray-50"
+                                  `block text-xs px-3 py-1 my-[2px] rounded-sm ${
+                                    isActive
+                                      ? "bg-blue-100 text-gray-900"
+                                      : "text-gray-700 hover:bg-gray-50"
                                   }`
                                 }
                               >
@@ -311,36 +379,37 @@ const DocSidebar = () => {
                           key={s.to}
                           to={s.to}
                           className={({ isActive }) =>
-                            `block text-sm px-3 py-2 my-[2px] rounded-sm ${isActive ? "bg-blue-50 text-gray-900" : "text-gray-700 hover:bg-gray-50"
+                            `block text-sm px-3 py-2 my-[2px] rounded-sm ${
+                              isActive
+                                ? "bg-blue-50 text-gray-900"
+                                : "text-gray-700 hover:bg-gray-50"
                             }`
                           }
                         >
                           {s.label}
                         </NavLink>
                       )
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
             );
           })}
         </nav>
-
       </div>
 
       {/* Bottom Section */}
       <div className="px-4 py-3 border-t border-[#D6D6D6] flex justify-between items-center text-[#626060]">
-        <div
-          className={`flex items-center gap-[6px] w-full text-left `}
-        >
-          <img src={helpWhite} alt="Help & Support" className="w-5 h-5" /> Help & Support
+        <div className={`flex items-center gap-[6px] w-full text-left `}>
+          <img src={helpWhite} alt="Help & Support" className="w-5 h-5" /> Help
+          & Support
         </div>
 
         <div>
           <ArrowRight size={18} />
         </div>
       </div>
-    </div >
+    </div>
   );
 };
 

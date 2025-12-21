@@ -14,6 +14,7 @@ import {
   ShieldPlus,
   ClipboardList,
   Crown,
+  Trophy,
 } from "lucide-react";
 import AvatarCircle from "../../../components/AvatarCircle";
 import Badge from "../../../components/Badge";
@@ -3425,7 +3426,7 @@ const Doc_settings = () => {
             )}
 
             {/* Days grid (from API schedule) */}
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
               {(consultationDetails?.slotTemplates?.schedule || []).map((d) => {
                 const toHM = (iso) => {
                   if (!iso) return "";
@@ -3436,18 +3437,20 @@ const Doc_settings = () => {
                 };
                 const disabledCls = d.available
                   ? ""
-                  : "opacity-50 pointer-events-none";
+                  : "opacity-60 pointer-events-none";
+                const sessionBgClass = d.available ? "bg-blue-50" : "bg-white";
+                const cardOpacity = d.available ? "" : "opacity-60";
                 return (
                   <div
                     key={d.day}
-                    className="bg-white border border-gray-200 rounded-lg p-3"
+                    className={`bg-white border border-gray-200 rounded-lg p-4 ${cardOpacity}`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-900">
                         {d.day}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">Available</span>
+                        <span className="text-xs text-gray-600">Available</span>
                         <Toggle
                           checked={Boolean(d.available)}
                           onChange={(v) => {
@@ -3477,14 +3480,17 @@ const Doc_settings = () => {
                       </div>
                     </div>
 
-                    <div className="mt-3 space-y-2">
+                    {/* Divider */}
+                    <div className="border-t border-gray-200 mb-3"></div>
+
+                    <div className={`space-y-3 ${disabledCls}`}>
                       {Array.isArray(d.sessions) && d.sessions.length > 0 ? (
                         d.sessions.map((s) => (
                           <div
                             key={s.id || s.sessionNumber}
-                            className={`flex items-center flex-wrap gap-2 ${disabledCls}`}
+                            className={`flex items-center gap-3 ${sessionBgClass} p-3 rounded-lg`}
                           >
-                            <span className="text-xs text-gray-600">
+                            <span className="text-xs text-gray-600 whitespace-nowrap">
                               Session {s.sessionNumber}:
                             </span>
                             <TimeInput
@@ -3536,12 +3542,12 @@ const Doc_settings = () => {
                                 setConsultationDirty(true);
                               }}
                             />
-                            <span className="ml-2 text-xs text-gray-600 whitespace-nowrap">
+                            <span className="text-xs text-gray-600 whitespace-nowrap">
                               Token Available:
                             </span>
                             <div className="w-24">
                               <input
-                                className="h-8 w-full text-xs border border-gray-300 rounded px-2"
+                                className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-white"
                                 placeholder="Value"
                                 value={s.maxTokens ?? ""}
                                 onChange={(e) => {
@@ -3566,21 +3572,139 @@ const Doc_settings = () => {
                                 }}
                               />
                             </div>
+
+                            {/* Delete icon - only show when there are 2+ sessions */}
+                            {d.sessions.length > 1 && (
+                              <button
+                                onClick={() => {
+                                  setConsultationDetails((prev) => {
+                                    if (!prev?.slotTemplates?.schedule)
+                                      return prev;
+
+                                    return {
+                                      ...prev,
+                                      slotTemplates: {
+                                        ...prev.slotTemplates,
+                                        schedule:
+                                          prev.slotTemplates.schedule.map(
+                                            (day) =>
+                                              day.day === d.day
+                                                ? {
+                                                    ...day,
+                                                    sessions:
+                                                      day.sessions.filter(
+                                                        (session) =>
+                                                          (session.id ||
+                                                            session.sessionNumber) !==
+                                                          (s.id ||
+                                                            s.sessionNumber)
+                                                      ),
+                                                  }
+                                                : day
+                                          ),
+                                      },
+                                    };
+                                  });
+                                  setConsultationDirty(true);
+                                }}
+                                className="text-gray-400 hover:text-red-600 transition-colors"
+                                title="Delete session"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
                           </div>
                         ))
                       ) : (
-                        <div className="text-xs text-gray-500">
-                          No sessions configured
+                        <div className="flex items-center flex-wrap gap-3 opacity-50">
+                          <span className="text-xs text-gray-600 whitespace-nowrap">
+                            Session 1:
+                          </span>
+                          <TimeInput
+                            value="09:00"
+                            disabled
+                            className="opacity-100"
+                          />
+                          <span className="text-xs text-gray-400">-</span>
+                          <TimeInput
+                            value="01:00"
+                            disabled
+                            className="opacity-100"
+                          />
+                          <span className="text-xs text-gray-600 whitespace-nowrap">
+                            Token Available:
+                          </span>
+                          <div className="w-24">
+                            <input
+                              className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-gray-50"
+                              placeholder="Value"
+                              disabled
+                            />
+                          </div>
                         </div>
                       )}
-                      <div className="mt-2 flex items-center justify-between text-xs">
-                        <button className={`text-blue-600 ${disabledCls}`}>
+                      <div className="mt-4 flex items-center justify-between">
+                        <button
+                          className="text-sm text-blue-600 hover:text-blue-700 font-normal"
+                          disabled={!d.available}
+                          onClick={() => {
+                            if (!d.available) return;
+                            setConsultationDetails((prev) => {
+                              if (!prev?.slotTemplates?.schedule) return prev;
+
+                              const daySchedule =
+                                prev.slotTemplates.schedule.find(
+                                  (day) => day.day === d.day
+                                );
+
+                              if (!daySchedule) return prev;
+
+                              // Check if we've reached max 6 slots
+                              const currentSessionCount =
+                                daySchedule.sessions?.length || 0;
+                              if (currentSessionCount >= 6) {
+                                alert("Maximum 6 slots allowed");
+                                return prev;
+                              }
+
+                              // Create new session
+                              const newSession = {
+                                sessionNumber: currentSessionCount + 1,
+                                startTime: "1970-01-01T09:00:00.000Z",
+                                endTime: "1970-01-01T17:00:00.000Z",
+                                maxTokens: 0,
+                              };
+
+                              return {
+                                ...prev,
+                                slotTemplates: {
+                                  ...prev.slotTemplates,
+                                  schedule: prev.slotTemplates.schedule.map(
+                                    (day) =>
+                                      day.day === d.day
+                                        ? {
+                                            ...day,
+                                            sessions: [
+                                              ...(day.sessions || []),
+                                              newSession,
+                                            ],
+                                          }
+                                        : day
+                                  ),
+                                },
+                              };
+                            });
+                            setConsultationDirty(true);
+                          }}
+                        >
                           + Add More (Max 6 Slots)
                         </button>
-                        <label
-                          className={`inline-flex items-center gap-2 text-gray-600 ${disabledCls}`}
-                        >
-                          <input type="checkbox" disabled={!d.available} />
+                        <label className="inline-flex items-center gap-2 text-sm text-gray-600">
+                          <input
+                            type="checkbox"
+                            disabled={!d.available}
+                            className="w-4 h-4"
+                          />
                           <span>Apply to All Days</span>
                         </label>
                       </div>

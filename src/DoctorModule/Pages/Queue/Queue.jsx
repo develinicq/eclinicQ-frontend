@@ -1519,11 +1519,10 @@ const Queue = () => {
                   style={{
                     top: slotPos.top,
                     left: slotPos.left,
-                    width: slotPos.width,
                   }}
                 >
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-xl">
-                    <ul className="py-1">
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden">
+                    <ul className="py-2 px-2">
                       {timeSlots.map(({ key, label, time, Icon }, idx) => (
                         <li key={key}>
                           <button
@@ -1539,8 +1538,8 @@ const Queue = () => {
                               }
                               setSlotOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-blue-50 ${
-                              slotValue === key ? "bg-blue-50" : ""
+                            className={`w-full text-left px-3 py-2.5 flex items-center gap-3 rounded-lg hover:bg-blue-50 ${
+                              slotValue === key ? "bg-[#2372EC] text-white" : ""
                             }`}
                           >
                             <img
@@ -1551,11 +1550,23 @@ const Queue = () => {
                               } w-7 h-7`}
                             />
 
-                            <span className="flex-1">
-                              <span className="block text-[14px] font-semibold text-gray-900">
+                            <span className="flex items-center gap-2">
+                              <span
+                                className={`text-[14px] font-semibold ${
+                                  slotValue === key
+                                    ? "text-white"
+                                    : "text-gray-900"
+                                }`}
+                              >
                                 {label}
                               </span>
-                              <span className="block text-[13px] text-gray-600">
+                              <span
+                                className={`text-[13px] ${
+                                  slotValue === key
+                                    ? "text-white/90"
+                                    : "text-gray-600"
+                                }`}
+                              >
                                 ({time})
                               </span>
                             </span>
@@ -1609,7 +1620,7 @@ const Queue = () => {
             <button
               type="button"
               ref={actionAnchorRef}
-              className="relative w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100"
+              className="relative w-4 h-6 flex items-center justify-center rounded hover:bg-gray-100"
               onClick={(e) => {
                 setActionMenuOpen((v) => !v);
                 const r = e.currentTarget.getBoundingClientRect();

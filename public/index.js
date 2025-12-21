@@ -103,6 +103,7 @@ import arrowLeft from "./arrow-left.svg";
 import arrowRight from "./arrow-right.svg";
 import verifiedTick from "./verified-tick.svg";
 import inviteUserIcon from "./invite-user-icon.svg";
+import searchIcon from "./search-icon.svg";
 
 export {
   // Root PNGs
@@ -201,4 +202,5 @@ export {
   arrowRight,
   verifiedTick,
   inviteUserIcon,
+  searchIcon,
 };
