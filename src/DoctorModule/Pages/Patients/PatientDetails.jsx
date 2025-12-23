@@ -626,7 +626,7 @@ export default function PatientDetails() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-gray-500">Status:</div>
-                      <div className="col-span-2 text-green-500 bg-green-100 px-2 rounded-sm">
+                      <div className="col-span-2 text-[#3EAF3F] bg-[#F2FFF3] px-2 rounded-sm">
                         {(patient.raw &&
                           patient.raw.overview &&
                           patient.raw.overview.lastVisit &&
@@ -894,7 +894,7 @@ export default function PatientDetails() {
                 </button> */}
               </div>
 
-              <div className="bg-white p-4 rounded border border-gray-200 min-h-[240px]">
+              <div className="p-[16px] flex flex-col gap-[24px]">
                 {rightTab === "vitals" && (
                   <div>
                     <PatientVitals
