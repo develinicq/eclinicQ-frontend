@@ -7,8 +7,8 @@ const useImageUploadStore = create((set) => ({
   error: null,
 
   getUploadUrl: async (contentType, file) => {
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"];
-    const maxSize = 1 * 1024 * 1024; 
+  const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"];
+  const maxSize = 2 * 1024 * 1024; 
     if (!file || typeof file !== 'object') {
       set({ error: "No file provided", isLoading: false });
       throw new Error("No file provided");
@@ -18,8 +18,8 @@ const useImageUploadStore = create((set) => ({
       throw new Error("Unsupported file type. Supported: .png, .jpg, .svg, .webp");
     }
     if (file.size > maxSize) {
-      set({ error: "File size exceeds 1MB limit", isLoading: false });
-      throw new Error("File size exceeds 1MB limit");
+      set({ error: "File size exceeds 2MB limit", isLoading: false });
+      throw new Error("File size exceeds 2MB limit");
     }
     set({ isLoading: true, error: null });
     try {

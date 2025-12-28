@@ -32,6 +32,9 @@ import {
   CalendarX2,
 } from "lucide-react";
 import NotificationDrawer from "../../components/NotificationDrawer.jsx";
+import InviteStaffDrawer from "../../components/Staff/InviteStaffDrawer.jsx";
+import { fetchAllRoles } from "../../services/rbac/roleService";
+import { registerStaff } from "../../services/staff/registerStaffService";
 import AddPatientDrawer from "../../components/PatientList/AddPatientDrawer.jsx";
 import BookAppointmentDrawer from "../../components/Appointment/BookAppointmentDrawer.jsx";
 import {
@@ -117,6 +120,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [addPatientOpen, setAddPatientOpen] = useState(false);
   const [bookApptOpen, setBookApptOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Focus search when pressing Ctrl+/
@@ -293,6 +297,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
               <button
                 onClick={() => {
                   setShowAddMenu(false);
+                  setInviteOpen(true);
                 }}
                 className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-gray-800 hover:rounded-md hover:bg-gray-50"
               >
@@ -548,8 +553,75 @@ const DocNavbar = ({ moduleSwitcher }) => {
           // Optional: trigger any queue refresh if present
         }}
       />
+      <NavbarInviteStaffBridge open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   );
 };
 
 export default DocNavbar;
+
+// Local bridge component to fetch roles and post invites using shared drawer
+const NavbarInviteStaffBridge = ({ open, onClose }) => {
+  const { doctorDetails } = useAuthStore.getState();
+  const clinicId =
+    doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId;
+  const [roles, setRoles] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      if (!open || !clinicId) return;
+      try {
+        setLoading(true);
+        const data = await fetchAllRoles(clinicId);
+        const list = data?.data || [];
+        if (!cancelled)
+          setRoles(list.map((r) => ({ id: r.id, name: r.name })));
+      } catch (e) {
+        console.error("Failed to load roles", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, clinicId]);
+
+  const handleSend = async (rows) => {
+    if (!clinicId) return;
+    await Promise.all(
+      rows.map(async (r) => {
+        const parts = String(r.fullName || "").trim().split(/\s+/);
+        const firstName = parts[0] || "";
+        const lastName = parts.slice(1).join(" ");
+        const payload = {
+          firstName,
+          lastName,
+          emailId: r.email,
+          phone: r.phone,
+          position: r.position,
+          clinicId,
+          roleId: r.roleId || null,
+        };
+        try {
+          await registerStaff(payload);
+        } catch (e) {
+          console.error("Failed to register staff", payload, e);
+        }
+      })
+    );
+    onClose?.();
+  };
+
+  return (
+    <InviteStaffDrawer
+      open={open}
+      onClose={onClose}
+      onSend={handleSend}
+      roleOptions={roles}
+    />
+  );
+};

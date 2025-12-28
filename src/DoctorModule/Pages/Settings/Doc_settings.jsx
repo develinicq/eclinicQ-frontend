@@ -41,6 +41,10 @@ import useAuthStore from "../../../store/useAuthStore";
 import axiosClient from "../../../lib/axios";
 import { fetchClinicStaff } from "../../../services/staffService";
 import { registerStaff } from "../../../services/staff/registerStaffService";
+import EditBasicInfoDrawer from "./drawers/EditBasicInfoDrawer.jsx";
+import AddEducationDrawer from "./drawers/AddEducationDrawer.jsx";
+import AddAwardDrawer from "./drawers/AddAwardDrawer.jsx";
+import EditClinicDetailsDrawer from "./drawers/EditClinicDetailsDrawer.jsx";
 
 // Global drawer animation keyframes (used by all drawers in this page)
 const DrawerKeyframes = () => (
@@ -171,344 +175,7 @@ const ProfileItemCard = ({
   );
 };
 
-// ======== Drawer: Edit Basic Info ========
-const BasicInfoDrawer = ({ open, onClose, initial, onSave }) => {
-  const [form, setForm] = useState(() => ({
-    firstName: initial?.firstName || "",
-    lastName: initial?.lastName || "",
-    phone: initial?.phone || "",
-    email: initial?.email || "",
-    gender: initial?.gender || "Male",
-    city: initial?.city || "",
-    website: initial?.website || "",
-    headline: initial?.headline || "",
-    about: initial?.about || "",
-    languages: initial?.languages || [],
-  }));
-  const [headlineCount, setHeadlineCount] = useState(
-    initial?.headline?.length || 0
-  );
-  const [closing, setClosing] = useState(false);
-
-  useEffect(() => {
-    setForm({
-      firstName: initial?.firstName || "",
-      lastName: initial?.lastName || "",
-      phone: initial?.phone || "",
-      email: initial?.email || "",
-      gender: initial?.gender || "Male",
-      city: initial?.city || "",
-      website: initial?.website || "",
-      headline: initial?.headline || "",
-      about: initial?.about || "",
-      languages: initial?.languages || [],
-    });
-    setHeadlineCount(initial?.headline?.length || 0);
-  }, [initial, open]);
-
-  useEffect(() => {
-    const onEsc = (e) => e.key === "Escape" && onClose?.();
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [onClose]);
-
-  if (!open && !closing) return null;
-
-  const requestClose = () => {
-    // Play exit animation before unmounting
-    setClosing(true);
-    setTimeout(() => {
-      setClosing(false);
-      onClose?.();
-    }, 220);
-  };
-
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const toggleLang = (lang) => {
-    setForm((f) => {
-      const has = f.languages?.includes(lang);
-      const next = has
-        ? f.languages.filter((l) => l !== lang)
-        : [...(f.languages || []), lang];
-      return { ...f, languages: next };
-    });
-  };
-  const canSave = form.firstName && form.lastName && form.phone && form.email;
-
-  return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className={`absolute inset-0 bg-black/30 ${
-          closing
-            ? "animate-[fadeOut_.2s_ease-in_forwards]"
-            : "animate-[fadeIn_.25s_ease-out_forwards]"
-        }`}
-        onClick={requestClose}
-      />
-      <aside
-        className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-          closing
-            ? "animate-[drawerOut_.22s_ease-in_forwards]"
-            : "animate-[drawerIn_.25s_ease-out_forwards]"
-        }`}
-        role="dialog"
-        aria-modal="true"
-      >
-        {/* Header */}
-        <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[#424242]">
-            Edit Basic Info
-          </h3>
-          <div className="flex items-center gap-3">
-            <button
-              disabled={!canSave}
-              onClick={() => canSave && onSave(form)}
-              className={
-                "text-xs md:text-sm h-8 px-3 rounded-md transition " +
-                (!canSave
-                  ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
-                  : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
-              }
-            >
-              Update
-            </button>
-            <button
-              onClick={requestClose}
-              className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="p-3 overflow-y-auto h-[calc(100%-48px)]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {/* First/Last */}
-            <label className="block">
-              <span className="text-[12px] text-[#424242] font-medium">
-                First Name <span className="text-red-500">*</span>
-              </span>
-              <input
-                value={form.firstName || ""}
-                onChange={(e) => set("firstName", e.target.value)}
-                placeholder="Milind"
-                className="mt-1 h-8 w-full rounded-md border border-[#E6E6E6] px-3 text-sm outline-none focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF]"
-              />
-            </label>
-            <label className="block">
-              <span className="text-[12px] text-[#424242] font-medium">
-                Last Name <span className="text-red-500">*</span>
-              </span>
-              <input
-                value={form.lastName || ""}
-                onChange={(e) => set("lastName", e.target.value)}
-                placeholder="Chauhan"
-                className="mt-1 h-8 w-full rounded-md border border-[#E6E6E6] px-3 text-sm outline-none focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF]"
-              />
-            </label>
-
-            {/* Phone */}
-            <label className="block">
-              <span className="text-[12px] text-[#424242] font-medium">
-                Mobile Number <span className="text-red-500">*</span>
-              </span>
-              <div className="mt-1 h-8 w-full rounded-md border border-[#E6E6E6] flex items-center px-2 focus-within:border-[#BFD3FF] focus-within:ring-2 focus-within:ring-[#EAF2FF]">
-                <input
-                  value={form.phone || ""}
-                  onChange={(e) => set("phone", e.target.value)}
-                  placeholder="91753 67487"
-                  className="flex-1 outline-none text-sm px-1"
-                />
-                <span className="ml-1 inline-flex items-center text-green-600 text-[12px]">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                </span>
-              </div>
-              <div className="text-[12px] text-[#6B7280] mt-1">
-                To change your Mobile & Email please{" "}
-                <a
-                  className="text-[#2F66F6]"
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                >
-                  Call Us
-                </a>
-              </div>
-            </label>
-
-            {/* Email */}
-            <label className="block">
-              <span className="text-[12px] text-[#424242] font-medium">
-                Email <span className="text-red-500">*</span>
-              </span>
-              <div className="mt-1 h-8 w-full rounded-md border border-[#E6E6E6] flex items-center px-2 focus-within:border-[#BFD3FF] focus-within:ring-2 focus-within:ring-[#EAF2FF]">
-                <input
-                  type="email"
-                  value={form.email || ""}
-                  onChange={(e) => set("email", e.target.value)}
-                  placeholder="milind@example.com"
-                  className="flex-1 outline-none text-sm px-1"
-                />
-                <span className="ml-1 inline-flex items-center text-green-600 text-[12px]">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                </span>
-              </div>
-            </label>
-
-            {/* Gender */}
-            <div className="col-span-1 md:col-span-2">
-              <div className="text-[12px] text-[#424242] font-medium">
-                Gender <span className="text-red-500">*</span>
-              </div>
-              <div className="mt-1 flex items-center gap-6 text-[13px] text-[#424242]">
-                {["Male", "Female", "Other"].map((g) => (
-                  <label key={g} className="inline-flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="gender"
-                      checked={form.gender === g}
-                      onChange={() => set("gender", g)}
-                    />
-                    {g}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Language */}
-            <div className="col-span-1 md:col-span-2">
-              <div className="text-[12px] text-[#424242] font-medium">
-                Language
-              </div>
-              <div className="mt-1 flex flex-wrap gap-3 text-[13px] text-[#424242]">
-                {["English", "Hindi", "Marathi", "Gujarati", "Kannada"].map(
-                  (l) => (
-                    <label
-                      key={l}
-                      className="inline-flex items-center gap-2 border rounded-md px-2 py-1 text-[12px]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!!form.languages?.includes(l)}
-                        onChange={() => toggleLang(l)}
-                      />{" "}
-                      {l}
-                    </label>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* City */}
-            <label className="block">
-              <span className="text-[12px] text-[#424242] font-medium">
-                City <span className="text-red-500">*</span>
-              </span>
-              <div className="relative mt-1">
-                <select
-                  value={form.city || ""}
-                  onChange={(e) => set("city", e.target.value)}
-                  className="h-8 w-full rounded-md border border-[#E6E6E6] px-3 text-sm outline-none appearance-none focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF]"
-                >
-                  <option>Akola, Maharashtra</option>
-                  <option>Mumbai, Maharashtra</option>
-                  <option>Pune, Maharashtra</option>
-                  <option>Ahmedabad, Gujarat</option>
-                </select>
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
-                  ▾
-                </span>
-              </div>
-            </label>
-
-            {/* Website */}
-            <label className="block">
-              <span className="text-[12px] text-[#424242] font-medium">
-                Website
-              </span>
-              <input
-                value={form.website || ""}
-                onChange={(e) => set("website", e.target.value)}
-                placeholder="Paste Website Link"
-                className="mt-1 h-8 w-full rounded-md border border-[#E6E6E6] px-3 text-sm outline-none focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF]"
-              />
-            </label>
-          </div>
-
-          {/* Headline */}
-          <div className="mt-3">
-            <div className="text-[12px] text-[#424242] font-medium">
-              Profile Headline
-            </div>
-            <div className="mt-1">
-              <textarea
-                value={form.headline || ""}
-                onChange={(e) => {
-                  set("headline", e.target.value);
-                  setHeadlineCount(e.target.value.length);
-                }}
-                rows={2}
-                className="w-full rounded-md border border-[#E6E6E6] px-3 py-2 text-sm outline-none focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF]"
-              />
-              <div className="text-[12px] text-[#6B7280] text-right">
-                {headlineCount}/220
-              </div>
-            </div>
-          </div>
-
-          {/* About */}
-          <div className="mt-3">
-            <div className="text-[12px] text-[#424242] font-medium mb-1">
-              About Us
-            </div>
-            <div className="border border-gray-200 rounded-md">
-              <div className="px-2 py-1 border-b border-gray-200 text-gray-600 text-sm flex items-center gap-2">
-                <button className="hover:text-gray-900">✎</button>
-                <button className="hover:text-gray-900 font-bold">B</button>
-                <button className="hover:text-gray-900 italic">I</button>
-                <button className="hover:text-gray-900 underline">U</button>
-                <button className="hover:text-gray-900">•</button>
-              </div>
-              <textarea
-                value={form.about || ""}
-                onChange={(e) => set("about", e.target.value)}
-                className="w-full min-h-[160px] p-3 text-sm outline-none"
-              />
-              <div className="px-3 pb-2 text-[12px] text-gray-500 text-right">
-                {(form.about || "").length}/1600
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
-  );
-};
+// ======== Drawer: Edit Basic Info (moved to shared component) ========
 
 // Reusable small inputs used by other drawers
 const FieldLabel = ({ children, required }) => (
@@ -540,218 +207,7 @@ const SelectInput = ({ children, ...props }) => (
   </div>
 );
 
-// Drawer: Education (Add/Edit)
-const EducationDrawer = ({ open, onClose, initial, onSave, mode = "add" }) => {
-  const [closing, setClosing] = useState(false);
-  const [data, setData] = useState({
-    school: "",
-    gradType: "",
-    degree: "",
-    field: "",
-    start: "",
-    end: "",
-    proof: "",
-  });
-
-  useEffect(() => {
-    if (open) {
-      if (initial && mode === "edit") {
-        // initial is already mapped from the onClick handler
-        setData({
-          school: initial.school || "",
-          gradType: initial.gradType || "",
-          degree: initial.degree || "",
-          field: initial.field || "",
-          start: initial.start || "",
-          end: initial.end || "",
-          proof: initial.proof || "",
-        });
-      } else {
-        setData({
-          school: "",
-          gradType: "",
-          degree: "",
-          field: "",
-          start: "",
-          end: "",
-          proof: "",
-        });
-      }
-    }
-  }, [initial, open, mode]);
-
-  const requestClose = React.useCallback(() => {
-    setClosing(true);
-    setTimeout(() => {
-      setClosing(false);
-      onClose?.();
-    }, 220);
-  }, [onClose]);
-
-  useEffect(() => {
-    const onEsc = (e) => e.key === "Escape" && requestClose();
-    window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [requestClose]);
-
-  if (!open && !closing) return null;
-  const set = (k, v) => setData((d) => ({ ...d, [k]: v }));
-  const canSave =
-    data.school && data.gradType && data.degree && data.start && data.end;
-
-  return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className={`absolute inset-0 bg-black/30 ${
-          closing
-            ? "animate-[fadeOut_.2s_ease-in_forwards]"
-            : "animate-[fadeIn_.25s_ease-out_forwards]"
-        }`}
-        onClick={requestClose}
-      />
-      <aside
-        className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-          closing
-            ? "animate-[drawerOut_.22s_ease-in_forwards]"
-            : "animate-[drawerIn_.25s_ease-out_forwards]"
-        }`}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[#424242]">
-            {mode === "edit" ? "Edit Education" : "Add Education"}
-          </h3>
-          <div className="flex items-center gap-3">
-            <button
-              disabled={!canSave}
-              onClick={() => canSave && onSave?.(data)}
-              className={
-                "text-xs md:text-sm h-8 px-3 rounded-md transition " +
-                (!canSave
-                  ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
-                  : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
-              }
-            >
-              {mode === "edit" ? "Save" : "Save"}
-            </button>
-            <button
-              onClick={requestClose}
-              className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        <div className="p-3 overflow-y-auto grid grid-cols-1 gap-2">
-          <label className="block">
-            <FieldLabel required>School/College/ University</FieldLabel>
-            <TextInput
-              placeholder="Select or Enter Institute Name"
-              value={data.school}
-              onChange={(e) => set("school", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel required>Graduation Type</FieldLabel>
-            <SelectInput
-              value={data.gradType}
-              onChange={(e) => set("gradType", e.target.value)}
-            >
-              <option value="" disabled>
-                Select Type
-              </option>
-              <option value="UG">Graduation</option>
-              <option value="PG">Post-Graduation</option>
-              <option value="Fellowship">Fellowship</option>
-            </SelectInput>
-          </label>
-          <label className="block">
-            <FieldLabel required>Degree</FieldLabel>
-            <TextInput
-              placeholder="Select or Enter Degree"
-              value={data.degree}
-              onChange={(e) => set("degree", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel>Field Of Study</FieldLabel>
-            <TextInput
-              placeholder="Select or Enter your Field of Study"
-              value={data.field}
-              onChange={(e) => set("field", e.target.value)}
-            />
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <FieldLabel required>Start Year</FieldLabel>
-              <TextInput
-                placeholder="2025"
-                value={data.start}
-                onChange={(e) => set("start", e.target.value)}
-              />
-            </label>
-            <label className="block">
-              <FieldLabel required>Year of Completion</FieldLabel>
-              <TextInput
-                placeholder="2025"
-                value={data.end}
-                onChange={(e) => set("end", e.target.value)}
-              />
-            </label>
-          </div>
-          <div>
-            <div className="flex items-center gap-1">
-              <FieldLabel>Upload Proof</FieldLabel>
-              <span className="text-[#9AA1A9]" title="Optional">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="16" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-              </span>
-            </div>
-            {/* Dropzone */}
-            <label className="mt-1 border border-dashed border-[#CFE0FF] rounded-md h-24 grid place-items-center text-center">
-              <input
-                type="file"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) {
-                    set("proof", f.name);
-                  }
-                }}
-              />
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-[#2F66F6]">↥</span>
-                <span className="text-[13px] text-[#2F66F6]">Upload File</span>
-                {data.proof ? (
-                  <span className="text-[11px] text-gray-600">
-                    {data.proof}
-                  </span>
-                ) : null}
-              </div>
-            </label>
-            <div className="text-[11px] text-gray-500 mt-1">
-              Support Size upto 1MB in .png, .jpg, .svg, .webp
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
-  );
-};
+// Education drawer moved to its own component under drawers/AddEducationDrawer.jsx
 
 // Drawer: Experience
 const ExperienceDrawer = ({ open, onClose, onSave, initial, mode = "add" }) => {
@@ -935,163 +391,7 @@ const ExperienceDrawer = ({ open, onClose, onSave, initial, mode = "add" }) => {
   );
 };
 
-// Drawer: Award
-const AwardDrawer = ({ open, onClose, onSave, initial, mode = "add" }) => {
-  const [closing, setClosing] = useState(false);
-  const [data, setData] = useState({
-    title: "",
-    issuer: "",
-    with: "",
-    date: "",
-    url: "",
-    desc: "",
-  });
-
-  useEffect(() => {
-    if (open) {
-      if (initial && mode === "edit") {
-        setData({
-          title: initial.awardName || "",
-          issuer: initial.issuerName || "",
-          with: initial.associatedWith || "",
-          date: initial.issueDate ? initial.issueDate.split("T")[0] : "",
-          url: initial.awardUrl || "",
-          desc: initial.description || "",
-        });
-      } else {
-        setData({
-          title: "",
-          issuer: "",
-          with: "",
-          date: "",
-          url: "",
-          desc: "",
-        });
-      }
-    }
-  }, [initial, open, mode]);
-
-  if (!open && !closing) return null;
-  const requestClose = () => {
-    setClosing(true);
-    setTimeout(() => {
-      setClosing(false);
-      onClose?.();
-    }, 220);
-  };
-  const set = (k, v) => setData((d) => ({ ...d, [k]: v }));
-  const canSave = data.title && data.issuer && data.date;
-  return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className={`absolute inset-0 bg-black/30 ${
-          closing
-            ? "animate-[fadeOut_.2s_ease-in_forwards]"
-            : "animate-[fadeIn_.25s_ease-out_forwards]"
-        }`}
-        onClick={requestClose}
-      />
-      <aside
-        className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-          closing
-            ? "animate-[drawerOut_.22s_ease-in_forwards]"
-            : "animate-[drawerIn_.25s_ease-out_forwards]"
-        }`}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[#424242]">
-            {mode === "edit" ? "Edit Award" : "Add Award"}
-          </h3>
-          <div className="flex items-center gap-3">
-            <button
-              disabled={!canSave}
-              onClick={() => canSave && onSave?.(data)}
-              className={
-                "text-xs md:text-sm h-8 px-3 rounded-md transition " +
-                (!canSave
-                  ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
-                  : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
-              }
-            >
-              Save
-            </button>
-            <button
-              onClick={requestClose}
-              className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        <div className="p-3 overflow-y-auto  grid grid-cols-1 gap-2">
-          <label className="block">
-            <FieldLabel required>Award Name</FieldLabel>
-            <TextInput
-              placeholder="Best Resident"
-              value={data.title}
-              onChange={(e) => set("title", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel required>Issuer Name</FieldLabel>
-            <TextInput
-              placeholder="Manipal Hospital"
-              value={data.issuer}
-              onChange={(e) => set("issuer", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel>Associated With</FieldLabel>
-            <TextInput
-              placeholder="Association/Group/Department"
-              value={data.with}
-              onChange={(e) => set("with", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel required>Issue Date</FieldLabel>
-            <TextInput
-              type="date"
-              value={data.date}
-              onChange={(e) => set("date", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel>Award URL</FieldLabel>
-            <TextInput
-              placeholder="https://..."
-              value={data.url}
-              onChange={(e) => set("url", e.target.value)}
-            />
-          </label>
-          <div>
-            <FieldLabel>Description</FieldLabel>
-            <div className="border border-gray-200 rounded-md">
-              <div className="px-2 py-1 border-b border-gray-200 text-gray-600 text-sm flex items-center gap-2">
-                <button className="hover:text-gray-900">✎</button>
-                <button className="hover:text-gray-900 font-bold">B</button>
-                <button className="hover:text-gray-900 italic">I</button>
-                <button className="hover:text-gray-900 underline">U</button>
-                <button className="hover:text-gray-900">•</button>
-              </div>
-              <textarea
-                className="w-full min-h-[100px] p-3 text-sm outline-none"
-                value={data.desc}
-                onChange={(e) => set("desc", e.target.value)}
-              />
-              <div className="px-3 pb-2 text-[12px] text-gray-500 text-right">
-                {data.desc.length}/500
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
-  );
-};
+// Award drawer moved to its own component under drawers/AddAwardDrawer.jsx
 
 // Drawer: Publication
 const PublicationDrawer = ({
@@ -2710,6 +2010,7 @@ const Doc_settings = () => {
   const [profOpen, setProfOpen] = useState(false);
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [clinicEditMode, setClinicEditMode] = useState(false);
+  const [clinicDrawerOpen, setClinicDrawerOpen] = useState(false);
   // Consultation details state
   const [consultationLoading, setConsultationLoading] = useState(false);
   const [consultationError, setConsultationError] = useState("");
@@ -3816,12 +3117,13 @@ const Doc_settings = () => {
               title="Clinic Info"
               subtitle="Visible to Patient"
               Icon={Pencil}
+              onIconClick={() => setClinicDrawerOpen(true)}
             >
               <div className="space-y-4 text-sm">
                 {/* Clinic Name */}
                 <InfoField
                   label="Clinic Name"
-                  value="Chauhan Clinic"
+                  value={clinic?.name}
                   full
                   divider
                 />
@@ -3830,7 +3132,7 @@ const Doc_settings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InfoField
                     label="Mobile Number"
-                    value="91753 67487"
+                    value={clinic?.phone}
                     right={
                       <span className="inline-flex items-center text-green-600 border border-green-400 py-0.5 px-1 rounded-md text-[12px]">
                         <img
@@ -3845,7 +3147,7 @@ const Doc_settings = () => {
 
                   <InfoField
                     label="Email"
-                    value="milindchachun@gmail.com"
+                    value={clinic?.email}
                     right={
                       <span className="inline-flex items-center text-green-600 border border-green-400 py-0.5 px-1 rounded-md text-[12px]">
                         <img
@@ -3861,21 +3163,21 @@ const Doc_settings = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Establishment Date */}
-                  <InfoField label="Establishment Date" value="10/09/2005" />
+                  <InfoField
+                    label="Establishment Date"
+                    value={
+                      clinic?.establishmentDate
+                        ? new Date(clinic.establishmentDate).toLocaleDateString()
+                        : "-"
+                    }
+                  />
                 </div>
 
                 {/* About */}
                 <div>
                   <div className="text-[13px] text-gray-500 mb-1">About</div>
                   <p className="text-sm text-gray-700 leading-relaxed">
-                    Dr. Milind Chauhan practices Gynaecologist and Obstetrician
-                    in Andheri East, Mumbai and has 13 years of experience in
-                    this field. He has completed his DNB - Obstetric and
-                    Gynecology and MBBS. Dr. Milind Chauhan has gained the
-                    confidence of patients and is a popular Gynaecologist and
-                    Obstetrician expert in Mumbai who performs treatment and
-                    procedures for various health issues related to
-                    Gynaecologist and Obstetrician.
+                    {clinic?.about || "-"}
                   </p>
                 </div>
 
@@ -3886,17 +3188,21 @@ const Doc_settings = () => {
                   </div>
 
                   <div className="flex gap-3 flex-wrap">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className="w-[120px] h-[120px] rounded-md overflow-hidden border bg-gray-100"
-                      >
-                        <img
-                          src={`/dummy/clinic-${i}.jpg`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ))}
+                    {Array.isArray(clinic?.clinicPhotos) && clinic.clinicPhotos.length > 0 ? (
+                      clinic.clinicPhotos.map((photo, idx) => (
+                        <div key={idx} className="w-[120px] h-[120px] rounded-md overflow-hidden border bg-gray-100">
+                          <img
+                            src={`${import.meta.env.VITE_API_BASE_URL || ''}/${photo}`}
+                            alt={`Clinic ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      [1, 2, 3, 4].map((i) => (
+                        <div key={i} className="w-[120px] h-[120px] rounded-md overflow-hidden border bg-gray-100" />
+                      ))
+                    )}
                   </div>
 
                   <div className="mt-2 text-[11px] text-gray-400">
@@ -3913,6 +3219,7 @@ const Doc_settings = () => {
               title="Clinic Address"
               subtitle="Visible to Patient"
               Icon={Pencil}
+              onIconClick={() => setClinicDrawerOpen(true)}
             >
               <div className="mb-3">
                 <div className="text-[13px] text-gray-500 mb-1">
@@ -4024,23 +3331,32 @@ const Doc_settings = () => {
         </div>
       )}
 
-      {/* Drawer: Edit Basic Info */}
-      <BasicInfoDrawer
+      {/* Drawer: Edit Basic Info (shared component) */}
+      <EditBasicInfoDrawer
         open={basicOpen}
         onClose={() => setBasicOpen(false)}
-        initial={profile.basic}
-        // onSave={(data) => { setProfile((p) => ({ ...p, ...data, name: `Dr. ${data.firstName} ${data.lastName}` })); setBasicOpen(false) }}
-
+        initialData={{
+          firstName: profile.basic?.firstName,
+          lastName: profile.basic?.lastName,
+          mobile: profile.basic?.phone,
+          email: profile.basic?.email,
+          gender: (() => {
+            const g = profile.basic?.gender;
+            return g ? g.charAt(0).toUpperCase() + g.slice(1).toLowerCase() : "";
+          })(),
+          city: profile.basic?.city,
+          languages: profile.basic?.languages || [],
+          website: profile.basic?.website,
+          headline: profile.basic?.headline,
+          about: profile.basic?.about,
+        }}
         onSave={async (data) => {
           try {
-            // Only include fields that have values (partial update)
             const payload = {};
-
             if (data.firstName) payload.firstName = data.firstName;
             if (data.lastName) payload.lastName = data.lastName;
             if (data.gender) payload.gender = data.gender.toLowerCase();
             if (data.city) payload.city = data.city;
-            // Only include website if it's a valid URL (not empty, not just '-' or placeholder)
             if (
               data.website &&
               data.website.trim() !== "" &&
@@ -4056,15 +3372,12 @@ const Doc_settings = () => {
               payload.languages = data.languages;
 
             const result = await updateBasicInfo(payload);
-
             if (result) {
               await fetchBasicInfo();
               setBasicOpen(false);
             } else {
               console.error("Update failed: no result returned");
-              alert(
-                "Failed to update basic info. Please check the console for details."
-              );
+              alert("Failed to update basic info. Please check the console for details.");
             }
           } catch (err) {
             console.error("Error updating basic info:", err);
@@ -4073,8 +3386,8 @@ const Doc_settings = () => {
         }}
       />
 
-      {/* Drawer: Education */}
-      <EducationDrawer
+      {/* Drawer: Education (shared) */}
+      <AddEducationDrawer
         open={eduOpen}
         onClose={() => {
           setEduOpen(false);
@@ -4155,8 +3468,8 @@ const Doc_settings = () => {
         }}
       />
 
-      {/* Drawer: Award */}
-      <AwardDrawer
+  {/* Drawer: Award (shared) */}
+  <AddAwardDrawer
         open={awardOpen}
         onClose={() => {
           setAwardOpen(false);
@@ -4263,6 +3576,41 @@ const Doc_settings = () => {
           } catch (err) {
             console.error("Error updating practice details:", err);
             alert("Failed to update practice details");
+          }
+        }}
+      />
+
+      {/* Drawer: Clinic Details (unified) */}
+      <EditClinicDetailsDrawer
+        open={clinicDrawerOpen}
+        onClose={() => setClinicDrawerOpen(false)}
+        initial={{
+          name: clinic?.name || "",
+          phone: clinic?.phone || "",
+          email: clinic?.email || "",
+          establishmentDate: clinic?.establishmentDate || "",
+          proof: clinic?.proof || clinic?.establishmentProof || "",
+          noOfBeds: clinic?.noOfBeds || "",
+          about: clinic?.about || "",
+          clinicPhotos: clinic?.clinicPhotos || [],
+          latitude: clinic?.latitude || null,
+          longitude: clinic?.longitude || null,
+          blockNo: clinic?.blockNo || "",
+          areaStreet: clinic?.areaStreet || "",
+          landmark: clinic?.landmark || "",
+          pincode: clinic?.pincode || "",
+          city: clinic?.city || "",
+          state: clinic?.state || "Maharashtra",
+        }}
+        onSave={async (data) => {
+          try {
+            // API expects the fields as provided by clinicalService.updateClinicInfo
+            await updateClinicInfo(data);
+            await fetchClinicInfo();
+            setClinicDrawerOpen(false);
+          } catch (e) {
+            console.error("Failed to update clinic info", e);
+            alert(e?.response?.data?.message || e?.message || "Failed to update clinic info");
           }
         }}
       />

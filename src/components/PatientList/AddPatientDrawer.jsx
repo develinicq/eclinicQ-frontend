@@ -68,9 +68,9 @@ export default function AddPatientDrawer({ open, onClose, onSave }) {
       primaryActionLabel="Save"
       onPrimaryAction={handleSave}
       primaryActionDisabled={!canSave}
-      width={520}
+      width={600}
     >
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-3">
           <InputWithMeta
             label="First Name"

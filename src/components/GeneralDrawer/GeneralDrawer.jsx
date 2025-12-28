@@ -99,7 +99,7 @@ export default function GeneralDrawer({
         ref={panelRef}
         style={{ zIndex: 5002, width: `${width}px` }}
       >
-        <div className="flex h-full w-full p-4 flex-col bg-white gap-4">
+  <div className="flex h-full w-full p-4 flex-col bg-white gap-4 min-h-0">
           {/* Header */}
           <div className="sticky top-0 z-10 bg-white border-b pb-2">
             <div className="flex items-center justify-between">
@@ -134,7 +134,8 @@ export default function GeneralDrawer({
             </div>
           </div>
 
-          <div className="">{children}</div>
+          {/* Scrollable content (hide scrollbar visuals) */}
+          <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">{children}</div>
         </div>
       </aside>
     </div>

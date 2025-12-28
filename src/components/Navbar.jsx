@@ -5,6 +5,7 @@ import { bell, stethoscopeBlue, hospitalIcon, patientUnselect, appointement } fr
 import NotificationDrawer from './NotificationDrawer.jsx'
 import AddPatientDrawer from './PatientList/AddPatientDrawer.jsx'
 import BookAppointmentDrawer from './Appointment/BookAppointmentDrawer.jsx'
+import InviteStaffDrawer from './Staff/InviteStaffDrawer.jsx'
 import AvatarCircle from './AvatarCircle.jsx'
 import useAuthStore from '../store/useAuthStore'
 import { getDoctorMe } from '../services/authService'
@@ -18,7 +19,7 @@ const Partition = () => {
   )
 }
 
-const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment }) => {
+const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment, onInviteStaff }) => {
   const navigate = useNavigate();
 
   const handleAddDoctor = () => {
@@ -39,6 +40,11 @@ const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment }) =>
 
   const handleBookAppointment = () => {
     onBookAppointment?.();
+    onClose();
+  };
+
+  const handleInviteStaff = () => {
+    onInviteStaff?.();
     onClose();
   };
 
@@ -86,6 +92,16 @@ const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment }) =>
           </div>
           <span className="text-[#424242] font-normal text-sm">Book Appointment</span>
         </button>
+
+        <button
+          onClick={handleInviteStaff}
+          className="w-full rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
+        >
+          <div className="w-4 h-4 flex items-center justify-center ml-1">
+            <img src={hospitalIcon} alt="Invite Staff" />
+          </div>
+          <span className="text-[#424242] font-normal text-sm">Invite Staff</span>
+        </button>
       </div>
     </div>
   );
@@ -99,6 +115,7 @@ const Navbar = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [addPatientOpen, setAddPatientOpen] = useState(false);
   const [bookApptOpen, setBookApptOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const dropdownRef = useRef(null);
   const profileRef = useRef(null);
   const navigate = useNavigate();
@@ -173,7 +190,7 @@ const Navbar = () => {
                     <ChevronDown className={`w-4 h-4 text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}/>
                 </div>
             </button>
-            <AddNewDropdown isOpen={isDropdownOpen} onClose={closeDropdown} onAddPatient={() => setAddPatientOpen(true)} onBookAppointment={() => setBookApptOpen(true)} />
+            <AddNewDropdown isOpen={isDropdownOpen} onClose={closeDropdown} onAddPatient={() => setAddPatientOpen(true)} onBookAppointment={() => setBookApptOpen(true)} onInviteStaff={() => setInviteOpen(true)} />
           </div>
           <Partition/>
           <div className="w-7 h-7 p-1 relative">
@@ -234,8 +251,64 @@ const Navbar = () => {
   hospitalId={(Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) && doctorDetails?.associatedWorkplaces?.hospitals[0]?.id) || undefined}
     onSave={() => setBookApptOpen(false)}
   />
+  <NavbarInviteStaffBridge open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </>
   )
 }
 
 export default Navbar
+
+// Local bridge component to fetch roles and post invites same as Settings > Staff
+import axiosClient from '../lib/axios'
+import { fetchAllRoles } from '../services/rbac/roleService'
+import { registerStaff } from '../services/staff/registerStaffService'
+
+const NavbarInviteStaffBridge = ({ open, onClose }) => {
+  const { doctorDetails } = useAuthStore.getState()
+  const clinicId = doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId
+  const [roles, setRoles] = React.useState([])
+  const [loading, setLoading] = React.useState(false)
+
+  React.useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      if (!open || !clinicId) return
+      try {
+        setLoading(true)
+        const data = await fetchAllRoles(clinicId)
+        const list = data?.data || []
+        setRoles(list.map(r => ({ id: r.id, name: r.name })))
+      } catch (e) {
+        console.error('Failed to load roles', e)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [open, clinicId])
+
+  const handleSend = async (rows) => {
+    if (!clinicId) return
+    await Promise.all(rows.map(async (r) => {
+      const [firstName = '', lastName = ''] = String(r.fullName || '').split(' ').length > 1
+        ? [String(r.fullName).split(' ')[0], String(r.fullName).split(' ').slice(1).join(' ')]
+        : [r.fullName || '', '']
+      const payload = {
+        firstName,
+        lastName,
+        emailId: r.email,
+        phone: r.phone,
+        position: r.position,
+        clinicId,
+        roleId: r.roleId || null,
+      }
+      try { await registerStaff(payload) } catch (e) { console.error('Failed to register staff', payload, e) }
+    }))
+    onClose?.()
+  }
+
+  return (
+    <InviteStaffDrawer open={open} onClose={onClose} onSend={handleSend} roleOptions={roles} />
+  )
+}
