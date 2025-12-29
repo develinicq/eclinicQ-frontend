@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target:'https://43164c0e5cd8.ngrok-free.app/' , // backend origin
+        target:'http://localhost:3000' , // backend origin
         changeOrigin: true,
         secure: false,
       },

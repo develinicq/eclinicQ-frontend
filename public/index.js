@@ -119,6 +119,9 @@ import pauseMenuIcon from "./pause-menu-icon.svg";
 import infoCircle from "./info-circle.svg";
 import timerOrange from "./timer-orange.svg";
 import restartQueueIcon from "./restart-queue-icon.svg";
+import tickLogin from "./tick-login.svg";
+import dangerIcon from "./danger-icon.svg";
+
 export {
   // Root PNGs
   checkbox,
@@ -231,5 +234,7 @@ export {
   pauseMenuIcon,
   infoCircle,
   timerOrange,
-  restartQueueIcon
+  restartQueueIcon,
+  tickLogin,
+  dangerIcon
 };

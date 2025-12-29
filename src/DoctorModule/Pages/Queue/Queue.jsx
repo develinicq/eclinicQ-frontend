@@ -49,6 +49,7 @@ import {
 } from "../../../../public/index.js";
 import BookAppointmentDrawer from "../../../components/Appointment/BookAppointmentDrawer.jsx";
 import PauseQueueModal from "../../../components/PauseQueueModal.jsx";
+import TerminateQueueModal from "../../../components/TerminateQueueModal.jsx";
 
 // Walk-in Appointment Drawer (full version replicated from Front Desk)
 const WalkInAppointmentDrawer = ({
@@ -876,6 +877,8 @@ const Queue = () => {
   const [pauseError, setPauseError] = useState("");
   const [resumeSubmitting, setResumeSubmitting] = useState(false);
   const [resumeError, setResumeError] = useState("");
+  const [showTerminateModal, setShowTerminateModal] = useState(false);
+  const [terminateSubmitting, setTerminateSubmitting] = useState(false);
   // Backend-reported current token and active patient details to align active selection/UI
   const [backendCurrentToken, setBackendCurrentToken] = useState(null);
   const [backendActiveDetails, setBackendActiveDetails] = useState(null);
@@ -1431,6 +1434,35 @@ const Queue = () => {
     }
   };
 
+  const handleTerminateConfirm = async ({ sessions, reason }) => {
+    if (!selectedSlotId || sessions.length === 0) return;
+    setTerminateSubmitting(true);
+    try {
+      // TODO: Replace with actual terminate queue API call
+      console.log("Terminating queue:", {
+        sessions,
+        reason,
+        slotId: selectedSlotId,
+      });
+      // await terminateQueue(selectedSlotId, { sessions, reason });
+
+      // For now, just end the session
+      if (sessionStarted) {
+        await handleToggleSession();
+      }
+
+      setShowTerminateModal(false);
+      // Refresh appointments after termination
+      if (selectedSlotId) {
+        await loadAppointmentsForSelectedSlot();
+      }
+    } catch (e) {
+      console.error("Terminate queue error:", e?.response?.data || e.message);
+    } finally {
+      setTerminateSubmitting(false);
+    }
+  };
+
   // Show all tabs as before, but queue remains bound to Checked-In.
   const filters = ["All", "Checked In", "Engaged", "No Show", "Admitted"];
   const getFilterCount = (filter) => {
@@ -1815,13 +1847,8 @@ const Queue = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            try {
-                              if (sessionStarted) {
-                                handleToggleSession();
-                              }
-                            } finally {
-                              setActionMenuOpen(false);
-                            }
+                            setActionMenuOpen(false);
+                            setShowTerminateModal(true);
                           }}
                           className="w-full text-left px-2 py-1 flex items-center gap-3 hover:bg-red-50"
                         >
@@ -2187,6 +2214,13 @@ const Queue = () => {
           pauseSubmitting={pauseSubmitting}
           pauseError={pauseError}
           onConfirm={handlePauseConfirm}
+        />
+
+        <TerminateQueueModal
+          show={showTerminateModal}
+          onClose={() => setShowTerminateModal(false)}
+          onConfirm={handleTerminateConfirm}
+          isSubmitting={terminateSubmitting}
         />
       </div>
       <BookAppointmentDrawer
