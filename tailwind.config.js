@@ -53,7 +53,7 @@ export default {
           primary300: "#0D47A1",
           primary250: "#2372EC",
           primary150: "#96BFFF",
-          primary100: "#BFDBFE",
+          primary100: "#F2F7FF",
           primary50: "#F8FAFF",
         },
         error: {
@@ -75,8 +75,8 @@ export default {
           50: "#FFF7ED",
         },
         warning2: {
-          400: "#FBBF24",
-          50: "#FFFBEB",
+          400: "#BE8B00",
+          50: "#FEF9E6",
         },
       },
       borderRadius: {

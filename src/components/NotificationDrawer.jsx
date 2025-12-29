@@ -1,136 +1,217 @@
-import React from 'react'
+import React, { useMemo, useState } from 'react'
+import GeneralDrawer from '@/components/GeneralDrawer/GeneralDrawer'
+import { CheckCircle2, Clock, Info, AlertTriangle, XCircle } from 'lucide-react'
+const tick ='/Doctor_module/settings/tick.png'
 
-const notifications = [
+const notificationsSeed = [
   {
-    type: 'new',
-    icon: 'green',
+    type: 'new', // new vs old section label
+    variant: 'success', // success/info/warning/error
+    unread: true,
     text: 'All tokens for today’s session scheduled at 10:00AM - 12:00PM have been completed.',
     time: '3 min ago',
   },
   {
     type: 'new',
-    icon: 'green',
+    variant: 'success',
+    unread: true,
     text: 'Queue started. First patient is ready for consultation.',
     time: '3 min ago',
   },
   {
     type: 'new',
-    icon: 'red',
+    variant: 'error',
+    unread: true,
     text: 'You have not started the consultation yet. For the session scheduled at 10:00AM. Please ensure availability.',
     time: '3 min ago',
   },
   {
     type: 'new',
-    icon: 'blue',
+    variant: 'info',
+    unread: true,
     text: 'It’s time for your session! You can now start seeing patients.',
     time: '3 min ago',
   },
   {
     type: 'new',
-    icon: 'blue',
+    variant: 'info',
+    unread: true,
     text: 'Your OPD Session is Scheduled to Begin at 10:00 AM. Please ensure availability.',
     time: '3 min ago',
   },
 ];
-const olderNotifications = [
+const olderSeed = [
   {
     type: 'old',
-    icon: 'gray',
+    variant: 'neutral',
+    unread: false,
     text: 'Your consultation with Dr. Milind Chauhan is Completed',
     time: '3 min ago',
   },
   {
     type: 'old',
-    icon: 'gray',
+    variant: 'neutral',
+    unread: false,
     text: 'Your consultation with Dr. Milind Chauhan is Completed',
     time: '3 min ago',
   },
 ];
+const variantStyles = {
+    success: {
+      wrap: 'bg-green-50 border-green-100',
+      iconBg: 'bg-green-50 text-green-600 ring-1 ring-green-400',
+      text: 'text-secondary-grey400',
+    },
+    info: {
+      wrap: 'bg-blue-50 border-blue-100',
+      iconBg: 'bg-blue-50 text-blue-600 ring-1 ring-blue-500',
+      text: 'text-secondary-grey400',
+    },
+    warning: {
+      wrap: 'bg-amber-50 border-amber-100',
+      iconBg: 'bg-amber-50 text-amber-600 ring-1 ring-amber-500',
+      text: 'text-secondary-grey400',
+    },
+    error: {
+      wrap: 'bg-red-50 border-red-100',
+      iconBg: 'bg-red-50 text-red-600 ring-1 ring-red-500',
+      text: 'text-secondary-grey400',
+    },
+    neutral: {
+      wrap: 'bg-secondary-grey50 border-secondary-grey100',
+      iconBg: 'bg-secondary-grey50 text-secondary-grey300 ring-1 ring-secondary-grey150',
+      text: 'text-secondary-grey400',
+    },
+}
+
+function VariantIcon({ variant }) {
+  switch (variant) {
+    case 'success': return <CheckCircle2 className="w-4 h-4" />
+    case 'info': return <Info className="w-4 h-4" />
+    case 'warning': return <AlertTriangle className="w-4 h-4" />
+    case 'error': return <XCircle className="w-4 h-4" />
+    default: return <Clock className="w-4 h-4" />
+  }
+}
 
 export default function NotificationDrawer({ show, onClose }) {
+  const [tab, setTab] = useState('all');
+  const [news, setNews] = useState(notificationsSeed);
+  const [older, setOlder] = useState(olderSeed);
+
+  const unreadCount = useMemo(() => news.filter(n => n.unread).length + older.filter(n => n.unread).length, [news, older]);
+
+  const markAllRead = () => {
+    setNews(prev => prev.map(n => ({ ...n, unread: false })));
+    setOlder(prev => prev.map(n => ({ ...n, unread: false })));
+  };
+
+  const filterItems = (arr) => tab === 'unread' ? arr.filter(n => n.unread) : arr;
+
   return (
-    <>
-      {/* Overlay */}
-      <div
-        className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${show ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-        onClick={onClose}
-      />
-      {/* Drawer */}
-      <div
-        className={`fixed z-50 transition-transform duration-500`}
-        style={{
-          top: 32,
-          right: 32,
-          width: 476,
-          height: 964,
-          background: 'white',
-          borderRadius: 12,
-          boxShadow: '0 8px 32px 0 rgba(0,0,0,0.18)',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'fixed',
-          zIndex: 50,
-          transform: show ? 'translateX(0)' : 'translateX(520px)',
-          transition: 'transform 0.5s',
-        }}
-      >
-        <div className="px-7 py-5 flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[18px] font-semibold">Notifications</h2>
-            <div className="flex items-center gap-4">
-              {/* Three-dot icon */}
-              <button className="text-gray-400 hover:text-gray-600" style={{padding:0,background:'none',border:'none'}} aria-label="Options">
-                <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="10" r="1.5" fill="#A0AEC0"/><circle cx="10" cy="10" r="1.5" fill="#A0AEC0"/><circle cx="16" cy="10" r="1.5" fill="#A0AEC0"/></svg>
-              </button>
-              <button className="text-xs text-blue-600 font-medium">Mark all as Read</button>
-              <button className="text-gray-500 hover:text-gray-700" onClick={onClose} aria-label="Close" style={{padding:0,background:'none',border:'none'}}>
-                <span style={{fontSize:24,marginLeft:'2px'}}>&times;</span>
-              </button>
-            </div>
+    <GeneralDrawer
+      isOpen={show}
+      onClose={onClose}
+      title="Notifications"
+      showPrimaryAction={false}
+      width={476}
+      className=""
+      headerRight={
+        <div className="flex items-center gap-3 ">
+          <div className='flex text-[14px] gap-1 items-center'>
+              <img src={tick} className='h-4 w-4 mt-0.5' alt="" />
+              <button className=" text-secondary-grey400" onClick={markAllRead}>Mark all as Read</button>
           </div>
-          {/* Tabs */}
-          <div className="flex gap-6 mb-5">
-            <button className="text-sm font-medium text-blue-600 border-b-2 border-blue-600 pb-1">All</button>
-            <button className="text-sm font-medium text-gray-400 pb-1">Unread</button>
-          </div>
-          {/* New Notifications */}
-          <div className="mb-2">
-            <div className="text-xs text-gray-500 mb-2">New</div>
-            <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-              {notifications.map((n, idx) => (
-                <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-100">
-                  <span className={`w-7 h-7 flex items-center justify-center rounded-full ${n.icon==='green'?'bg-green-100 text-green-600':n.icon==='red'?'bg-red-100 text-red-600':'bg-blue-100 text-blue-600'}`}>
-                    {n.icon==='green'?<span>&#x2714;</span>:n.icon==='red'?<span>&#x25CF;</span>:<span>&#x25CF;</span>}
+          <img src="/Doctor_module/text_box/vertical_notification.png" alt="" className='h-5' />
+          <img src="/Doctor_module/settings/noto.png" alt="" className='h-5' />
+          <img src="/Doctor_module/text_box/vertical_notification.png" alt="" className='h-5' />
+          
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-4 ">
+        {/* Tabs */}
+        <div className="flex gap-2 bg-secondary-grey50 p-1 px-2 rounded-sm w-fit ">
+          <button
+            className={`text-sm font-medium px-[6px] py-[2px] rounded-sm ${tab==='all'?'text-blue-primary250  border-[0.5px] border-blue-primary150 bg-blue-primary50':'text-secondary-grey200'}`}
+            onClick={() => setTab('all')}
+          >
+            All
+          </button>
+          <button
+            className={`text-sm font-medium px-[6px] py-[2px] rounded-sm ${tab==='unread'?'text-blue-primary250  border-[0.5px] border-blue-primary150 bg-blue-primary50':'text-secondary-grey200'}`}
+            onClick={() => setTab('unread')}
+          >
+            Unread 
+          </button>
+        </div>
+
+        {/* New */}
+        <div className="">
+          <div className="py-1  text-sm bg-secondary-grey50 border-b-[0.5px] text-secondary-grey400 ">New</div>
+          <div className="flex flex-col gap-2 mt-1">
+            {filterItems(news).map((n, idx) => {
+              const vs = variantStyles[n.variant] || variantStyles.neutral;
+              return (
+                <div key={idx} className={`flex items-center  py-2  gap-3  border-secondary-grey100`}>
+                  <span
+  className={`ml-1 w-9 h-9 aspect-square flex-shrink-0
+    inline-flex items-center justify-center rounded-full
+    ${vs.iconBg}`}
+>
+
+                    <VariantIcon variant={n.variant} />
                   </span>
-                  <div className="flex-1">
-                    <div className="text-[15px] text-gray-800 leading-snug">{n.text}</div>
-                    <div className="text-xs text-gray-400 mt-1">{n.time}</div>
+                  <div className="flex justify-between w-full">
+                    <div className={`text-[15px] w-4/5 leading-snug ${vs.text}`}>{n.text}</div>
+                    <div className='flex flex-col justify-between'>
+                       <div className="text-xs text-secondary-grey200 mt-1">{n.time}</div>
+                  {n.unread && (
+    <span className="self-end w-[6px] h-[6px] rounded-full bg-red-500" />
+  )}
                   </div>
-                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                   
+                  </div>
+                  
+                  
+                  
                 </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
-          {/* Older Notifications */}
-          <div className="mt-2">
-            <div className="text-xs text-gray-500 mb-2">Older</div>
-            <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-              {olderNotifications.map((n, idx) => (
-                <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-100">
-                  <span className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                    <span>&#x2714;</span>
+        </div>
+
+        {/* Older */}
+        <div className="">
+          <div className="py-1  text-sm bg-secondary-grey50 border-b-[0.5px] text-secondary-grey400 ">Older</div>
+          <div className="flex flex-col gap-2 mt-1">
+            {filterItems(older).map((n, idx) => {
+              const vs = variantStyles[n.variant] || variantStyles.neutral;
+              return (
+                <div key={idx} className={`flex items-center gap-3 py-2 `}>
+<span
+  className={`w-9 h-9 ml-1 aspect-square flex-shrink-0
+    inline-flex items-center justify-center rounded-full
+    ${vs.iconBg}`}
+>
+                    <VariantIcon variant={n.variant} />
                   </span>
-                  <div className="flex-1">
-                    <div className="text-[15px] text-gray-800 leading-snug">{n.text}</div>
-                    <div className="text-xs text-gray-400 mt-1">{n.time}</div>
+                   <div className="flex justify-between w-full">
+                    <div className={`text-[15px] w-4/5 leading-snug ${vs.text}`}>{n.text}</div>
+                    <div className='flex flex-col justify-between'>
+                       <div className="text-xs text-secondary-grey200 mt-1">{n.time}</div>
+                  {n.unread && (
+    <span className="self-end w-[6px] h-[6px] rounded-full bg-red-500" />
+  )}
+                  </div>
+                   
                   </div>
                 </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
         </div>
       </div>
-    </>
+    </GeneralDrawer>
   )
 }

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import GeneralDrawer from "@/components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
+import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
 import Dropdown from "@/components/GeneralDrawer/Dropdown";
-import { ChevronDown, FileText } from "lucide-react";
+import FileUploadBox from "@/components/GeneralDrawer/FileUploadBox";
+import { ChevronDown, FileText, Eye, RefreshCw } from "lucide-react";
 import MapLocation from "@/components/FormItems/MapLocation";
 import useImageUploadStore from "@/store/useImageUploadStore";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
@@ -144,7 +146,7 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
 
   const onUploadPhotos = async (fileList) => {
     if (!fileList || fileList.length === 0) return;
-    const files = Array.from(fileList);
+    const files = Array.isArray(fileList) ? fileList : Array.from(fileList);
     const newKeys = [];
     for (const f of files) {
       try {
@@ -201,7 +203,7 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
     >
       <div className="flex flex-col gap-4">
         {/* Section: Clinic Details */}
-        <div className="text-sm text-secondary-grey300 font-medium">Clinic Details</div>
+        <div className="text-sm text-secondary-grey400 font-semibold">Clinic Details</div>
 
         {/* Row 1: Clinic Name (full width) */}
         <div>
@@ -210,7 +212,7 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
 
         {/* Row 2: Mobile + Email */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <InputWithMeta label="Mobile Number" value={phone} onChange={setPhone} placeholder="91753 67487" />
+          <InputWithMeta label="Mobile Number" value={phone} onChange={setPhone} placeholder="91753 67487" requiredDot />
           <InputWithMeta label="Email" requiredDot value={email} onChange={setEmail} placeholder="milindchachun.gmail.com" />
         </div>
 
@@ -221,8 +223,9 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
               label="Establishment Date"
               value={establishmentDate}
               onChange={setEstablishmentDate}
+              requiredDot
               placeholder="YYYY-MM-DD"
-              RightIcon={CalendarWhiteIcon}
+              RightIcon='/Doctor_module/settings/calendar.png'
               onIconClick={() => setShowEstDateCalendar((v) => !v)}
               dropdownOpen={showEstDateCalendar}
               onRequestClose={() => setShowEstDateCalendar(false)}
@@ -253,25 +256,22 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
             )}
           </div>
           <div>
-            <label className="text-sm text-secondary-grey300">Establishment Proof</label>
-            <label className="mt-1 h-9 border border-secondary-grey300 rounded-md flex items-center justify-between px-2 text-sm cursor-pointer">
-              <input
-                type="file"
-                className="hidden"
-                accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp, application/pdf"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) onUploadProof(f);
-                }}
-              />
-              <span className="flex items-center gap-2 text-secondary-grey300">
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-gray-100">
-                  <FileText size={14} />
-                </span>
-                {uploading ? "Uploading..." : proofName || (proofKey ? "Establishment.pdf" : "Upload File")}
-              </span>
-              <span className="text-blue-600 text-xs">Change</span>
-            </label>
+            <InputWithMeta
+              label="Establishment Proof"
+              requiredDot
+              showDivider
+              showReupload
+              showInput={false}
+              imageUpload
+              fileName={uploading ? "Uploading..." : (proofName || "Establishment.pdf")}
+              fileAccept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp, application/pdf"
+              onFileSelect={(f) => {
+                if (f) onUploadProof(f);
+              }}
+              onFileView={() => {
+                if (proofKey) window.open(proofKey, "_blank");
+              }}
+            />
             {uploadError ? (
               <div className="text-[11px] text-red-500 mt-1">{String(uploadError)}</div>
             ) : null}
@@ -280,53 +280,36 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
 
   {/* Row 4: Number of Beds (full width) */}
   <div>
-            <label className="text-sm text-secondary-grey300">Number of Beds</label>
-            <div className="mt-1 relative">
-              <input
-                className="h-9 w-full border border-secondary-grey300 rounded-md pl-2 pr-12 text-sm outline-none"
-                placeholder="Enter Number of Beds"
-                value={noOfBeds}
-                onChange={(e) => setNoOfBeds(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
-              />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-secondary-grey200 pointer-events-none">Beds</span>
-            </div>
+            <InputWithMeta
+              label="Number of Beds"
+              value={noOfBeds}
+              onChange={(v) => setNoOfBeds(String(v).replace(/[^0-9]/g, "").slice(0, 4))}
+              placeholder="Enter Number of Beds"
+              inputRightMeta="Beds"
+            />
   </div>
 
   <div>
-          <div className="text-sm text-secondary-grey300 mb-1">About Clinic</div>
-          <div className="border border-secondary-grey300 rounded-md">
-            <div className="px-2 py-1 border-b border-secondary-grey200 text-secondary-grey300 text-sm flex items-center gap-2">
-              <button className="hover:text-gray-700">✎</button>
-              <button className="hover:text-gray-700 font-bold">B</button>
-              <button className="hover:text-gray-700 italic">I</button>
-              <button className="hover:text-gray-700 underline">U</button>
-              <button className="hover:text-gray-700">•</button>
-            </div>
-            <textarea
-              className="w-full min-h-[120px] p-3 text-sm outline-none"
+          <InputWithMeta label="About Clinic" showInput={false}>
+            <RichTextBox
               value={about}
-              onChange={(e) => setAbout(e.target.value.slice(0, 1600))}
+              onChange={(v) => setAbout(String(v).slice(0, 1600))}
+              placeholder="Write about the clinic..."
+             
             />
-            <div className="px-3 pb-2 text-[12px] text-secondary-grey200 text-right">{about.length}/1600</div>
-          </div>
+          </InputWithMeta>
         </div>
 
         <div>
-          <div className="text-sm text-secondary-grey300 mb-1">Clinic Photos</div>
-          <div className="flex flex-wrap gap-3 items-center">
+          <InputWithMeta label="Clinic Photos" showInput={false}>
+          <div className="flex flex-wrap gap-4 mt-1 items-center">
             {photos.map((key) => (
-              <div key={key} className="relative w-28 h-28 bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
+              <div key={key} className="relative w-[120px] h-[120px] bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
                 <img src={key} alt="Clinic" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => removePhoto(key)}
-                  className="absolute top-1 right-1 bg-white/80 hover:bg-white text-gray-700 rounded px-1 text-xs"
-                >
-                  ✕
-                </button>
+                
               </div>
             ))}
-            <label className="w-[110px] h-[110px] border border-dashed border-secondary-grey300 rounded-md grid place-items-center text-blue-600 text-sm cursor-pointer">
+            <label className="w-[120px] h-[120px] border-dashed bg-blue-primary50 border-blue-primary150 border-[0.5px] rounded-md grid place-items-center text-blue-primary250 text-sm cursor-pointer">
               <input
                 type="file"
                 className="hidden"
@@ -340,43 +323,73 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
           <div className="text-[12px] text-secondary-grey200 mt-1">
             Support Size upto 2MB in .png, .jpg, .svg, .webp
           </div>
+          </InputWithMeta>
         </div>
 
+            <div className="border-b-[0.5px] h-4 border-secondary-grey100"></div>
         {/* Section: Clinic Address */}
-        <div className="text-sm text-secondary-grey300 font-medium">Clinic Address</div>
+        <div className="text-sm text-secondary-grey400  font-semibold">Clinic Address</div>
         {/* Address + Map */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="md:col-span-2">
-            <div className="text-sm text-secondary-grey300 mb-1 flex items-center gap-1">
-              Map Location <span className="text-secondary-grey200" title="Select location on map">ⓘ</span>
-            </div>
-            <input
-              className="w-full h-8 border border-secondary-grey300 rounded-md px-2 text-sm mb-2"
-              placeholder="Search Location"
-              onChange={() => {}}
-            />
+        <div className="flex flex-col gap-4">
+          
+          <div className="gap-2 flex flex-col">
+            <InputWithMeta label="Map Location" infoIcon placeholder="Search Location"></InputWithMeta>
             <div className="h-[100px] rounded-md overflow-hidden border">
-              <MapLocation
-                heightClass="h-full"
-           
-                initialPosition={latLng.lat && latLng.lng ? [latLng.lat, latLng.lng] : null}
-                onChange={({ lat, lng }) => setLatLng({ lat, lng })}
-              />
-            </div>
+                <MapLocation
+                  heightClass="h-full"
+                  initialPosition={latLng.lat && latLng.lng ? [latLng.lat, latLng.lng] : null}
+                  onChange={({ lat, lng }) => setLatLng({ lat, lng })}
+                />
+              </div>
+          </div>
+            
+          {/* Row: Block no. & Road/Area/Street */}
+          <div className="gap-4 flex flex-col">
+            <InputWithMeta
+              label="Block no./Shop no./House no."
+              requiredDot
+              value={blockNo}
+              onChange={setBlockNo}
+              placeholder="Shop No 2"
+            />
+            <InputWithMeta
+              label="Road/Area/Street"
+              infoIcon
+              requiredDot
+              value={areaStreet}
+              onChange={setAreaStreet}
+              placeholder="Jawahar Nagar, Gokul Colony"
+            />
           </div>
 
-          <InputWithMeta label="Block no./Shop no./House no." requiredDot value={blockNo} onChange={setBlockNo} placeholder="Shop No 2" />
-          <InputWithMeta label="Road/Area/Street" requiredDot value={areaStreet} onChange={setAreaStreet} placeholder="Jawahar Nagar, Gokul Colony" />
-          <InputWithMeta label="Landmark" value={landmark} onChange={setLandmark} placeholder="Near Chowk" />
-          <InputWithMeta label="Pincode" requiredDot value={pincode} onChange={(v) => setPincode(v.replace(/[^0-9]/g, "").slice(0, 6))} placeholder="444001" />
-
-          <div className="relative">
+          {/* Row: Landmark & Pincode */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+            <InputWithMeta
+              label="Landmark"
+              infoIcon
+              requiredDot
+              value={landmark}
+              onChange={setLandmark}
+              placeholder="Near Chowk"
+            />
+            <InputWithMeta
+              label="Pincode"
+              infoIcon
+              requiredDot
+              value={pincode}
+              onChange={(v) => setPincode(v.replace(/[^0-9]/g, "").slice(0, 6))}
+              placeholder="444001"
+            />
+          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+            <div className="grid  relative">
             <InputWithMeta
               label="City"
               requiredDot
               value={city}
               onChange={setCity}
               placeholder="Akola"
+              infoIcon
               RightIcon={ChevronDown}
               onFieldOpen={() => setCityOpen((o) => !o)}
               dropdownOpen={cityOpen}
@@ -401,6 +414,7 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
               label="State"
               requiredDot
               value={state}
+              infoIcon
               onChange={() => {}}
               placeholder="Maharashtra"
               RightIcon={ChevronDown}
@@ -422,25 +436,32 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
               className="input-meta-dropdown w-full"
             />
           </div>
+            </div>
+          
         </div>
 
-        {/* Bottom upload: Upload Clinic Image (extra dropzone) */}
-        <div className="flex flex-col gap-1">
-          <label className="text-sm text-secondary-grey300">Upload Clinic Image</label>
-          <label className="mt-1 border border-dashed border-[#CFE0FF] rounded-md min-h-24 grid place-items-center text-center cursor-pointer py-4">
-            <input
-              type="file"
-              className="hidden"
-              multiple
-              accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
-              onChange={(e) => onUploadPhotos(e.target.files)}
+        {/* Bottom upload: Upload Clinic Image using reusable FileUploadBox */}
+        <div className="flex flex-col gap-4">
+          <InputWithMeta label="Upload Clinic Image" requiredDot showInput={false}>
+            <FileUploadBox
+              label=""
+              value={null}
+              accept=".png,.jpg,.jpeg,.svg,.webp"
+              maxSizeMB={2}
+              onChange={(file) => {
+                // Reuse photo upload logic; wrap single file into FileList-like array
+                if (file) {
+                  const dt = {
+                    length: 1,
+                    0: file,
+                  };
+                  // onUploadPhotos expects FileList; simulate minimal interface or adapt
+                  onUploadPhotos(dt);
+                }
+              }}
+              helperText="Support size upto 2MB in .png, .jpg, .svg, .webp"
             />
-            <div className="flex flex-col items-center gap-1 text-[#2F66F6]">
-              <span className="text-lg">⇧</span>
-              <span className="text-[13px]">Drag and Drop Clinic Images</span>
-            </div>
-          </label>
-          <div className="text-[12px] text-secondary-grey200">Support Size upto 2MB in .png, .jpg, .svg, .webp</div>
+          </InputWithMeta>
         </div>
       </div>
     </GeneralDrawer>

@@ -8,6 +8,9 @@ import location from "./location.png";
 import mail from "./mail.png";
 import phone from "./phone.png";
 
+import pencil from './Doctor_module/settings/pencil_black.png';
+import add from './Doctor_module/settings/add.png';
+import pdf_blue from './Doctor_module/settings/pdf_blue.png';
 // Images from /public/images
 import hospitalLogo from "./images/hospital_logo.png";
 import hospital from "./images/hospital.png";
@@ -87,7 +90,9 @@ import queueBlue from "./Doctor_module/sidebar/queue_blue.png";
 import queueWhite from "./Doctor_module/sidebar/queue_white.png";
 import settingBlue from "./Doctor_module/sidebar/setting_blue.png";
 import helpWhite from "./Doctor_module/sidebar/help_white.png";
-
+import experience from "./Doctor_module/settings/experience.png";
+import award from "./Doctor_module/settings/award.png";
+import publication from "./Doctor_module/settings/publication.png";
 // Doctor info icons
 import blueBag from "./doctor_info/bluebag.png";
 import docIcon from "./doctor_info/doc.png";
@@ -205,4 +210,10 @@ export {
   inviteUserIcon,
   searchIcon,
   drawerCross,
+  pencil,
+  add,
+  pdf_blue,
+  experience,
+  award,
+  publication
 };

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
-  Pencil,
   Phone,
   Mail,
   MapPin,
@@ -16,13 +15,20 @@ import {
   Crown,
   Trophy,
 } from "lucide-react";
+
 import AvatarCircle from "../../../components/AvatarCircle";
 import Badge from "../../../components/Badge";
 import {
   cap,
+  add,
   hospital,
   verifiedTick,
   inviteUserIcon,
+  pencil,
+  pdf_blue,
+  experience,
+  publication,
+  award
 } from "../../../../public/index.js";
 import Input from "../../../components/FormItems/Input";
 import Toggle from "../../../components/FormItems/Toggle";
@@ -44,7 +50,12 @@ import { registerStaff } from "../../../services/staff/registerStaffService";
 import EditBasicInfoDrawer from "./drawers/EditBasicInfoDrawer.jsx";
 import AddEducationDrawer from "./drawers/AddEducationDrawer.jsx";
 import AddAwardDrawer from "./drawers/AddAwardDrawer.jsx";
+import AddPublicationDrawer from "./drawers/AddPublicationDrawer.jsx";
 import EditClinicDetailsDrawer from "./drawers/EditClinicDetailsDrawer.jsx";
+import ExperienceDrawerNew from "./Drawers/ExperienceDrawer.jsx";
+import InviteStaffDrawer from "./Drawers/InviteStaffDrawer.jsx";
+import RoleDrawerShared from "./Drawers/RoleDrawer.jsx";
+import EditPracticeDetailsDrawer from "./Drawers/EditPracticeDetailsDrawer.jsx";
 
 // Global drawer animation keyframes (used by all drawers in this page)
 const DrawerKeyframes = () => (
@@ -57,8 +68,10 @@ const DrawerKeyframes = () => (
 );
 
 // A light-weight field renderer
-const InfoField = ({ label, value, right }) => (
-  <div className="flex flex-col text-[14px] border-b pb-2">
+const InfoField = ({ label, value, right,className:Class}) => (
+ <div
+  className={`${Class} flex flex-col gap-1 text-[14px] border-b-[0.5px] pb-2 border-secondary-grey100`}
+>
     <div className="col-span-4  text-secondary-grey200">{label}</div>
     <div className="col-span-8 text-secondary-grey400 flex items-center justify-between">
       <span className="truncate">{value || "-"}</span>
@@ -105,9 +118,13 @@ const SectionCard = ({
         {Icon && (
           <button
             onClick={onIconClick}
-            className="p-1 text-gray-500 hover:text-gray-700"
+            className="p-1 text-gray-500 hover:bg-gray-50"
           >
-            <Icon className="w-4 h-4" />
+            {typeof Icon === "string" ? (
+              <img src={Icon} alt="icon" className="w-7 h-7" />
+            ) : (
+              <Icon className="w-7 h-7" />
+            )}
           </button>
         )}
       </div>
@@ -123,47 +140,110 @@ const ProfileItemCard = ({
   badge,
   subtitle,
   date,
+  location, // new optional line under date
   linkLabel,
   linkUrl,
+  description, // new long text with See more toggle when no link
+  initiallyExpanded = false,
   rightActions, // JSX slot (optional)
+  // Optional inline edit-education control
+  showEditEducation = false,
+  editEducationIcon, // string URL or React component
+  onEditEducationClick, // handler to open drawer
+  editEducationAriaLabel = "Edit education",
 }) => {
+  const [expanded, setExpanded] = useState(!!initiallyExpanded);
+  const MAX_CHARS = 220;
+  const showSeeMore = !linkUrl && typeof description === 'string' && description.length > MAX_CHARS;
+  const visibleText =
+    !linkUrl && typeof description === 'string'
+      ? expanded
+        ? description
+        : description.length > MAX_CHARS
+          ? description.slice(0, MAX_CHARS).trimEnd() + '…'
+          : description
+      : '';
   return (
-    <div className="flex items-start gap-4 py-3 border-b rounded-md bg-white">
+    <div className="flex  py-3 border-b rounded-md bg-white">
       {/* Icon */}
-      <div className="w-[64px] h-[64px] rounded-full border border-secondary-grey50 bg-gray-100 flex items-center justify-center text-gray-600 shrink-0">
+      <div className="w-[64px] mr-4 h-[64px] rounded-full border border-secondary-grey50 bg-gray-100 flex items-center justify-center text-gray-600 shrink-0">
         {typeof icon === "string" ? (
-          <img src={icon} alt="" className="w-6 h-6 object-contain" />
+          <img src={icon} alt="" className="w-8 h-8 object-contain" />
         ) : (
           icon
         )}
       </div>
 
       {/* Content */}
-      <div className="flex flex-shrink-0  flex-col gap-[2px]">
-        <div className="flex flex-shrink-0  items-center gap-1 text-sm text-gray-900">
+      <div className="flex  flex-col gap-[2px] w-full">
+        <div className="flex items-center justify-between">
+        <div className="flex flex-shrink-0  items-center gap-1 text-sm text-secondary-grey400">
           <span className="font-semibold">{title}</span>
-
           {badge && (
-            <span className="text-[12px] shrink-0   min-w-[18px]  text-gray-500 bg-gray-50 rounded px-1 ">
+            <span className="text-[12px]   min-w-[18px]  text-secondary-grey400 bg-secondary-grey50 rounded px-1 ">
               {badge}
             </span>
           )}
+          </div>
+          {showEditEducation && (
+            
+              <button
+              type="button"
+              onClick={onEditEducationClick}
+              aria-label={editEducationAriaLabel}
+              title={editEducationAriaLabel}
+              className=" inline-flex items-center justify-center rounded hover:bg-secondary-grey50 text-secondary-grey300 mr-2"
+            >
+              {typeof editEducationIcon === "string" && editEducationIcon ? (
+                <img src={editEducationIcon} alt="edit" className="w-6" />
+              ) : editEducationIcon ? (
+                React.createElement(editEducationIcon, { className: "w-6" })
+              ) : (
+                <img src={pencil} alt="edit" className="w-6" />
+              )}
+            </button>
+            
+            
+          )}
+
+          
         </div>
 
-        {subtitle && <div className="text-sm text-gray-600">{subtitle}</div>}
+        {subtitle && <div className="text-sm text-secondary-grey400 w-4/5">{subtitle}</div>}
 
-        {date && <div className="text-sm text-gray-500">{date}</div>}
+        {date && <div className="text-sm text-secondary-grey200">{date}</div>}
+        {location && (
+          <div className="text-sm text-secondary-grey200">{location}</div>
+        )}
 
-        {linkUrl && (
-          <a
-            href={linkUrl}
-            className="inline-flex items-center gap-1 text-sm text-blue-600"
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.preventDefault()}
-          >
-            {linkLabel}
-          </a>
+        {linkUrl ? (
+          <div className="flex items-center gap-1">
+              <img src={pdf_blue} alt="" className="w-4 h-4"/>
+              <a
+              href={linkUrl}
+              className="inline-flex items-center gap-1 text-sm text-blue-primary250"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {linkLabel}
+            </a>
+          </div>
+        ) : (
+          description ? (
+            <div className="mt-2">
+              <div className="text-[13px] text-secondary-grey400">{visibleText}</div>
+              {showSeeMore && (
+                <button
+                  type="button"
+                  className="mt-1 text-[13px] text-secondary-grey200 inline-flex items-center gap-1 hover:text-secondary-grey300"
+                  onClick={() => setExpanded((v) => !v)}
+                >
+                  {expanded ? 'See Less' : 'See More'}
+                  <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                </button>
+              )}
+            </div>
+          ) : null
         )}
       </div>
 
@@ -391,154 +471,220 @@ const ExperienceDrawer = ({ open, onClose, onSave, initial, mode = "add" }) => {
   );
 };
 
+// Small helpers to format experience period and duration consistently
+const formatMonthYear = (d) => {
+  if (!d) return "-";
+  const date = new Date(d);
+  if (isNaN(date)) return "-";
+  // Custom month labels to match UI (use 'Sept')
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sept", "Oct", "Nov", "Dec",
+  ];
+  const m = months[date.getMonth()] ?? date.toLocaleString("en-US", { month: "short" });
+  const y = date.getFullYear();
+  return `${m}, ${y}`; // e.g., Aug, 2014
+};
+
+// Compute precise diff in years, months, and days
+const diffYearsMonthsDays = (start, end = new Date()) => {
+  const s = new Date(start);
+  const e = new Date(end);
+  if (isNaN(s) || isNaN(e)) return null;
+  // Normalize to avoid timezone drift
+  const sY = s.getFullYear();
+  const sM = s.getMonth();
+  const sD = s.getDate();
+  let y = e.getFullYear() - sY;
+  let m = e.getMonth() - sM;
+  let d = e.getDate() - sD;
+
+  if (d < 0) {
+    // Borrow days from previous month
+    const prevMonth = new Date(e.getFullYear(), e.getMonth(), 0);
+    d += prevMonth.getDate();
+    m -= 1;
+  }
+  if (m < 0) {
+    m += 12;
+    y -= 1;
+  }
+  if (y < 0) y = 0;
+
+  const totalMonths = y * 12 + m;
+  return { years: y, months: m, days: d, totalMonths };
+};
+
+const formatExperienceRange = (startDate, endDate, isCurrent) => {
+  if (!startDate) return "-";
+  const start = formatMonthYear(startDate);
+  const end = isCurrent || !endDate ? "Present" : formatMonthYear(endDate);
+  // Duration
+  const d = diffYearsMonthsDays(startDate, isCurrent || !endDate ? new Date() : new Date(endDate));
+  let dur = "";
+  if (d) {
+    if (d.years >= 1) {
+      // Show years and months when months > 0
+      dur = d.months > 0 ? `${d.years} Yrs ${d.months} Mos` : `${d.years} Yrs`;
+    } else if (d.totalMonths >= 1) {
+      // Less than a year → show months
+      dur = `${d.totalMonths} Mos`;
+    } else {
+      // Less than a month → show days (show 0 as 0 Days if same-day)
+      dur = `${d.days} Days`;
+    }
+  }
+  return `${start} - ${end} | ${dur}`;
+};
+
 // Award drawer moved to its own component under drawers/AddAwardDrawer.jsx
 
 // Drawer: Publication
-const PublicationDrawer = ({
-  open,
-  onClose,
-  onSave,
-  initial,
-  mode = "add",
-}) => {
-  const [closing, setClosing] = useState(false);
-  const [data, setData] = useState({
-    title: "",
-    publisher: "",
-    date: "",
-    url: "",
-    desc: "",
-  });
+// const PublicationDrawer = ({
+//   open,
+//   onClose,
+//   onSave,
+//   initial,
+//   mode = "add",
+// }) => {
+//   const [closing, setClosing] = useState(false);
+//   const [data, setData] = useState({
+//     title: "",
+//     publisher: "",
+//     date: "",
+//     url: "",
+//     desc: "",
+//   });
 
-  useEffect(() => {
-    if (open) {
-      if (initial && mode === "edit") {
-        setData({
-          title: initial.title || "",
-          publisher: initial.publisher || "",
-          date: initial.publicationDate?.split("T")[0] || "",
-          url: initial.publicationUrl || "",
-          desc: initial.description || "",
-        });
-      } else {
-        setData({ title: "", publisher: "", date: "", url: "", desc: "" });
-      }
-    }
-  }, [initial, open, mode]);
+//   useEffect(() => {
+//     if (open) {
+//       if (initial && mode === "edit") {
+//         setData({
+//           title: initial.title || "",
+//           publisher: initial.publisher || "",
+//           date: initial.publicationDate?.split("T")[0] || "",
+//           url: initial.publicationUrl || "",
+//           desc: initial.description || "",
+//         });
+//       } else {
+//         setData({ title: "", publisher: "", date: "", url: "", desc: "" });
+//       }
+//     }
+//   }, [initial, open, mode]);
 
-  if (!open && !closing) return null;
-  const requestClose = () => {
-    setClosing(true);
-    setTimeout(() => {
-      setClosing(false);
-      onClose?.();
-    }, 220);
-  };
-  const set = (k, v) => setData((d) => ({ ...d, [k]: v }));
-  const canSave = data.title && data.publisher && data.date;
-  return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className={`absolute inset-0 bg-black/30 ${
-          closing
-            ? "animate-[fadeOut_.2s_ease-in_forwards]"
-            : "animate-[fadeIn_.25s_ease-out_forwards]"
-        }`}
-        onClick={requestClose}
-      />
-      <aside
-        className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-          closing
-            ? "animate-[drawerOut_.22s_ease-in_forwards]"
-            : "animate-[drawerIn_.25s_ease-out_forwards]"
-        }`}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[#424242]">
-            {mode === "edit" ? "Edit Publication" : "Add Publication"}
-          </h3>
-          <div className="flex items-center gap-3">
-            <button
-              disabled={!canSave}
-              onClick={() => canSave && onSave?.(data)}
-              className={
-                "text-xs md:text-sm h-8 px-3 rounded-md transition " +
-                (!canSave
-                  ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
-                  : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
-              }
-            >
-              Save
-            </button>
-            <button
-              onClick={requestClose}
-              className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        <div className="p-3 overflow-y-auto  grid grid-cols-1 gap-2">
-          <label className="block">
-            <FieldLabel required>Title</FieldLabel>
-            <TextInput
-              placeholder="Title"
-              value={data.title}
-              onChange={(e) => set("title", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel required>Publication / Publisher</FieldLabel>
-            <TextInput
-              placeholder="Publisher"
-              value={data.publisher}
-              onChange={(e) => set("publisher", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel required>Publication Date</FieldLabel>
-            <TextInput
-              type="date"
-              value={data.date}
-              onChange={(e) => set("date", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel>Publication URL</FieldLabel>
-            <TextInput
-              placeholder="https://..."
-              value={data.url}
-              onChange={(e) => set("url", e.target.value)}
-            />
-          </label>
-          <div>
-            <FieldLabel>Description</FieldLabel>
-            <div className="border border-gray-200 rounded-md">
-              <div className="px-2 py-1 border-b border-gray-200 text-gray-600 text-sm flex items-center gap-2">
-                <button className="hover:text-gray-900">✎</button>
-                <button className="hover:text-gray-900 font-bold">B</button>
-                <button className="hover:text-gray-900 italic">I</button>
-                <button className="hover:text-gray-900 underline">U</button>
-                <button className="hover:text-gray-900">•</button>
-              </div>
-              <textarea
-                className="w-full min-h-[100px] p-3 text-sm outline-none"
-                value={data.desc}
-                onChange={(e) => set("desc", e.target.value)}
-              />
-              <div className="px-3 pb-2 text-[12px] text-gray-500 text-right">
-                {data.desc.length}/500
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
-  );
-};
+//   if (!open && !closing) return null;
+//   const requestClose = () => {
+//     setClosing(true);
+//     setTimeout(() => {
+//       setClosing(false);
+//       onClose?.();
+//     }, 220);
+//   };
+//   const set = (k, v) => setData((d) => ({ ...d, [k]: v }));
+//   const canSave = data.title && data.publisher && data.date;
+//   return (
+//     <div className="fixed inset-0 z-50">
+//       <div
+//         className={`absolute inset-0 bg-black/30 ${
+//           closing
+//             ? "animate-[fadeOut_.2s_ease-in_forwards]"
+//             : "animate-[fadeIn_.25s_ease-out_forwards]"
+//         }`}
+//         onClick={requestClose}
+//       />
+//       <aside
+//         className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
+//           closing
+//             ? "animate-[drawerOut_.22s_ease-in_forwards]"
+//             : "animate-[drawerIn_.25s_ease-out_forwards]"
+//         }`}
+//         role="dialog"
+//         aria-modal="true"
+//       >
+//         <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
+//           <h3 className="text-[16px] font-semibold text-[#424242]">
+//             {mode === "edit" ? "Edit Publication" : "Add Publication"}
+//           </h3>
+//           <div className="flex items-center gap-3">
+//             <button
+//               disabled={!canSave}
+//               onClick={() => canSave && onSave?.(data)}
+//               className={
+//                 "text-xs md:text-sm h-8 px-3 rounded-md transition " +
+//                 (!canSave
+//                   ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
+//                   : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
+//               }
+//             >
+//               Save
+//             </button>
+//             <button
+//               onClick={requestClose}
+//               className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
+//               aria-label="Close"
+//             >
+//               ✕
+//             </button>
+//           </div>
+//         </div>
+//         <div className="p-3 overflow-y-auto  grid grid-cols-1 gap-2">
+//           <label className="block">
+//             <FieldLabel required>Title</FieldLabel>
+//             <TextInput
+//               placeholder="Title"
+//               value={data.title}
+//               onChange={(e) => set("title", e.target.value)}
+//             />
+//           </label>
+//           <label className="block">
+//             <FieldLabel required>Publication / Publisher</FieldLabel>
+//             <TextInput
+//               placeholder="Publisher"
+//               value={data.publisher}
+//               onChange={(e) => set("publisher", e.target.value)}
+//             />
+//           </label>
+//           <label className="block">
+//             <FieldLabel required>Publication Date</FieldLabel>
+//             <TextInput
+//               type="date"
+//               value={data.date}
+//               onChange={(e) => set("date", e.target.value)}
+//             />
+//           </label>
+//           <label className="block">
+//             <FieldLabel>Publication URL</FieldLabel>
+//             <TextInput
+//               placeholder="https://..."
+//               value={data.url}
+//               onChange={(e) => set("url", e.target.value)}
+//             />
+//           </label>
+//           <div>
+//             <FieldLabel>Description</FieldLabel>
+//             <div className="border border-gray-200 rounded-md">
+//               <div className="px-2 py-1 border-b border-gray-200 text-gray-600 text-sm flex items-center gap-2">
+//                 <button className="hover:text-gray-900">✎</button>
+//                 <button className="hover:text-gray-900 font-bold">B</button>
+//                 <button className="hover:text-gray-900 italic">I</button>
+//                 <button className="hover:text-gray-900 underline">U</button>
+//                 <button className="hover:text-gray-900">•</button>
+//               </div>
+//               <textarea
+//                 className="w-full min-h-[100px] p-3 text-sm outline-none"
+//                 value={data.desc}
+//                 onChange={(e) => set("desc", e.target.value)}
+//               />
+//               <div className="px-3 pb-2 text-[12px] text-gray-500 text-right">
+//                 {data.desc.length}/500
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </aside>
+//     </div>
+//   );
+// };
 
 // Drawer: Professional Details (Registration)
 const ProfessionalDrawer = ({ open, onClose, initial, onSave }) => {
@@ -800,10 +946,10 @@ const StaffTab = () => {
     <button
       onClick={onClick}
       className={
-        `px-3 py-1 text-[12px] md:text-sm rounded-md border bg-white transition-colors ` +
+        `px-[6px] py-1 text-[16px] md:text-sm rounded-md  transition-colors ` +
         (active
-          ? "text-[#2F66F6] border-[#BFD3FF] shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-          : "text-[#626060] border-[#E6E6E6] hover:bg-[#F9FAFB] hover:text-[#424242]")
+          ? "text-blue-primary250 border-[0.5px] border-blue-primary150 bg-blue-primary50"
+          : "text-secondary-grey300 hover:bg-[#F9FAFB] hover:text-[#424242]")
       }
       aria-selected={active}
       role="tab"
@@ -943,59 +1089,63 @@ const StaffTab = () => {
 
   const StaffRow = ({ data }) => (
     <div
-      className="border border-[#E2E2E2] rounded-lg bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+      className="border-[0.5px] flex flex-col gap-2 border-secondary-grey100 rounded-lg bg-white p-3 "
       style={{ borderWidth: "0.5px", width: "280px", minHeight: "228px" }}
     >
       <div className="flex items-start gap-2">
-        <div className="w-12 h-12 rounded-full grid place-items-center text-[#2F66F6] bg-white border border-[#DDE6FF]">
-          <span className="font-semibold">
+        <div className="w-12 h-12 rounded-full grid place-items-center text-blue-primary250 bg-blue-primary50 border-[0.5px] border-blue-primary150">
+          <span className="text-[20px]">
             {data.name?.[0]?.toUpperCase() || "U"}
           </span>
         </div>
-        <div className="flex-1">
-          <div className="text-[14px] font-semibold text-[#2A2A2A]">
+        <div className="flex-1 ">
+          <div className="text-[16px] font-semibold text-secondary-grey400">
             {data.name}
           </div>
-          <div className="text-[12px] text-[#7A7A7A]">{data.position}</div>
+          <div className="text-[12px] text-secondary-grey300">{data.position}</div>
         </div>
       </div>
-      <div className="mt-2 text-[13px] text-[#4C4C4C]">
+
+      <div className="text-[14px] text-secondary-grey300">
         <div className="flex justify-between py-1">
-          <span>Role:</span>
-          <span className="text-right font-medium text-[#2B2B2B]">
+          <span className="">Role:</span>
+          <span className="text-right font-medium ">
             {data.role}
           </span>
         </div>
         <div className="flex justify-between py-1">
           <span>Contact Number:</span>
-          <span className="text-right font-medium text-[#2B2B2B]">
+          <span className="text-right font-medium ">
             {data.phone || "-"}
           </span>
         </div>
         <div className="flex justify-between py-1">
           <span>Last Active:</span>
-          <span className="text-right text-[#505050]">-</span>
+          <span className="text-right ">-</span>
         </div>
         <div className="flex justify-between py-1">
           <span>Joined:</span>
-          <span className="text-right font-medium text-[#2B2B2B]">
+          <span className="text-right font-medium ">
             {data.joined || "-"}
           </span>
         </div>
       </div>
-      <div className="mt-2 flex items-center gap-2">
-        <button className="h-8 px-3 rounded-md border text-[12px] text-[#424242] hover:bg-gray-50 inline-flex items-center gap-1">
+
+      <div className="flex border-t pt-2 items-center gap-2">
+        <button className="h-8 py-1 px-[6px] rounded-md border text-[12px] text-[#424242] hover:bg-gray-50 inline-flex items-center gap-1">
           <Eye size={14} /> View
         </button>
-        <button className="h-8 px-3 rounded-md border text-[12px] text-[#424242] hover:bg-gray-50 inline-flex items-center gap-1">
-          <Pencil size={14} /> Edit
+        <button className="h-8 py-1 px-[6px] rounded-md border text-[12px] text-[#424242] hover:bg-gray-50 inline-flex items-center gap-1">
+          <img src={pencil} alt="Edit" className="w-5" /> Edit
         </button>
-        <div className="ml-auto flex">
-          <button className="h-8 px-3 rounded-l-md text-[12px] bg-[#FFF4CC] border border-[#F5E2A4] text-[#6B5E2F]">
+        <div className="w-[0.5px] h-6 ml-1 bg-secondary-grey100"></div>
+        <div className="ml-auto flex text-warning2-400 items-center bg-warning2-50 rounded-md">
+          <button className="h-8 px-3 rounded-l-md text-[12px] ">
             Inactive
           </button>
-          <button className="h-8 px-2 rounded-r-md border border-l-0 border-[#F5E2A4] bg-[#FFF4CC] text-[#6B5E2F] grid place-items-center">
-            <ChevronDown size={16} />
+         
+          <button className="h-5 px-2 mr-1 rounded-r-md py-1">
+            <ChevronDown size={14} />
           </button>
         </div>
       </div>
@@ -1009,252 +1159,50 @@ const StaffTab = () => {
         className="border border-[#E2E2E2] rounded-lg bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
         style={{ borderWidth: "0.5px", width: "280px", minHeight: "180px" }}
       >
-        <div className="flex items-start gap-2">
-          <div className="w-9 h-9 rounded-full grid place-items-center text-[#2F66F6] bg-white border border-[#DDE6FF]">
+        <div className="flex items-center gap-2">
+          <div className="w-12 h-12 rounded-full grid place-items-center text-[#2F66F6] bg-white border border-[#DDE6FF]">
             <Icon size={16} />
           </div>
           <div className="flex-1">
-            <div className="text-[13px] font-semibold text-[#2A2A2A]">
+            <div className="text-[15px] font-semibold text-secondary-grey400 leading-tight">
               {role.name}
             </div>
-            <div className="text-[11px] text-[#7A7A7A]">{role.subtitle}</div>
+            <div className="text-[12px] text-secondary-grey300">{role.subtitle}</div>
           </div>
         </div>
-        <div className="mt-2 text-[12px] text-[#4C4C4C]">
-          <div className="flex justify-between py-1">
+        <div className="mt-2 flex flex-col gap-2 text-[13px] text-secondary-grey300">
+          <div className="flex justify-between py-">
             <span>Staff Member:</span>
-            <span className="font-medium text-[#424242]">
+            <span className="font-medium ">
               {role.staffCount}
             </span>
           </div>
-          <div className="flex justify-between py-1">
+          <div className="flex justify-between py-">
             <span>Total Permissions:</span>
-            <span className="font-medium text-[#424242]">
+            <span className="font-medium ">
               {role.permissions}
             </span>
           </div>
-          <div className="flex justify-between py-1 border-b pb-2">
+          <div className="flex justify-between py- border-b pb-2">
             <span>Creation Date:</span>
-            <span className="font-medium text-[#424242]">{role.created}</span>
+            <span className="font-medium ">{role.created}</span>
           </div>
         </div>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <button className="h-7 rounded-md border text-[12px] text-[#424242] hover:bg-gray-50 inline-flex items-center justify-center gap-1">
+          <button className="h-7 rounded-md border text-[12px]  hover:bg-gray-50 inline-flex items-center justify-center gap-1">
             <Eye size={14} /> View
           </button>
-          <button className="h-7 rounded-md border text-[12px] text-[#424242] hover:bg-gray-50 inline-flex items-center justify-center gap-1">
-            <Pencil size={14} /> Edit
+          <button className="h-7 rounded-md border text-[12px]  hover:bg-gray-50 inline-flex items-center justify-center gap-1">
+            <img src={pencil} alt="Edit" className="w-[14px] h-[14px]" /> Edit
           </button>
         </div>
       </div>
     );
   };
 
-  const InviteStaffDrawer = ({ open, onClose, onSend, roleOptions = [] }) => {
-    const [mode, setMode] = useState("individual");
-    const [rows, setRows] = useState([
-      { id: 0, fullName: "", email: "", phone: "", position: "", roleId: "" },
-    ]);
-    const [closing, setClosing] = useState(false);
+  // Removed inline InviteStaffDrawer; using shared component below
 
-    const requestClose = React.useCallback(() => {
-      setClosing(true);
-      setTimeout(() => {
-        setClosing(false);
-        onClose?.();
-      }, 220);
-    }, [onClose]);
-
-    useEffect(() => {
-      const onEsc = (e) => e.key === "Escape" && requestClose();
-      window.addEventListener("keydown", onEsc);
-      return () => window.removeEventListener("keydown", onEsc);
-    }, [requestClose]);
-
-    if (!open && !closing) return null;
-    const removeRow = (id) =>
-      setRows((r) => (r.length > 1 ? r.filter((x) => x.id !== id) : r));
-    const addRow = () =>
-      setRows((r) => [
-        ...r,
-        {
-          id: (r[r.length - 1]?.id ?? 0) + 1,
-          fullName: "",
-          email: "",
-          phone: "",
-          position: "",
-          roleId: "",
-        },
-      ]);
-    const onChangeRow = (id, field, value) =>
-      setRows((r) =>
-        r.map((row) => (row.id === id ? { ...row, [field]: value } : row))
-      );
-    const emailOk = (e) => /.+@.+\..+/.test(e);
-    const allValid = rows.every(
-      (x) => x.fullName && emailOk(x.email) && x.phone && x.position && x.roleId
-    );
-    return (
-      <div className="fixed inset-0 z-50">
-        <div
-          className={`absolute inset-0 bg-black/30 ${
-            closing
-              ? "animate-[fadeOut_.2s_ease-in_forwards]"
-              : "animate-[fadeIn_.25s_ease-out_forwards]"
-          }`}
-          onClick={requestClose}
-        />
-        <aside
-          className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-            closing
-              ? "animate-[drawerOut_.22s_ease-in_forwards]"
-              : "animate-[drawerIn_.25s_ease-out_forwards]"
-          }`}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="flex items-center justify-between px-3 py-2 border-b border-[#EFEFEF]">
-            <h3 className="text-[16px] font-semibold text-[#424242]">
-              Invite Staff
-            </h3>
-            <div className="flex items-center gap-3">
-              <button
-                disabled={!allValid}
-                className={
-                  "text-xs md:text-sm h-8 px-3 rounded-md transition " +
-                  (!allValid
-                    ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
-                    : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
-                }
-                onClick={() => allValid && onSend(rows)}
-              >
-                Send Invite
-              </button>
-              <button
-                onClick={requestClose}
-                className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <div className="p-3 flex flex-col gap-3 overflow-y-auto h-[calc(100%-48px)]">
-            <InfoBanner />
-            <div className="flex items-center gap-6 text-[13px] text-[#424242]">
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="invite-mode"
-                  checked={mode === "individual"}
-                  onChange={() => setMode("individual")}
-                />
-                Individual Invite
-              </label>
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="invite-mode"
-                  checked={mode === "bulk"}
-                  onChange={() => setMode("bulk")}
-                />
-                Bulk Invite
-              </label>
-            </div>
-            <div className="border rounded-lg border-[#E6E6E6] p-3">
-              <div className="text-[13px] font-semibold text-[#424242]">
-                New Staff Members
-              </div>
-              <div className="mt-2 flex flex-col gap-3">
-                {rows.map((row) => (
-                  <div key={row.id} className="relative grid grid-cols-1 gap-3">
-                    <button
-                      onClick={() => removeRow(row.id)}
-                      className="absolute right-0 -top-1 text-gray-400 hover:text-gray-600"
-                      title="Remove"
-                      aria-label="Remove row"
-                    >
-                      <Trash2 size={16} strokeWidth={1.75} />
-                    </button>
-                    <Field label="Full Name" required>
-                      <TextInput
-                        placeholder="Enter staff full name"
-                        value={row.fullName}
-                        onChange={(e) =>
-                          onChangeRow(row.id, "fullName", e.target.value)
-                        }
-                      />
-                    </Field>
-                    <Field label="Email Address" required>
-                      <TextInput
-                        type="email"
-                        placeholder="staff@clinic.com"
-                        value={row.email}
-                        onChange={(e) =>
-                          onChangeRow(row.id, "email", e.target.value)
-                        }
-                      />
-                    </Field>
-                    <Field label="Phone Number" required>
-                      <TextInput
-                        placeholder="Enter phone number"
-                        value={row.phone}
-                        onChange={(e) =>
-                          onChangeRow(row.id, "phone", e.target.value)
-                        }
-                      />
-                    </Field>
-                    <Field label="Position" required>
-                      <TextInput
-                        placeholder="Enter User Job Role"
-                        value={row.position}
-                        onChange={(e) =>
-                          onChangeRow(row.id, "position", e.target.value)
-                        }
-                      />
-                    </Field>
-                    <Field label="Assign Roles" required>
-                      <Select
-                        value={row.roleId}
-                        onChange={(e) =>
-                          onChangeRow(row.id, "roleId", e.target.value)
-                        }
-                      >
-                        <option value="" disabled>
-                          Select role
-                        </option>
-                        {roleOptions.length === 0 ? (
-                          <option value="" disabled>
-                            Loading roles…
-                          </option>
-                        ) : (
-                          roleOptions.map((r, idx) => (
-                            <option key={idx} value={r.id}>
-                              {r.name}
-                            </option>
-                          ))
-                        )}
-                      </Select>
-                    </Field>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="text-center">
-              <button
-                onClick={addRow}
-                className="text-[13px] font-medium text-[#2F66F6] hover:text-[#1e4cd8]"
-              >
-                Add More Staff Members
-              </button>
-            </div>
-          </div>
-        </aside>
-      </div>
-    );
-  };
-
-  const RoleDrawer = ({ open, onClose, onCreate }) => {
+  const RoleDrawerInline = ({ open, onClose, onCreate }) => {
     const [name, setName] = useState("");
     const [desc, setDesc] = useState("");
     // selection map by permission id => boolean
@@ -1722,7 +1670,7 @@ const StaffTab = () => {
   return (
     <div className="p-4 flex flex-col gap-3 no-scrollbar">
       <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+        <div className="flex p-[2px] gap-2 bg-white rounded-md">
           <TabBtn
             label="Staff"
             active={tab === "staff"}
@@ -1737,14 +1685,14 @@ const StaffTab = () => {
         {tab === "staff" ? (
           <button
             onClick={() => setInviteOpen(true)}
-            className="text-[13px] md:text-sm font-medium text-[#2F66F6] hover:text-[#1e4cd8]"
+            className="text-[16px] md:text-sm font-medium text-blue-primary250 hover:text-[#1e4cd8]"
           >
-            + Invite Staff
+            <span> +  Invite Staff</span>
           </button>
         ) : (
           <button
             onClick={() => setRoleOpen(true)}
-            className="text-[13px] md:text-sm font-medium text-[#2F66F6] hover:text-[#1e4cd8]"
+            className="text-[16px] md:text-sm font-medium text-[#2F66F6] hover:text-[#1e4cd8]"
           >
             + New Role
           </button>
@@ -1775,16 +1723,16 @@ const StaffTab = () => {
             ))}
             <button
               onClick={() => setInviteOpen(true)}
-              className="rounded-lg w-[280px] min-h-[228px] flex items-center justify-center flex-col gap-2 text-[#2F66F6] border-2 border-dashed border-[#CFE0FF] hover:bg-[#F8FBFF] p-3"
+              className="rounded-lg w-[280px] min-h-[228px] flex items-center justify-center flex-col gap-2 bg-white text-[#2F66F6] border-[0.5px] border-dashed border-blue-primary250 hover:bg-[#F8FBFF] p-3"
             >
-              <span className="w-10 h-10 rounded-full grid place-items-center border border-[#BFD3FF] text-[#2F66F6]">
+              <span className="w-10 h-10 rounded-full grid place-items-center bg-white border border-blue-primary150 text-[#2F66F6]">
                 <img
                   src={inviteUserIcon}
                   alt="Invite User"
                   className="w-6 h-6"
                 />
               </span>
-              <span className="text-[13px]">Invite More Users</span>
+              <span className="text-[12px] text-secondary-grey300">Invite More Users</span>
             </button>
           </div>
         )
@@ -1805,12 +1753,12 @@ const StaffTab = () => {
           ))}
           <button
             onClick={() => setRoleOpen(true)}
-            className="rounded-lg w-[280px] min-h-[180px] flex items-center justify-center flex-col gap-2 text-[#2F66F6] border-2 border-dashed border-[#CFE0FF] hover:bg-[#F8FBFF] p-3"
-          >
-            <span className="w-10 h-10 rounded-full grid place-items-center border border-[#BFD3FF] text-[#2F66F6]">
-              <ShieldPlus size={18} />
+            className="rounded-lg w-[280px] min-h-[180px] flex items-center justify-center flex-col gap-2 bg-white text-[#2F66F6] border-[0.5px] border-dashed border-blue-primary250 hover:bg-[#F8FBFF] p-3"
+            >
+            <span className="w-12 h-12 rounded-full grid place-items-center border border-blue-primary150 bg-blue-primary50 text-[#2F66F6]">
+              <img src="/Doctor_module/settings/role.png" alt="" className="w-6 h-6" />
             </span>
-            <span className="text-[13px] text-[#3A6EEA]">Create New Role</span>
+            <span className="text-[12px] text-secondary-grey300">Create New Role</span>
           </button>
         </div>
       )}
@@ -1865,14 +1813,15 @@ const StaffTab = () => {
         }}
         roleOptions={roles}
       />
-      <RoleDrawer
+      <RoleDrawerShared
         open={roleOpen}
         onClose={() => setRoleOpen(false)}
-        onCreate={(role) => {
+        onCreated={(role) => {
           setRoles((r) => [role, ...r]);
           setRoleOpen(false);
         }}
       />
+  {/* Drawer placeholders end for StaffTab */}
     </div>
   );
 };
@@ -1987,6 +1936,10 @@ const Doc_settings = () => {
   const [expEditData, setExpEditData] = useState(null); // holds experience being edited
   const [awardOpen, setAwardOpen] = useState(false);
   const [awardEditMode, setAwardEditMode] = useState("add"); // 'add' or 'edit'
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [pubOpen, setPubOpen] = useState(false);
+  const [pubEditMode, setPubEditMode] = useState("add");
+  const [pubEditData, setPubEditData] = useState(null);
   // Ensure /doctors/me is fetched on Settings mount so clinicId is available for roles
   useEffect(() => {
     try {
@@ -2004,13 +1957,12 @@ const Doc_settings = () => {
     } catch {}
   }, []);
   const [awardEditData, setAwardEditData] = useState(null); // holds award being edited
-  const [pubOpen, setPubOpen] = useState(false);
-  const [pubEditMode, setPubEditMode] = useState("add"); // 'add' or 'edit'
-  const [pubEditData, setPubEditData] = useState(null); // holds publication being edited
+  // publication drawer state defined above; avoid duplicate declarations
   const [profOpen, setProfOpen] = useState(false);
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [clinicEditMode, setClinicEditMode] = useState(false);
   const [clinicDrawerOpen, setClinicDrawerOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   // Consultation details state
   const [consultationLoading, setConsultationLoading] = useState(false);
   const [consultationError, setConsultationError] = useState("");
@@ -2174,11 +2126,11 @@ const Doc_settings = () => {
             <SectionCard
               title="Basic Info"
               subtitle="Visible to Patient"
-              Icon={Pencil}
+              Icon={pencil}
               onIconClick={() => setBasicOpen(true)}
             >
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3 text-[14px]">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-[14px] mb-4">
                   <InfoField
                     label="First Name"
                     value={profile.basic?.firstName}
@@ -2222,15 +2174,32 @@ const Doc_settings = () => {
                       profile.basic?.gender?.slice(1).toLowerCase()
                     }
                   />
+                  
                   <InfoField
                     label="Language"
-                    value={profile.basic?.languages?.join(", ")}
+                    value={
+                      Array.isArray(profile.basic?.languages) && profile.basic.languages.length > 0 ? (
+                        <div className="flex gap-1">
+                          {profile.basic.languages.map((lang, idx) => (
+                            <span
+                              key={`${lang}-${idx}`}
+                              className="inline-flex items-center h-5 gap-2 px-[6px] rounded-[4px] bg-secondary-grey50 text-secondary-grey400"
+                            >
+                              <span className="text-[14px] text-secondary-grey400 inline-flex items-center">{lang}</span>
+                              {/* removable button omitted in read-only view */}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-secondary-grey100 px-1">Select Language</span>
+                      )
+                    }
                   />
                   <InfoField label="City" value={profile.basic?.city} />
                   <InfoField label="Website" value={profile.basic?.website} />
                 </div>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-5">
                   <InfoField
                     label="Profile Headline"
                     value={profile.basic?.headline}
@@ -2243,7 +2212,7 @@ const Doc_settings = () => {
             <SectionCard
               title="Educational Details"
               subtitle="Visible to Patient"
-              Icon={Pencil}
+              Icon={add}
               onIconClick={() => setEduOpen(true)}
               subo="To Change your Graduation Details please"
             >
@@ -2260,26 +2229,42 @@ const Doc_settings = () => {
                     date={`${ed.startYear} - ${ed.completionYear}`}
                     linkLabel="Degree_Certificate.pdf"
                     linkUrl={ed.proofDocumentUrl}
-                    rightActions={
-                      <button
-                        onClick={() => {
-                          setEduEditData({
-                            id: ed.id,
-                            school: ed.instituteName,
-                            gradType: ed.graduationType,
-                            degree: ed.degree,
-                            field: ed.fieldOfStudy || "",
-                            start: ed.startYear?.toString() || "",
-                            end: ed.completionYear?.toString() || "",
-                            proof: ed.proofDocumentUrl || "",
-                          });
-                          setEduEditMode("edit");
-                          setEduOpen(true);
-                        }}
-                        className="text-gray-400 hover:text-blue-600"
-                        title="Edit"
-                      ></button>
-                    }
+                    showEditEducation={true}
+                    editEducationIcon={pencil}
+                    onEditEducationClick={() => {
+                      setEduEditData({
+                        id: ed.id,
+                        school: ed.instituteName,
+                        gradType: ed.graduationType,
+                        degree: ed.degree,
+                        field: ed.fieldOfStudy || "",
+                        start: ed.startYear?.toString() || "",
+                        end: ed.completionYear?.toString() || "",
+                        
+                      });
+                      setEduEditMode("edit");
+                      setEduOpen(true);
+                    }}
+                    // rightActions={
+                    //   <button
+                    //     onClick={() => {
+                    //       setEduEditData({
+                    //         id: ed.id,
+                    //         school: ed.instituteName,
+                    //         gradType: ed.graduationType,
+                    //         degree: ed.degree,
+                    //         field: ed.fieldOfStudy || "",
+                    //         start: ed.startYear?.toString() || "",
+                    //         end: ed.completionYear?.toString() || "",
+                    //         proof: ed.proofDocumentUrl || "",
+                    //       });
+                    //       setEduEditMode("edit");
+                    //       setEduOpen(true);
+                    //     }}
+                    //     className="text-gray-400 hover:text-blue-600"
+                    //     title="Edit"
+                    //   ></button>
+                    // }
                   />
                 ))}
               </div>
@@ -2288,31 +2273,77 @@ const Doc_settings = () => {
             <SectionCard
               title="Awards & Publications"
               subtitle="Visible to Patient"
-              Icon={Pencil}
-              onIconClick={() => setAwardOpen(true)}
+              Icon={add}
+              onIconClick={() => setShowAddMenu((v)=>!v)}
             >
+              <div className="relative">
+                {showAddMenu && (
+                  <div className="absolute right-0 -top-2 mt-0.5 bg-white border border-gray-200 shadow-2xl rounded-md p-1 text-[13px] z-20">
+                    <button
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 w-full text-left"
+                      onClick={() => { setShowAddMenu(false); setAwardEditMode("add"); setAwardEditData(null); setAwardOpen(true); }}
+                    >
+                      <img src={award} alt="" className="w-4 h-4" /> Add Awards
+                    </button>
+                    <button
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 w-full text-left"
+                      
+                      onClick={() => {
+                        setShowAddMenu(false);
+                        setPubEditMode("add");
+                        setPubEditData(null);
+                        setPubOpen(true);
+                      }}
+                    >
+                      <img src={publication} alt="" className="w-4 h-4" /> Add Publications
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-3">
                 {Array.isArray(awards) &&
                   awards.map((aw) => (
                     <ProfileItemCard
                       key={aw.id}
-                      icon={<Trophy className="w-5 h-5" />}
+                      icon={award}
                       title={aw.awardName}
                       subtitle={aw.issuerName}
-                      date={new Date(aw.issueDate).toLocaleDateString()}
+                      date={formatMonthYear(aw.issueDate)}
                       linkLabel="Certificate ↗"
                       linkUrl={aw.awardUrl}
+                      showEditEducation={true}
+                    editEducationIcon={pencil}
+                    onEditEducationClick={() => {
+                      setAwardEditData(aw);
+                            setAwardEditMode("edit");
+                            setAwardOpen(true);
+                    }}
+                      
+                    />
+                  ))}
+
+                {Array.isArray(publications) &&
+                  publications.map((pub) => (
+                    <ProfileItemCard
+                      key={pub.id}
+                      icon={publication}
+                      title={pub.title}
+                      subtitle={pub.publisher || pub.associatedWith}
+                      date={pub.publicationDate ? formatMonthYear(pub.publicationDate) : undefined}
+                      linkLabel="Publication ↗"
+                      linkUrl={pub.publicationUrl}
+                      description={pub.description}
                       rightActions={
                         <button
                           onClick={() => {
-                            setAwardEditData(aw);
-                            setAwardEditMode("edit");
-                            setAwardOpen(true);
+                            setPubEditData(pub);
+                            setPubEditMode("edit");
+                            setPubOpen(true);
                           }}
                           className="text-gray-400 hover:text-blue-600 transition"
                           title="Edit"
                         >
-                          <Pencil size={16} />
+                          <img src={pencil} alt="edit" className="w-4 h-4" />
                         </button>
                       }
                     />
@@ -2328,21 +2359,26 @@ const Doc_settings = () => {
               subtitle="Visible to Patient"
             >
               <div className="flex flex-col gap-6">
-                <div className="grid grid-cols-12 gap-1 text-[13px]">
-                  <div className="col-span-12 text-[14px] text-gray-600 font-semibold">
+                <div className="grid grid-cols-12 gap-y-1 gap-x-6 text-[13px]">
+
+                  <div className="col-span-12 text-[14px] text-secondary-grey400 font-semibold">
                     Medical Registration Details
                   </div>
-                  <div className="col-span-12 -mt-1 text-[12px] mb-2 text-[#6B7280]">
-                    To change your MRN proof please{" "}
-                    <a
-                      className="text-[#2F66F6]"
-                      href="#"
-                      onClick={(e) => e.preventDefault()}
-                    >
-                      Call Us
-                    </a>
-                  </div>
-                  <div className="col-span-12 md:col-span-6 space-y-3">
+                  <div className="relative col-span-12 mt-[0.7px] text-[12px] text-secondary-grey200 pb-2 mb-3">
+                  To Change your MRN proof please{" "}
+                  <a
+                    className="text-blue-primary250"
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    Call Us
+                  </a>
+
+                  <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
+                </div>
+
+                  
+                  <div className="col-span-12 md:col-span-6 space-y-3 ">
                     <InfoField
                       label="Medical Council Registration Number"
                       value={
@@ -2355,37 +2391,84 @@ const Doc_settings = () => {
                       value={medicalRegistration?.registrationYear || "-"}
                     />
                   </div>
-                  <div className="col-span-12 md:col-span-6 space-y-3">
+                  <div className="col-span-12 md:col-span-6 space-y-5">
                     <InfoField
                       label="Registration Council"
                       value={medicalRegistration?.registrationCouncil || "-"}
                     />
-                    {medicalRegistration?.proofDocumentUrl && (
-                      <InfoField
-                        label=""
-                        value={
-                          <a
-                            href={medicalRegistration.proofDocumentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-600"
-                          >
-                            <FileText size={14} /> View Document
-                          </a>
-                        }
-                      />
-                    )}
+                    
+                        <div className="h-[32px]  w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm overflow-x-hidden bg-secondary-grey50">
+                          <span className="flex items-center gap-3 text-secondary-grey300 flex-1 min-w-0 p-[0.5px]">
+                            <img src="/Doctor_module/settings/pdf_black.png" alt="file" className="h-6 w-6" />
+                            <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
+                              {(() => {
+                                const url = String(medicalRegistration?.proofDocumentUrl || "");
+                                const name = url ? (url.split("/").pop() || "MRN Proof.pdf") : "-";
+                                const max = 22;
+                                if (name.length <= max) return name;
+                                const keep = Math.max(4, Math.floor((max - 3) / 2));
+                                return `${name.slice(0, keep)}...${name.slice(-keep)}`;
+                              })()}
+                            </span>
+
+                              <button
+                          type="button"
+                          title="View"
+                          className="hover:text-secondary-grey400"
+                          onClick={() => onFileView?.(fileName)}
+                        >
+                          
+                        </button>
+                          </span>
+                          <span className="flex items-center gap-3 text-secondary-grey300 flex-shrink-0">
+                            <button
+                              type="button"
+                              title="View"
+                              className="hover:text-secondary-grey400 p-2"
+                              onClick={() => onFileView?.(fileName)}
+                            >
+                              {/* simple eye */}
+                              <img src="/Doctor_module/settings/eye.png" alt="" className="w-4 h-4" />
+                            </button>
+
+                            {medicalRegistration?.proofDocumentUrl ? (
+                              <a
+                                href={medicalRegistration.proofDocumentUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="View"
+                                className="hover:text-secondary-grey400 inline-flex items-center justify-center"
+                              >
+                                <img src="/Doctor_module/settings/eye.png" alt="view" className="w-3.5 h-3.5" />
+                              </a>
+                            ) : null}
+                          </span>
+                        </div>
+                      
+                    
                   </div>
                 </div>
 
                 <div className="grid grid-cols-12 gap-3 text-[13px]">
                   {/* Section title */}
-                  <div className="col-span-12 text-[14px] text-gray-600 font-semibold">
+                  <div className="relative col-span-12 text-[14px] text-gray-600 font-semibold flex items-center justify-between ">
+                     <div className="col-span-12 text-[14px] text-secondary-grey400 font-semibold mb-3">
                     Practice Details
+                  </div>
+                  <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
+                    <button
+                      type="button"
+                      onClick={() => setPracticeOpen(true)}
+                      className="inline-flex items-center justify-center rounded hover:bg-secondary-grey50 text-secondary-grey300"
+                      title="Edit Practice Details"
+                      aria-label="Edit Practice Details"
+                    >
+                      <img src={pencil} alt="edit" className="w-7" />
+                    </button>
                   </div>
 
                   {/* Content grid MUST span full width */}
-                  <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6">
                     <InfoField
                       label="Work Experience"
                       value={
@@ -2424,99 +2507,80 @@ const Doc_settings = () => {
 
                     {/* Practice Area */}
                     <div className="md:col-span-2">
-                      <div className="text-[13px] text-gray-500">
-                        Practice Area
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {Array.isArray(practiceDetails?.practiceArea) &&
-                          practiceDetails.practiceArea.map((a) => (
-                            <Badge key={a} color="gray" size="s">
-                              {a}
-                            </Badge>
-                          ))}
-                      </div>
+                      <InfoField
+                        label="Practice Area"
+                        className="border-none"
+                        value={
+                              <div className="mt-1 flex flex-wrap gap-1.5">
+                                {Array.isArray(practiceDetails?.practiceArea) &&
+                                practiceDetails.practiceArea.length > 0 ? (
+                                  practiceDetails.practiceArea.map((a) => (
+                                    <Badge key={a} color="gray" size="s">
+                                      {a}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <span className="text-[12px] text-gray-600">
+                                    No details available
+                                  </span>
+                                )}
+                              </div>
+                            }
+                            />
                     </div>
                   </div>
                 </div>
+         
+             
               </div>
             </SectionCard>
 
             <SectionCard
               title="Experience Details"
               subtitle="Visible to Patient"
-              action={
-                <button
-                  onClick={() => setExpOpen(true)}
-                  className="text-blue-600 text-sm inline-flex items-center gap-1"
-                >
-                  <Upload size={14} /> Add
-                </button>
-              }
+              Icon={add}
+              onIconClick={() => setExpOpen(true)}
             >
               <div className="space-y-3">
                 {Array.isArray(experiences) &&
                   experiences.map((ex) => (
-                    <div
+                    <ProfileItemCard
                       key={ex.id}
-                      className="p-3 border border-gray-200 rounded-md flex items-start gap-3"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
-                          {ex.jobTitle}
-                          <span className="text-[11px] text-gray-600 border border-gray-300 bg-gray-50 rounded px-1.5 py-0.5">
-                            {ex.employmentType}
-                          </span>
-                          {ex.isCurrentlyWorking && (
-                            <span className="text-[11px] text-green-600 border border-green-300 bg-green-50 rounded px-1.5 py-0.5">
-                              Current
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[12px] text-gray-600">
-                          {ex.hospitalOrClinicName}
-                        </div>
-                        <div className="text-[12px] text-gray-600">
-                          {new Date(ex.startDate).toLocaleDateString()} -{" "}
-                          {ex.isCurrentlyWorking
-                            ? "Present"
-                            : new Date(ex.endDate).toLocaleDateString()}
-                        </div>
-                        {ex.description && (
-                          <div className="text-[13px] text-gray-800 mt-1">
-                            {ex.description}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setExpEditData(ex);
-                            setExpEditMode("edit");
-                            setExpOpen(true);
-                          }}
-                          className="text-gray-400 hover:text-blue-600 transition"
-                          title="Edit"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (window.confirm("Delete this experience?")) {
-                              await deleteExperience(ex.id);
-                            }
-                          }}
-                          className="text-gray-400 hover:text-red-600 transition"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
+                      icon={experience}
+                      title={ex.jobTitle}
+                      badge={
+                        ex.isCurrentlyWorking
+                          ? 'Current'
+                          : ex.employmentType
+                      }
+                      subtitle={ex.hospitalOrClinicName}
+                      date={formatExperienceRange(ex.startDate, ex.endDate, ex.isCurrentlyWorking)}
+                      showEditEducation={true}
+                      editEducationIcon={pencil}
+                      location={[ex.city, ex.state, ex.location]
+                        .filter(Boolean)
+                        .join(', ') || undefined}
+                      description={ex.description}
+                      onEditEducationClick={() => {
+                        setExpEditData(ex);
+                              setExpEditMode('edit');
+                              setExpOpen(true);
+                    }}
+                      
+                    />
                   ))}
               </div>
             </SectionCard>
           </div>
         </div>
+
+
+
+
+
+
+
+
       ) : activeTab === "consultation" ? (
         <div className=" space-y-4 p-4">
           {/* In-Clinic Consultation Fees */}
@@ -3116,7 +3180,7 @@ const Doc_settings = () => {
             <SectionCard
               title="Clinic Info"
               subtitle="Visible to Patient"
-              Icon={Pencil}
+              Icon={pencil}
               onIconClick={() => setClinicDrawerOpen(true)}
             >
               <div className="space-y-4 text-sm">
@@ -3218,7 +3282,7 @@ const Doc_settings = () => {
             <SectionCard
               title="Clinic Address"
               subtitle="Visible to Patient"
-              Icon={Pencil}
+              Icon={pencil}
               onIconClick={() => setClinicDrawerOpen(true)}
             >
               <div className="mb-3">
@@ -3431,8 +3495,8 @@ const Doc_settings = () => {
         }}
       />
 
-      {/* Drawer: Experience */}
-      <ExperienceDrawer
+      {/* Drawer: Experience (new shared component) */}
+      <ExperienceDrawerNew
         open={expOpen}
         onClose={() => {
           setExpOpen(false);
@@ -3443,14 +3507,18 @@ const Doc_settings = () => {
         mode={expEditMode}
         onSave={async (ex) => {
           try {
+            // Normalize payload from either old inline drawer shape or new ExperienceDrawerNew
             const payload = {
-              jobTitle: ex.role,
-              employmentType: ex.type,
-              hospitalOrClinicName: ex.org,
-              startDate: ex.start,
-              endDate: ex.current ? null : ex.end,
-              isCurrentlyWorking: ex.current,
-              description: ex.desc || null,
+              jobTitle: ex.jobTitle ?? ex.role,
+              employmentType: ex.employmentType ?? ex.type,
+              hospitalOrClinicName: ex.hospitalOrClinicName ?? ex.org,
+              startDate: ex.startDate ?? ex.start,
+              endDate:
+                (ex.isCurrentlyWorking ?? ex.current)
+                  ? null
+                  : (ex.endDate ?? ex.end ?? null),
+              isCurrentlyWorking: ex.isCurrentlyWorking ?? ex.current ?? false,
+              description: ex.description ?? ex.desc ?? null,
             };
 
             if (expEditMode === "edit" && expEditData?.id) {
@@ -3504,16 +3572,16 @@ const Doc_settings = () => {
         }}
       />
 
-      {/* Drawer: Publication */}
-      <PublicationDrawer
+  {/* Drawer: Publication — uses AddPublicationDrawer above */}
+      <AddPublicationDrawer
         open={pubOpen}
         onClose={() => {
           setPubOpen(false);
           setPubEditData(null);
           setPubEditMode("add");
         }}
-        initial={pubEditData}
         mode={pubEditMode}
+        initial={pubEditData || {}}
         onSave={async (pub) => {
           try {
             const payload = {
@@ -3529,7 +3597,7 @@ const Doc_settings = () => {
             } else {
               await addPublication(payload);
             }
-            await fetchAwardsAndPublications(); // Refresh data
+            await fetchAwardsAndPublications();
             setPubOpen(false);
             setPubEditData(null);
             setPubEditMode("add");
@@ -3556,7 +3624,7 @@ const Doc_settings = () => {
       />
 
       {/* Drawer: Practice Details */}
-      <PracticeDrawer
+      <EditPracticeDetailsDrawer
         open={practiceOpen}
         onClose={() => setPracticeOpen(false)}
         initial={practiceDetails}
@@ -3567,8 +3635,17 @@ const Doc_settings = () => {
               payload.workExperience = parseInt(data.workExperience);
             if (data.medicalPracticeType)
               payload.medicalPracticeType = data.medicalPracticeType;
-            if (data.practiceArea && data.practiceArea.length > 0)
+            if (Array.isArray(data.practiceArea) && data.practiceArea.length > 0)
               payload.practiceArea = data.practiceArea;
+            if (Array.isArray(data.specialties)) {
+              // Map to API expected shape: [{ specialtyName, expYears }]
+              payload.specialties = data.specialties
+                .filter((s) => s.specialtyName)
+                .map((s) => ({
+                  specialtyName: s.specialtyName,
+                  expYears: s.expYears ? parseInt(s.expYears) : 0,
+                }));
+            }
 
             await updatePracticeDetails(payload);
             await fetchProfessionalDetails(); // Refresh data
@@ -3611,6 +3688,33 @@ const Doc_settings = () => {
           } catch (e) {
             console.error("Failed to update clinic info", e);
             alert(e?.response?.data?.message || e?.message || "Failed to update clinic info");
+          }
+        }}
+      />
+
+      {/* Drawer: Invite Staff */}
+      <InviteStaffDrawer
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        onSendInvite={async (rows) => {
+          try {
+            await Promise.all(
+              rows.map((r) =>
+                registerStaff({
+                  name: r.name,
+                  email: r.email,
+                  phone: r.phone,
+                  position: r.position,
+                  role: r.role,
+                  status: "Inactive",
+                })
+              )
+            );
+            // Optionally refresh staff list here
+            setInviteOpen(false);
+          } catch (err) {
+            console.error("Failed to send invites:", err);
+            alert("Failed to send invites");
           }
         }}
       />

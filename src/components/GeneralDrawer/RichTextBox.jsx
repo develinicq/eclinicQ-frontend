@@ -1,7 +1,7 @@
 import React from "react";
 
 
-export default function RichTextBox({ label, value, onChange, placeholder = "", className = "" }) {
+export default function RichTextBox({ label, value, onChange, placeholder = "", className = "", showCounter = false, maxLength }) {
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       {label ? (
@@ -19,13 +19,13 @@ export default function RichTextBox({ label, value, onChange, placeholder = "", 
                 <img src="/Doctor_module/text_box/vertical.png" alt="vertical" className="h-5 w-auto flex-shrink-0" />
                 <div className="flex gap-6 items-center">
                     <button type="button" className="hover:opacity-80" aria-label="bold">
-                    <img src="/Doctor_module/text_box/bold.png" alt="bold" className="h-3.5 w-3  flex-shrink-0" />
+                    <img src="/Doctor_module/text_box/bold.png" alt="bold" className="h-3.5  flex-shrink-0" />
                     </button>
                     <button type="button" className="hover:opacity-80" aria-label="italic">
-                        <img src="/Doctor_module/text_box/italic.png" alt="italic" className="h-3.5 w-3 flex-shrink-0" />
+                        <img src="/Doctor_module/text_box/italic.png" alt="italic" className="h-3.5  flex-shrink-0" />
                     </button>
                     <button type="button" className="hover:opacity-80" aria-label="underline">
-                        <img src="/Doctor_module/text_box/underline.png" alt="underline" className="h-3.5 w-3 flex-shrink-0" />
+                        <img src="/Doctor_module/text_box/underline.png" alt="underline" className="h-3.5  flex-shrink-0" />
                     </button>
                     <button type="button" className="hover:opacity-80" aria-label="strikethrough">
                         <img src="/Doctor_module/text_box/strikethrough.png" alt="strikethrough" className="h-3.5  flex-shrink-0" />
@@ -48,6 +48,11 @@ export default function RichTextBox({ label, value, onChange, placeholder = "", 
           onChange={(e) => onChange?.(e.target.value)}
           placeholder={placeholder}
         />
+        {showCounter && (
+          <div className="text-[11px] text-secondary-grey200 pr-2 pb-1 text-right">
+            {(value?.length ?? 0)}{maxLength ? `/${maxLength}` : ""}
+          </div>
+        )}
       </div>
     </div>
   );

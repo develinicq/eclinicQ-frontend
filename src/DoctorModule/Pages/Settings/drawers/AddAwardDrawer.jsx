@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import GeneralDrawer from "@/components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import Dropdown from "@/components/GeneralDrawer/Dropdown";
-import { ChevronDown, CalendarDays } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
+import calendarWhite from "/Doctor_module/sidebar/calendar_white.png";
+import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
 
 /**
  * AddAwardDrawer — Add/Edit Award form matching provided design
@@ -21,6 +24,7 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
   const [desc, setDesc] = useState("");
 
   const [assocOpen, setAssocOpen] = useState(false);
+  const [showIssueCalendar, setShowIssueCalendar] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -63,7 +67,7 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
       primaryActionDisabled={!canSave}
       width={600}
     >
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <InputWithMeta
           label="Award Name"
           requiredDot
@@ -106,17 +110,39 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
           />
         </div>
 
-        {/* Issue Date with calendar icon; simple text field with placeholder */}
-        <InputWithMeta
-          label="Issue Date"
-          requiredDot
-          value={date}
-          onChange={setDate}
-          placeholder="Select Date"
-          RightIcon={CalendarDays}
-          // keep input editable; future: hook calendar dropdown
-          readonlyWhenIcon={false}
-        />
+        {/* Issue Date with calendar icon and dropdown calendar */}
+        <div className="relative">
+          <InputWithMeta
+            label="Issue Date"
+            requiredDot
+            value={date}
+            onChange={setDate}
+            placeholder="Select Date"
+            RightIcon=
+             '/Doctor_module/settings/calendar.png'
+            
+            onIconClick={() => setShowIssueCalendar((v) => !v)}
+            dropdownOpen={showIssueCalendar}
+            onRequestClose={() => setShowIssueCalendar(false)}
+            readonlyWhenIcon={true}
+          />
+          {showIssueCalendar && (
+            <div className="shadcn-calendar-dropdown absolute right-1 top-full z-[10000] mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl p-2">
+              <ShadcnCalendar
+                mode="single"
+                selected={date ? new Date(date) : undefined}
+                onSelect={(d) => {
+                  if (!d) return;
+                  const yyyy = d.getFullYear();
+                  const mm = String(d.getMonth() + 1).padStart(2, "0");
+                  const dd = String(d.getDate()).padStart(2, "0");
+                  setDate(`${yyyy}-${mm}-${dd}`);
+                  setShowIssueCalendar(false);
+                }}
+              />
+            </div>
+          )}
+        </div>
 
         <InputWithMeta
           label="Award URL"
@@ -125,26 +151,14 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
           placeholder="Paste Award URL"
         />
 
-        <div className="flex flex-col gap-1">
-          <label className="text-sm text-secondary-grey300">Description</label>
-          <div className="w-full rounded-md border-[0.5px] border-secondary-grey300 overflow-hidden">
-            <div className="flex items-center gap-3 px-2 py-1 border-b border-secondary-grey200 text-secondary-grey300 text-sm">
-              <button type="button" className="hover:text-gray-700" aria-label="attach">📎</button>
-              <button type="button" className="hover:text-gray-700 font-bold" aria-label="bold">B</button>
-              <button type="button" className="hover:text-gray-700 italic" aria-label="italic">I</button>
-              <button type="button" className="hover:text-gray-700 underline" aria-label="underline">U</button>
-              <button type="button" className="hover:text-gray-700" aria-label="list">≡</button>
-            </div>
-            <textarea
-              className="w-full p-2 h-28 text-sm text-secondary-grey400 placeholder:text-secondary-grey100 focus:ring-0 outline-none resize-none"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value.slice(0, 1600))}
-              placeholder="List your Duties, Highlights and Achievements"
-              maxLength={1600}
-            />
-            <div className="text-[11px] text-secondary-grey200 pr-2 pb-1 text-right">{desc.length}/1600</div>
-          </div>
-        </div>
+        <RichTextBox
+          label="Description"
+          value={desc}
+          onChange={(v) => setDesc(v.slice(0, 1600))}
+          placeholder="List your Duties, Highlights and Achievements"
+          showCounter={true}
+          maxLength={1600}
+        />
       </div>
     </GeneralDrawer>
   );

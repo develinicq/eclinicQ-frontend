@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import GeneralDrawer from "@/components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import Dropdown from "@/components/GeneralDrawer/Dropdown";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
+import FileUploadBox from "@/components/GeneralDrawer/FileUploadBox";
 import useImageUploadStore from "@/store/useImageUploadStore";
 
 /**
@@ -256,35 +257,19 @@ export default function AddEducationDrawer({ open, onClose, onSave, mode = "add"
           />
         </div>
 
-        {/* Upload Proof */}
-        <div className="flex flex-col gap-1">
-          <label className="text-sm text-secondary-grey300 flex items-center gap-1">
-            Upload Proof <span className="text-secondary-grey200 text-xs">(optional)</span>
-          </label>
-          <label className="mt-1 border border-dashed border-[#CFE0FF] rounded-md h-24 grid place-items-center text-center cursor-pointer">
-            <input
-              type="file"
-              className="hidden"
-              accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) onUploadFile(f);
-              }}
-            />
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-[#2F66F6] text-lg">↥</span>
-              <span className="text-[13px] text-[#2F66F6]">
-                {uploading ? "Uploading..." : proofName || "Upload File"}
-              </span>
-              {uploadError ? (
-                <span className="text-[11px] text-red-500">{uploadError}</span>
-              ) : null}
-            </div>
-          </label>
-          <div className="text-[11px] text-gray-500 mt-1">
-            Support Size upto 1MB in .png, .jpg, .svg, .webp
-          </div>
-        </div>
+  {/* Upload Proof using InputWithMeta label with info icon */}
+          <InputWithMeta label="Upload Proof" showInput={false} infoIcon InfoIconComponent={Info}>
+          <FileUploadBox
+            value={proofName ? { name: proofName } : null}
+            onChange={(file) => {
+              if (file) onUploadFile(file);
+            }}
+            accept={".png,.jpg,.jpeg,.svg,.webp"}
+            maxSizeMB={1}
+            helperText={uploadError ? uploadError : "Support Size upto 1MB in .png, .jpg, .svg, .webp"}
+            disabled={uploading}
+          />
+        </InputWithMeta>
       </div>
     </GeneralDrawer>
   );

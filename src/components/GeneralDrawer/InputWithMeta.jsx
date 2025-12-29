@@ -3,6 +3,10 @@ import React, { useEffect, useRef } from "react";
 export default function InputWithMeta({
   label,
   requiredDot = false,
+  // Show an info icon next to label; if true, it appears in the same spot as the required dot
+  infoIcon = false,
+  InfoIconComponent,
+  onInfoClick,
   rightMeta,
   value,
   onChange,
@@ -42,7 +46,27 @@ export default function InputWithMeta({
   onBadgeRemove,
   badgesEmptyPlaceholder = "Select Language",
   badgesClassName = "",
+  // Inline right meta rendered inside the input box (e.g., 'Beds')
+  inputRightMeta,
+  // File upload pill mode
+  imageUpload = false,
+  fileName,
+  onFileSelect,
+  onFileView,
+  fileAccept = "image/png, image/jpeg, image/jpg, image/svg+xml, image/webp, application/pdf",
+  fileNameMaxLength = 22,
+  showReupload = false,
+  showDivider = false,
 }) {
+  const truncate = (str, max) => {
+    if (!str) return str;
+    if (str.length <= max) return str;
+    // Keep beginning and end for readability
+    const keep = Math.max(4, Math.floor((max - 3) / 2));
+    const start = str.slice(0, keep);
+    const end = str.slice(-keep);
+    return `${start}...${end}`;
+  };
   const rootRef = useRef(null);
   const isReadOnly = !!RightIcon && readonlyWhenIcon;
 
@@ -83,6 +107,20 @@ export default function InputWithMeta({
       <div className="flex items-center justify-between ">
         <label className={`text-sm ${immutable ? "text-secondary-grey200" : "text-secondary-grey300"} flex items-center gap-1`}>
           {label}
+          {infoIcon && (
+            <button
+              type="button"
+              className="text-secondary-grey200 w-3 h-3 hover:text-secondary-grey300 cursor-pointer mt-0.5"
+              onClick={onInfoClick}
+              aria-label="info"
+            >
+              {InfoIconComponent ? (
+                <InfoIconComponent className="h-3 w-3 ml-0.2" />
+              ) : (
+                <img src="/Doctor_module/text_box/info.png" alt="" className="" />
+              )}
+            </button>
+          )}
           {requiredDot && (
             <div className="bg-red-500 w-1 h-1 rounded-full"></div>
           )}
@@ -106,6 +144,60 @@ export default function InputWithMeta({
               </span>
             ) : null}
           </div>
+        ) : imageUpload ? (
+          // File upload pill UI
+          <label className="block w-full">
+            <input
+              type="file"
+              className="hidden"
+              accept={fileAccept}
+              onChange={(e) => {
+                const f = e.target.files?.[0] || null;
+                onFileSelect?.(f);
+              }}
+              disabled={disabled}
+            />
+            <div className="h-[32px] w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm cursor-pointer overflow-x-hidden bg-secondary-grey50">
+              <span className="flex items-center gap-2 text-secondary-grey300 flex-1 min-w-0">
+                <img src="/Doctor_module/settings/pdf_black.png" alt="" className="h-5 w-5" />
+                  <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
+                    {truncate(fileName || "Establishment.pdf", fileNameMaxLength)}
+                </span>
+              </span>
+              <span className="flex items-center gap-3 text-secondary-grey300 flex-shrink-0 ">
+                {/* Conditional Refresh */}
+                {showReupload && (
+                  <button
+                    type="button"
+                    title="Re-upload"
+                    className="hover:text-secondary-grey400"
+                    onClick={(e) => {
+                      const input = e.currentTarget.closest("label")?.querySelector("input[type='file']");
+                      input?.click();
+                    }}
+                  >
+                    <img src="/Doctor_module/settings/reverse.png" alt="" className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {/* Conditional Divider */}
+                {showDivider && (
+                  <div className=" border-l-[0.5px] border-secondary-grey150 h-5"></div>
+                )}
+                    
+                
+                {/* View */}
+                <button
+                  type="button"
+                  title="View"
+                  className="hover:text-secondary-grey400"
+                  onClick={() => onFileView?.(fileName)}
+                >
+                  {/* simple eye */}
+                  <img src="/Doctor_module/settings/eye.png" alt="" className="w-3.5 h-3.5" />
+                </button>
+              </span>
+            </div>
+          </label>
         ) : Array.isArray(badges) ? (
           <div className={`w-full rounded-md border-[0.5px] border-secondary-grey200 p-1 min-h-8 text-sm text-secondary-grey400 flex items-center flex-wrap gap-2 ${badgesClassName}`}>
             {badges.length > 0 ? (
@@ -131,11 +223,11 @@ export default function InputWithMeta({
               <span className="text-secondary-grey100 px-1">{badgesEmptyPlaceholder}</span>
             )}
           </div>
-        ) : showInput ? (
+    ) : showInput ? (
           <>
             <input
               type="text"
-              className={`w-full rounded-md border-[0.5px] border-secondary-grey200 p-2 h-8 text-sm text-secondary-grey400 focus:outline-none focus:ring-0 focus:border-blue-primary150 focus:border-[2px] placeholder:text-secondary-grey100   ${
+      className={`w-full rounded-md border-[0.5px] border-secondary-grey200 p-2 h-8 text-sm text-secondary-grey400 focus:outline-none focus:ring-0 focus:border-blue-primary150 focus:border-[2px] placeholder:text-secondary-grey100 pr-16  ${
                 disabled ? "bg-gray-100 cursor-not-allowed" : ""
               } ${isReadOnly || dropdownOpen ? "cursor-pointer select-none" : ""}`}
               value={value || ""}
@@ -170,6 +262,11 @@ export default function InputWithMeta({
               }}
               style={isReadOnly ? { caretColor: "transparent" } : undefined}
             />
+            {inputRightMeta ? (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-secondary-grey300">
+                {inputRightMeta}
+              </span>
+            ) : null}
             {RightIcon ? (
               <button
                 type="button"
@@ -178,7 +275,11 @@ export default function InputWithMeta({
                 disabled={disabled}
                 aria-label="open options"
               >
-                <RightIcon className="h-3 w-3" />
+                {typeof RightIcon === "string" ? (
+                  <img src={RightIcon} alt="icon" className="h-3.5 w-3.5" />
+                ) : (
+                  <RightIcon className="h-3 w-3" />
+                )}
               </button>
             ) : null}
           </>

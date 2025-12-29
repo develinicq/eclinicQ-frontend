@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import AvatarCircle from '../../../components/AvatarCircle'
 import { Eye, Pencil, ChevronDown, Trash2, UserPlus, ShieldPlus, ClipboardList, Crown } from 'lucide-react'
 import { hospital } from '../../../../public/index.js'
+import InviteStaffDrawer from '../../../DoctorModule/Pages/Settings/Drawers/InviteStaffDrawer'
 
 // --- Copied StaffTab implementation (UI + drawers) ---
 const StaffUI = () => {
@@ -101,63 +102,7 @@ const StaffUI = () => {
     </div>
   )}
 
-  const InviteStaffDrawer = ({ open, onClose, onSend }) => {
-    const [mode, setMode] = useState('individual')
-    const [rows, setRows] = useState([{ id: 0, fullName: '', email: '', phone: '', position: '', role: '' }])
-    useEffect(() => { const onEsc = (e) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', onEsc); return () => window.removeEventListener('keydown', onEsc) }, [onClose])
-    if (!open) return null
-    const removeRow = (id) => setRows((r) => (r.length > 1 ? r.filter((x) => x.id !== id) : r))
-    const addRow = () => setRows((r) => [...r, { id: (r[r.length - 1]?.id ?? 0) + 1, fullName: '', email: '', phone: '', position: '', role: '' }])
-    const onChangeRow = (id, field, value) => setRows((r) => r.map((row) => (row.id === id ? { ...row, [field]: value } : row)))
-    const emailOk = (e) => /.+@.+\..+/.test(e)
-    const allValid = rows.every((x) => x.fullName && emailOk(x.email) && x.phone && x.position && x.role)
-    return (
-      <div className="fixed inset-0 z-50">
-        <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-        <aside className="absolute top-16 right-5 bottom-5 w-full max-w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden animate-[slideIn_.3s_ease-out_forwards]" role="dialog" aria-modal="true">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#EFEFEF]">
-            <h3 className="text-[16px] font-semibold text-[#424242]">Invite Staff</h3>
-            <div className="flex items-center gap-3">
-              <button disabled={!allValid} className={'text-xs md:text-sm h-8 px-3 rounded-md transition ' + (!allValid ? 'bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed' : 'bg-[#2F66F6] text-white hover:bg-[#1e4cd8]')} onClick={() => allValid && onSend(rows)}>Send Invite</button>
-              <button onClick={onClose} className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100" aria-label="Close">✕</button>
-            </div>
-          </div>
-          <div className="p-4 flex flex-col gap-3 overflow-y-auto h-[calc(100%-56px)]">
-            <InfoBanner />
-            <div className="flex items-center gap-6 text-[13px] text-[#424242]">
-              <label className="inline-flex items-center gap-2"><input type="radio" name="invite-mode" checked={mode==='individual'} onChange={() => setMode('individual')} />Individual Invite</label>
-              <label className="inline-flex items-center gap-2"><input type="radio" name="invite-mode" checked={mode==='bulk'} onChange={() => setMode('bulk')} />Bulk Invite</label>
-            </div>
-            <div className="border rounded-lg border-[#E6E6E6] p-3">
-              <div className="text-[13px] font-semibold text-[#424242]">New Staff Members</div>
-              <div className="mt-2 flex flex-col gap-3">
-                {rows.map((row) => (
-                  <div key={row.id} className="relative grid grid-cols-1 gap-3">
-                    <button onClick={() => removeRow(row.id)} className="absolute right-0 -top-1 text-gray-400 hover:text-gray-600" title="Remove" aria-label="Remove row"><Trash2 size={16} strokeWidth={1.75} /></button>
-                    <Field label="Full Name" required><TextInput placeholder="Enter staff full name" value={row.fullName} onChange={(e) => onChangeRow(row.id, 'fullName', e.target.value)} /></Field>
-                    <Field label="Email Address" required><TextInput type="email" placeholder="staff@clinic.com" value={row.email} onChange={(e) => onChangeRow(row.id, 'email', e.target.value)} /></Field>
-                    <Field label="Phone Number" required><TextInput placeholder="Enter phone number" value={row.phone} onChange={(e) => onChangeRow(row.id, 'phone', e.target.value)} /></Field>
-                    <Field label="Position" required><TextInput placeholder="Enter User Job Role" value={row.position} onChange={(e) => onChangeRow(row.id, 'position', e.target.value)} /></Field>
-                    <Field label="Assign Roles" required>
-                      <Select value={row.role} onChange={(e) => onChangeRow(row.id, 'role', e.target.value)}>
-                        <option value="" disabled>Select role</option>
-                        <option>Receptionist</option>
-                        <option>Nurse</option>
-                        <option>Assistant</option>
-                        <option>Billing</option>
-                      </Select>
-                    </Field>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="text-center"><button onClick={addRow} className="text-[13px] font-medium text-[#2F66F6] hover:text-[#1e4cd8]">Add More Staff Members</button></div>
-          </div>
-        </aside>
-        <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0%); } }`}</style>
-      </div>
-    )
-  }
+  // InviteStaffDrawer now imported from shared DoctorModule component
 
   const RoleDrawer = ({ open, onClose, onCreate }) => {
     const [name, setName] = useState('')
@@ -288,7 +233,7 @@ const StaffUI = () => {
         </div>
       )}
 
-      <InviteStaffDrawer open={inviteOpen} onClose={() => setInviteOpen(false)} onSend={(rows) => { const mapped = rows.map((r) => ({ name: r.fullName, email: r.email, phone: r.phone, position: r.position, role: r.role, status: 'Inactive' })); setStaff((s) => [...mapped, ...s]); setInviteOpen(false) }} />
+  <InviteStaffDrawer open={inviteOpen} onClose={() => setInviteOpen(false)} onSend={(rows) => { const mapped = rows.map((r) => ({ name: r.fullName, email: r.email, phone: r.phone, position: r.position, role: r.role, status: 'Inactive' })); setStaff((s) => [...mapped, ...s]); setInviteOpen(false) }} />
       <RoleDrawer open={roleOpen} onClose={() => setRoleOpen(false)} onCreate={(role) => { setRoles((r) => [role, ...r]); setRoleOpen(false) }} />
     </div>
   )
