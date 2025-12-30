@@ -15,12 +15,12 @@ const Toggle = ({ checked, onChange, disabled = false, className = "" }) => {
         disabled={disabled}
       />
       <div
-        className={`w-8 h-[19px] rounded-sm transition-all relative px-[1.5px] py-[1.5px] pr-1 ${
-          checked ? "bg-blue-600" : "bg-[#D6D6D6]"
+        className={`flex items-center w-8 h-[19px] rounded-sm transition-all py-[1px] px-[1.5px]  ${
+          checked ? "bg-blue-primary300" : "bg-[#D6D6D6]"
         } ${disabled ? "opacity-50" : ""}`}
       >
         <div
-          className={`w-4 h-4 bg-white rounded-sm transition-all transform ${
+          className={`w-4 h-4  bg-white rounded-[3px] transition-all transform ${
             checked ? "translate-x-[14px]" : "translate-x-0"
           }`}
         />

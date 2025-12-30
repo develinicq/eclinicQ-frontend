@@ -1,21 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2,
   Phone,
   Mail,
-  MapPin,
-  Upload,
-  FileText,
   Trash2,
   ChevronDown,
-  UserPlus,
   Eye,
-  ShieldPlus,
   ClipboardList,
   Crown,
   Trophy,
 } from "lucide-react";
-
 import AvatarCircle from "../../../components/AvatarCircle";
 import Badge from "../../../components/Badge";
 import {
@@ -29,10 +22,11 @@ import {
   experience,
   publication,
   award
- } from "../../../../public/index.js";
-import Input from "../../../components/FormItems/Input";
+} from "../../../../public/index.js";
+
 import Toggle from "../../../components/FormItems/Toggle";
 import TimeInput from "../../../components/FormItems/TimeInput";
+import { Checkbox } from "../../../components/ui/checkbox";
 import MapLocation from "../../../components/FormItems/MapLocation";
 
 import useProfileStore from "../../../store/settings/useProfileStore.js";
@@ -47,11 +41,11 @@ import useAuthStore from "../../../store/useAuthStore";
 import axiosClient from "../../../lib/axios";
 import { fetchClinicStaff } from "../../../services/staffService";
 import { registerStaff } from "../../../services/staff/registerStaffService";
-import EditBasicInfoDrawer from "./drawers/EditBasicInfoDrawer.jsx";
-import AddEducationDrawer from "./drawers/AddEducationDrawer.jsx";
-import AddAwardDrawer from "./drawers/AddAwardDrawer.jsx";
-import AddPublicationDrawer from "./drawers/AddPublicationDrawer.jsx";
-import EditClinicDetailsDrawer from "./drawers/EditClinicDetailsDrawer.jsx";
+import EditBasicInfoDrawer from "./Drawers/EditBasicInfoDrawer.jsx";
+import AddEducationDrawer from "./Drawers/AddEducationDrawer.jsx";
+import AddAwardDrawer from "./Drawers/AddAwardDrawer.jsx";
+import AddPublicationDrawer from "./Drawers/AddPublicationDrawer.jsx";
+import EditClinicDetailsDrawer from "./Drawers/EditClinicDetailsDrawer.jsx";
 import ExperienceDrawerNew from "./Drawers/ExperienceDrawer.jsx";
 import InviteStaffDrawer from "./Drawers/InviteStaffDrawer.jsx";
 import RoleDrawerShared from "./Drawers/RoleDrawer.jsx";
@@ -66,12 +60,37 @@ const DrawerKeyframes = () => (
     @keyframes fadeOut { from { opacity: .3; } to { opacity: 0; } }
   `}</style>
 );
+const DEFAULT_SCHEDULE = [
+  { day: "Monday", available: true, sessions: [] },
+  { day: "Tuesday", available: false, sessions: [] },
+  { day: "Wednesday", available: false, sessions: [] },
+  { day: "Thursday", available: false, sessions: [] },
+  { day: "Friday", available: false, sessions: [] },
+  { day: "Saturday", available: false, sessions: [] },
+  { day: "Sunday", available: false, sessions: [] },
+];
+// Default consultation details shown when API data isn't available
+const DEFAULT_CONSULTATION_DETAILS = {
+  consultationFees: [
+    {
+      consultationFee: "",
+      followUpFee: "",
+      autoApprove: false,
+      avgDurationMinutes: 0,
+      availabilityDurationDays: undefined,
+    },
+  ],
+  slotTemplates: {
+    // clone to avoid mutating DEFAULT_SCHEDULE
+    schedule: DEFAULT_SCHEDULE.map((d) => ({ ...d })),
+  },
+};
 
 // A light-weight field renderer
-const InfoField = ({ label, value, right,className:Class}) => (
- <div
-  className={`${Class} flex flex-col gap-1 text-[14px] border-b-[0.5px] pb-2 border-secondary-grey100`}
->
+const InfoField = ({ label, value, right, className: Class }) => (
+  <div
+    className={`${Class} flex flex-col gap-1 text-[14px] border-b-[0.5px] pb-2 border-secondary-grey100`}
+  >
     <div className="col-span-4  text-secondary-grey200">{label}</div>
     <div className="col-span-8 text-secondary-grey400 flex items-center justify-between">
       <span className="truncate">{value || "-"}</span>
@@ -177,17 +196,17 @@ const ProfileItemCard = ({
       {/* Content */}
       <div className="flex  flex-col gap-[2px] w-full">
         <div className="flex items-center justify-between">
-        <div className="flex flex-shrink-0  items-center gap-1 text-sm text-secondary-grey400">
-          <span className="font-semibold">{title}</span>
-          {badge && (
-            <span className="text-[12px]   min-w-[18px]  text-secondary-grey400 bg-secondary-grey50 rounded px-1 ">
-              {badge}
-            </span>
-          )}
+          <div className="flex flex-shrink-0  items-center gap-1 text-sm text-secondary-grey400">
+            <span className="font-semibold">{title}</span>
+            {badge && (
+              <span className="text-[12px]   min-w-[18px]  text-secondary-grey400 bg-secondary-grey50 rounded px-1 ">
+                {badge}
+              </span>
+            )}
           </div>
           {showEditEducation && (
-            
-              <button
+
+            <button
               type="button"
               onClick={onEditEducationClick}
               aria-label={editEducationAriaLabel}
@@ -202,11 +221,11 @@ const ProfileItemCard = ({
                 <img src={pencil} alt="edit" className="w-6" />
               )}
             </button>
-            
-            
+
+
           )}
 
-          
+
         </div>
 
         {subtitle && <div className="text-sm text-secondary-grey400 w-4/5">{subtitle}</div>}
@@ -218,8 +237,8 @@ const ProfileItemCard = ({
 
         {linkUrl ? (
           <div className="flex items-center gap-1">
-              <img src={pdf_blue} alt="" className="w-4 h-4"/>
-              <a
+            <img src={pdf_blue} alt="" className="w-4 h-4" />
+            <a
               href={linkUrl}
               className="inline-flex items-center gap-1 text-sm text-blue-primary250"
               target="_blank"
@@ -267,9 +286,8 @@ const FieldLabel = ({ children, required }) => (
 const TextInput = (props) => (
   <input
     {...props}
-    className={`mt-1 h-8 w-full rounded-md border border-[#E6E6E6] px-3 text-sm outline-none focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF] ${
-      props.className || ""
-    }`}
+    className={`mt-1 h-8 w-full rounded-md border border-[#E6E6E6] px-3 text-sm outline-none focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF] ${props.className || ""
+      }`}
   />
 );
 
@@ -289,187 +307,7 @@ const SelectInput = ({ children, ...props }) => (
 
 // Education drawer moved to its own component under drawers/AddEducationDrawer.jsx
 
-// Drawer: Experience
-const ExperienceDrawer = ({ open, onClose, onSave, initial, mode = "add" }) => {
-  const [closing, setClosing] = useState(false);
-  const [data, setData] = useState({
-    role: "",
-    type: "",
-    org: "",
-    start: "",
-    end: "",
-    current: false,
-    desc: "",
-  });
 
-  useEffect(() => {
-    if (open) {
-      if (initial && mode === "edit") {
-        setData({
-          role: initial.jobTitle || "",
-          type: initial.employmentType || "",
-          org: initial.hospitalOrClinicName || "",
-          start: initial.startDate ? initial.startDate.split("T")[0] : "",
-          end: initial.endDate ? initial.endDate.split("T")[0] : "",
-          current: initial.isCurrentlyWorking || false,
-          desc: initial.description || "",
-        });
-      } else {
-        setData({
-          role: "",
-          type: "",
-          org: "",
-          start: "",
-          end: "",
-          current: false,
-          desc: "",
-        });
-      }
-    }
-  }, [initial, open, mode]);
-
-  if (!open && !closing) return null;
-  const requestClose = () => {
-    setClosing(true);
-    setTimeout(() => {
-      setClosing(false);
-      onClose?.();
-    }, 220);
-  };
-  const set = (k, v) => setData((d) => ({ ...d, [k]: v }));
-  const canSave =
-    data.role &&
-    data.type &&
-    data.org &&
-    (data.current || (data.start && data.end));
-  return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className={`absolute inset-0 bg-black/30 ${
-          closing
-            ? "animate-[fadeOut_.2s_ease-in_forwards]"
-            : "animate-[fadeIn_.25s_ease-out_forwards]"
-        }`}
-        onClick={requestClose}
-      />
-      <aside
-        className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-          closing
-            ? "animate-[drawerOut_.22s_ease-in_forwards]"
-            : "animate-[drawerIn_.25s_ease-out_forwards]"
-        }`}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[#424242]">
-            {mode === "edit" ? "Edit Experience" : "Add Experience"}
-          </h3>
-          <div className="flex items-center gap-3">
-            <button
-              disabled={!canSave}
-              onClick={() => canSave && onSave?.(data)}
-              className={
-                "text-xs md:text-sm h-8 px-3 rounded-md transition " +
-                (!canSave
-                  ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
-                  : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
-              }
-            >
-              Save
-            </button>
-            <button
-              onClick={requestClose}
-              className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        <div className="p-3 overflow-y-auto  grid grid-cols-1 gap-2">
-          <label className="block">
-            <FieldLabel required>Job Title</FieldLabel>
-            <TextInput
-              placeholder="General Physician - CEO"
-              value={data.role}
-              onChange={(e) => set("role", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <FieldLabel required>Employment Type</FieldLabel>
-            <SelectInput
-              value={data.type}
-              onChange={(e) => set("type", e.target.value)}
-            >
-              <option value="" disabled>
-                Select
-              </option>
-              <option>Full-Time</option>
-              <option>Part-Time</option>
-              <option>Contract</option>
-            </SelectInput>
-          </label>
-          <label className="block">
-            <FieldLabel required>Hospital or Clinic Name</FieldLabel>
-            <TextInput
-              placeholder="Chauhan Clinic, Akola"
-              value={data.org}
-              onChange={(e) => set("org", e.target.value)}
-            />
-          </label>
-          <div className="grid grid-cols-2 gap-3 items-end">
-            <label className="block">
-              <FieldLabel required>Start Date</FieldLabel>
-              <TextInput
-                type="date"
-                value={data.start}
-                onChange={(e) => set("start", e.target.value)}
-              />
-            </label>
-            <label className="block">
-              <FieldLabel required>End Date</FieldLabel>
-              <TextInput
-                type="date"
-                value={data.end}
-                onChange={(e) => set("end", e.target.value)}
-                disabled={data.current}
-              />
-            </label>
-          </div>
-          <label className="inline-flex items-center gap-2 text-[13px] text-[#424242]">
-            <input
-              type="checkbox"
-              checked={data.current}
-              onChange={(e) => set("current", e.target.checked)}
-            />{" "}
-            I am currently working in this role
-          </label>
-          <div>
-            <FieldLabel>Description</FieldLabel>
-            <div className="border border-gray-200 rounded-md">
-              <div className="px-2 py-1 border-b border-gray-200 text-gray-600 text-sm flex items-center gap-2">
-                <button className="hover:text-gray-900">✎</button>
-                <button className="hover:text-gray-900 font-bold">B</button>
-                <button className="hover:text-gray-900 italic">I</button>
-                <button className="hover:text-gray-900 underline">U</button>
-                <button className="hover:text-gray-900">•</button>
-              </div>
-              <textarea
-                className="w-full min-h-[120px] p-3 text-sm outline-none"
-                value={data.desc}
-                onChange={(e) => set("desc", e.target.value)}
-              />
-              <div className="px-3 pb-2 text-[12px] text-gray-500 text-right">
-                {data.desc.length}/800
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
-  );
-};
 
 // Small helpers to format experience period and duration consistently
 const formatMonthYear = (d) => {
@@ -537,154 +375,6 @@ const formatExperienceRange = (startDate, endDate, isCurrent) => {
   return `${start} - ${end} | ${dur}`;
 };
 
-// Award drawer moved to its own component under drawers/AddAwardDrawer.jsx
-
-// Drawer: Publication
-// const PublicationDrawer = ({
-//   open,
-//   onClose,
-//   onSave,
-//   initial,
-//   mode = "add",
-// }) => {
-//   const [closing, setClosing] = useState(false);
-//   const [data, setData] = useState({
-//     title: "",
-//     publisher: "",
-//     date: "",
-//     url: "",
-//     desc: "",
-//   });
-
-//   useEffect(() => {
-//     if (open) {
-//       if (initial && mode === "edit") {
-//         setData({
-//           title: initial.title || "",
-//           publisher: initial.publisher || "",
-//           date: initial.publicationDate?.split("T")[0] || "",
-//           url: initial.publicationUrl || "",
-//           desc: initial.description || "",
-//         });
-//       } else {
-//         setData({ title: "", publisher: "", date: "", url: "", desc: "" });
-//       }
-//     }
-//   }, [initial, open, mode]);
-
-//   if (!open && !closing) return null;
-//   const requestClose = () => {
-//     setClosing(true);
-//     setTimeout(() => {
-//       setClosing(false);
-//       onClose?.();
-//     }, 220);
-//   };
-//   const set = (k, v) => setData((d) => ({ ...d, [k]: v }));
-//   const canSave = data.title && data.publisher && data.date;
-//   return (
-//     <div className="fixed inset-0 z-50">
-//       <div
-//         className={`absolute inset-0 bg-black/30 ${
-//           closing
-//             ? "animate-[fadeOut_.2s_ease-in_forwards]"
-//             : "animate-[fadeIn_.25s_ease-out_forwards]"
-//         }`}
-//         onClick={requestClose}
-//       />
-//       <aside
-//         className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-//           closing
-//             ? "animate-[drawerOut_.22s_ease-in_forwards]"
-//             : "animate-[drawerIn_.25s_ease-out_forwards]"
-//         }`}
-//         role="dialog"
-//         aria-modal="true"
-//       >
-//         <div className="px-3 py-2 border-b border-[#EFEFEF] flex items-center justify-between">
-//           <h3 className="text-[16px] font-semibold text-[#424242]">
-//             {mode === "edit" ? "Edit Publication" : "Add Publication"}
-//           </h3>
-//           <div className="flex items-center gap-3">
-//             <button
-//               disabled={!canSave}
-//               onClick={() => canSave && onSave?.(data)}
-//               className={
-//                 "text-xs md:text-sm h-8 px-3 rounded-md transition " +
-//                 (!canSave
-//                   ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
-//                   : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
-//               }
-//             >
-//               Save
-//             </button>
-//             <button
-//               onClick={requestClose}
-//               className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
-//               aria-label="Close"
-//             >
-//               ✕
-//             </button>
-//           </div>
-//         </div>
-//         <div className="p-3 overflow-y-auto  grid grid-cols-1 gap-2">
-//           <label className="block">
-//             <FieldLabel required>Title</FieldLabel>
-//             <TextInput
-//               placeholder="Title"
-//               value={data.title}
-//               onChange={(e) => set("title", e.target.value)}
-//             />
-//           </label>
-//           <label className="block">
-//             <FieldLabel required>Publication / Publisher</FieldLabel>
-//             <TextInput
-//               placeholder="Publisher"
-//               value={data.publisher}
-//               onChange={(e) => set("publisher", e.target.value)}
-//             />
-//           </label>
-//           <label className="block">
-//             <FieldLabel required>Publication Date</FieldLabel>
-//             <TextInput
-//               type="date"
-//               value={data.date}
-//               onChange={(e) => set("date", e.target.value)}
-//             />
-//           </label>
-//           <label className="block">
-//             <FieldLabel>Publication URL</FieldLabel>
-//             <TextInput
-//               placeholder="https://..."
-//               value={data.url}
-//               onChange={(e) => set("url", e.target.value)}
-//             />
-//           </label>
-//           <div>
-//             <FieldLabel>Description</FieldLabel>
-//             <div className="border border-gray-200 rounded-md">
-//               <div className="px-2 py-1 border-b border-gray-200 text-gray-600 text-sm flex items-center gap-2">
-//                 <button className="hover:text-gray-900">✎</button>
-//                 <button className="hover:text-gray-900 font-bold">B</button>
-//                 <button className="hover:text-gray-900 italic">I</button>
-//                 <button className="hover:text-gray-900 underline">U</button>
-//                 <button className="hover:text-gray-900">•</button>
-//               </div>
-//               <textarea
-//                 className="w-full min-h-[100px] p-3 text-sm outline-none"
-//                 value={data.desc}
-//                 onChange={(e) => set("desc", e.target.value)}
-//               />
-//               <div className="px-3 pb-2 text-[12px] text-gray-500 text-right">
-//                 {data.desc.length}/500
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </aside>
-//     </div>
-//   );
-// };
 
 // Drawer: Professional Details (Registration)
 const ProfessionalDrawer = ({ open, onClose, initial, onSave }) => {
@@ -708,19 +398,17 @@ const ProfessionalDrawer = ({ open, onClose, initial, onSave }) => {
   return (
     <div className="fixed inset-0 z-50">
       <div
-        className={`absolute inset-0 bg-black/30 ${
-          closing
-            ? "animate-[fadeOut_.2s_ease-in_forwards]"
-            : "animate-[fadeIn_.25s_ease-out_forwards]"
-        }`}
+        className={`absolute inset-0 bg-black/30 ${closing
+          ? "animate-[fadeOut_.2s_ease-in_forwards]"
+          : "animate-[fadeIn_.25s_ease-out_forwards]"
+          }`}
         onClick={requestClose}
       />
       <aside
-        className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-          closing
-            ? "animate-[drawerOut_.22s_ease-in_forwards]"
-            : "animate-[drawerIn_.25s_ease-out_forwards]"
-        }`}
+        className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${closing
+          ? "animate-[drawerOut_.22s_ease-in_forwards]"
+          : "animate-[drawerIn_.25s_ease-out_forwards]"
+          }`}
         role="dialog"
         aria-modal="true"
       >
@@ -797,148 +485,7 @@ const ProfessionalDrawer = ({ open, onClose, initial, onSave }) => {
   );
 };
 
-// Drawer: Practice Details
-const PracticeDrawer = ({ open, onClose, initial, onSave }) => {
-  const [closing, setClosing] = useState(false);
-  const [form, setForm] = useState({
-    workExperience: initial?.workExperience || "",
-    medicalPracticeType: initial?.medicalPracticeType || "",
-    practiceArea: initial?.practiceArea || [],
-    specialties: initial?.specialties || [],
-  });
 
-  useEffect(() => {
-    setForm({
-      workExperience: initial?.workExperience || "",
-      medicalPracticeType: initial?.medicalPracticeType || "",
-      practiceArea: initial?.practiceArea || [],
-      specialties: initial?.specialties || [],
-    });
-  }, [initial, open]);
-
-  if (!open && !closing) return null;
-  const requestClose = () => {
-    setClosing(true);
-    setTimeout(() => {
-      setClosing(false);
-      onClose?.();
-    }, 220);
-  };
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const toggleArea = (a) =>
-    setForm((f) => ({
-      ...f,
-      practiceArea: f.practiceArea.includes(a)
-        ? f.practiceArea.filter((x) => x !== a)
-        : [...f.practiceArea, a],
-    }));
-  const canSave = form.workExperience && form.medicalPracticeType;
-  const areaOptions = [
-    "Cough",
-    "Cold",
-    "Headache",
-    "Nausea",
-    "Dizziness",
-    "Muscle Pain",
-    "Sore Throat",
-  ];
-
-  return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className={`absolute inset-0 bg-black/30 ${
-          closing
-            ? "animate-[fadeOut_.2s_ease-in_forwards]"
-            : "animate-[fadeIn_.25s_ease-out_forwards]"
-        }`}
-        onClick={requestClose}
-      />
-      <aside
-        className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-          closing
-            ? "animate-[drawerOut_.22s_ease-in_forwards]"
-            : "animate-[drawerIn_.25s_ease-out_forwards]"
-        }`}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div className="px-4 py-3 border-b border-[#EFEFEF] flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold text-[#424242]">
-            Edit Practice Details
-          </h3>
-          <div className="flex items-center gap-3">
-            <button
-              disabled={!canSave}
-              onClick={() => canSave && onSave?.(form)}
-              className={
-                "text-xs md:text-sm h-8 px-3 rounded-md transition " +
-                (!canSave
-                  ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
-                  : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
-              }
-            >
-              Save
-            </button>
-            <button
-              onClick={requestClose}
-              className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        <div className="p-4 overflow-y-auto grid grid-cols-1 gap-3">
-          <label className="block">
-            <FieldLabel required>Work Experience</FieldLabel>
-            <div className="flex items-center gap-2">
-              <TextInput
-                placeholder="15"
-                value={form.workExperience}
-                onChange={(e) => set("workExperience", e.target.value)}
-                className="!mt-0"
-              />
-              <span className="text-xs text-gray-500">Years</span>
-            </div>
-          </label>
-          <label className="block">
-            <FieldLabel required>Medical Practice Type</FieldLabel>
-            <SelectInput
-              value={form.medicalPracticeType}
-              onChange={(e) => set("medicalPracticeType", e.target.value)}
-            >
-              <option value="" disabled>
-                Select
-              </option>
-              <option>Homeopathy</option>
-              <option>Allopathy</option>
-              <option>Ayurveda</option>
-            </SelectInput>
-          </label>
-          <div>
-            <FieldLabel>Practice Area</FieldLabel>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {areaOptions.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => toggleArea(a)}
-                  className={`px-2 h-7 rounded-md border text-[12px] ${
-                    form.practiceArea.includes(a)
-                      ? "bg-[#EAF2FF] border-[#BFD3FF] text-[#2F66F6]"
-                      : "bg-white border-[#E6E6E6] text-[#424242] hover:bg-gray-50"
-                  }`}
-                >
-                  {a}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </aside>
-    </div>
-  );
-};
 
 // ======== Staff Permissions (copied inline; not linked) ========
 const StaffTab = () => {
@@ -1143,7 +690,7 @@ const StaffTab = () => {
           <button className="h-8 px-3 rounded-l-md text-[12px] ">
             Inactive
           </button>
-         
+
           <button className="h-5 px-2 mr-1 rounded-r-md py-1">
             <ChevronDown size={14} />
           </button>
@@ -1200,296 +747,7 @@ const StaffTab = () => {
     );
   };
 
-  // Removed inline InviteStaffDrawer; using shared component below
 
-  const RoleDrawerInline = ({ open, onClose, onCreate }) => {
-    const [name, setName] = useState("");
-    const [desc, setDesc] = useState("");
-    // selection map by permission id => boolean
-    const [checked, setChecked] = useState({});
-    const [closing, setClosing] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [creating, setCreating] = useState(false);
-    const [createError, setCreateError] = useState("");
-    // groupedPermissions: { [moduleName]: [{ id, name, description }] }
-    const [grouped, setGrouped] = useState({});
-
-    // fetch permissions when drawer opens
-    useEffect(() => {
-      if (!open) return;
-      let cancelled = false;
-      const load = async () => {
-        setLoading(true);
-        setError("");
-        try {
-          const res = await fetchAllPermissions();
-          const gp = res?.data?.groupedPermissions;
-          const list = res?.data?.permissions;
-          let groupedPermissions = gp;
-          if (!groupedPermissions && Array.isArray(list)) {
-            groupedPermissions = list.reduce((acc, p) => {
-              const mod = p.module || "Other";
-              if (!acc[mod]) acc[mod] = [];
-              acc[mod].push({
-                id: p.id,
-                name: p.name,
-                description: p.description,
-              });
-              return acc;
-            }, {});
-          }
-          if (!cancelled) {
-            setGrouped(groupedPermissions || {});
-            // reset selection on open
-            setChecked({});
-          }
-        } catch (e) {
-          if (!cancelled)
-            setError(e?.message || e?.error || "Failed to load permissions");
-        } finally {
-          if (!cancelled) setLoading(false);
-        }
-      };
-      load();
-      return () => {
-        cancelled = true;
-      };
-    }, [open]);
-
-    if (!open && !closing) return null;
-    const requestClose = () => {
-      setClosing(true);
-      setTimeout(() => {
-        setClosing(false);
-        onClose?.();
-      }, 220);
-    };
-
-    const toggle = (id) => setChecked((c) => ({ ...c, [id]: !c[id] }));
-    const groupAll = (moduleName, value) => {
-      const up = { ...checked };
-      const items = grouped[moduleName] || [];
-      items.forEach((it) => (up[it.id] = value));
-      setChecked(up);
-    };
-    const selectedCount = Object.values(checked).filter(Boolean).length;
-    const canCreate = name.trim().length > 0 && selectedCount > 0;
-
-    return (
-      <div className="fixed inset-0 z-50">
-        <div
-          className={`absolute inset-0 bg-black/30 ${
-            closing
-              ? "animate-[fadeOut_.2s_ease-in_forwards]"
-              : "animate-[fadeIn_.25s_ease-out_forwards]"
-          }`}
-          onClick={requestClose}
-        />
-        <aside
-          className={`absolute top-16 right-5 bottom-5 w-[600px] bg-white shadow-2xl border border-[#E6E6E6] rounded-xl overflow-hidden ${
-            closing
-              ? "animate-[drawerOut_.22s_ease-in_forwards]"
-              : "animate-[drawerIn_.25s_ease-out_forwards]"
-          }`}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="flex items-center justify-between px-3 py-2 border-b border-[#EFEFEF]">
-            <h3 className="text-[16px] font-semibold text-[#424242]">
-              Create User Role
-            </h3>
-            <div className="flex items-center gap-3">
-              <button
-                disabled={!canCreate}
-                className={
-                  "text-xs md:text-sm h-8 px-3 rounded-md transition " +
-                  (!canCreate
-                    ? "bg-[#F2F2F2] text-[#9AA1A9] cursor-not-allowed"
-                    : "bg-[#2F66F6] text-white hover:bg-[#1e4cd8]")
-                }
-                onClick={async () => {
-                  if (!canCreate) return;
-                  const permissionIds = Object.entries(checked)
-                    .filter(([, v]) => v)
-                    .map(([k]) => k);
-                  // Resolve clinicId
-                  const authSnap = useAuthStore.getState();
-                  const clinicId =
-                    authSnap?.doctorDetails?.associatedWorkplaces?.clinic?.id ||
-                    authSnap?.user?.clinicId ||
-                    authSnap?.clinicId;
-                  if (!clinicId) {
-                    console.error("No clinicId available for create-role");
-                    setCreateError(
-                      "No clinic selected. Please sign in and ensure doctor profile is loaded."
-                    );
-                    return;
-                  }
-                  try {
-                    setCreating(true);
-                    setCreateError("");
-                    const res = await createRole({
-                      name,
-                      description: desc,
-                      permissions: permissionIds,
-                      clinicId,
-                    });
-                    // Update roles UI list if onCreate provided
-                    onCreate?.(res?.data || res);
-                    requestClose();
-                  } catch (e) {
-                    console.error("Failed to create role", e);
-                    setCreateError(e?.message || "Failed to create role");
-                  } finally {
-                    setCreating(false);
-                  }
-                }}
-              >
-                {creating ? "Creating…" : "Create"}
-              </button>
-              <button
-                onClick={requestClose}
-                className="w-8 h-8 rounded-full grid place-items-center hover:bg-gray-100"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          {createError ? (
-            <div className="px-3 py-2 text-[12px] text-red-600">
-              {String(createError)}
-            </div>
-          ) : null}
-          <div className="px-3 py-2 flex flex-col gap-2 overflow-y-auto h-[calc(100%-48px)]">
-            <label className="block">
-              <span className="text-[12px] text-[#424242] font-medium">
-                Role Name <span className="text-red-500">*</span>
-              </span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter staff full name"
-                className="w-full h-9 px-3 mt-1 rounded-md border border-[#E6E6E6] focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF] outline-none text-sm"
-              />
-            </label>
-            <label className="block">
-              <span className="text-[12px] text-[#424242] font-medium">
-                Description
-              </span>
-              <textarea
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                placeholder="Describe the role"
-                rows={3}
-                className="w-full px-3 py-2 mt-1 rounded-md border border-[#E6E6E6] focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF] outline-none text-sm"
-              />
-            </label>
-            <div>
-              <div className="text-[12px] text-[#424242] font-medium">
-                Permissions <span className="text-red-500">*</span>
-              </div>
-
-              {loading ? (
-                <div className="mt-3 text-[12px] text-[#626060]">
-                  Loading permissions…
-                </div>
-              ) : error ? (
-                <div className="mt-3 text-[12px] text-red-600 flex items-center gap-2">
-                  <span>{String(error)}</span>
-                  <button
-                    className="text-[#2F66F6] underline"
-                    onClick={() => {
-                      // retrigger load by flipping open state quickly is complex; call fetch directly
-                      (async () => {
-                        setLoading(true);
-                        setError("");
-                        try {
-                          const res = await fetchAllPermissions();
-                          const gp = res?.data?.groupedPermissions;
-                          const list = res?.data?.permissions;
-                          let groupedPermissions = gp;
-                          if (!groupedPermissions && Array.isArray(list)) {
-                            groupedPermissions = list.reduce((acc, p) => {
-                              const mod = p.module || "Other";
-                              if (!acc[mod]) acc[mod] = [];
-                              acc[mod].push({
-                                id: p.id,
-                                name: p.name,
-                                description: p.description,
-                              });
-                              return acc;
-                            }, {});
-                          }
-                          setGrouped(groupedPermissions || {});
-                          setChecked({});
-                        } catch (e) {
-                          setError(
-                            e?.message ||
-                              e?.error ||
-                              "Failed to load permissions"
-                          );
-                        } finally {
-                          setLoading(false);
-                        }
-                      })();
-                    }}
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-2 flex flex-col gap-3">
-                  {Object.entries(grouped).map(([moduleName, items]) => {
-                    const allChecked = (items || []).every(
-                      (it) => checked[it.id]
-                    );
-                    return (
-                      <div
-                        key={moduleName}
-                        className="border rounded-md border-[#E6E6E6]"
-                      >
-                        <div className="flex items-center justify-between px-3 py-2 bg-[#F9FBFF] text-[12px] text-[#424242] rounded-t-md">
-                          <span className="font-semibold">{moduleName}</span>
-                          <label className="inline-flex items-center gap-2 text-[#626060]">
-                            <input
-                              type="checkbox"
-                              checked={allChecked}
-                              onChange={(e) =>
-                                groupAll(moduleName, e.target.checked)
-                              }
-                            />{" "}
-                            Select All
-                          </label>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 p-3">
-                          {(items || []).map((it) => (
-                            <label
-                              key={it.id}
-                              className="flex items-start gap-2 text-[12px] text-[#424242]"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={!!checked[it.id]}
-                                onChange={() => toggle(it.id)}
-                                className="mt-0.5"
-                              />
-                              <span>{it.name}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
-      </div>
-    );
-  };
 
   const [tab, setTab] = useState("staff");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -1589,6 +847,22 @@ const StaffTab = () => {
         setRolesError(
           e?.response?.data?.message || e?.message || "Failed to load roles"
         );
+        // Fallback: seed dummy roles so permissions UI remains usable
+        const dummy = [
+          { id: "role-frontdesk", name: "Front Desk", description: "Reception and queue ops", permissions: 8, _count: { userRoles: 3 }, createdAt: new Date().toISOString() },
+          { id: "role-consultant", name: "Consultant", description: "Consultation management", permissions: 12, _count: { userRoles: 2 }, createdAt: new Date().toISOString() },
+          { id: "role-admin", name: "Admin", description: "Administrative access", permissions: 20, _count: { userRoles: 1 }, createdAt: new Date().toISOString() }
+        ];
+        const mapped = dummy.map((r) => ({
+          id: r.id,
+          name: r.name,
+          subtitle: r.description,
+          staffCount: r._count?.userRoles || 0,
+          permissions: r.permissions,
+          created: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "",
+          icon: /admin/i.test(r.name) ? "crown" : "clipboard",
+        }));
+        setRoles(mapped);
         setRolesLoading(false);
       }
     };
@@ -1607,7 +881,7 @@ const StaffTab = () => {
           loadRoles();
         }
       });
-    } catch {}
+    } catch { }
     return () => {
       if (typeof unsub === "function") unsub();
     };
@@ -1649,6 +923,13 @@ const StaffTab = () => {
         setStaff(mapped);
       } catch (e) {
         console.error("Failed to load staff", e);
+        // Fallback: seed dummy staff
+        const dummy = [
+          { name: "Anita Rao", email: "anita.rao@example.com", phone: "9876543210", position: "Receptionist", role: "Front Desk", joined: new Date().toLocaleDateString("en-GB"), status: "Active" },
+          { name: "Karan Mehta", email: "karan.mehta@example.com", phone: "9812345678", position: "Nurse", role: "Consultant", joined: new Date().toLocaleDateString("en-GB"), status: "Active" },
+          { name: "Sana Khan", email: "sana.khan@example.com", phone: "9890011223", position: "Assistant", role: "Admin", joined: new Date().toLocaleDateString("en-GB"), status: "Inactive" }
+        ];
+        setStaff(dummy);
       }
     };
     // initial fetch
@@ -1661,7 +942,7 @@ const StaffTab = () => {
           state.doctorDetails !== prev.doctorDetails;
         if (changed) loadStaff();
       });
-    } catch {}
+    } catch { }
     return () => {
       if (typeof unsub === "function") unsub();
     };
@@ -1754,7 +1035,7 @@ const StaffTab = () => {
           <button
             onClick={() => setRoleOpen(true)}
             className="rounded-lg w-[280px] min-h-[180px] flex items-center justify-center flex-col gap-2 bg-white text-[#2F66F6] border-[0.5px] border-dashed border-blue-primary250 hover:bg-[#F8FBFF] p-3"
-            >
+          >
             <span className="w-12 h-12 rounded-full grid place-items-center border border-blue-primary150 bg-blue-primary50 text-[#2F66F6]">
               <img src="/Doctor_module/settings/role.png" alt="" className="w-6 h-6" />
             </span>
@@ -1778,9 +1059,9 @@ const StaffTab = () => {
               const [firstName = "", lastName = ""] =
                 String(r.fullName || "").split(" ").length > 1
                   ? [
-                      String(r.fullName).split(" ")[0],
-                      String(r.fullName).split(" ").slice(1).join(" "),
-                    ]
+                    String(r.fullName).split(" ")[0],
+                    String(r.fullName).split(" ").slice(1).join(" "),
+                  ]
                   : [r.fullName || "", ""];
               const payload = {
                 firstName,
@@ -1821,7 +1102,7 @@ const StaffTab = () => {
           setRoleOpen(false);
         }}
       />
-  {/* Drawer placeholders end for StaffTab */}
+      {/* Drawer placeholders end for StaffTab */}
     </div>
   );
 };
@@ -1832,10 +1113,13 @@ import {
   putDoctorConsultationDetails,
 } from "../../../services/doctorConsultationService";
 import { toISTDate } from "../../../lib/timeUtils";
+import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 
 const Doc_settings = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+
 
   // Grab global profile + actions from Zustand
   const { profile, fetchBasicInfo, updateBasicInfo } = useProfileStore();
@@ -1952,9 +1236,9 @@ const Doc_settings = () => {
           .then(({ getDoctorMe }) => {
             fetchDoctorDetails(getDoctorMe);
           })
-          .catch(() => {});
+          .catch(() => { });
       }
-    } catch {}
+    } catch { }
   }, []);
   const [awardEditData, setAwardEditData] = useState(null); // holds award being edited
   // publication drawer state defined above; avoid duplicate declarations
@@ -1966,7 +1250,9 @@ const Doc_settings = () => {
   // Consultation details state
   const [consultationLoading, setConsultationLoading] = useState(false);
   const [consultationError, setConsultationError] = useState("");
-  const [consultationDetails, setConsultationDetails] = useState(null);
+  const [consultationDetails, setConsultationDetails] = useState(
+    DEFAULT_CONSULTATION_DETAILS
+  );
   const [consultationDirty, setConsultationDirty] = useState(false);
   const [savingConsultation, setSavingConsultation] = useState(false);
 
@@ -2049,20 +1335,35 @@ const Doc_settings = () => {
     const hospitalId =
       doctorDetails?.associatedWorkplaces?.clinic?.id ||
       doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id;
-    if (!hospitalId) return;
     setConsultationLoading(true);
     setConsultationError("");
+    if (!hospitalId) {
+      // No hospital context; still show default UI
+      setConsultationDetails(DEFAULT_CONSULTATION_DETAILS);
+      setConsultationLoading(false);
+      return;
+    }
     getDoctorConsultationDetails(hospitalId)
       .then((resp) => {
-        setConsultationDetails(resp?.data || null);
+        const data = resp?.data || DEFAULT_CONSULTATION_DETAILS;
+        // Ensure schedule exists
+        const schedule = data?.slotTemplates?.schedule?.length
+          ? data.slotTemplates.schedule
+          : DEFAULT_SCHEDULE.map((d) => ({ ...d }));
+        setConsultationDetails({
+          consultationFees: Array.isArray(data?.consultationFees) && data.consultationFees.length
+            ? data.consultationFees
+            : DEFAULT_CONSULTATION_DETAILS.consultationFees,
+          slotTemplates: { schedule },
+        });
         setConsultationLoading(false);
       })
       .catch((e) => {
-        setConsultationError(
-          e?.response?.data?.message ||
-            e.message ||
-            "Failed to load consultation details"
-        );
+        // Show friendly message but still render default UI
+        const msg =
+          e?.response?.data?.message || e.message || "Failed to load consultation details";
+        setConsultationError(msg);
+        setConsultationDetails(DEFAULT_CONSULTATION_DETAILS);
         setConsultationLoading(false);
       });
   }, [activeTab, doctorDetails]);
@@ -2105,11 +1406,10 @@ const Doc_settings = () => {
                   const dest = tabToPath(next);
                   if (location.pathname !== dest) navigate(dest);
                 }}
-                className={`whitespace-nowrap px-[6px] py-1 pb-2 border-b-2 transition-colors ${
-                  active
-                    ? "border-blue-600 text-blue-primary250"
-                    : "border-transparent text-secondary-grey300 hover:text-gray-900"
-                }`}
+                className={`whitespace-nowrap px-[6px] py-1 pb-2 border-b-2 transition-colors ${active
+                  ? "border-blue-600 text-blue-primary250"
+                  : "border-transparent text-secondary-grey300 hover:text-gray-900"
+                  }`}
               >
                 {t.label}
               </button>
@@ -2120,7 +1420,7 @@ const Doc_settings = () => {
 
       {/* Content */}
       {activeTab === "personal" ? (
-        <div className="pt-6 px-4 grid grid-cols-12 gap-6">
+        <div className="pt-6 px-4 grid grid-cols-12 gap-6 bg-secondary-grey50">
           {/* Left column */}
           <div className="col-span-12 xl:col-span-6 space-y-6">
             <SectionCard
@@ -2143,7 +1443,7 @@ const Doc_settings = () => {
                     label="Mobile Number"
                     value={profile.basic?.phone}
                     right={
-                      <span className="inline-flex items-center text-green-600 border border-green-400 py-0.5 px-1 rounded-md text-[12px]">
+                      <span className="inline-flex items-center text-success-300 border bg-success-100 border-success-300 py-0.5 px-1 rounded-md text-[12px]">
                         <img
                           src={verifiedTick}
                           alt="Verified"
@@ -2157,7 +1457,7 @@ const Doc_settings = () => {
                     label="Email"
                     value={profile.basic?.email}
                     right={
-                      <span className="inline-flex items-center text-green-600 border border-green-400 py-0.5 px-1 rounded-md text-[12px]">
+                      <span className="inline-flex items-center text-success-300 border bg-success-100 border-success-300 py-0.5 px-1 rounded-md text-[12px]">
                         <img
                           src={verifiedTick}
                           alt="Verified"
@@ -2174,7 +1474,7 @@ const Doc_settings = () => {
                       profile.basic?.gender?.slice(1).toLowerCase()
                     }
                   />
-                  
+
                   <InfoField
                     label="Language"
                     value={
@@ -2221,9 +1521,8 @@ const Doc_settings = () => {
                   <ProfileItemCard
                     key={ed.id || idx}
                     icon={cap}
-                    title={`${ed.degree}${
-                      ed.fieldOfStudy ? ` in ${ed.fieldOfStudy}` : ""
-                    }`}
+                    title={`${ed.degree}${ed.fieldOfStudy ? ` in ${ed.fieldOfStudy}` : ""
+                      }`}
                     badge={ed.graduationType}
                     subtitle={ed.instituteName}
                     date={`${ed.startYear} - ${ed.completionYear}`}
@@ -2240,31 +1539,31 @@ const Doc_settings = () => {
                         field: ed.fieldOfStudy || "",
                         start: ed.startYear?.toString() || "",
                         end: ed.completionYear?.toString() || "",
-                        
+
                       });
                       setEduEditMode("edit");
                       setEduOpen(true);
                     }}
-                    // rightActions={
-                    //   <button
-                    //     onClick={() => {
-                    //       setEduEditData({
-                    //         id: ed.id,
-                    //         school: ed.instituteName,
-                    //         gradType: ed.graduationType,
-                    //         degree: ed.degree,
-                    //         field: ed.fieldOfStudy || "",
-                    //         start: ed.startYear?.toString() || "",
-                    //         end: ed.completionYear?.toString() || "",
-                    //         proof: ed.proofDocumentUrl || "",
-                    //       });
-                    //       setEduEditMode("edit");
-                    //       setEduOpen(true);
-                    //     }}
-                    //     className="text-gray-400 hover:text-blue-600"
-                    //     title="Edit"
-                    //   ></button>
-                    // }
+                  // rightActions={
+                  //   <button
+                  //     onClick={() => {
+                  //       setEduEditData({
+                  //         id: ed.id,
+                  //         school: ed.instituteName,
+                  //         gradType: ed.graduationType,
+                  //         degree: ed.degree,
+                  //         field: ed.fieldOfStudy || "",
+                  //         start: ed.startYear?.toString() || "",
+                  //         end: ed.completionYear?.toString() || "",
+                  //         proof: ed.proofDocumentUrl || "",
+                  //       });
+                  //       setEduEditMode("edit");
+                  //       setEduOpen(true);
+                  //     }}
+                  //     className="text-gray-400 hover:text-blue-600"
+                  //     title="Edit"
+                  //   ></button>
+                  // }
                   />
                 ))}
               </div>
@@ -2274,7 +1573,7 @@ const Doc_settings = () => {
               title="Awards & Publications"
               subtitle="Visible to Patient"
               Icon={add}
-              onIconClick={() => setShowAddMenu((v)=>!v)}
+              onIconClick={() => setShowAddMenu((v) => !v)}
             >
               <div className="relative">
                 {showAddMenu && (
@@ -2287,7 +1586,7 @@ const Doc_settings = () => {
                     </button>
                     <button
                       className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 w-full text-left"
-                      
+
                       onClick={() => {
                         setShowAddMenu(false);
                         setPubEditMode("add");
@@ -2312,13 +1611,13 @@ const Doc_settings = () => {
                       linkLabel="Certificate ↗"
                       linkUrl={aw.awardUrl}
                       showEditEducation={true}
-                    editEducationIcon={pencil}
-                    onEditEducationClick={() => {
-                      setAwardEditData(aw);
-                            setAwardEditMode("edit");
-                            setAwardOpen(true);
-                    }}
-                      
+                      editEducationIcon={pencil}
+                      onEditEducationClick={() => {
+                        setAwardEditData(aw);
+                        setAwardEditMode("edit");
+                        setAwardOpen(true);
+                      }}
+
                     />
                   ))}
 
@@ -2365,19 +1664,19 @@ const Doc_settings = () => {
                     Medical Registration Details
                   </div>
                   <div className="relative col-span-12 mt-[0.7px] text-[12px] text-secondary-grey200 pb-2 mb-3">
-                  To Change your MRN proof please{" "}
-                  <a
-                    className="text-blue-primary250"
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    Call Us
-                  </a>
+                    To Change your MRN proof please{" "}
+                    <a
+                      className="text-blue-primary250"
+                      href="#"
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      Call Us
+                    </a>
 
-                  <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
-                </div>
+                    <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
+                  </div>
 
-                  
+
                   <div className="col-span-12 md:col-span-6 space-y-3 ">
                     <InfoField
                       label="Medical Council Registration Number"
@@ -2396,66 +1695,66 @@ const Doc_settings = () => {
                       label="Registration Council"
                       value={medicalRegistration?.registrationCouncil || "-"}
                     />
-                    
-                        <div className="h-[32px]  w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm overflow-x-hidden bg-secondary-grey50">
-                          <span className="flex items-center gap-3 text-secondary-grey300 flex-1 min-w-0 p-[0.5px]">
-                            <img src="/Doctor_module/settings/pdf_black.png" alt="file" className="h-6 w-6" />
-                            <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
-                              {(() => {
-                                const url = String(medicalRegistration?.proofDocumentUrl || "");
-                                const name = url ? (url.split("/").pop() || "MRN Proof.pdf") : "-";
-                                const max = 22;
-                                if (name.length <= max) return name;
-                                const keep = Math.max(4, Math.floor((max - 3) / 2));
-                                return `${name.slice(0, keep)}...${name.slice(-keep)}`;
-                              })()}
-                            </span>
 
-                              <button
+                    <div className="h-[32px]  w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm overflow-x-hidden bg-secondary-grey50">
+                      <span className="flex items-center gap-3 text-secondary-grey300 flex-1 min-w-0 p-[0.5px]">
+                        <img src="/Doctor_module/settings/pdf_black.png" alt="file" className="h-6 w-6" />
+                        <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
+                          {(() => {
+                            const url = String(medicalRegistration?.proofDocumentUrl || "");
+                            const name = url ? (url.split("/").pop() || "MRN Proof.pdf") : "-";
+                            const max = 22;
+                            if (name.length <= max) return name;
+                            const keep = Math.max(4, Math.floor((max - 3) / 2));
+                            return `${name.slice(0, keep)}...${name.slice(-keep)}`;
+                          })()}
+                        </span>
+
+                        <button
                           type="button"
                           title="View"
                           className="hover:text-secondary-grey400"
                           onClick={() => onFileView?.(fileName)}
                         >
-                          
-                        </button>
-                          </span>
-                          <span className="flex items-center gap-3 text-secondary-grey300 flex-shrink-0">
-                            <button
-                              type="button"
-                              title="View"
-                              className="hover:text-secondary-grey400 p-2"
-                              onClick={() => onFileView?.(fileName)}
-                            >
-                              {/* simple eye */}
-                              <img src="/Doctor_module/settings/eye.png" alt="" className="w-4 h-4" />
-                            </button>
 
-                            {medicalRegistration?.proofDocumentUrl ? (
-                              <a
-                                href={medicalRegistration.proofDocumentUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                title="View"
-                                className="hover:text-secondary-grey400 inline-flex items-center justify-center"
-                              >
-                                <img src="/Doctor_module/settings/eye.png" alt="view" className="w-3.5 h-3.5" />
-                              </a>
-                            ) : null}
-                          </span>
-                        </div>
-                      
-                    
+                        </button>
+                      </span>
+                      <span className="flex items-center gap-3 text-secondary-grey300 flex-shrink-0">
+                        <button
+                          type="button"
+                          title="View"
+                          className="hover:text-secondary-grey400 p-2"
+                          onClick={() => onFileView?.(fileName)}
+                        >
+                          {/* simple eye */}
+                          <img src="/Doctor_module/settings/eye.png" alt="" className="w-4 h-4" />
+                        </button>
+
+                        {medicalRegistration?.proofDocumentUrl ? (
+                          <a
+                            href={medicalRegistration.proofDocumentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="View"
+                            className="hover:text-secondary-grey400 inline-flex items-center justify-center"
+                          >
+                            <img src="/Doctor_module/settings/eye.png" alt="view" className="w-3.5 h-3.5" />
+                          </a>
+                        ) : null}
+                      </span>
+                    </div>
+
+
                   </div>
                 </div>
 
                 <div className="grid grid-cols-12 gap-3 text-[13px]">
                   {/* Section title */}
                   <div className="relative col-span-12 text-[14px] text-gray-600 font-semibold flex items-center justify-between ">
-                     <div className="col-span-12 text-[14px] text-secondary-grey400 font-semibold mb-3">
-                    Practice Details
-                  </div>
-                  <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
+                    <div className="col-span-12 text-[14px] text-secondary-grey400 font-semibold mb-3">
+                      Practice Details
+                    </div>
+                    <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
                     <button
                       type="button"
                       onClick={() => setPracticeOpen(true)}
@@ -2489,7 +1788,7 @@ const Doc_settings = () => {
                         label="Specialization"
                         value={
                           Array.isArray(practiceDetails?.specialties) &&
-                          practiceDetails.specialties.length > 0 ? (
+                            practiceDetails.specialties.length > 0 ? (
                             practiceDetails.specialties.map((spec, idx) => (
                               <span key={spec.id}>
                                 {spec.specialtyName} (Exp: {spec.expYears}{" "}
@@ -2511,27 +1810,27 @@ const Doc_settings = () => {
                         label="Practice Area"
                         className="border-none"
                         value={
-                              <div className="mt-1 flex flex-wrap gap-1.5">
-                                {Array.isArray(practiceDetails?.practiceArea) &&
-                                practiceDetails.practiceArea.length > 0 ? (
-                                  practiceDetails.practiceArea.map((a) => (
-                                    <Badge key={a} color="gray" size="s">
-                                      {a}
-                                    </Badge>
-                                  ))
-                                ) : (
-                                  <span className="text-[12px] text-gray-600">
-                                    No details available
-                                  </span>
-                                )}
-                              </div>
-                            }
-                            />
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {Array.isArray(practiceDetails?.practiceArea) &&
+                              practiceDetails.practiceArea.length > 0 ? (
+                              practiceDetails.practiceArea.map((a) => (
+                                <Badge key={a} color="gray" size="s">
+                                  {a}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-[12px] text-gray-600">
+                                No details available
+                              </span>
+                            )}
+                          </div>
+                        }
+                      />
                     </div>
                   </div>
                 </div>
-         
-             
+
+
               </div>
             </SectionCard>
 
@@ -2563,10 +1862,10 @@ const Doc_settings = () => {
                       description={ex.description}
                       onEditEducationClick={() => {
                         setExpEditData(ex);
-                              setExpEditMode('edit');
-                              setExpOpen(true);
-                    }}
-                      
+                        setExpEditMode('edit');
+                        setExpOpen(true);
+                      }}
+
                     />
                   ))}
               </div>
@@ -2582,82 +1881,84 @@ const Doc_settings = () => {
 
 
       ) : activeTab === "consultation" ? (
-        <div className=" space-y-4 p-4">
+        <div className=" space-y-6 p-4">
+
           {/* In-Clinic Consultation Fees */}
           <SectionCard
             title="In-Clinic Consultations Fees"
             subtitle="Visible to Patient"
+
           >
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="flex items-center gap-6">
               {/* First Time Consultation */}
-              <div className="flex items-center gap-4">
-                <label className="text-[12px] text-gray-600 whitespace-nowrap">
-                  First Time Consultation Fees:
-                </label>
 
-                <div className="flex h-8 flex-1">
-                  <input
-                    className="flex-1 text-xs border border-gray-300 rounded-l px-2 bg-white focus:outline-none"
-                    placeholder="Value"
-                    value={
-                      consultationDetails?.consultationFees?.[0]
-                        ?.consultationFee || ""
-                    }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setConsultationDetails((d) => ({
-                        ...d,
-                        consultationFees: [
-                          {
-                            ...(d?.consultationFees?.[0] || {}),
-                            consultationFee: v,
-                          },
-                        ],
-                      }));
-                      setConsultationDirty(true);
-                    }}
-                  />
+              <label className="text-[14px] text-secondary-grey300 whitespace-nowrap">
+                First Time Consultation Fees:
+              </label>
 
-                  <div className="px-3 flex items-center text-xs border border-l-0 border-gray-300 rounded-r bg-gray-50 text-gray-600">
-                    Rupees
-                  </div>
+              <div className="flex h-8 flex-1 border-[0.5px] border-secondary-grey200 rounded-md ">
+                <input
+                  className="flex-1 text-sm px-2 rounded-l bg-white focus:outline-none"
+                  placeholder="Value"
+                  value={
+                    consultationDetails?.consultationFees?.[0]
+                      ?.consultationFee || ""
+                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setConsultationDetails((d) => ({
+                      ...d,
+                      consultationFees: [
+                        {
+                          ...(d?.consultationFees?.[0] || {}),
+                          consultationFee: v,
+                        },
+                      ],
+                    }));
+                    setConsultationDirty(true);
+                  }}
+                />
+
+                <div className="px-2 flex items-center text-sm  border-l-[0.5px] border-secondary-grey100 rounded-r bg-secondary-grey50 text-secondary-grey300">
+                  Rupees
                 </div>
               </div>
+
 
               {/* Follow-up Consultation */}
-              <div className="flex items-center gap-4">
-                <label className="text-[12px] text-gray-600 whitespace-nowrap">
-                  Follow-up Consultation Fees:
-                </label>
+              <div className="text-secondary-grey100 text-md w-1">|</div>
+              <label className="text-[14px] text-secondary-grey300 whitespace-nowrap">
+                Follow-up Consultation Fees:
+              </label>
 
-                <div className="flex h-8 flex-1">
-                  <input
-                    className="flex-1 text-xs border border-gray-300 rounded-l px-2 bg-white focus:outline-none"
-                    placeholder="Value"
-                    value={
-                      consultationDetails?.consultationFees?.[0]?.followUpFee ||
-                      ""
-                    }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setConsultationDetails((d) => ({
-                        ...d,
-                        consultationFees: [
-                          {
-                            ...(d?.consultationFees?.[0] || {}),
-                            followUpFee: v,
-                          },
-                        ],
-                      }));
-                      setConsultationDirty(true);
-                    }}
-                  />
+              <div className="flex h-8 flex-1 border-[0.5px] border-secondary-grey200 rounded-md ">
+                <input
+                  className="flex-1 text-sm px-2 rounded-l bg-white focus:outline-none"
+                  placeholder="Value"
+                  value={
+                    consultationDetails?.consultationFees?.[0]?.followUpFee ||
+                    ""
+                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setConsultationDetails((d) => ({
+                      ...d,
+                      consultationFees: [
+                        {
+                          ...(d?.consultationFees?.[0] || {}),
+                          followUpFee: v,
+                        },
+                      ],
+                    }));
+                    setConsultationDirty(true);
+                  }}
+                />
 
-                  <div className="px-3 flex items-center text-xs border border-l-0 border-gray-300 rounded-r bg-gray-50 text-gray-600">
-                    Rupees
-                  </div>
+                <div className="px-2 flex items-center text-sm  border-l-[0.5px] border-secondary-grey100 rounded-r bg-secondary-grey50 text-secondary-grey300">
+                  Rupees
                 </div>
               </div>
+
             </div>
           </SectionCard>
 
@@ -2665,13 +1966,11 @@ const Doc_settings = () => {
             title="Set your consultation hours"
             headerRight={
               <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={Boolean(
                     consultationDetails?.consultationFees?.[0]?.autoApprove
                   )}
-                  onChange={(e) => {
-                    const v = e.target.checked;
+                  onCheckedChange={(v) => {
                     setConsultationDetails((d) => ({
                       ...d,
                       consultationFees: [
@@ -2683,123 +1982,155 @@ const Doc_settings = () => {
                     }));
                     setConsultationDirty(true);
                   }}
+                  className=""
                 />
-                <span>Auto Approve Requested Appointment</span>
+                <span className="text-sm text-secondary-grey300">Auto Approve Requested Appointment</span>
               </label>
             }
           >
-            {/* <div className="">
-      <label className="inline-flex items-center gap-2 text-sm font-normal  text-gray-700 shrink-0">
-        <input
-          type="checkbox"
-          checked={Boolean(consultationDetails?.consultationFees?.[0]?.autoApprove)}
-          onChange={(e) => {
-            const v = e.target.checked;
-            setConsultationDetails((d) => ({
-              ...d,
-              consultationFees: [
-                {
-                  ...(d?.consultationFees?.[0] || {}),
-                  autoApprove: v,
-                },
-              ],
-            }));
-            setConsultationDirty(true);
-          }}
-        />
-        <span>Auto Approve Requested Appointment</span>
-      </label>
-      </div> */}
 
-            <div className="grid grid-cols-12 gap-3 items-end">
-              <div className="col-span-6 md:col-span-4 lg:col-span-3">
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">
-                    Average Consultation Min per Patient
-                  </div>
 
-                  <div className="flex h-8">
-                    <input
-                      className="flex-1 text-xs border border-gray-300 rounded-l px-2 bg-white focus:outline-none"
-                      placeholder="Value"
-                      value={
-                        consultationDetails?.consultationFees?.[0]
-                          ?.avgDurationMinutes ?? ""
-                      }
-                      onChange={(e) => {
-                        const v = Number(e.target.value) || 0;
-                        setConsultationDetails((d) => ({
-                          ...d,
-                          consultationFees: [
-                            {
-                              ...(d?.consultationFees?.[0] || {}),
-                              avgDurationMinutes: v,
-                            },
-                          ],
-                        }));
-                        setConsultationDirty(true);
-                      }}
-                    />
+            <div className="flex gap-4 ">
 
-                    <div className="px-3 flex items-center text-xs border border-l-0 border-gray-300 rounded-r bg-gray-50 text-gray-600">
-                      Mins
-                    </div>
+              <div>
+                <InputWithMeta label="Average Consultation Min per Patient" requiredDot showInput={false}></InputWithMeta>
+
+                <div className="flex flex-1 h-8 w-[300px]  border-[0.5px] border-secondary-grey200 rounded-md">
+                  <input
+                    className="flex-1 text-sm px-2 rounded-l bg-white focus:outline-none"
+                    placeholder="Value"
+                    value={
+                      consultationDetails?.consultationFees?.[0]
+                        ?.avgDurationMinutes ?? ""
+                    }
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 0;
+                      setConsultationDetails((d) => ({
+                        ...d,
+                        consultationFees: [
+                          {
+                            ...(d?.consultationFees?.[0] || {}),
+                            avgDurationMinutes: v,
+                          },
+                        ],
+                      }));
+                      setConsultationDirty(true);
+                    }}
+                  />
+
+                  <div className="px-2 flex items-center text-sm  border-l-[0.5px] border-secondary-grey100 rounded-r bg-secondary-grey50 text-secondary-grey300">
+                    Mins
                   </div>
                 </div>
               </div>
-              <div className="col-span-6 md:col-span-4 lg:col-span-3">
-                <div className="text-[12px] text-gray-600 mb-1">
-                  Set Availability Duration
-                </div>
-                <select
-                  className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-white"
-                  value={
-                    consultationDetails?.consultationFees?.[0]
-                      ?.availabilityDurationDays || ""
-                  }
-                  onChange={(e) => {
+              <div className="text-secondary-grey100 text-xl px-2 opacity-50 mt-4">|</div>
+
+
+
+              <div >
+
+                <InputWithMeta
+                  label="Set Availability Duration"
+                  requiredDot
+                  infoIcon
+                  value={(() => {
+                    const v = consultationDetails?.consultationFees?.[0]?.availabilityDurationDays;
+                    return v ? `${v} Days` : '';
+                  })()}
+                  placeholder="Select Duration"
+                  dropdownItems={[
+                    { label: '2 Days', value: 2 },
+                    { label: '7 Days', value: 7 },
+                    { label: '14 Days', value: 14 },
+                    { label: '21 Days', value: 21 },
+                    { label: '28 Days', value: 28 },
+                  ]}
+                  selectedValue={consultationDetails?.consultationFees?.[0]?.availabilityDurationDays}
+                  onSelectItem={(it) => {
                     setConsultationDetails((d) => ({
                       ...d,
                       consultationFees: [
                         {
                           ...(d?.consultationFees?.[0] || {}),
-                          availabilityDurationDays: Number(e.target.value),
+                          availabilityDurationDays: it.value,
                         },
                       ],
                     }));
                     setConsultationDirty(true);
                   }}
-                >
-                  <option value="">Select</option>
-                  <option value={2}>2 Days</option>
-                  <option value={7}>7 Days</option>
-                  <option value={14}>14 Days</option>
-                  <option value={21}>21 Days</option>
-                  <option value={28}>28 Days</option>
-                </select>
+                  itemRenderer={(it, { isSelected }) => (
+                    <span
+                      className={
+                        isSelected
+                          ? 'text-blue-600 font-semibold bg-blue-50 rounded px-2 py-1'
+                          : ''
+                      }
+                    >
+                      {it.label}
+                    </span>
+                  )}
+                  showInput={true}
+                  className="h-8 w-full text-xs"
+                  RightIcon={ChevronDown}
+                />
               </div>
+
             </div>
+
             {consultationLoading && (
               <div className="text-xs text-gray-500 mt-2">
                 Loading consultation details…
               </div>
             )}
-            {consultationError && (
+            {/* {consultationError && (
               <div className="text-xs text-red-600 mt-2">
                 {consultationError}
               </div>
-            )}
+            )} */}
 
-            {/* Days grid (from API schedule) */}
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-              {(consultationDetails?.slotTemplates?.schedule || []).map((d) => {
+            {/* Days grid (from API schedule or default fallback) */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 items-start">
+              {(
+                consultationDetails?.slotTemplates?.schedule?.length
+                  ? consultationDetails.slotTemplates.schedule
+                  : DEFAULT_SCHEDULE
+              ).map((d) => {
                 const toHM = (iso) => {
                   if (!iso) return "";
-                  const dt = toISTDate(iso);
-                  const hh = String(dt.getHours()).padStart(2, "0");
-                  const mm = String(dt.getMinutes()).padStart(2, "0");
+                  // Robust logic: Parse UTC, add 5.5 hours, format components
+                  const d = new Date(iso);
+                  const utcMs = d.getTime();
+                  const istMs = utcMs + (330 * 60 * 1000); // 5.5h
+                  const istDate = new Date(istMs);
+                  const hh = String(istDate.getUTCHours()).padStart(2, "0");
+                  const mm = String(istDate.getUTCMinutes()).padStart(2, "0");
                   return `${hh}:${mm}`;
                 };
+                // Helper to convert IST HH:MM (from input) to UTC ISO string
+                const toUTC = (hm) => {
+                  if (!hm) return "";
+                  const [h, m] = hm.split(":").map(Number);
+                  // IST = UTC + 5.5h (330 mins)
+                  // UTC = IST - 330 mins
+                  let mins = h * 60 + m - 330;
+                  // Handle day wrap
+                  if (mins < 0) mins += 1440;
+                  mins %= 1440;
+                  const uh = Math.floor(mins / 60);
+                  const um = mins % 60;
+                  return `1970-01-01T${String(uh).padStart(2, "0")}:${String(um).padStart(2, "0")}:00.000Z`;
+                };
+
+                // Helper to hydrate state if empty (fixes "default view not editable" bug)
+                const hydrateState = (prev) => {
+                  const next = JSON.parse(JSON.stringify(prev || {}));
+                  if (!next.slotTemplates?.schedule?.length) {
+                    if (!next.slotTemplates) next.slotTemplates = {};
+                    next.slotTemplates.schedule = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+                  }
+                  return next;
+                };
+
                 const disabledCls = d.available
                   ? ""
                   : "opacity-60 pointer-events-none";
@@ -2808,14 +2139,14 @@ const Doc_settings = () => {
                 return (
                   <div
                     key={d.day}
-                    className={`bg-white border border-gray-200 rounded-lg p-4 ${cardOpacity}`}
+                    className={`bg-white border border-secondary-grey100 rounded-lg p-3 `}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-900">
                         {d.day}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600">Available</span>
+                        <span className="text-sm text-secondary-grey300">Available</span>
                         <Toggle
                           checked={Boolean(d.available)}
                           onChange={(v) => {
@@ -2823,20 +2154,10 @@ const Doc_settings = () => {
                               typeof v === "boolean" ? v : v?.target?.checked;
 
                             setConsultationDetails((prev) => {
-                              if (!prev?.slotTemplates?.schedule) return prev;
-
-                              return {
-                                ...prev,
-                                slotTemplates: {
-                                  ...prev.slotTemplates,
-                                  schedule: prev.slotTemplates.schedule.map(
-                                    (day) =>
-                                      day.day === d.day
-                                        ? { ...day, available: checked }
-                                        : day
-                                  ),
-                                },
-                              };
+                              const next = hydrateState(prev);
+                              const day = next.slotTemplates.schedule.find(x => x.day === d.day || String(x.day).toUpperCase() === String(d.day).toUpperCase());
+                              if (day) day.available = checked;
+                              return next;
                             });
 
                             setConsultationDirty(true);
@@ -2849,215 +2170,169 @@ const Doc_settings = () => {
                     <div className="border-t border-gray-200 mb-3"></div>
 
                     <div className={`space-y-3 ${disabledCls}`}>
-                      {Array.isArray(d.sessions) && d.sessions.length > 0 ? (
-                        d.sessions.map((s) => (
-                          <div
-                            key={s.id || s.sessionNumber}
-                            className={`flex items-center gap-3 ${sessionBgClass} p-3 rounded-lg`}
-                          >
-                            <span className="text-xs text-gray-600 whitespace-nowrap">
-                              Session {s.sessionNumber}:
-                            </span>
-                            <TimeInput
-                              value={toHM(s.startTime)}
-                              onChange={(ev) => {
-                                const v = ev.target.value;
-                                setConsultationDetails((cd) => {
-                                  const next = JSON.parse(
-                                    JSON.stringify(cd || {})
-                                  );
-                                  const day =
-                                    next.slotTemplates?.schedule?.find(
-                                      (x) => x.day === d.day
-                                    );
-                                  const ss = day?.sessions?.find(
-                                    (x) =>
-                                      (x.id || x.sessionNumber) ===
-                                      (s.id || s.sessionNumber)
-                                  );
-                                  if (ss)
-                                    ss.startTime = `1970-01-01T${v}:00.000Z`;
-                                  return next;
-                                });
-                                setConsultationDirty(true);
-                              }}
-                            />
-                            <span className="text-xs text-gray-400">-</span>
-                            <TimeInput
-                              value={toHM(s.endTime)}
-                              onChange={(ev) => {
-                                const v = ev.target.value;
-                                setConsultationDetails((cd) => {
-                                  const next = JSON.parse(
-                                    JSON.stringify(cd || {})
-                                  );
-                                  const day =
-                                    next.slotTemplates?.schedule?.find(
-                                      (x) => x.day === d.day
-                                    );
-                                  const ss = day?.sessions?.find(
-                                    (x) =>
-                                      (x.id || x.sessionNumber) ===
-                                      (s.id || s.sessionNumber)
-                                  );
-                                  if (ss)
-                                    ss.endTime = `1970-01-01T${v}:00.000Z`;
-                                  return next;
-                                });
-                                setConsultationDirty(true);
-                              }}
-                            />
-                            <span className="text-xs text-gray-600 whitespace-nowrap">
-                              Token Available:
-                            </span>
-                            <div className="w-24">
-                              <input
-                                className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-white"
-                                placeholder="Value"
-                                value={s.maxTokens ?? ""}
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  setConsultationDetails((cd) => {
-                                    const next = JSON.parse(
-                                      JSON.stringify(cd || {})
-                                    );
-                                    const day =
-                                      next.slotTemplates?.schedule?.find(
-                                        (x) => x.day === d.day
-                                      );
-                                    const ss = day?.sessions?.find(
-                                      (x) =>
-                                        (x.id || x.sessionNumber) ===
-                                        (s.id || s.sessionNumber)
-                                    );
-                                    if (ss) ss.maxTokens = Number(v) || 0;
-                                    return next;
-                                  });
-                                  setConsultationDirty(true);
-                                }}
-                              />
-                            </div>
-
-                            {/* Delete icon - only show when there are 2+ sessions */}
-                            {d.sessions.length > 1 && (
-                              <button
-                                onClick={() => {
-                                  setConsultationDetails((prev) => {
-                                    if (!prev?.slotTemplates?.schedule)
-                                      return prev;
-
-                                    return {
-                                      ...prev,
-                                      slotTemplates: {
-                                        ...prev.slotTemplates,
-                                        schedule:
-                                          prev.slotTemplates.schedule.map(
-                                            (day) =>
-                                              day.day === d.day
-                                                ? {
-                                                    ...day,
-                                                    sessions:
-                                                      day.sessions.filter(
-                                                        (session) =>
-                                                          (session.id ||
-                                                            session.sessionNumber) !==
-                                                          (s.id ||
-                                                            s.sessionNumber)
-                                                      ),
-                                                  }
-                                                : day
-                                          ),
-                                      },
-                                    };
-                                  });
-                                  setConsultationDirty(true);
-                                }}
-                                className="text-gray-400 hover:text-red-600 transition-colors"
-                                title="Delete session"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex items-center flex-wrap gap-3 opacity-50">
-                          <span className="text-xs text-gray-600 whitespace-nowrap">
-                            Session 1:
+                      {(Array.isArray(d.sessions) && d.sessions.length > 0
+                        ? d.sessions
+                        : [
+                          {
+                            sessionNumber: 1,
+                            startTime: "1970-01-01T09:00:00.000Z",
+                            endTime: "1970-01-01T01:00:00.000Z",
+                            maxTokens: null,
+                          },
+                        ]
+                      ).map((s) => (
+                        <div
+                          key={s.id || s.sessionNumber}
+                          className={`flex items-center gap-4 ${sessionBgClass} p-2 rounded-lg bg-blue-primary50`}
+                        >
+                          <span className="text-sm text-secondary-grey300 whitespace-nowrap">
+                            Session {s.sessionNumber}:
                           </span>
                           <TimeInput
-                            value="09:00"
-                            disabled
-                            className="opacity-100"
+                            value={toHM(s.startTime)}
+                            onChange={(ev) => {
+                              const v = ev.target.value;
+                              setConsultationDetails((cd) => {
+                                const next = hydrateState(cd);
+                                const day = next.slotTemplates.schedule.find((x) => x.day === d.day || String(x.day).toUpperCase() === String(d.day).toUpperCase());
+                                const ss = day?.sessions?.find(
+                                  (x) =>
+                                    (x.id || x.sessionNumber) ===
+                                    (s.id || s.sessionNumber)
+                                );
+                                if (ss)
+                                  ss.startTime = toUTC(v);
+                                return next;
+                              });
+                              setConsultationDirty(true);
+                            }}
                           />
-                          <span className="text-xs text-gray-400">-</span>
+                          <span className="text-sm text-secondary-grey300 whitespace-nowrap">-</span>
                           <TimeInput
-                            value="01:00"
-                            disabled
-                            className="opacity-100"
+                            value={toHM(s.endTime)}
+                            onChange={(ev) => {
+                              const v = ev.target.value;
+                              setConsultationDetails((cd) => {
+                                const next = hydrateState(cd);
+                                const day = next.slotTemplates.schedule.find((x) => x.day === d.day || String(x.day).toUpperCase() === String(d.day).toUpperCase());
+                                const ss = day?.sessions?.find(
+                                  (x) =>
+                                    (x.id || x.sessionNumber) ===
+                                    (s.id || s.sessionNumber)
+                                );
+                                if (ss)
+                                  ss.endTime = toUTC(v);
+                                return next;
+                              });
+                              setConsultationDirty(true);
+                            }}
                           />
-                          <span className="text-xs text-gray-600 whitespace-nowrap">
+                          <div className="text-sm text-secondary-grey300 whitespace-nowrap h-5 w-[8.5px] opacity-50">|</div>
+                          <span className="text-sm text-secondary-grey300 whitespace-nowrap">
                             Token Available:
                           </span>
-                          <div className="w-24">
+                          <div className="">
                             <input
-                              className="h-8 w-full text-xs border border-gray-300 rounded px-2 bg-gray-50"
+                              className="h-8 w-full text-sm border border-secondary-grey200 rounded px-2 bg-white text-secondary-grey400 focus:outline-none focus:border-blue-primary500"
                               placeholder="Value"
-                              disabled
+                              value={s.maxTokens ?? ""}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setConsultationDetails((cd) => {
+                                  const next = hydrateState(cd);
+                                  const day = next.slotTemplates.schedule.find((x) => x.day === d.day || String(x.day).toUpperCase() === String(d.day).toUpperCase());
+                                  const ss = day?.sessions?.find(
+                                    (x) =>
+                                      (x.id || x.sessionNumber) ===
+                                      (s.id || s.sessionNumber)
+                                  );
+                                  if (ss) ss.maxTokens = v === "" ? null : (Number(v) || 0);
+                                  return next;
+                                });
+                                setConsultationDirty(true);
+                              }}
                             />
                           </div>
+
+                          {/* Delete icon - only show when there are 2+ sessions */}
+                          {d.sessions.length > 1 && (
+                            <button
+                              onClick={() => {
+                                setConsultationDetails((prev) => {
+                                  const next = hydrateState(prev);
+                                  const dayIndex = next.slotTemplates.schedule.findIndex(x => x.day === d.day || String(x.day).toUpperCase() === String(d.day).toUpperCase());
+                                  if (dayIndex === -1) return next;
+
+                                  const day = next.slotTemplates.schedule[dayIndex];
+                                  day.sessions = day.sessions.filter(
+                                    (session) =>
+                                      (session.id || session.sessionNumber) !== (s.id || s.sessionNumber)
+                                  );
+
+                                  return next;
+                                });
+                                setConsultationDirty(true);
+                              }}
+                              className="text-gray-400 hover:text-red-600 transition-colors"
+                              title="Delete session"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
-                      )}
+                      ))}
+
                       <div className="mt-4 flex items-center justify-between">
                         <button
-                          className="text-sm text-blue-600 hover:text-blue-700 font-normal"
+                          className="text-sm text-blue-primary250 hover:text-blue-700 font-normal"
                           disabled={!d.available}
                           onClick={() => {
                             if (!d.available) return;
                             setConsultationDetails((prev) => {
-                              if (!prev?.slotTemplates?.schedule) return prev;
+                              const next = hydrateState(prev);
+                              const daySchedule = next.slotTemplates.schedule.find(x => x.day === d.day || String(x.day).toUpperCase() === String(d.day).toUpperCase());
 
-                              const daySchedule =
-                                prev.slotTemplates.schedule.find(
-                                  (day) => day.day === d.day
-                                );
-
-                              if (!daySchedule) return prev;
+                              if (!daySchedule) return next;
 
                               // Check if we've reached max 6 slots
                               const currentSessionCount =
                                 daySchedule.sessions?.length || 0;
                               if (currentSessionCount >= 6) {
                                 alert("Maximum 6 slots allowed");
-                                return prev;
+                                return next;
                               }
 
-                              // Create new session
-                              const newSession = {
-                                sessionNumber: currentSessionCount + 1,
-                                startTime: "1970-01-01T09:00:00.000Z",
-                                endTime: "1970-01-01T17:00:00.000Z",
-                                maxTokens: 0,
-                              };
+                              const sessionsToAdd = [];
 
-                              return {
-                                ...prev,
-                                slotTemplates: {
-                                  ...prev.slotTemplates,
-                                  schedule: prev.slotTemplates.schedule.map(
-                                    (day) =>
-                                      day.day === d.day
-                                        ? {
-                                            ...day,
-                                            sessions: [
-                                              ...(day.sessions || []),
-                                              newSession,
-                                            ],
-                                          }
-                                        : day
-                                  ),
-                                },
-                              };
+                              if (currentSessionCount === 0) {
+                                // Add Session 1 (matching placeholder)
+                                sessionsToAdd.push({
+                                  sessionNumber: 1,
+                                  startTime: "1970-01-01T09:00:00.000Z",
+                                  endTime: "1970-01-01T01:00:00.000Z", // Matching 01:00
+                                  maxTokens: null,
+                                });
+                                // Add Session 2 (new default)
+                                sessionsToAdd.push({
+                                  sessionNumber: 2,
+                                  startTime: "1970-01-01T09:00:00.000Z",
+                                  endTime: "1970-01-01T17:00:00.000Z",
+                                  maxTokens: null,
+                                });
+                              } else {
+                                // Add Next Session
+                                sessionsToAdd.push({
+                                  sessionNumber: currentSessionCount + 1,
+                                  startTime: "1970-01-01T09:00:00.000Z",
+                                  endTime: "1970-01-01T17:00:00.000Z",
+                                  maxTokens: null,
+                                });
+                              }
+
+                              if (!daySchedule.sessions) daySchedule.sessions = [];
+                              daySchedule.sessions.push(...sessionsToAdd);
+
+                              return next;
                             });
                             setConsultationDirty(true);
                           }}
@@ -3070,9 +2345,11 @@ const Doc_settings = () => {
                             disabled={!d.available}
                             className="w-4 h-4"
                           />
+
                           <span>Apply to All Days</span>
                         </label>
                       </div>
+
                     </div>
                   </div>
                 );
@@ -3104,11 +2381,17 @@ const Doc_settings = () => {
                     const hospitalId =
                       doctorDetails?.associatedWorkplaces?.clinic?.id ||
                       doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id;
+
+
+
                     // Build payload per spec
                     const fees =
                       consultationDetails?.consultationFees?.[0] || {};
                     const schedule =
-                      consultationDetails?.slotTemplates?.schedule || [];
+                      consultationDetails?.slotTemplates?.schedule?.length
+                        ? consultationDetails.slotTemplates.schedule
+                        : DEFAULT_SCHEDULE;
+
                     const dayMap = {
                       Monday: "MONDAY",
                       Tuesday: "TUESDAY",
@@ -3155,24 +2438,31 @@ const Doc_settings = () => {
                   } catch (e) {
                     alert(
                       e?.response?.data?.message ||
-                        e.message ||
-                        "Failed to save consultation details"
+                      e.message ||
+                      "Failed to save consultation details"
                     );
                   } finally {
                     setSavingConsultation(false);
                   }
                 }}
-                className={`px-4 h-9 rounded text-sm font-medium ${
-                  !consultationDirty || savingConsultation
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
+                className={`px-4 h-9 rounded text-sm font-medium ${!consultationDirty || savingConsultation
+                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
               >
                 {savingConsultation ? "Saving…" : "Save"}
               </button>
             </div>
           </div>
         </div>
+
+
+
+
+
+
+
+
       ) : activeTab === "clinical" ? (
         <div className="p-4 grid grid-cols-12 gap-4">
           {/* LEFT: Clinic Info */}
@@ -3235,23 +2525,75 @@ const Doc_settings = () => {
                         : "-"
                     }
                   />
+
+                  <div className="text-secondary-grey200 text-sm flex flex-col gap-1">
+                    <span>Establishment Proof</span>
+                     <div className="h-[32px]  w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm overflow-x-hidden bg-secondary-grey50">
+                      <span className="flex items-center gap-3 text-secondary-grey300 flex-1 min-w-0 p-[0.5px]">
+                        <img src="/Doctor_module/settings/pdf_black.png" alt="file" className="h-6 w-6" />
+                        <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
+                          {(() => {
+                            const url = String(clinic?.proofDocumentUrl || "");
+                            const name = url ? (url.split("/").pop() || "MRN Proof.pdf") : "Establishment.pdf";
+                            const max = 22;
+                            if (name.length <= max) return name;
+                            const keep = Math.max(4, Math.floor((max - 3) / 2));
+                            return `${name.slice(0, keep)}...${name.slice(-keep)}`;
+                          })()}
+                        </span>
+
+                        <button
+                          type="button"
+                          title="View"
+                          className="hover:text-secondary-grey400"
+                          onClick={() => onFileView?.(fileName)}
+                        >
+
+                        </button>
+                      </span>
+                      <span className="flex items-center gap-3 text-secondary-grey300 flex-shrink-0">
+                        <button
+                          type="button"
+                          title="View"
+                          className="hover:text-secondary-grey400 p-2"
+                          onClick={() => onFileView?.(fileName)}
+                        >
+                          {/* simple eye */}
+                          <img src="/Doctor_module/settings/eye.png" alt="" className="w-4 h-4" />
+                        </button>
+
+                        {medicalRegistration?.proofDocumentUrl ? (
+                          <a
+                            href={medicalRegistration.proofDocumentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="View"
+                            className="hover:text-secondary-grey400 inline-flex items-center justify-center"
+                          >
+                            <img src="/Doctor_module/settings/eye.png" alt="view" className="w-3.5 h-3.5" />
+                          </a>
+                        ) : null}
+                      </span>
+                    </div>
+                    </div>
+                  
                 </div>
 
                 {/* About */}
                 <div>
-                  <div className="text-[13px] text-gray-500 mb-1">About</div>
-                  <p className="text-sm text-gray-700 leading-relaxed">
+                  <div className="text-[14px] text-secondary-grey200 mb-1">About</div>
+                  <p className="text-sm text-secondary-grey400 leading-relaxed">
                     {clinic?.about || "-"}
                   </p>
                 </div>
 
                 {/* Clinic Photos */}
                 <div>
-                  <div className="text-[13px] text-gray-500 mb-2">
+                  <div className="text-[14px] text-secondary-grey200  mb-2">
                     Clinic Photos
                   </div>
 
-                  <div className="flex gap-3 flex-wrap">
+                  <div className="flex gap-4 flex-wrap">
                     {Array.isArray(clinic?.clinicPhotos) && clinic.clinicPhotos.length > 0 ? (
                       clinic.clinicPhotos.map((photo, idx) => (
                         <div key={idx} className="w-[120px] h-[120px] rounded-md overflow-hidden border bg-gray-100">
@@ -3536,8 +2878,8 @@ const Doc_settings = () => {
         }}
       />
 
-  {/* Drawer: Award (shared) */}
-  <AddAwardDrawer
+      {/* Drawer: Award (shared) */}
+      <AddAwardDrawer
         open={awardOpen}
         onClose={() => {
           setAwardOpen(false);
@@ -3572,7 +2914,7 @@ const Doc_settings = () => {
         }}
       />
 
-  {/* Drawer: Publication — uses AddPublicationDrawer above */}
+      {/* Drawer: Publication — uses AddPublicationDrawer above */}
       <AddPublicationDrawer
         open={pubOpen}
         onClose={() => {

@@ -29,7 +29,10 @@ const Cards = ({ hospital }) => {
     run();
     return () => { ignore = true; };
   }, [hospital?.image, hospital?.logo]);
-  const openHospital = () => navigate(`/hospital/${encodeURIComponent(hospital.id)}`, { state: { hospital } });
+  const openHospital = () => {
+    const urlId = hospital?.id || hospital?.temp || 'HO-PREVIEW';
+    navigate(`/hospital/${encodeURIComponent(urlId)}`, { state: { hospital } });
+  };
   const isActive = (hospital?.status || '').toLowerCase() === 'active';
   const initial = (hospital?.name?.[0] || 'H').toUpperCase();
   return (

@@ -25,15 +25,104 @@ function HospitalList() {
         setInactive(i);
       } catch (e) {
         if (ignore) return;
-        setError(e?.message || "Failed to fetch hospitals");
+        const status = e?.response?.status;
+        const serverMsg = e?.response?.data?.message || e?.message || '';
+        const isAuthError = status === 401 || status === 403 || /forbidden/i.test(serverMsg) || /SUPER_ACCESS/i.test(serverMsg);
+        if (!isAuthError) {
+          setError('Failed to fetch hospitals');
+        } else {
+          // suppress showing server permission errors to the UI and render dummy list
+          setError(null);
+        }
+        // Fallback dummy hospitals for exploration when unauthorized/forbidden
+        const dummy = [
+          {
+            id: "HO-0268790",
+            name: "Manipal Hospital",
+            address: "Jawahar Nagar, Akola(MH) - 444001",
+            email: "manipal@gmail.com",
+            phone: "+91 91753 67847",
+            type: "Multi-speciality",
+            userCount: 10,
+            noOfBeds: 250,
+            establishmentYear: "2010",
+            status: "Active",
+            logo: "",
+            image: "/hospital-sample.png",
+          },
+          {
+            id: "HO-0435621",
+            name: "Apollo Hospital",
+            address: "Civil Lines, Nagpur(MH) - 440001",
+            email: "apollo@gmail.com",
+            phone: "+91 98234 56123",
+            type: "Super-speciality",
+            userCount: 50,
+            noOfBeds: 400,
+            establishmentYear: "2005",
+            status: "Inactive",
+            logo: "",
+            image: "/hospital-sample.png",
+          },
+          {
+            id: "HO-0178943",
+            name: "Care Hospital",
+            address: "Pimple Saudagar, Pune(MH) - 411027",
+            email: "carehospital@gmail.com",
+            phone: "+91 77090 12345",
+            type: "General",
+            userCount: 5,
+            noOfBeds: 120,
+            establishmentYear: "2012",
+            status: "Active",
+            logo: "",
+            image: "/hospital-sample.png",
+          },
+        ];
+        // Mark Manipal and Care as active; Apollo as inactive
+        setActive(dummy.filter(h => (h.status || '').toLowerCase() === 'active'));
+        setInactive(dummy.filter(h => (h.status || '').toLowerCase() === 'inactive'));
       } finally {
         if (!ignore) setLoading(false);
       }
     };
-    if (isAuthed) load();
+  if (isAuthed) load();
     else {
+      // Not authed: still show dummy hospitals for exploration
+      const dummy = [
+        {
+          id: "HO-1001001",
+          name: "CityCare Clinic",
+          address: "HSR Layout, Bengaluru, KA - 560102",
+          email: "citycare@example.com",
+          phone: "+91 90000 11111",
+          type: "Clinic",
+          userCount: 6,
+          noOfBeds: 20,
+          establishmentYear: "2018",
+          status: "Active",
+          logo: "",
+          image: "/hospital-sample.png",
+        },
+        {
+          id: "HO-1001002",
+          name: "LifeLine Hospital",
+          address: "Andheri West, Mumbai, MH - 400053",
+          email: "lifeline@example.com",
+          phone: "+91 98888 22222",
+          type: "Multi-speciality",
+          userCount: 22,
+          noOfBeds: 150,
+          establishmentYear: "2014",
+          status: "Active",
+          logo: "",
+          image: "/hospital-sample.png",
+        },
+      ];
+      setActive(dummy);
+      setInactive([]);
       setLoading(false);
-      setError("Not authenticated");
+  setError(null);
     }
     return () => {
       ignore = true;

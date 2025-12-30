@@ -7,7 +7,8 @@ export const getAllDoctorsBySuperAdmin = async () => {
     const res = await axios.get("/doctors/getAllDoctorsBySuperAdmin");
     return res.data; // { success, message, data: { active: [], inactive: [] }, ... }
   } catch (error) {
-    throw error.response?.data || error;
+  // Throw the original error so callers can read status (e.response.status)
+  throw error;
   }
 };
 
@@ -18,7 +19,7 @@ export const getDoctorDetailsByIdBySuperAdmin = async (userId) => {
     const res = await axios.get(`/doctors/getDoctorDetailsByIdBySuperAdmin/${encodeURIComponent(userId)}`);
     return res.data; // { success, data: { ...doctorDetails } }
   } catch (error) {
-    throw error.response?.data || error;
+  throw error;
   }
 };
 
@@ -29,7 +30,7 @@ export const getPatientOverviewForDoctor = async (patientId) => {
     const res = await axios.get(`/patients/for-doctor/patient-details/overview-and-demographics/${encodeURIComponent(patientId)}`);
     return res.data; // { success, data: { patientId, overview: { ... } } }
   } catch (error) {
-    throw error.response?.data || error;
+  throw error;
   }
 };
 
@@ -40,6 +41,6 @@ export const getPatientVitalsForDoctor = async (patientId) => {
     const res = await axios.get(`/patients/for-doctor/patient-details/vitals-and-biometrics/${encodeURIComponent(patientId)}`);
     return res.data; // { success, data: { vitals: [...] } }
   } catch (error) {
-    throw error.response?.data || error;
+  throw error;
   }
 };

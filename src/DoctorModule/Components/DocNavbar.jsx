@@ -32,7 +32,7 @@ import {
   CalendarX2,
 } from "lucide-react";
 import NotificationDrawer from "../../components/NotificationDrawer.jsx";
-import InviteStaffDrawer from "../../components/Staff/InviteStaffDrawer.jsx";
+import InviteStaffDrawer from "../Pages/Settings/Drawers/InviteStaffDrawer.jsx";
 import { fetchAllRoles } from "../../services/rbac/roleService";
 import { registerStaff } from "../../services/staff/registerStaffService";
 import AddPatientDrawer from "../../components/PatientList/AddPatientDrawer.jsx";
@@ -269,9 +269,8 @@ const DocNavbar = ({ moduleSwitcher }) => {
             <span className="text-sm font-medium">Add New</span>
             <div className="flex border-l-[0.5px] border-monochrom-white border-opacity-20 pl-1">
               <ChevronDown
-                className={`w-4 h-4 text-white transition-transform ${
-                  showAddMenu ? "rotate-180" : ""
-                }`}
+                className={`w-4 h-4 text-white transition-transform ${showAddMenu ? "rotate-180" : ""
+                  }`}
               />
             </div>
           </button>
@@ -381,8 +380,8 @@ const DocNavbar = ({ moduleSwitcher }) => {
             {doctorLoading
               ? "Loading…"
               : doctorError
-              ? "Error"
-              : displayName || "—"}
+                ? "Error"
+                : displayName || "—"}
           </span>
           <button
             type="button"
@@ -416,15 +415,15 @@ const DocNavbar = ({ moduleSwitcher }) => {
                       {doctorLoading
                         ? "Loading…"
                         : doctorError
-                        ? "Failed to load"
-                        : titledName || "—"}
+                          ? "Failed to load"
+                          : titledName || "—"}
                     </div>
                     <div className="text-[14px] leading-[18px] text-secondary-grey300">
                       {doctorLoading
                         ? "Please wait"
                         : doctorDetails?.designation ||
-                          doctorDetails?.specializations?.[0] ||
-                          "—"}
+                        doctorDetails?.specializations?.[0] ||
+                        "—"}
                     </div>
                     <div className="text-[14px] leading-[19px] text-secondary-grey300">
                       {doctorLoading
@@ -553,75 +552,9 @@ const DocNavbar = ({ moduleSwitcher }) => {
           // Optional: trigger any queue refresh if present
         }}
       />
-      <NavbarInviteStaffBridge open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      <InviteStaffDrawer open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   );
 };
 
 export default DocNavbar;
-
-// Local bridge component to fetch roles and post invites using shared drawer
-const NavbarInviteStaffBridge = ({ open, onClose }) => {
-  const { doctorDetails } = useAuthStore.getState();
-  const clinicId =
-    doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId;
-  const [roles, setRoles] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (!open || !clinicId) return;
-      try {
-        setLoading(true);
-        const data = await fetchAllRoles(clinicId);
-        const list = data?.data || [];
-        if (!cancelled)
-          setRoles(list.map((r) => ({ id: r.id, name: r.name })));
-      } catch (e) {
-        console.error("Failed to load roles", e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, clinicId]);
-
-  const handleSend = async (rows) => {
-    if (!clinicId) return;
-    await Promise.all(
-      rows.map(async (r) => {
-        const parts = String(r.fullName || "").trim().split(/\s+/);
-        const firstName = parts[0] || "";
-        const lastName = parts.slice(1).join(" ");
-        const payload = {
-          firstName,
-          lastName,
-          emailId: r.email,
-          phone: r.phone,
-          position: r.position,
-          clinicId,
-          roleId: r.roleId || null,
-        };
-        try {
-          await registerStaff(payload);
-        } catch (e) {
-          console.error("Failed to register staff", payload, e);
-        }
-      })
-    );
-    onClose?.();
-  };
-
-  return (
-    <InviteStaffDrawer
-      open={open}
-      onClose={onClose}
-      onSend={handleSend}
-      roleOptions={roles}
-    />
-  );
-};

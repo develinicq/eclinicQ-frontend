@@ -11,6 +11,7 @@ export default function EditPracticeDetailsDrawer({ open, onClose, initial = {},
     practiceArea: [],
     specialties: [], // [{ id?, specialtyName, expYears }]
   });
+  const [practiceAreaInput, setPracticeAreaInput] = useState("");
 
   // Dropdown states
   const [typeOpen, setTypeOpen] = useState(false);
@@ -117,47 +118,49 @@ export default function EditPracticeDetailsDrawer({ open, onClose, initial = {},
       isOpen={open}
       onClose={onClose}
       title="Edit Practice Details"
-      primaryActionLabel="Save"
+      primaryActionLabel="Update"
       onPrimaryAction={handleSave}
       primaryActionDisabled={!validate()}
       width={600}
     >
       <div className="p-1 grid grid-cols-1 gap-3">
-        {/* Work Experience */}
-        <InputWithMeta
-          label="Work Experience"
-          requiredDot
-          value={data.workExperience}
-          onChange={(v) => setField("workExperience", v.replace(/[^0-9]/g, ""))}
-          placeholder="15"
-          inputRightMeta="Years"
-        />
-
-        {/* Medical Practice Type */}
-        <div className="relative">
+        {/* Top row: Work Experience + Medical Practice Type */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <InputWithMeta
-            label="Medical Practice Type"
+            label="Work Experience"
             requiredDot
-            value={data.medicalPracticeType}
-            onChange={(v) => setField("medicalPracticeType", v)}
-            placeholder="Select"
-            RightIcon={ChevronDown}
-            onFieldOpen={() => setTypeOpen((o) => !o)}
-            dropdownOpen={typeOpen}
-            onRequestClose={() => setTypeOpen(false)}
+            value={data.workExperience}
+            onChange={(v) => setField("workExperience", v.replace(/[^0-9]/g, ""))}
+            placeholder="15"
+            inputRightMeta="Years"
           />
-          <Dropdown
-            open={typeOpen}
-            onClose={() => setTypeOpen(false)}
-            items={practiceTypes}
-            selectedValue={data.medicalPracticeType}
-            onSelect={(it) => {
-              setField("medicalPracticeType", it.value);
-              setTypeOpen(false);
-            }}
-            anchorClassName="w-full h-0"
-            className="input-meta-dropdown w-full"
-          />
+
+          
+          <div className="relative">
+            <InputWithMeta
+              label="Medical Practice Type"
+              requiredDot
+              value={data.medicalPracticeType}
+              onChange={(v) => setField("medicalPracticeType", v)}
+              placeholder="Homeopathy"
+              RightIcon={ChevronDown}
+              onFieldOpen={() => setTypeOpen((o) => !o)}
+              dropdownOpen={typeOpen}
+              onRequestClose={() => setTypeOpen(false)}
+            />
+            <Dropdown
+              open={typeOpen}
+              onClose={() => setTypeOpen(false)}
+              items={practiceTypes}
+              selectedValue={data.medicalPracticeType}
+              onSelect={(it) => {
+                setField("medicalPracticeType", it.value);
+                setTypeOpen(false);
+              }}
+              anchorClassName="w-full h-0"
+              className="input-meta-dropdown w-full"
+            />
+          </div>
         </div>
 
         {/* Specialization list */}
@@ -223,32 +226,42 @@ export default function EditPracticeDetailsDrawer({ open, onClose, initial = {},
           </div>
         </div>
 
-        {/* Practice Area */}
-        <div className="flex flex-col gap-2">
-          <InputWithMeta
-            label="Practice Area"
-            showInput={false}
-          >
-            <div className="mt-1 flex flex-wrap gap-2">
-              {areaOptions.map((a) => {
-                const active = data.practiceArea.includes(a);
-                return (
-                  <button
-                    key={a}
-                    type="button"
-                    onClick={() => toggleArea(a)}
-                    className={`px-2 h-7 rounded-md border text-[12px] ${
-                      active
-                        ? "bg-[#EAF2FF] border-[#BFD3FF] text-[#2F66F6]"
-                        : "bg-white border-[#E6E6E6] text-[#424242] hover:bg-gray-50"
-                    }`}
-                  >
-                    {a}
-                  </button>
-                );
-              })}
-            </div>
+        {/* Practice Area with input and suggestions */}
+        <div className="flex flex-col gap-1">
+          <InputWithMeta label="Practice Area">
+            <input
+              value={practiceAreaInput}
+              onChange={(e) => setPracticeAreaInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && practiceAreaInput.trim()) {
+                  setField("practiceArea", [...data.practiceArea, practiceAreaInput.trim()]);
+                  setPracticeAreaInput("");
+                }
+              }}
+              placeholder="Start typing a disease / Condition / Procedure"
+              className="mt-1 h-9 w-full rounded-md border border-[#E6E6E6] px-3 text-sm outline-none focus:border-[#BFD3FF] focus:ring-2 focus:ring-[#EAF2FF]"
+            />
           </InputWithMeta>
+          <div className="text-[12px] text-secondary-grey300">Suggestion:</div>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {areaOptions.map((a) => {
+              const active = data.practiceArea.includes(a);
+              return (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => toggleArea(a)}
+                  className={`px-2 h-7 rounded-md border text-[12px] ${
+                    active
+                      ? "bg-[#EAF2FF] border-[#BFD3FF] text-[#2F66F6]"
+                      : "bg-white border-[#E6E6E6] text-[#424242] hover:bg-gray-50"
+                  }`}
+                >
+                  {a}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </GeneralDrawer>

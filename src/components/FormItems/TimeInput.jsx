@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-
+const clock = '/clock.png';
 const hours12 = Array.from({ length: 12 }, (_, i) =>
   String(i + 1).padStart(2, "0")
 );
@@ -12,6 +12,7 @@ const TimeInput = ({
   onChange,
   placeholder = "09:00",
   className = "",
+  disabled = false,
 }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -63,30 +64,22 @@ const TimeInput = ({
 
   return (
     <div className={`relative ${className}`} ref={ref}>
-      <div className="h-8 px-2 py-1 text-xs border border-gray-300 rounded bg-white flex items-center justify-between w-28">
-        <span className="text-gray-700">{displayLabel}</span>
+      <div
+        className={`h-8 p-2 text-sm border-[0.5px] border-secondary-grey200 text-secondary-grey400 rounded flex items-center justify-between w-[120px] ${disabled ? "bg-secondary-grey50 cursor-not-allowed" : "bg-white"
+          }`}
+      >
+        <span className="">{displayLabel}</span>
         <button
           type="button"
           className="p-0 m-0"
-          onClick={() => setOpen((v) => !v)}
+          disabled={disabled}
+          onClick={() => !disabled && setOpen((v) => !v)}
           aria-label="Pick time"
         >
-          <svg
-            className="w-4 h-4 text-gray-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+          <img src={clock} alt="" className={`w-4 h-4 ${disabled ? "opacity-50" : ""}`} />
         </button>
       </div>
-      {open && (
+      {open && !disabled && (
         <div className="absolute z-50 mt-1 w-36 bg-white border border-gray-200 rounded-xl shadow-lg p-2 grid grid-cols-[1fr_auto_1fr_auto_1fr] gap-2">
           <div>
             <div className="text-xs text-gray-500 mb-1.5 text-center font-medium">
@@ -96,11 +89,10 @@ const TimeInput = ({
               {hours12.map((h) => (
                 <button
                   key={h}
-                  className={`w-[2rem] aspect-square flex items-center justify-center text-xs rounded-lg font-medium p-0 ${
-                    h === parsed.h12
+                  className={`w-[2rem] aspect-square flex items-center justify-center text-xs rounded-lg font-medium p-0 ${h === parsed.h12
                       ? "bg-blue-600 text-white"
                       : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => update({ h12: h })}
                 >
                   {h}
@@ -120,11 +112,10 @@ const TimeInput = ({
               {minutes.map((m) => (
                 <button
                   key={m}
-                  className={`w-full aspect-square flex items-center justify-center text-xs rounded-lg font-medium p-1 ${
-                    m === parsed.m
+                  className={`w-full aspect-square flex items-center justify-center text-xs rounded-lg font-medium p-1 ${m === parsed.m
                       ? "bg-blue-600 text-white"
                       : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => update({ m })}
                 >
                   {m}
@@ -144,11 +135,10 @@ const TimeInput = ({
               {["AM", "PM"].map((ap) => (
                 <button
                   key={ap}
-                  className={`w-full aspect-square flex items-center justify-center text-xs rounded-lg font-medium p-1 ${
-                    ap === parsed.ap
+                  className={`w-full aspect-square flex items-center justify-center text-xs rounded-lg font-medium p-1 ${ap === parsed.ap
                       ? "bg-blue-600 text-white"
                       : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => update({ ap })}
                 >
                   {ap}

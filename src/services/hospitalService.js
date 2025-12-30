@@ -6,7 +6,7 @@ export const createHospital = async (hospitalData) => {
     const response = await axios.post('/hospitals/create', hospitalData);
     return response.data;
   } catch (error) {
-    throw error.response?.data || error;
+  throw error;
   }
 };
 
@@ -17,7 +17,7 @@ export const getAllHospitalsBySuperAdmin = async () => {
     const res = await axios.get('/hospitals/getAllHospitalsBySuperAdmin');
     return res.data; // shape: { success, message, data: { active: [], inactive: [] }, ... }
   } catch (error) {
-    throw error.response?.data || error;
+  throw error;
   }
 };
 
@@ -28,6 +28,6 @@ export const getHospitalByIdBySuperAdmin = async (hospitalId) => {
     const res = await axios.get(`/hospitals/getHospitalByIdBySuperAdmin/${encodeURIComponent(hospitalId)}`);
     return res.data; // { success, data: { hospital, subscriptionName, specialties, documents } }
   } catch (error) {
-    throw error.response?.data || error;
+  throw error;
   }
 };

@@ -146,7 +146,7 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
       primaryActionLabel="Send Invite"
       onPrimaryAction={handleSend}
   primaryActionDisabled={!allFilled}
-      width={640}
+      width={600}
     >
       <div className="flex flex-col gap-5">
         {/* Banner */}
@@ -192,7 +192,7 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
                     aria-label="Remove"
                     title="Remove"
                   >
-                    <img src="/Doctor_module/settings/dustbin.png" alt="" className="w-6" />
+                    <img src="/Doctor_module/settings/dustbin.png" alt="" className="w-4 mr-1" />
                   </button>
                 )}
               </div>

@@ -5,7 +5,7 @@ import { bell, stethoscopeBlue, hospitalIcon, patientUnselect, appointement } fr
 import NotificationDrawer from './NotificationDrawer.jsx'
 import AddPatientDrawer from './PatientList/AddPatientDrawer.jsx'
 import BookAppointmentDrawer from './Appointment/BookAppointmentDrawer.jsx'
-import InviteStaffDrawer from './Staff/InviteStaffDrawer.jsx'
+import InviteStaffDrawer from '../DoctorModule/Pages/Settings/Drawers/InviteStaffDrawer.jsx'
 import AvatarCircle from './AvatarCircle.jsx'
 import useAuthStore from '../store/useAuthStore'
 import { getDoctorMe } from '../services/authService'
@@ -13,8 +13,8 @@ import { getDoctorMe } from '../services/authService'
 const Partition = () => {
   return (
     <div className='w-[8.5px] h-[20px] flex gap-[10px] items-center justify-center'>
-        <div className='w-[0.5px] h-full bg-[#B8B8B8]'>
-        </div>
+      <div className='w-[0.5px] h-full bg-[#B8B8B8]'>
+      </div>
     </div>
   )
 }
@@ -62,7 +62,7 @@ const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment, onIn
           </div>
           <span className="text-[#424242] font-normal text-sm">Add Doctor</span>
         </button>
-        
+
         <button
           onClick={handleAddHospital}
           className="w-full rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
@@ -149,7 +149,7 @@ const Navbar = () => {
         setShowProfile(false);
       }
     };
-    const onKey = (e)=>{ if(e.key==='Escape'){ setIsDropdownOpen(false); setShowProfile(false);} };
+    const onKey = (e) => { if (e.key === 'Escape') { setIsDropdownOpen(false); setShowProfile(false); } };
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('keydown', onKey);
     return () => {
@@ -161,7 +161,7 @@ const Navbar = () => {
   // Ensure doctor context is available so the drawer can load slots
   useEffect(() => {
     if (!doctorDetails && !doctorLoading) {
-      try { fetchDoctorDetails?.(getDoctorMe); } catch {}
+      try { fetchDoctorDetails?.(getDoctorMe); } catch { }
     }
   }, [doctorDetails, doctorLoading, fetchDoctorDetails]);
 
@@ -181,32 +181,32 @@ const Navbar = () => {
         </div>
         <div className='flex gap-2 items-center'>
           <div className="relative" ref={dropdownRef}>
-            <button 
+            <button
               onClick={toggleDropdown}
-              className='flex items-center bg-[#2372EC] p-2 h-8 min-w-8 rounded-[4px] gap-2 hover:bg-blue-600 transition-colors' 
+              className='flex items-center bg-[#2372EC] p-2 h-8 min-w-8 rounded-[4px] gap-2 hover:bg-blue-600 transition-colors'
             >
-                <span className='text-white text-sm font-medium'>Add New</span>
-                <div className='flex border-l border-blue-400 pl-1'>
-                    <ChevronDown className={`w-4 h-4 text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}/>
-                </div>
+              <span className='text-white text-sm font-medium'>Add New</span>
+              <div className='flex border-l border-blue-400 pl-1'>
+                <ChevronDown className={`w-4 h-4 text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
             </button>
             <AddNewDropdown isOpen={isDropdownOpen} onClose={closeDropdown} onAddPatient={() => setAddPatientOpen(true)} onBookAppointment={() => setBookApptOpen(true)} onInviteStaff={() => setInviteOpen(true)} />
           </div>
-          <Partition/>
+          <Partition />
           <div className="w-7 h-7 p-1 relative">
             {/* Notification badge */}
             <div className="absolute -top-1 -right-1 flex items-center justify-center rounded-full w-[14px] h-[14px] bg-[#F04248]">
               <span className="font-medium text-[10px] text-white">8</span>
             </div>
             {/* Bell icon */}
-            <button onClick={() => setShowNotifications(true)} style={{background:'none',border:'none',padding:0}}>
+            <button onClick={() => setShowNotifications(true)} style={{ background: 'none', border: 'none', padding: 0 }}>
               <img src={bell} alt="Notifications" className="w-5 h-5" />
             </button>
           </div>
-          <Partition/>
+          <Partition />
           <div className='relative flex items-center gap-2' ref={profileRef}>
             <span className='font-semibold text-base text-[#424242]'>Super Admin</span>
-            <button type='button' onClick={()=>setShowProfile(v=>!v)} className='cursor-pointer'>
+            <button type='button' onClick={() => setShowProfile(v => !v)} className='cursor-pointer'>
               <AvatarCircle name={'Super Admin'} size='s' color='orange' />
             </button>
             {showProfile && (
@@ -241,74 +241,20 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-  <NotificationDrawer show={showNotifications} onClose={() => setShowNotifications(false)} />
-  <AddPatientDrawer open={addPatientOpen} onClose={() => setAddPatientOpen(false)} onSave={(data)=>{ /* TODO: API hook */ setAddPatientOpen(false) }} />
-  <BookAppointmentDrawer
-    open={bookApptOpen}
-    onClose={() => setBookApptOpen(false)}
-  doctorId={doctorDetails?.userId || doctorDetails?.id}
-  clinicId={doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId}
-  hospitalId={(Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) && doctorDetails?.associatedWorkplaces?.hospitals[0]?.id) || undefined}
-    onSave={() => setBookApptOpen(false)}
-  />
-  <NavbarInviteStaffBridge open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      <NotificationDrawer show={showNotifications} onClose={() => setShowNotifications(false)} />
+      <AddPatientDrawer open={addPatientOpen} onClose={() => setAddPatientOpen(false)} onSave={(data) => { /* TODO: API hook */ setAddPatientOpen(false) }} />
+      <BookAppointmentDrawer
+        open={bookApptOpen}
+        onClose={() => setBookApptOpen(false)}
+        doctorId={doctorDetails?.userId || doctorDetails?.id}
+        clinicId={doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId}
+        hospitalId={(Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) && doctorDetails?.associatedWorkplaces?.hospitals[0]?.id) || undefined}
+        onSave={() => setBookApptOpen(false)}
+      />
+      <InviteStaffDrawer open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </>
   )
 }
 
 export default Navbar
 
-// Local bridge component to fetch roles and post invites same as Settings > Staff
-import axiosClient from '../lib/axios'
-import { fetchAllRoles } from '../services/rbac/roleService'
-import { registerStaff } from '../services/staff/registerStaffService'
-
-const NavbarInviteStaffBridge = ({ open, onClose }) => {
-  const { doctorDetails } = useAuthStore.getState()
-  const clinicId = doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId
-  const [roles, setRoles] = React.useState([])
-  const [loading, setLoading] = React.useState(false)
-
-  React.useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      if (!open || !clinicId) return
-      try {
-        setLoading(true)
-        const data = await fetchAllRoles(clinicId)
-        const list = data?.data || []
-        setRoles(list.map(r => ({ id: r.id, name: r.name })))
-      } catch (e) {
-        console.error('Failed to load roles', e)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [open, clinicId])
-
-  const handleSend = async (rows) => {
-    if (!clinicId) return
-    await Promise.all(rows.map(async (r) => {
-      const [firstName = '', lastName = ''] = String(r.fullName || '').split(' ').length > 1
-        ? [String(r.fullName).split(' ')[0], String(r.fullName).split(' ').slice(1).join(' ')]
-        : [r.fullName || '', '']
-      const payload = {
-        firstName,
-        lastName,
-        emailId: r.email,
-        phone: r.phone,
-        position: r.position,
-        clinicId,
-        roleId: r.roleId || null,
-      }
-      try { await registerStaff(payload) } catch (e) { console.error('Failed to register staff', payload, e) }
-    }))
-    onClose?.()
-  }
-
-  return (
-    <InviteStaffDrawer open={open} onClose={onClose} onSend={handleSend} roleOptions={roles} />
-  )
-}
