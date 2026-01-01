@@ -10,7 +10,7 @@ import {
   pencil,
 } from "../../../../../../../public/index.js";
 
-import { useAuthStore } from "../../../../../../store/useAuthStore";
+import useAuthStore from "../../../../../../store/useAuthStore";
 import axiosClient from "../../../../../../lib/axios";
 import { fetchAllRoles } from "../../../../../../services/rbac/roleService";
 import { fetchClinicStaff } from "../../../../../../services/staffService";
