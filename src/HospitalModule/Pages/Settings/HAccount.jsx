@@ -4,7 +4,9 @@ import AvatarCircle from '../../../components/AvatarCircle'
 import { hospital as coverImg,
   add,
   pencil,
-  verifiedTick
+  verifiedTick,
+  publication,
+  award
  } from '../../../../public/index.js'
 
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -13,6 +15,7 @@ import Toggle from "../../../components/FormItems/Toggle";
 import TimeInput from "../../../components/FormItems/TimeInput";
 import MapLocation from "../../../components/FormItems/MapLocation";
 import usePracticeStore from "../../../store/settings/usePracticeStore";
+import useAwardsPublicationsStore from "../../../store/settings/useAwardsPublicationsStore";
 import {
    
   Eye,
@@ -34,6 +37,8 @@ const InfoField = ({ label, value, right, className, noBorder }) => (
   </div>
 );
 
+  
+
 const SectionCard = ({
   title,
   subtitle,
@@ -44,29 +49,37 @@ const SectionCard = ({
   children,
 }) => (
   <div className="px-4 py-3 flex flex-col gap-3 rounded-lg bg-white">
-    <div className="flex items-center justify-between">
-      {/* LEFT */}
+    <div className="flex items-start justify-between">
+      
+      {/* LEFT : Title */}
       <div className="flex flex-col">
         <div className="flex items-center gap-1 text-sm">
           <div className="font-medium text-[14px] text-gray-900">{title}</div>
 
           {subtitle && (
-            <div className="px-1 py-[2px] bg-secondary-grey50 rounded-md text-[12px] text-gray-500">
+            <div className="px-1 py-[2px] bg-secondary-grey50 rounded-md text-[12px] text-gray-500 hover:text-blue-primary250 hover:border-blue-primary250 border cursor-default">
               {subtitle}
             </div>
           )}
         </div>
-
-        {subo && (
-          <div className="flex gap-1 text-[12px] text-secondary-grey200">
-            <span>{subo}</span>
-            <span className="text-blue-primary250">Call Us</span>
-          </div>
-        )}
       </div>
 
-      {/* RIGHT */}
-      <div className="flex items-center gap-3 shrink-0">
+      {/* RIGHT : subo + actions */}
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        {subo && (
+          <>
+            <div className="flex gap-1 text-[12px] text-secondary-grey200">
+              <span>{subo}</span>
+              <span className="text-blue-primary250 cursor-pointer">
+                Call Us
+              </span>
+            </div>
+
+            {/* underline */}
+            {/* <span className="h-[0.5px] w-[50px] bg-blue-primary250" /> */}
+          </>
+        )}
+
         {headerRight}
 
         {Icon && (
@@ -90,12 +103,30 @@ const SectionCard = ({
 
 
 
+
 export default function HAccount(){
   const location = useLocation()
   const navigate = useNavigate()
   const [hospitalDrawerOpen, setHospitalDrawerOpen] = useState(false);
   const [hospital, setHospital] = useState(null);
+    const [awardOpen, setAwardOpen] = useState(false);
+  const [awardEditMode, setAwardEditMode] = useState("add"); // 'add' or 'edit'
+  
+  const [pubOpen, setPubOpen] = useState(false);
+  const [pubEditMode, setPubEditMode] = useState("add");
+  const [pubEditData, setPubEditData] = useState(null);
 
+const {
+    awards,
+    publications,
+    fetchAwardsAndPublications,
+    addAward,
+    updateAward,
+    deleteAward,
+    addPublication,
+    updatePublication,
+    deletePublication,
+  } = useAwardsPublicationsStore();
 
   const tabs = [
     { key: 'account', label: 'Account Detail', path: '/hospital/settings/account' },
@@ -199,12 +230,12 @@ export default function HAccount(){
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-[14px] mb-4">
                   <InfoField
-                    label="First Name"
-                    value={profile.basic?.firstName}
+                    label="Hospital Name"
+                    value={profile.basic?.hospitalName}
                   />
                   <InfoField
-                    label="Last Name"
-                    value={profile.basic?.lastName}
+                    label="Hospital Type"
+                    value={profile.basic?.hospitalType}
                   />
                   <InfoField
                     label="Mobile Number"
@@ -360,18 +391,84 @@ export default function HAccount(){
             </SectionCard>
 
             {/* Awards */}
-            <SectionCard
-              variant="subtle"
-              title="Awards & Accreditations"
+             <SectionCard
+              title="Awards & Accreditions"
               subtitle="Visible to Patient"
               Icon={add}
-              onIconClick={() => setShowAddMenu((v)=>!v)}
+              onIconClick={() => setShowAddMenu((v) => !v)}
             >
+              <div className="relative">
+                {showAddMenu && (
+                  <div className="absolute right-0 -top-2 mt-0.5 bg-white border border-gray-200 shadow-2xl rounded-md p-1 text-[13px] z-20">
+                    <button
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 w-full text-left"
+                      onClick={() => { setShowAddMenu(false); setAwardEditMode("add"); setAwardEditData(null); setAwardOpen(true); }}
+                    >
+                      <img src={award} alt="" className="w-4 h-4" /> Add Awards
+                    </button>
+                    <button
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 w-full text-left"
+
+                      onClick={() => {
+                        setShowAddMenu(false);
+                        setPubEditMode("add");
+                        setPubEditData(null);
+                        setPubOpen(true);
+                      }}
+                    >
+                      <img src={publication} alt="" className="w-4 h-4" /> Add Accreditions
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="space-y-3">
-                <div className="p-3 border border-gray-200 rounded-md">
-                  <div className="text-sm text-gray-900 font-medium">Best Plasticene Award</div>
-                  <div className="text-[12px] text-gray-600">Manipal hospital</div>
-                </div>
+                {Array.isArray(awards) &&
+                  awards.map((aw) => (
+                    <ProfileItemCard
+                      key={aw.id}
+                      icon={award}
+                      title={aw.awardName}
+                      subtitle={aw.issuerName}
+                      date={formatMonthYear(aw.issueDate)}
+                      linkLabel="Certificate ↗"
+                      linkUrl={aw.awardUrl}
+                      showEditEducation={true}
+                      editEducationIcon={pencil}
+                      onEditEducationClick={() => {
+                        setAwardEditData(aw);
+                        setAwardEditMode("edit");
+                        setAwardOpen(true);
+                      }}
+
+                    />
+                  ))}
+
+                {Array.isArray(publications) &&
+                  publications.map((pub) => (
+                    <ProfileItemCard
+                      key={pub.id}
+                      icon={publication}
+                      title={pub.title}
+                      subtitle={pub.publisher || pub.associatedWith}
+                      date={pub.publicationDate ? formatMonthYear(pub.publicationDate) : undefined}
+                      linkLabel="Publication ↗"
+                      linkUrl={pub.publicationUrl}
+                      description={pub.description}
+                      rightActions={
+                        <button
+                          onClick={() => {
+                            setPubEditData(pub);
+                            setPubEditMode("edit");
+                            setPubOpen(true);
+                          }}
+                          className="text-gray-400 hover:text-blue-600 transition"
+                          title="Edit"
+                        >
+                          <img src={pencil} alt="edit" className="w-4 h-4" />
+                        </button>
+                      }
+                    />
+                  ))}
               </div>
             </SectionCard>
           </div>
@@ -385,12 +482,28 @@ export default function HAccount(){
               onIconClick={() => setHospitalDrawerOpen(true)}
             >
               <div className="mb-3">
-                <div className="text-[13px] text-gray-500 mb-1">
-                  Map Location
-                </div>
-                <div className="h-[120px] rounded overflow-hidden border">
-                  <MapLocation
-                    heightClass="h-full"
+                <div className="flex items-center gap-1 text-[13px] text-gray-500 mb-1">
+                <span>Map Location</span>
+
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="shrink-0"
+                  >
+                    <path
+                      d="M12 7V13M12 15.5V16M2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12Z"
+                      stroke="#424242"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+              </div>
+
+          <div className="h-[120px] rounded overflow-hidden border">
+            <MapLocation
+              heightClass="h-full"
                     initialPosition={[
                       parseFloat(hospital?.latitude) || 19.07,
                       parseFloat(hospital?.longitude) || 72.87,
@@ -400,7 +513,7 @@ export default function HAccount(){
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm"  >
                 <InfoField
                   label="Block no./Shop no./House no."
                   value={hospital?.blockNo}
@@ -422,7 +535,8 @@ export default function HAccount(){
           <div className="col-span-12 xl:col-span-5 xl:col-start-8 space-y-4">
 
             {/* Basic Info on right */}
-            <SectionCard variant="subtle" title="Primary Admin Account detail" subtitle="Visible to Patient">
+            <SectionCard variant="subtle" title="Primary Admin Account detail" subo="To Change Admin Details ">
+              
               <div className="grid grid-cols-2 gap-3 text-[13px]">
                <InfoField
                     label="First Name"
@@ -474,13 +588,13 @@ export default function HAccount(){
             </SectionCard>
 
             {/* Verification Documents */}
-            <SectionCard title="Verification Documents" subtitle="Visible to Patient" action={<span className="text-[12px] text-gray-500">To Change your Medical proof please <a href="#" className="text-blue-600" onClick={(e)=>e.preventDefault()}>Call Us</a></span>}>
+            <SectionCard title="Verification Documents" subtitle="Visible to Patient" subo="To Change your Medical Proof Documents">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="relative text-[12px] text-gray-500 mb-2">GST Details
+                  <div className="relative font-medium text-[14px] text-gray-900 mt-2 pb-2 mb-2">GST Details
                     <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
                   </div>
-                  <InfoField label="GST Number" value={profile.gst.number} noBorder />
+                  <InfoField label="GST Number" value={profile.gst.number}  />
                 </div>
                 <div>
                   <div className="text-[12px] text-gray-500 mb-2">Proof of GST Registration</div>
@@ -499,10 +613,10 @@ export default function HAccount(){
                 </div>
               </div>
 
-              <div className="my-3 h-px bg-gray-200" />
+              {/* <div className="my-3 h-px bg-gray-200" /> */}
 
               <div className="mt-2">
-                <div className="relative text-[12px] text-gray-500 mb-2">CIN Details
+                <div className="relative font-medium text-[14px] text-gray-900 mt-2 mb-2">CIN Details
                     <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-[13px]">
@@ -514,7 +628,7 @@ export default function HAccount(){
                   <InfoField label="State and ROC Code" value={profile.cin.stateCode} />
                   <InfoField label="Registration Number" value={profile.cin.code} />
                   <InfoField label="Authorized Director" value={profile.cin.director} />
-                  <InfoField label="Authorized Email (From MCA)" value={profile.cin.email} noBorder />
+                  <InfoField label="Authorized Email (From MCA)" value={profile.cin.email}  />
                  <div>
                   <div className="text-[12px] text-gray-500 mb-2">Proof of CIN Registration</div>
                   <div className="mt-1 flex items-center justify-between gap-2 w-full max-w-xs border rounded px-2 py-1 text-[12px] bg-gray-50">
@@ -532,13 +646,13 @@ export default function HAccount(){
                 </div> 
                 </div>
               </div>
-               <div className="my-3 h-px bg-gray-200" />
+               {/* <div className="my-3 h-px bg-gray-200" /> */}
                <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="relative text-[12px] text-gray-500 mb-2">State Health Registration Details
-                    <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
+                  <div className="relative font-medium text-[14px] text-gray-900 pb-2 mt-2 mb-2">State Health Registration Details
+                    <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250  " />
                   </div>
-                  <InfoField label="State Health Registration Number" value={profile.shr.number} noBorder />
+                  <InfoField label="State Health Registration Number" value={profile.shr.number}  />
                 </div>
                 <div>
                   <div className="text-[12px] text-gray-500 mb-2">Proof of State Health Registration</div>
@@ -557,13 +671,13 @@ export default function HAccount(){
                 </div>
               </div>
 
-              <div className="my-3 h-px bg-gray-200" />
+              {/* <div className="my-3 h-px bg-gray-200" /> */}
                      <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="relative text-[12px] text-gray-500 mb-2">Pan Card Details
+                  <div className="relative font-medium text-[14px] text-gray-900 pb-2 mt-2 mb-2">Pan Card Details
                     <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
                   </div>
-                  <InfoField label="Pan Card Number" value={profile.pan.number} noBorder />
+                  <InfoField label="Pan Card Number" value={profile.pan.number} />
                 </div>
                 <div>
                   <div className="text-[12px] text-gray-500 mb-2">Proof of Pan Card</div>
@@ -581,13 +695,13 @@ export default function HAccount(){
                   </div>
                 </div>
               </div>
-              <div className="my-3 h-px bg-gray-200" />
+              
                      <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="relative text-[12px] text-gray-500 mb-2">Rohini Details
+                  <div className="relative font-medium text-[14px] text-gray-900 pb-2 mt-2 mb-2">Rohini Details
                     <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
                   </div>
-                  <InfoField label="Rohini ID" value={profile.rohini.number} noBorder />
+                  <InfoField label="Rohini ID" value={profile.rohini.number}  />
                  
 
                 </div>
@@ -607,10 +721,10 @@ export default function HAccount(){
                   </div>
                 </div>
               </div>
-              <div className="my-3 h-px bg-gray-200" />
+             
                      <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="relative text-[12px] text-gray-500 mb-2">NABH Acceditation Details
+                  <div className="relative font-medium text-[14px] text-gray-900 pb-2 mt-2 mb-2">NABH Acceditation Details
                     <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
                   </div>
                   <InfoField label="NABH Number" value={profile.nabh.number}  />
