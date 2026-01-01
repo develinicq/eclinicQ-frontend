@@ -1236,7 +1236,7 @@ const Doc_settings = () => {
               onIconClick={() => setBasicOpen(true)}
             >
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-[14px] mb-4">
+                <div className="grid grfid-cols-2 gap-x-6 gap-y-4 text-[14px] mb-4">
                   <InfoField
                     label="First Name"
                     value={profile.basic?.firstName}
