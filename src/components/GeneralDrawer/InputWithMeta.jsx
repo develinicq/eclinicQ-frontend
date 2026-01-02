@@ -322,7 +322,7 @@ export default function InputWithMeta({
             </ul>
           </div>
         )}
-      {meta && <p className="text-[10px] text-gray-400 leading-tight mt-1">{meta}</p>}
+      {meta && <p className="text-[12px] text-secondary-grey200 leading-tight ">{meta}</p>}
     </div>
-  );
+  );0
 }

@@ -3,12 +3,14 @@ import useDoctorStep1Store from "../../../../store/useDoctorStep1Store";
 import useImageUploadStore from "../../../../store/useImageUploadStore";
 import {
   Upload,
-  Dropdown,
   FormFieldRow,
   RegistrationHeader
 } from '../../../../components/FormItems';
 import InputWithMeta from '../../../../components/GeneralDrawer/InputWithMeta';
+const upload= '/upload_blue.png'
 
+
+import { ChevronDown } from 'lucide-react';
 
 const Step1 = forwardRef((props, ref) => {
   const {
@@ -27,6 +29,8 @@ const Step1 = forwardRef((props, ref) => {
 
   const [formErrors, setFormErrors] = React.useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [genderOpen, setGenderOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
 
   const uploadUrlData = useImageUploadStore((state) => state.uploadUrl);
 
@@ -193,23 +197,41 @@ const Step1 = forwardRef((props, ref) => {
           {/* Gender and City Row */}
           <FormFieldRow>
             <div className="w-full">
-              <Dropdown
+              <InputWithMeta
                 label="Gender"
-                name="gender"
                 value={gender}
-                onChange={handleInputChange}
-                options={genderOptions}
+                requiredDot
+                placeholder="Select Gender"
+                RightIcon={ChevronDown}
+                readonlyWhenIcon={true}
+                onIconClick={() => setGenderOpen(!genderOpen)}
+                dropdownOpen={genderOpen}
+                onRequestClose={() => setGenderOpen(false)}
+                dropdownItems={genderOptions}
+                onSelectItem={(item) => {
+                  handleInputChange({ target: { name: 'gender', value: item.value } });
+                  setGenderOpen(false);
+                }}
                 compulsory
               />
               {formErrors.gender && <span className="text-red-500 text-xs">{formErrors.gender}</span>}
             </div>
             <div className="w-full">
-              <Dropdown
+              <InputWithMeta
                 label="City"
-                name="city"
                 value={city}
-                onChange={handleInputChange}
-                options={cityOptions}
+                requiredDot
+                placeholder="Select City"
+                RightIcon={ChevronDown}
+                readonlyWhenIcon={true}
+                onIconClick={() => setCityOpen(!cityOpen)}
+                dropdownOpen={cityOpen}
+                onRequestClose={() => setCityOpen(false)}
+                dropdownItems={cityOptions}
+                onSelectItem={(item) => {
+                  handleInputChange({ target: { name: 'city', value: item.value } });
+                  setCityOpen(false);
+                }}
                 compulsory
               />
               {formErrors.city && <span className="text-red-500 text-xs">{formErrors.city}</span>}
@@ -217,13 +239,18 @@ const Step1 = forwardRef((props, ref) => {
           </FormFieldRow>
 
           {/* Upload Profile Picture */}
-          <div>
-            <Upload
+          <div className='flex flex-col '>
+            <InputWithMeta
               label="Upload Profile Picture"
-              compulsory={true}
-              onUpload={(key) => setField('profilePhotoKey', key)}
-              meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
+              showInput={false}
+              infoIcon
+              requiredDot
             />
+            <span className="text-xs text-secondary-grey200 mb-1">Support Size upto 1MB in .png, .jpg, .svg, .webp</span>
+            <div className='flex gap-1 cursor-pointer items-center justify-center flex-col rounded-sm border-[0.5px] border-dashed border-blue-primary150 w-[130px] h-[130px]'>
+                  <img src={upload} alt="" className='w-4 h-4' />
+                  <span className='text-blue-primary250 text-sm'>Upload Image</span>
+            </div>
           </div>
 
           <div className="pb-4"></div>
