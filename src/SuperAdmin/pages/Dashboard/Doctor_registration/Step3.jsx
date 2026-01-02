@@ -1,14 +1,13 @@
 import React from 'react'
-import { 
-  Input, 
-  Dropdown, 
-  Upload, 
-  FormContainer, 
-  FormSection, 
+import {
+  Dropdown,
+  Upload,
   MFA,
   FormFieldRow,
-  MapLocation
+  MapLocation,
+  RegistrationHeader
 } from '../../../../components/FormItems';
+import InputWithMeta from '../../../../components/GeneralDrawer/InputWithMeta';
 import useDoctorRegistrationStore from '../../../../store/useDoctorRegistrationStore';
 
 
@@ -85,37 +84,39 @@ const Step3 = () => {
   ];
 
   return (
-    <FormContainer>
-      <FormSection
+    <div className="flex flex-col h-full bg-white rounded-md shadow-sm overflow-hidden">
+      <RegistrationHeader
         title="Clinical Details & Document Upload"
         subtitle="Enter your clinic information & document"
-      >
-        <div className="space-y-6">
+      />
+
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-[700px] mx-auto space-y-6">
           {/* Clinic Info Section */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Clinic Info</h2>
             {/* Clinic Name and Contact Email Row */}
             <FormFieldRow>
               <div className="w-full">
-                <Input
+                <InputWithMeta
                   label="Clinic Name"
-                  name="name"
                   value={clinicData.name}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'name', value: val } })}
                   placeholder="Enter Clinic Name"
                   {...commonFieldProps}
+                  meta="Visible to Patient"
                 />
                 {formErrors.name && <span className="text-red-500 text-xs">{formErrors.name}</span>}
               </div>
               <div className="w-full">
-                <Input
+                <InputWithMeta
                   label="Clinic Contact Email"
-                  name="email"
                   type="email"
                   value={clinicData.email}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'email', value: val } })}
                   placeholder="Enter Clinic Email"
                   {...commonFieldProps}
+                  meta="Visible to Patient"
                 />
                 {formErrors.email && <span className="text-red-500 text-xs">{formErrors.email}</span>}
               </div>
@@ -124,14 +125,14 @@ const Step3 = () => {
             {/* Contact Number and Upload Establishment Proof Row */}
             <FormFieldRow>
               <div className="w-full">
-                <Input
+                <InputWithMeta
                   label="Clinic Contact Number"
-                  name="phone"
                   type="tel"
                   value={clinicData.phone}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'phone', value: val } })}
                   placeholder="Enter Contact Number"
                   {...commonFieldProps}
+                  meta="Visible to Patient"
                 />
                 {formErrors.phone && <span className="text-red-500 text-xs">{formErrors.phone}</span>}
               </div>
@@ -139,6 +140,7 @@ const Step3 = () => {
                 label="Upload Establishment Proof"
                 compulsory={true}
                 onUpload={key => setClinicField('proof', key)}
+                meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
               />
             </FormFieldRow>
           </div>
@@ -153,8 +155,8 @@ const Step3 = () => {
               <label className="block text-sm font-medium text-gray-700">
                 Map Location <span className="text-red-500">*</span>
               </label>
-              <MapLocation 
-                heightClass="h-32" 
+              <MapLocation
+                heightClass="h-32"
                 onChange={({ lat, lng }) => {
                   setClinicField('latitude', lat);
                   setClinicField('longitude', lng);
@@ -165,21 +167,19 @@ const Step3 = () => {
             {/* Block No and Road/Area/Street Row */}
             <FormFieldRow>
               <div className="w-full">
-                <Input
+                <InputWithMeta
                   label="Block No./Shop no./House no."
-                  name="blockNo"
                   value={clinicData.blockNo}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'blockNo', value: val } })}
                   {...commonFieldProps}
                 />
                 {formErrors.blockNo && <span className="text-red-500 text-xs">{formErrors.blockNo}</span>}
               </div>
               <div className="w-full">
-                <Input
+                <InputWithMeta
                   label="Road/Area/Street"
-                  name="areaStreet"
                   value={clinicData.areaStreet}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'areaStreet', value: val } })}
                   {...commonFieldProps}
                 />
                 {formErrors.areaStreet && <span className="text-red-500 text-xs">{formErrors.areaStreet}</span>}
@@ -189,21 +189,19 @@ const Step3 = () => {
             {/* Landmark and Pincode Row */}
             <FormFieldRow>
               <div className="w-full">
-                <Input
+                <InputWithMeta
                   label="Landmark"
-                  name="landmark"
                   value={clinicData.landmark}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'landmark', value: val } })}
                   {...commonFieldProps}
                 />
                 {formErrors.landmark && <span className="text-red-500 text-xs">{formErrors.landmark}</span>}
               </div>
               <div className="w-full">
-                <Input
+                <InputWithMeta
                   label="Pincode"
-                  name="pincode"
                   value={clinicData.pincode}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'pincode', value: val } })}
                   {...commonFieldProps}
                 />
                 {formErrors.pincode && <span className="text-red-500 text-xs">{formErrors.pincode}</span>}
@@ -250,12 +248,13 @@ const Step3 = () => {
                 label="Upload Hospital Image"
                 compulsory={true}
                 onUpload={key => setClinicField('image', key)}
+                meta="Support Size upto 2MB in .png, .jpg, .webp"
               />
             </div>
           </div>
 
           {/* Multi-Factor Authentication (always checked & disabled) */}
-          <MFA 
+          <MFA
             formData={{
               emailVerification: true,
               smsVerification: true
@@ -263,9 +262,8 @@ const Step3 = () => {
             disabled={true}
           />
         </div>
-  {/* Navigation handled by parent, no submit button here */}
-      </FormSection>
-    </FormContainer>
+      </div>
+    </div >
   );
 }
 

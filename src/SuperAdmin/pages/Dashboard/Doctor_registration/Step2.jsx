@@ -1,15 +1,13 @@
 import React from "react";
 import {
-  Input,
   Dropdown,
   Upload,
   Radio,
-  FormContainer,
-  FormSection,
   FormFieldRow,
-  MFA
+  RegistrationHeader
 } from '../../../../components/FormItems';
 import useDoctorRegistrationStore from '../../../../store/useDoctorRegistrationStore';
+import InputWithMeta from '../../../../components/GeneralDrawer/InputWithMeta';
 
 
 const Step2 = () => {
@@ -158,12 +156,14 @@ const Step2 = () => {
   ];
 
   return (
-    <FormContainer>
-      <FormSection
+    <div className="flex flex-col h-full bg-white rounded-md shadow-sm overflow-hidden">
+      <RegistrationHeader
         title="Professional Details"
         subtitle="Provide your Professional details and Document for verification"
-      >
-        <div className="space-y-6">
+      />
+
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-[700px] mx-auto space-y-6">
           {/* Medical Registration */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">
@@ -171,11 +171,10 @@ const Step2 = () => {
             </h2>
             <FormFieldRow>
               <div className="w-full">
-                <Input
+                <InputWithMeta
                   label="Medical Council Registration Number"
-                  name="medicalCouncilRegNo"
                   value={medicalCouncilRegNo}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'medicalCouncilRegNo', value: val } })}
                   {...commonFieldProps}
                 />
                 {formErrors.medicalCouncilRegNo && <span className="text-red-500 text-xs">{formErrors.medicalCouncilRegNo}</span>}
@@ -196,20 +195,20 @@ const Step2 = () => {
 
             <FormFieldRow>
               <div>
-                <Input
+                <InputWithMeta
                   label="Registration Year"
-                  name="medicalCouncilRegYear"
                   value={medicalCouncilRegYear}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'medicalCouncilRegYear', value: val } })}
                   {...commonFieldProps}
+                  meta="Visible to Patient"
                 />
                 {formErrors.medicalCouncilRegYear && <span className="text-red-500 text-xs">{formErrors.medicalCouncilRegYear}</span>}
-                <p className="text-xs text-gray-400 mt-1">Visible to Patient</p>
               </div>
               <Upload
                 label="Upload MRN Proof"
                 compulsory={true}
                 onUpload={key => setDocument({ no: 1, type: 'medical_license', url: key })}
+                meta="Support Size upto 5MB in .pdf, .jpg, .doc"
               />
             </FormFieldRow>
           </div>
@@ -247,11 +246,10 @@ const Step2 = () => {
             </FormFieldRow>
 
             <FormFieldRow>
-              <Input
+              <InputWithMeta
                 label="Year of Completion"
-                name="medicalDegreeYearOfCompletion"
                 value={medicalDegreeYearOfCompletion}
-                onChange={handleInputChange}
+                onChange={(val) => handleInputChange({ target: { name: 'medicalDegreeYearOfCompletion', value: val } })}
                 {...commonFieldProps}
               />
               {formErrors.medicalDegreeYearOfCompletion && <span className="text-red-500 text-xs">{formErrors.medicalDegreeYearOfCompletion}</span>}
@@ -259,6 +257,7 @@ const Step2 = () => {
                 label="Upload Degree Proof"
                 compulsory={true}
                 onUpload={key => setDocument({ no: 2, type: 'degree_certificate', url: key })}
+                meta="Support Size upto 5MB in .pdf, .jpg, .doc"
               />
             </FormFieldRow>
 
@@ -297,11 +296,10 @@ const Step2 = () => {
                       options={pgDegreeOptions}
                       placeholder="Select Degree"
                     />
-                    <Input
+                    <InputWithMeta
                       label="Year of Completion"
-                      name="pgMedicalDegreeYearOfCompletion"
                       value={pgMedicalDegreeYearOfCompletion}
-                      onChange={e => setField('pgMedicalDegreeYearOfCompletion', e.target.value)}
+                      onChange={(val) => setField('pgMedicalDegreeYearOfCompletion', val)}
                     />
                   </div>
                   <div className="space-y-4">
@@ -354,13 +352,12 @@ const Step2 = () => {
                 {formErrors.specialization && <span className="text-red-500 text-xs">{formErrors.specialization}</span>}
               </div>
               <div className="w-full">
-                <Input
+                <InputWithMeta
                   label="Year of Experience"
-                  name="experienceYears"
+                  requiredDot={true}
                   value={experienceYears}
-                  onChange={handleInputChange}
+                  onChange={(val) => handleInputChange({ target: { name: 'experienceYears', value: val } })}
                   placeholder="Enter Year"
-                  {...commonFieldProps}
                 />
                 {formErrors.experienceYears && <span className="text-red-500 text-xs">{formErrors.experienceYears}</span>}
               </div>
@@ -384,11 +381,10 @@ const Step2 = () => {
                       compulsory
                       required
                     />
-                    <Input
+                    <InputWithMeta
                       label="Year of Experience"
-                      name={`additional_experience_${idx}`}
                       value={p.experienceYears}
-                      onChange={e => updatePractice(idx, { experienceYears: e.target.value })}
+                      onChange={(val) => updatePractice(idx, { experienceYears: val })}
                       placeholder="Enter Year"
                       compulsory
                       required
@@ -399,9 +395,8 @@ const Step2 = () => {
             )}
           </div>
         </div>
-  {/* Navigation handled by parent, no submit button here */}
-      </FormSection>
-    </FormContainer>
+      </div>
+    </div >
   );
 };
 

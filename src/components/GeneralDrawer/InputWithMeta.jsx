@@ -57,6 +57,8 @@ export default function InputWithMeta({
   fileNameMaxLength = 22,
   showReupload = false,
   showDivider = false,
+  type = "text",
+  meta,
 }) {
   const truncate = (str, max) => {
     if (!str) return str;
@@ -160,8 +162,8 @@ export default function InputWithMeta({
             <div className="h-[32px] w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm cursor-pointer overflow-x-hidden bg-secondary-grey50">
               <span className="flex items-center gap-2 text-secondary-grey300 flex-1 min-w-0">
                 <img src="/Doctor_module/settings/pdf_black.png" alt="" className="h-5 w-5" />
-                  <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
-                    {truncate(fileName || "Establishment.pdf", fileNameMaxLength)}
+                <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
+                  {truncate(fileName || "Establishment.pdf", fileNameMaxLength)}
                 </span>
               </span>
               <span className="flex items-center gap-3 text-secondary-grey300 flex-shrink-0 ">
@@ -183,8 +185,8 @@ export default function InputWithMeta({
                 {showDivider && (
                   <div className=" border-l-[0.5px] border-secondary-grey150 h-5"></div>
                 )}
-                    
-                
+
+
                 {/* View */}
                 <button
                   type="button"
@@ -204,14 +206,14 @@ export default function InputWithMeta({
               badges.map((b, idx) => (
                 <span
                   key={`${b}-${idx}`}
-          className="inline-flex items-center h-5 gap-2 px-2 rounded-[6px] bg-secondary-grey50 text-secondary-grey400"
+                  className="inline-flex items-center h-5 gap-2 px-2 rounded-[6px] bg-secondary-grey50 text-secondary-grey400"
                 >
-          <span className="text-[15px] leading-[1] inline-flex items-center">{b}</span>
+                  <span className="text-[15px] leading-[1] inline-flex items-center">{b}</span>
                   {badgesRemovable ? (
                     <button
                       type="button"
                       aria-label={`remove ${b}`}
-            className="text-secondary-grey300 hover:text-gray-700  mb-[0.5] inline-flex items-center justify-center"
+                      className="text-secondary-grey300 hover:text-gray-700  mb-[0.5] inline-flex items-center justify-center"
                       onClick={() => onBadgeRemove?.(b)}
                     >
                       ×
@@ -223,13 +225,12 @@ export default function InputWithMeta({
               <span className="text-secondary-grey100 px-1">{badgesEmptyPlaceholder}</span>
             )}
           </div>
-    ) : showInput ? (
+        ) : showInput ? (
           <>
             <input
-              type="text"
-      className={`w-full rounded-md border-[0.5px] border-secondary-grey200 p-2 h-8 text-sm text-secondary-grey400 focus:outline-none focus:ring-0 focus:border-blue-primary150 focus:border-[2px] placeholder:text-secondary-grey100 pr-16  ${
-                disabled ? "bg-gray-100 cursor-not-allowed" : ""
-              } ${isReadOnly || dropdownOpen ? "cursor-pointer select-none" : ""}`}
+              type={type}
+              className={`w-full rounded-sm border-[0.5px] border-secondary-grey200 p-2 h-8 text-sm text-secondary-grey400 focus:outline-none focus:ring-0 focus:border-blue-primary150 focus:border-[2px] placeholder:text-secondary-grey100 pr-16  ${disabled ? "bg-gray-100 cursor-not-allowed" : ""
+                } ${isReadOnly || dropdownOpen ? "cursor-pointer select-none" : ""}`}
               value={value || ""}
               onChange={(e) => {
                 if (isReadOnly) return; // prevent typing when read-only
@@ -304,9 +305,8 @@ export default function InputWithMeta({
                   <li key={it.value ?? idx}>
                     <button
                       type="button"
-                      className={`w-full text-left px-3 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 ${
-                        isSelected ? "bg-gray-100" : ""
-                      }`}
+                      className={`w-full text-left px-3 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 ${isSelected ? "bg-gray-100" : ""
+                        }`}
                       onClick={() => {
                         onSelectItem?.(it);
                         onRequestClose?.();
@@ -322,6 +322,7 @@ export default function InputWithMeta({
             </ul>
           </div>
         )}
+      {meta && <p className="text-[10px] text-gray-400 leading-tight mt-1">{meta}</p>}
     </div>
   );
 }

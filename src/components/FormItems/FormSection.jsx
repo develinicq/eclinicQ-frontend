@@ -9,7 +9,7 @@ const FormSection = ({
   spacing = "space-y-6"
 }) => {
   return (
-    <div className={`${className} ${spacing}`}>
+    <div className={`${className} ${spacing} `}>
       {/* Section Header */}
       {(title || subtitle) && (
         <div className="text-center mb-8">
@@ -23,7 +23,7 @@ const FormSection = ({
       )}
       
       {/* Form Fields Container */}
-      <div className={`grid grid-cols-1 ${columns === 2 ? 'md:grid-cols-2' : ''} gap-4`}>
+      <div className={`grid grid-cols-1  ${columns === 2 ? 'md:grid-cols-2' : ''} gap-4`}>
         {children}
       </div>
     </div>

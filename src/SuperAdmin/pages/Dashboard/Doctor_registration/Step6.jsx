@@ -16,9 +16,9 @@ const Step6 = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
           Profile Activated Successfully!
         </h1>
-        
-        
-        </div>
+
+
+      </div>
 
     </div>
   );

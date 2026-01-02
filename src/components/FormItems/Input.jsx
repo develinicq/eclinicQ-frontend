@@ -1,10 +1,10 @@
 import React from 'react'
 
 
-const Input = ({ 
-  className, 
-  compulsory, 
-  label, 
+const Input = ({
+  className,
+  compulsory,
+  label,
   name,
   type = "text",
   value,
@@ -12,10 +12,11 @@ const Input = ({
   placeholder,
   required = false,
   disabled = false,
-  icon = null
+  icon = null,
+  meta
 }) => {
   return (
-    <div className={`${className} h-[53px] flex flex-col gap-1`}>
+    <div className={`${className} h-auto flex flex-col gap-1`}>
       <div className='flex gap-1 items-center'>
         <label className='text-sm font-normal text-gray-700'>
           {label}
@@ -41,6 +42,7 @@ const Input = ({
           </span>
         )}
       </div>
+      {meta && <p className="text-[10px] text-gray-400 leading-tight">{meta}</p>}
     </div>
   )
 }

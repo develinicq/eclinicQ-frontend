@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import useImageUploadStore from '../../store/useImageUploadStore';
 
 
-const Upload = ({ label = "Upload File", className = "", compulsory = false, onUpload }) => {
+const Upload = ({ label = "Upload File", className = "", compulsory = false, onUpload, meta }) => {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
@@ -22,7 +22,7 @@ const Upload = ({ label = "Upload File", className = "", compulsory = false, onU
     setUploading(true);
     setPreviewUrl(URL.createObjectURL(file));
     try {
-      
+
       const uploadData = await getUploadUrl(file.type, file);
       if (!uploadData || !uploadData.uploadUrl || !uploadData.key) {
         const msg = storeError ? (typeof storeError === 'string' ? storeError : JSON.stringify(storeError)) : 'Failed to get upload URL';
@@ -31,7 +31,7 @@ const Upload = ({ label = "Upload File", className = "", compulsory = false, onU
         setUploading(false);
         return;
       }
-      
+
       const res = await fetch(uploadData.uploadUrl, {
         method: 'PUT',
         headers: {
@@ -60,7 +60,7 @@ const Upload = ({ label = "Upload File", className = "", compulsory = false, onU
         {compulsory && <div className="bg-red-500 w-1 h-1 rounded-full"></div>}
       </div>
 
-      
+
       <input
         type="file"
         accept="image/*"
@@ -69,20 +69,21 @@ const Upload = ({ label = "Upload File", className = "", compulsory = false, onU
         className="hidden"
       />
 
-    
+
       <button
         type="button"
         onClick={handleButtonClick}
-  className="w-full h-[32px] text-left text-blue-600 text-sm font-medium border border-dashed border-blue-400 rounded-lg px-4 hover:bg-blue-50"
-  disabled={uploading || storeLoading}
+        className="w-full h-[32px] text-left text-blue-600 text-sm font-medium border border-dashed border-blue-400 rounded-lg px-4 hover:bg-blue-50"
+        disabled={uploading || storeLoading}
       >
-  {uploading || storeLoading ? 'Uploading...' : 'Upload File'}
+        {uploading || storeLoading ? 'Uploading...' : 'Upload File'}
       </button>
 
       {previewUrl && (
         <img src={previewUrl} alt="Preview" className="mt-2 w-20 h-20 object-cover rounded" />
       )}
       {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
+      {meta && <p className="text-[10px] text-gray-400 leading-tight mt-1">{meta}</p>}
     </div>
   );
 };

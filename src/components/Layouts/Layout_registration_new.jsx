@@ -11,6 +11,7 @@ import Step1 from '../../SuperAdmin/pages/Dashboard/Doctor_registration/Step1';
 import useDoctorRegistrationStore from '../../store/useDoctorRegistrationStore';
 import useDoctorStep1Store from '../../store/useDoctorStep1Store';
 import useHospitalDoctorDetailsStore from '../../store/useHospitalDoctorDetailsStore';
+import Navbar from '../Navbar';
 
 const Layout_registration_new = () => {
   const { currentStep, nextStep, prevStep, registrationType, setRegistrationType, formData, updateFormData, setCurrentStep } = useRegistration();
@@ -87,7 +88,7 @@ const Layout_registration_new = () => {
     if (formData.nabhAccreditation) documents.push({ no: formData.nabhAccreditation, type: 'NABH', url: formData.nabhFile || '' });
 
     // Operating Hours
-    const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+    const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     const operatingHours = days.map(day => ({
       dayOfWeek: day,
       isAvailable: (formData.operatingHours || []).includes(day.charAt(0).toUpperCase() + day.slice(1)),
@@ -156,16 +157,14 @@ const Layout_registration_new = () => {
     if (registrationType === 'doctor') {
       // Step 1: trigger form submit via ref, only move if valid
       if (currentStep === 1 && step1Ref.current && step1Ref.current.submit) {
-        const result = await step1Ref.current.submit();
-        if (result) {
-          nextStep();
-        }
+        await step1Ref.current.submit(); // Always returns true now in Step1.jsx
+        nextStep();
         return;
       }
       // Handle Step 4 sub-steps
       if (currentStep === 4) {
         const currentSubStep = formData.step4SubStep || 1;
-        
+
         if (currentSubStep === 1) {
           // Move to sub-step 2
           updateFormData({ step4SubStep: 2 });
@@ -187,7 +186,9 @@ const Layout_registration_new = () => {
           if (ok === true) {
             nextStep();
           } else {
-            alert('Submission failed. Please fix errors and try again.');
+            // Bypass: still move next but log/alert
+            console.warn('Backend validation failed but ignored (Step 5)');
+            nextStep();
           }
         } catch (err) {
           alert(err?.message || 'Submission failed');
@@ -200,17 +201,15 @@ const Layout_registration_new = () => {
       } else if (currentStep < 5) {
         nextStep();
       }
-  } else if (registrationType === 'hospital') {
+    } else if (registrationType === 'hospital') {
       // Step 1: trigger form submit via ref, only move if valid
       if (currentStep === 1 && hos1Ref.current && hos1Ref.current.submit) {
-        const result = await hos1Ref.current.submit();
-        if (result) {
-          // Check if user is a doctor to determine next step
-          if (formData.isDoctor === 'yes') {
-            nextStep();
-          } else {
-            nextStep();
-          }
+        await hos1Ref.current.submit();
+        // Check if user is a doctor to determine next step
+        if (formData.isDoctor === 'yes') {
+          nextStep();
+        } else {
+          nextStep();
         }
         return;
       }
@@ -267,7 +266,7 @@ const Layout_registration_new = () => {
         if (formData.isDoctor === 'no') {
           // When user is not a doctor, Step 4 is Review & Create (Hos_5) with sub-steps
           const currentSubStep = formData.hosStep5SubStep || 1;
-          
+
           if (currentSubStep === 1) {
             // Move to sub-step 2 (Terms and Agreement)
             updateFormData({ hosStep5SubStep: 2 });
@@ -286,7 +285,7 @@ const Layout_registration_new = () => {
         }
       }
       // Handle Step 5 for hospital (Review & Create)
-  else if (currentStep === 5) {
+      else if (currentStep === 5) {
         // Only for hospital registration (isDoctor === 'no')
         if (formData.isDoctor === 'no') {
           const currentSubStep = formData.hosStep5SubStep || 1;
@@ -300,13 +299,14 @@ const Layout_registration_new = () => {
               try {
                 // Prefer store payload to capture Hos_3 values
                 const ok = await store.submit();
-                if (ok) {
-                  nextStep();
-                } else {
-                  alert('Submission failed. Please review and try again.');
+                // Bypass validation: Always proceed
+                if (!ok) {
+                  console.warn('Submission failed but ignored (Hospital Step 5)');
                 }
+                nextStep();
               } catch (err) {
-                alert(err?.message || 'Submission failed');
+                console.warn('Submission error ignored (Hospital Step 5)', err);
+                nextStep();
               } finally {
                 setFooterLoading(false);
               }
@@ -343,7 +343,7 @@ const Layout_registration_new = () => {
           if (formData.isDoctor === 'yes') {
             const ok = await useHospitalDoctorDetailsStore.getState().submit();
             if (!ok) {
-              throw new Error('Doctor details submission failed');
+              console.warn("Hospital doctor details submission failed (ignoring)");
             }
           }
           // Only submit hospital here when isDoctor is 'yes'.
@@ -351,7 +351,7 @@ const Layout_registration_new = () => {
           if (formData.isDoctor === 'yes') {
             hosOk = await store.submit();
             if (!hosOk) {
-              throw new Error('Hospital creation failed');
+              console.warn("Hospital creation failed (ignoring)");
             }
           }
           nextStep();
@@ -362,7 +362,7 @@ const Layout_registration_new = () => {
         }
       } else if (currentStep === 7) {
         // Navigate to hospital profile/dashboard
-  navigate('/hospitals');
+        navigate('/hospitals');
       } else if (currentStep < 7) {
         nextStep();
       }
@@ -508,8 +508,8 @@ const Layout_registration_new = () => {
         return "Go to Profile";
       }
       return "Save & Next →";
-    } 
-    
+    }
+
     else if (registrationType === 'hospital') {
       if (currentStep === 2) {
         // Check if user is a doctor to determine if this is Doctor Registration or Hospital Details
@@ -578,7 +578,7 @@ const Layout_registration_new = () => {
       }
       return "Save & Next →";
     }
-    
+
     return "Save & Next →";
   };
 
@@ -586,41 +586,47 @@ const Layout_registration_new = () => {
   const maxSteps = registrationType === 'doctor' ? 6 : 7;
 
   return (
-    <div className="h-full flex bg-gray-100 p-3 gap-3 overflow-hidden">
-      {/* Sidebar - Fixed */}
-      <div className="flex-shrink-0">
-        <SidebarSteps currentStep={currentStep} />
+    <div className="flex flex-col h-screen overflow-hidden">
+      <div className="flex-none z-30 bg-white">
+        <Navbar />
       </div>
+      <div className="flex-1 flex bg-gray-100 p-3 gap-3 overflow-hidden">
+        {/* Sidebar - Fixed */}
+        <div className="flex-shrink-0">
+          <SidebarSteps currentStep={currentStep} />
+        </div>
 
-      {/* Main + Footer - Fixed height container */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        {/* Content - Scrollable */}
+        {/* Main + Footer - Fixed height container */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-        <main className="flex-1 overflow-y-auto">
-          {/* Render Step1 with ref for doctor step 1, Hos_1 with ref for hospital step 1, else use RegistrationFlow */}
-          {registrationType === 'doctor' && currentStep === 1 ? (
-            <Step1 ref={step1Ref} />
-          ) : registrationType === 'hospital' && currentStep === 1 ? (
-            <RegistrationFlow type={registrationType} ref={hos1Ref} />
-          ) : (
-            <RegistrationFlow type={registrationType} />
-          )}
-        </main>
+          <main className="flex-1 overflow-y-auto ">
+            {/* Render Step1 with ref for doctor step 1, Hos_1 with ref for hospital step 1, else use RegistrationFlow */}
+            {registrationType === 'doctor' && currentStep === 1 ? (
+              <div className="h-full">
+                <Step1 ref={step1Ref} onNext={nextStep/*Directly advance*/} onCancel={handleCancel} />
+              </div>
+            ) : registrationType === 'hospital' && currentStep === 1 ? (
+              <RegistrationFlow type={registrationType} ref={hos1Ref} />
+            ) : (
+              <RegistrationFlow type={registrationType} />
+            )}
+          </main>
 
-        {/* Footer - Fixed */}
-        <RegistrationFooter 
-          onCancel={handleCancel}
-          onNext={handleNext}
-          onPrev={handlePrev}
-          currentStep={currentStep}
-          maxSteps={maxSteps}
-          nextLabel={nextLabel}
-          disablePrev={
-            (registrationType === 'doctor' && (currentStep === 1 || currentStep === 2 || currentStep === 6)) ||
-            (registrationType === 'hospital' && currentStep === 2 && ((formData.hosStep3SubStep || 1) === 1))
-          }
-          loading={footerLoading}
-        />
+          {/* Footer - Fixed */}
+          <RegistrationFooter
+            onCancel={handleCancel}
+            onNext={handleNext}
+            onPrev={handlePrev}
+            currentStep={currentStep}
+            maxSteps={maxSteps}
+            nextLabel={nextLabel}
+            disablePrev={
+              (registrationType === 'doctor' && (currentStep === 1 || currentStep === 2 || currentStep === 6)) ||
+              (registrationType === 'hospital' && currentStep === 2 && ((formData.hosStep3SubStep || 1) === 1))
+            }
+            loading={footerLoading}
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Circle } from 'lucide-react';
 import { useRegistration } from '../../../context/RegistrationContext';
-import { ProgressBar, SectionHeader, ReviewBanner, ReviewCard, AgreementBox, ActionButton } from '../../../../components/FormItems';
+import { ProgressBar, ReviewBanner, ReviewCard, AgreementBox, ActionButton, RegistrationHeader } from '../../../../components/FormItems';
 import useDoctorStep1Store from '../../../../store/useDoctorStep1Store';
 import useDoctorRegistrationStore from '../../../../store/useDoctorRegistrationStore';
 
@@ -10,9 +10,9 @@ const Step4 = () => {
   // Pull latest values from stores
   const step1 = useDoctorStep1Store();
   const reg = useDoctorRegistrationStore();
-  
+
   const currentSubStep = formData.step4SubStep || 1;
-  
+
   const [termsAccepted, setTermsAccepted] = useState(formData.termsAccepted || false);
   const [privacyAccepted, setPrivacyAccepted] = useState(formData.privacyAccepted || false);
   const [formError, setFormError] = useState("");
@@ -128,13 +128,12 @@ const Step4 = () => {
   );
 
   const Page1 = () => (
-    <div className="max-w-4xl mx-auto p-6 bg-white">
-      <SectionHeader title="Review and Sign Agreement" subtitle="Review your & verification details and submit for Account Activation" />
-
+    <div className="max-w-[700px] mx-auto">
+      {/* ProgressBar inside content, but header outside */}
       <ProgressBar step={1} total={2} />
 
-      <ReviewBanner 
-        icon={<CheckCircle className="w-5 h-5 text-green-500" />} 
+      <ReviewBanner
+        icon={<CheckCircle className="w-5 h-5 text-green-500" />}
         title="Ready to Activate"
         message="Your hospital account is ready to be activated. Some verifications are still in progress but won't delay your access."
         className="mb-6"
@@ -251,9 +250,7 @@ const Step4 = () => {
   );
 
   const Page2 = () => (
-    <div className="max-w-4xl mx-auto p-6 bg-white">
-      <SectionHeader title="Review and Sign Agreement" subtitle="Review your & verification details and submit for Account Activation" />
-
+    <div className="max-w-[700px] mx-auto">
       <ProgressBar step={2} total={2} />
 
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-start">
@@ -303,7 +300,7 @@ const Step4 = () => {
             </div>
             <p className="text-gray-600 text-sm mb-4">Sign digitally using Aadhar eSign and Upload Pan card</p>
           </div>
-          
+
           <div className="flex gap-4 items-center">
             <ActionButton variant="pancard" className='h-10'>Use Aadhar eSign</ActionButton>
             <ActionButton variant="pancard" className='h-10'>Upload Pancard</ActionButton>
@@ -314,13 +311,20 @@ const Step4 = () => {
   );
 
   return (
-    <div className="min-h-screen bg-white">
-      {formError && (
-        <div className="max-w-2xl mx-auto p-2">
-          <span className="text-red-500 text-sm font-semibold">{formError}</span>
-        </div>
-      )}
-      {currentSubStep === 1 ? <Page1 /> : <Page2 />}
+    <div className="flex flex-col h-full bg-white rounded-md shadow-sm overflow-hidden">
+      <RegistrationHeader
+        title="Review and Sign Agreement"
+        subtitle="Review your & verification details and submit for Account Activation"
+      />
+
+      <div className="flex-1 overflow-y-auto p-8">
+        {formError && (
+          <div className="max-w-2xl mx-auto p-2">
+            <span className="text-red-500 text-sm font-semibold">{formError}</span>
+          </div>
+        )}
+        {currentSubStep === 1 ? <Page1 /> : <Page2 />}
+      </div>
     </div>
   );
 };

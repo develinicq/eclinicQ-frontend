@@ -77,32 +77,33 @@ function App() {
         <Route path="patients" element={<Patients />} />
         <Route path="settings" element={<Settings />} />
 
-        {/* Registration flow with single routes */}
-        <Route
-          path="register/doctor"
-          element={
-            <RegistrationProvider>
-              <Layout_registration_new />
-            </RegistrationProvider>
-          }
-        />
-        <Route
-          path="register/hospital"
-          element={
-            <RegistrationProvider>
-              <Layout_registration_new />
-            </RegistrationProvider>
-          }
-        />
-        <Route
-          path="register/patient"
-          element={
-            <RegistrationProvider>
-              <Layout_registration_new />
-            </RegistrationProvider>
-          }
-        />
       </Route>
+
+      {/* Registration flow with single routes - Moved outside Layout to remove main sidebar */}
+      <Route
+        path="register/doctor"
+        element={
+          <RegistrationProvider>
+            <Layout_registration_new />
+          </RegistrationProvider>
+        }
+      />
+      <Route
+        path="register/hospital"
+        element={
+          <RegistrationProvider>
+            <Layout_registration_new />
+          </RegistrationProvider>
+        }
+      />
+      <Route
+        path="register/patient"
+        element={
+          <RegistrationProvider>
+            <Layout_registration_new />
+          </RegistrationProvider>
+        }
+      />
 
       <Route path="onboarding" element={<OnboardingFlow />} />
       {/* Unified sign-in for doctor / hospital / fd / hfd */}

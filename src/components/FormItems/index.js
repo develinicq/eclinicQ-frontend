@@ -16,3 +16,4 @@ export { default as ReviewBanner } from './ReviewBanner';
 export { default as ReviewCard } from './ReviewCard';
 export { default as AgreementBox } from './AgreementBox';
 export { default as ActionButton } from './ActionButton';
+export { default as RegistrationHeader } from './RegistrationHeader';
