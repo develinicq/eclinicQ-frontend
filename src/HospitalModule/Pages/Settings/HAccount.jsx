@@ -21,17 +21,29 @@ import {
   Eye,
 } from "lucide-react";
 
-const InfoField = ({ label, value, right, className: Class }) => (
+const InfoField = ({
+  label,
+  value,
+  right,
+  className: Class = "",
+  noBorder = false,
+}) => (
   <div
-    className={`${Class} flex flex-col gap-1 text-[14px] border-b-[0.5px] pb-2 border-secondary-grey100`}
+    className={`
+      ${Class}
+      flex flex-col gap-1 text-[14px] pb-2
+      ${noBorder ? "" : "border-b-[0.5px] border-secondary-grey100"}
+    `}
   >
-    <div className="col-span-4  text-secondary-grey200">{label}</div>
-    <div className="col-span-8 text-secondary-grey400 flex items-center justify-between">
+    <div className="text-secondary-grey200">{label}</div>
+
+    <div className="text-secondary-grey400 flex items-center justify-between">
       <span className="truncate">{value || "-"}</span>
       {right}
     </div>
   </div>
 );
+
 
 
   
@@ -45,12 +57,14 @@ const SectionCard = ({
   headerRight,
   children,
 }) => (
-  <div className="px-4 py-3 flex flex-col gap-3 bg-white rounded-lg ">
-    <div className="flex items-center justify-between">
+  <div className="px-4 py-3 flex flex-col gap-3 bg-white rounded-lg">
+    <div className="flex items-start justify-between">
       {/* LEFT */}
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-1">
         <div className="flex items-center gap-1 text-sm">
-          <div className="font-medium text-[14px] text-gray-900">{title}</div>
+          <div className="font-medium text-[14px] text-gray-900">
+            {title}
+          </div>
 
           {subtitle && (
             <div className="px-1 py-[2px] bg-secondary-grey50 rounded-md text-[12px] text-gray-500">
@@ -58,37 +72,43 @@ const SectionCard = ({
             </div>
           )}
         </div>
-
-        {subo && (
-          <div className="flex gap-1 text-[12px] text-secondary-grey200">
-            <span>{subo}</span>
-            <span className="text-blue-primary250">Call Us</span>
-          </div>
-        )}
       </div>
 
       {/* RIGHT */}
-      <div className="flex items-center gap-3 shrink-0">
-        {headerRight}
-
-        {Icon && (
-          <button
-            onClick={onIconClick}
-            className="p-1 text-gray-500 hover:bg-gray-50"
-          >
-            {typeof Icon === "string" ? (
-              <img src={Icon} alt="icon" className="w-7 h-7" />
-            ) : (
-              <Icon className="w-7 h-7" />
-            )}
-          </button>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        {/* subo on top right */}
+        {subo && (
+          <div className="flex gap-1 text-[12px] text-secondary-grey200">
+            <span>{subo}</span>
+            <span className="text-blue-primary250 cursor-pointer">
+              Call Us
+            </span>
+          </div>
         )}
+
+        <div className="flex items-center gap-3">
+          {headerRight}
+
+          {Icon && (
+            <button
+              onClick={onIconClick}
+              className="p-1 text-gray-500 hover:bg-gray-50"
+            >
+              {typeof Icon === "string" ? (
+                <img src={Icon} alt="icon" className="w-7 h-7" />
+              ) : (
+                <Icon className="w-7 h-7" />
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
 
     <div>{children}</div>
   </div>
 );
+
 
 
 
@@ -324,12 +344,13 @@ const {
                         {profile.about}
                       </p>
                     }
+                    noBorder
                   />
 
                 </div>
                  
                         <div className="text-[13px] text-gray-500 mb-2">
-                    Clinic Photos
+                    Hospital Photos
                   </div>
                  {/* <SectionCard variant="subtle" title="Hospital Photos"> */}
               <div className="flex items-center gap-3 overflow-x-auto">
@@ -361,7 +382,7 @@ const {
               onIconClick={() => setShowEditSpecialties(true)}
             >
               <div className="flex flex-wrap gap-2">
-                {profile.specialties.map((s,i)=>(<span key={i} className="text-xs px-2 py-1 rounded border bg-gray-50 text-gray-700">{s}</span>))}
+                {profile.specialties.map((s,i)=>(<span key={i} className="text-xs px-2 py-1 hover:border-blue-primary250 hover:text-blue-primary250 rounded border bg-gray-50 text-gray-700">{s}</span>))}
               </div>
             </SectionCard>
 
@@ -375,7 +396,7 @@ const {
               onIconClick={() => setShowEditServices(true)}
             >
               <div className="flex flex-wrap gap-2">
-                {profile.services.map((s,i)=>(<span key={i} className="text-xs px-2 py-1 rounded border bg-gray-50 text-gray-700">{s}</span>))}
+                {profile.services.map((s,i)=>(<span key={i} className="text-xs  hover:border-blue-primary250 hover:text-blue-primary250 px-2 py-1 rounded border bg-gray-50 text-gray-700">{s}</span>))}
               </div>
             </SectionCard>
 
