@@ -1,7 +1,7 @@
-
+import { ChevronDown } from 'lucide-react'
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { bell, stethoscopeBlue, hospitalIcon, patientunselect, appointement ,chevdown} from '../../public/index.js'
+import { bell, stethoscopeBlue, hospitalIcon, patientUnselect, appointement } from '../../public/index.js'
 import NotificationDrawer from './NotificationDrawer.jsx'
 import AddPatientDrawer from './PatientList/AddPatientDrawer.jsx'
 import BookAppointmentDrawer from './Appointment/BookAppointmentDrawer.jsx'
@@ -78,7 +78,7 @@ const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment, onIn
           className="w-full rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
         >
           <div className="w-4 h-4 flex items-center justify-center ml-1">
-            <img src={patientunselect} alt="Add Patient" />
+            <img src={patientUnselect} alt="Add Patient" />
           </div>
           <span className="text-[#424242] font-normal text-sm">Add Patient</span>
         </button>
@@ -187,7 +187,7 @@ const Navbar = () => {
             >
               <span className='text-white text-sm font-medium'>Add New</span>
               <div className='flex border-l border-blue-400 pl-1'>
-               <img src={chevdown} alt="chevron down" className='text-white' />
+                <ChevronDown className={`w-4 h-4 text-white transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </div>
             </button>
             <AddNewDropdown isOpen={isDropdownOpen} onClose={closeDropdown} onAddPatient={() => setAddPatientOpen(true)} onBookAppointment={() => setBookApptOpen(true)} onInviteStaff={() => setInviteOpen(true)} />
