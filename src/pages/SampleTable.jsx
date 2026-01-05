@@ -171,6 +171,11 @@ export default function SampleTable({
 
   return (
     <div className="flex flex-col h-full z-10 rounded-xl  no-scrollbar border-secondary-grey100/50 bg-white overflow-hidden">
+      <style>{`
+        tr:has(.ns-cell:hover) .ns-cell {
+          background-color: #F9F9F9;
+        }
+      `}</style>
       {/* Scroll Area: flex-1 to take available space */}
       <div className="flex-1 no-scrollbar overflow-auto">
         <table
@@ -245,9 +250,14 @@ export default function SampleTable({
                 {columns.map((col) => {
                   // Prevent wrapping; keep sticky widths only on sticky columns
                   const base =
-                    "px-3 min-h-[54px] py-2 bg-white relative whitespace-normal text-left break-words align-middle";
+                    "px-3 min-h-[54px] py-2 bg-white relative whitespace-normal text-left break-words align-middle transition-colors";
 
-                  const hoverClass = col.sticky === 'left' ? 'hover:bg-secondary-grey50' : 'group-hover:bg-secondary-grey50';
+                  const isSticky = col.sticky === 'left' || col.sticky === 'right';
+                  // Sticky cells: highlight individually on hover
+                  // Non-sticky cells: highlight ONLY when a fellow non-sticky cell is hovered (via CSS below)
+                  const hoverClass = isSticky
+                    ? ' hover:bg-secondary-grey50'
+                    : ' ns-cell';
 
                   const stickyLeft =
                     col.sticky === "left" ? " bg-white sticky left-0 z-30" : ""; // below header (z-50)

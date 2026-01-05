@@ -69,7 +69,7 @@ export default function HTiming() {
                               newSessions[sIdx] = { ...newSessions[sIdx], endTime: e.target.value }
                               handleUpdate({ sessions: newSessions })
                             }}
-                            className="w-[160px]"
+                            className=""
                           />
                         </div>
 

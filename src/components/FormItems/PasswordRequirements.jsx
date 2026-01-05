@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import React from 'react';
 const tick = '/tick.svg'
+const green ='/tick_green.svg'
 
 const requirements = [
   {
@@ -33,7 +34,7 @@ const PasswordRequirements = ({ password }) => (
         const passed = req.test(password);
         return (
           <li key={idx} className={passed ? 'text-success-300 flex items-center gap-1' : 'text-secondary-grey200 flex gap-1 items-center'}>
-            <span className="mr-1">{passed ? <Check />: <img src={tick} alt="" />}</span>
+            <span className="mr-1">{passed ? <img src={green} alt="" />: <img src={tick} alt="" />}</span>
             {req.label}
           </li>
         );

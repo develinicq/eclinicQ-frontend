@@ -65,7 +65,7 @@ const TimeInput = ({
   return (
     <div className={`relative ${className}`} ref={ref}>
       <div
-        className={`h-8 p-2 text-sm border-[0.5px] border-secondary-grey200 text-secondary-grey400 rounded flex items-center justify-between w-[160px] ${disabled ? "bg-secondary-grey50 cursor-not-allowed" : "bg-white"
+        className={`h-8 p-2 text-sm border-[0.5px] border-secondary-grey200 text-secondary-grey400 rounded flex items-center gap-4 ${disabled ? "bg-secondary-grey50 cursor-not-allowed" : "bg-white"
           }`}
       >
         <span className="">{displayLabel}</span>
