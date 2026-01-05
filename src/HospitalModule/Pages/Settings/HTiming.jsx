@@ -49,8 +49,8 @@ export default function HTiming() {
                 {!is24Hours && sessions && (
                   <div className="space-y-4">
                     {sessions.map((session, sIdx) => (
-                      <div key={sIdx} className="flex flex-wrap items-center justify-between">
-                        <div className='flex items-center gap-3'>
+                      <div key={sIdx} className="flex items-center justify-between min-w-0 mb-3 last:mb-0">
+                        <div className='flex items-center gap-2 min-w-0'>
                           <span className="text-sm whitespace-nowrap text-secondary-grey300">Availability Time:</span>
                           <TimeInput
                             value={session.startTime}

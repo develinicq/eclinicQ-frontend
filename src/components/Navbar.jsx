@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, User, LogOut, ChevronRight } from 'lucide-react'
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { bell, stethoscopeBlue, hospitalIcon, patientUnselect, appointement } from '../../public/index.js'
@@ -210,32 +210,37 @@ const Navbar = () => {
               <AvatarCircle name={'Super Admin'} size='s' color='orange' />
             </button>
             {showProfile && (
-              <div className='absolute top-10 right-0 w-72 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-50'>
-                <div className='p-4 flex items-start gap-3'>
-                  <AvatarCircle name={'Super Admin'} size='md' color='orange' />
-                  <div className='flex flex-col'>
-                    <div className='text-sm font-semibold text-gray-900'>Super Admin</div>
-                    <div className='text-xs text-gray-600'>Hospital Workspace</div>
-                  </div>
+              <div className='absolute top-12 right-0 w-[326px] bg-white border border-gray-100 rounded-lg shadow-xl overflow-hidden z-50'>
+                <div className='p-4 flex items-center gap-3 border-b '>
+                  <AvatarCircle
+                    name={'Super Admin'}
+                    size='md'
+                    color='grey'
+      
+                  ></AvatarCircle>
+                  <span className='text-secondary-grey400 font-semibold text-[16px]'>Super Admin</span>
                 </div>
-                <div className='px-4 pb-3 space-y-2 text-xs'>
-                  <div className='flex items-center gap-2 text-gray-700'>
-                    <span className='text-[#597DC3] font-medium'>Role</span>
-                    <span>Super Admin</span>
-                  </div>
-                  <div className='flex items-center gap-2 text-gray-700'>
-                    <span className='text-[#597DC3] font-medium'>Context</span>
-                    <span>Hospitals</span>
-                  </div>
-                </div>
-                <div className='border-t border-gray-200 divide-y text-sm'>
-                  <button className='w-full flex items-center justify-between px-4 h-10 hover:bg-gray-50 text-gray-700'>
-                    <span className='flex items-center gap-2 text-[13px]'>Manage Account</span>
+
+               
+
+                <div className='p-2 flex flex-col gap-1'>
+                  <button className='w-full flex items-center h-8 justify-between  hover:bg-gray-50 transition-colors group px-2'>
+                    <div className='flex items-center gap-2'>
+                      <User className='w-[18px] h-[18px] text-gray-500 stroke-[1.5px]' />
+                      <span className='text-secondary-grey400 text-sm font-normal'>My Profile</span>
+                    </div>
+                    <ChevronRight className='w-4 h-4 text-gray-400' />
                   </button>
-                  <button className='w-full flex items-center justify-between px-4 h-10 hover:bg-gray-50 text-gray-700'>
-                    <span className='flex items-center gap-2 text-[13px]'>Logout</span>
+
+                  <button className='w-full flex items-center h-8 justify-between px-2  hover:bg-gray-50 transition-colors group'>
+                    <div className='flex items-center gap-2'>
+                      <LogOut className='w-[18px] h-[18px] text-gray-500 stroke-[1.5px]' />
+                      <span className='text-secondary-grey400 text-sm font-normal'>Logout</span>
+                    </div>
+                    <ChevronRight className='w-4 h-4 text-gray-400' />
                   </button>
                 </div>
+
               </div>
             )}
           </div>

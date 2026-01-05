@@ -65,7 +65,7 @@ const TimeInput = ({
   return (
     <div className={`relative ${className}`} ref={ref}>
       <div
-        className={`h-8 p-2 text-sm border-[0.5px] border-secondary-grey200 text-secondary-grey400 rounded flex items-center gap-4 ${disabled ? "bg-secondary-grey50 cursor-not-allowed" : "bg-white"
+        className={`h-8 p-2 text-[13px] border-[0.5px] border-secondary-grey200 text-secondary-grey400 rounded flex items-center gap-3 whitespace-nowrap ${disabled ? "bg-secondary-grey50 cursor-not-allowed" : "bg-white"
           }`}
       >
         <span className="">{displayLabel}</span>
@@ -90,8 +90,8 @@ const TimeInput = ({
                 <button
                   key={h}
                   className={`w-[2rem] aspect-square flex items-center justify-center text-xs rounded-lg font-medium p-0 ${h === parsed.h12
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-700 hover:bg-gray-100"
                     }`}
                   onClick={() => update({ h12: h })}
                 >
@@ -113,8 +113,8 @@ const TimeInput = ({
                 <button
                   key={m}
                   className={`w-full aspect-square flex items-center justify-center text-xs rounded-lg font-medium p-1 ${m === parsed.m
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-700 hover:bg-gray-100"
                     }`}
                   onClick={() => update({ m })}
                 >
@@ -136,8 +136,8 @@ const TimeInput = ({
                 <button
                   key={ap}
                   className={`w-full aspect-square flex items-center justify-center text-xs rounded-lg font-medium p-1 ${ap === parsed.ap
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-700 hover:bg-gray-100"
                     }`}
                   onClick={() => update({ ap })}
                 >

@@ -2014,7 +2014,7 @@ const Doc_settings = () => {
                               setConsultationDirty(true);
                             }}
                           />
-                          <div className="text-sm text-secondary-grey300 whitespace-nowrap h-5 w-[8.5px] opacity-50">|</div>
+                          <div className="text-sm text-secondary-grey300 whitespace-nowrap h-5 w-[8px] opacity-50">|</div>
                           <span className="text-sm text-secondary-grey300 whitespace-nowrap">
                             Token Available:
                           </span>
