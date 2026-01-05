@@ -1,7 +1,7 @@
 import { Search, Mail, Phone, User, HelpCircle, LogOut, ChevronRight } from 'lucide-react';
 import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { bell } from '../../../public/index.js';
+import { bell } from '../../../public/';
 import useAuthStore from '../../store/useAuthStore';
 import AvatarCircle from '../../components/AvatarCircle';
 import NotificationDrawer from '../../components/NotificationDrawer.jsx';

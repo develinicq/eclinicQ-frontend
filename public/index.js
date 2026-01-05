@@ -21,18 +21,25 @@ import package2 from "./package_page/2.png";
 import package3 from "./package_page/3.png";
 import package4 from "./package_page/4.png";
 
-// Sidebar Registration Steps Icons
-import accountBlue from "./icons/Sidebar/Registration_Steps/Account/account_blue.png";
+// Sidebar Registration Steps Icons Supe-Admin
+import accountBlue from "./superAdmin/sideBar/accountBlue.svg";
+import hospitalIcon from "./superAdmin/sideBar/ hospitalIcon.svg";
+import documentBlue from "./superAdmin/sideBar/documentBlue.svg";
+import reviewBlue from "./superAdmin/sideBar/reviewBlue.svg";
+import packageBlue from "./superAdmin/sideBar/packageBlue.svg";
+import checkCircle from './superAdmin/sideBar/checkCircle.svg';
+import ChevronRight from './superAdmin/sideBar/chevronRight.svg';
+
 import stethoscope from "./icons/Sidebar/Registration_Steps/Doctor/sthesoscope.png";
 import stethoscopeBlue from "./icons/Sidebar/Registration_Steps/Doctor/sthesoscope_blue.png";
 import document from "./icons/Sidebar/Registration_Steps/Document/document.png";
-import documentBlue from "./icons/Sidebar/Registration_Steps/Document/document_blue.png";
-import hospitalIcon from "./icons/Sidebar/Registration_Steps/Hospital/hospital.png";
+
+
 import hospitalGrey from "./icons/Sidebar/Registration_Steps/Hospital/hospital_grey.png";
-import packageIcon from "./icons/Sidebar/Registration_Steps/Package/package.png";
-import packageBlue from "./icons/Sidebar/Registration_Steps/Package/package_blue.png";
+// import packageIcon from "./icons/Sidebar/Registration_Steps/Package/package.png";
+
 import review from "./icons/Sidebar/Registration_Steps/Review/review.png";
-import reviewBlue from "./icons/Sidebar/Registration_Steps/Review/review_blue.png";
+
 
 // Sidebar MainSidebar Icons
 import dashboardSelected from "./icons/Sidebar/MainSidebar/dashboard_selected.png";
@@ -129,6 +136,7 @@ import dangerIcon from "./danger-icon.svg";
 
 export {
   // Root PNGs
+  
   checkbox,
   iIcon,
   logo,
@@ -146,13 +154,15 @@ export {
   package4,
   // Sidebar Registration Steps Icons
   accountBlue,
+  ChevronRight,
+  checkCircle,
   stethoscope,
   stethoscopeBlue,
   document,
   documentBlue,
   hospitalIcon,
   hospitalGrey,
-  packageIcon,
+  // packageIcon,
   packageBlue,
   review,
   reviewBlue,
