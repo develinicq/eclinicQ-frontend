@@ -92,11 +92,13 @@ const Settings = () => {
   const [showEmailAuthPopup, setShowEmailAuthPopup] = useState(false)
   const [showAddEmailPopup, setShowAddEmailPopup] = useState(false)
   const [showNewEmailVerifyPopup, setShowNewEmailVerifyPopup] = useState(false)
+  const [showPasswordAuthPopup, setShowPasswordAuthPopup] = useState(false)
   const [newEmailAddress, setNewEmailAddress] = useState('')
 
   const [otpAuthMobile, setOtpAuthMobile] = useState(new Array(6).fill(""))
   const [otpAuthEmail, setOtpAuthEmail] = useState(new Array(6).fill(""))
   const [otpVerifyNewEmail, setOtpVerifyNewEmail] = useState(new Array(6).fill(""))
+
 
   // Refs
   const otpAuthMobileRefs = useRef([])
@@ -143,6 +145,37 @@ const Settings = () => {
       setEmail(newEmailAddress);
       setNewEmailAddress('');
       alert("Email ID updated successfully!");
+    }, 2000);
+  }
+
+  const handlePasswordVerifyClick = () => {
+    // Validation bypassed for testing as requested
+    /*
+    if (!currentPwd || !newPwd || !confirmPwd) {
+      alert("Please fill all password fields");
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      alert("New password and confirm password do not match");
+      return;
+    }
+    */
+    setOtpAuthMobile(new Array(6).fill(""));
+    setOtpAuthEmail(new Array(6).fill(""));
+    setShowPasswordAuthPopup(true);
+  }
+
+  const handlePasswordAuthVerify = () => {
+    setIsVerifying(true);
+    setTimeout(() => {
+      setIsVerifying(false);
+      setShowPasswordAuthPopup(false);
+      setCurrentPwd('');
+      setNewPwd('');
+      setConfirmPwd('');
+      setOtpAuthMobile(new Array(6).fill(""));
+      setOtpAuthEmail(new Array(6).fill(""));
+      alert("Password updated successfully!");
     }, 2000);
   }
 
@@ -480,11 +513,66 @@ const Settings = () => {
         {/* Actions */}
         <div className="flex items-center">
           <button
+            onClick={handlePasswordVerifyClick}
             className={`h-8 px-4 rounded-sm text-sm font-medium bg-blue-primary250 text-white hover:bg-blue-600 transition-colors shadow-sm`}
           >
             Send OTP and Verify
           </button>
         </div>
+
+        {/* Password Change Auth Popup */}
+        <DetailPopup
+          isOpen={showPasswordAuthPopup}
+          heading="Let’s authenticate Your Account"
+          subHeading={
+            <>
+              For your security, please verify your existing account information. <br />
+              Enter 6-digit OTP sent on your mobile number (*******487) and email (*******@*****)
+            </>
+          }
+          onCancel={() => setShowPasswordAuthPopup(false)}
+          onVerify={handlePasswordAuthVerify}
+          isVerifying={isVerifying}
+          isVerifyDisabled={!isEmailAuthValid}
+        >
+          <div className="flex flex-col items-center gap-6">
+            {/* Mobile OTP */}
+            <div className="flex flex-col items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Enter Mobile Verification Code</label>
+              <div className="flex gap-3 justify-center">
+                {otpAuthMobile.map((data, index) => (
+                  <input
+                    className="w-10 h-10 border border-secondary-grey150 rounded-md text-center text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                    type="text" maxLength="1" key={index} value={data}
+                    ref={el => otpAuthMobileRefs.current[index] = el}
+                    onChange={e => createOtpHandler(setOtpAuthMobile, otpAuthMobile, otpAuthMobileRefs)(e.target, index)}
+                    onKeyDown={e => createKeyDownHandler(otpAuthMobile, otpAuthMobileRefs)(e, index)}
+                    onFocus={e => e.target.select()}
+                  />
+                ))}
+              </div>
+            </div>
+            {/* Email OTP */}
+            <div className="flex flex-col items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Enter Email Verification Code</label>
+              <div className="flex gap-3 justify-center">
+                {otpAuthEmail.map((data, index) => (
+                  <input
+                    className="w-10 h-10 border border-secondary-grey150 rounded-md text-center text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                    type="text" maxLength="1" key={index} value={data}
+                    ref={el => otpAuthEmailRefs.current[index] = el}
+                    onChange={e => createOtpHandler(setOtpAuthEmail, otpAuthEmail, otpAuthEmailRefs)(e.target, index)}
+                    onKeyDown={e => createKeyDownHandler(otpAuthEmail, otpAuthEmailRefs)(e, index)}
+                    onFocus={e => e.target.select()}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              Haven’t Received Your Code yet? <button className="text-blue-600 font-medium hover:underline">Resend</button>
+            </div>
+          </div>
+        </DetailPopup>
         <a
           href="#"
           onClick={(e) => e.preventDefault()}

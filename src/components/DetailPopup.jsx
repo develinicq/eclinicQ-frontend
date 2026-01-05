@@ -18,7 +18,7 @@ const DetailPopup = ({
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 ">
-            <div className="w-[500px] bg-white rounded-xl shadow-lg p-8 flex flex-col items-center animate-in fade-in zoom-in duration-200">
+            <div className="w-[510px] bg-white rounded-xl shadow-lg p-8 flex flex-col items-center animate-in fade-in zoom-in duration-200">
 
                 {/* Heading */}
                 <h2 className="text-[24px] font-bold text-secondary-grey400 mb-2 text-center">
