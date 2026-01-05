@@ -37,7 +37,8 @@ import patientunselect from "./superAdmin/Add_new/patientUnselect.svg";
 import arrowRight from "./superAdmin/main_sidebar/arrowRight.svg";
 import hospitalGrey from "./icons/Sidebar/Registration_Steps/Hospital/hospital_grey.png";
 // import packageIcon from "./icons/Sidebar/Registration_Steps/Package/package.png";
-
+import Eye from "./superAdmin/Doctors/Eye.svg";
+import threedots from "./superAdmin/Doctors/Threedots.svg";
 import review from "./icons/Sidebar/Registration_Steps/Review/review.png";
 import userAvatar from "./superAdmin/dashboard/useravatar.svg";
 import calenderCheck from "./superAdmin/dashboard/calendarCheck.svg";
@@ -45,9 +46,9 @@ import angledown from "./superAdmin/dashboard/angledown.svg";
 
 // Sidebar MainSidebar Icons
 import dashboardSelected from "./superAdmin/main_sidebar/dashboardSelected.svg";
-import dashboardUnselect from "./icons/Sidebar/MainSidebar/dashboard_unselect.png";
+import dashboardUnselect from "./superAdmin/main_sidebar/dashboardUnselect.svg";
 import doctorSelect from "./superAdmin/main_sidebar/doctorSelect.svg";
-import doctorUnselect from "./icons/Sidebar/MainSidebar/doctor_unselect.png";
+import doctorUnselect from "./superAdmin/main_sidebar/doctorUnselect.svg";
 import hospitalSelected from "./superAdmin/main_sidebar/hospitalSelected.svg";
 import hospitalUnselect from "./icons/Sidebar/MainSidebar/hospital_unselect.png";
 import patientUnselect from "./superAdmin/main_sidebar/patientUnselect.svg";
@@ -119,14 +120,14 @@ import arrowLeft from "./arrow-left.svg";
 
 import verifiedTick from "./verified-tick.svg";
 import inviteUserIcon from "./invite-user-icon.svg";
-import searchIcon from "./search-icon.svg";
+import searchIcon from "./superAdmin/Doctors/SearchIcon.svg";
 import drawerCross from "./drawer-cross.svg";
 import calenderArrowLeft from "./calender-arrow-left.svg";
 import calenderArrowRight from "./calender-arrow-right.svg";
 import calenderUndo from "./calender-undo.svg";
 import queueUndo from "./queue-undo.svg";
 import angelDown from "./angel-down.svg";
-import filerIcon from "./filter-icon.svg";
+import filerIcon from "./superAdmin/Doctors/filterIcon.svg";
 import sortIcon from "./sort-icon.svg";
 import paginationDown from "./pagination-down.svg";
 import downloadIcon from "./download-icon.svg";
@@ -159,6 +160,7 @@ export {
   // Sidebar Registration Steps Icons
  userAvatar,
  angledown,
+ Eye,
   patientunselect,
   accountBlue,
   ChevronRight,
@@ -170,6 +172,7 @@ export {
   hospitalIcon,
   hospitalGrey,
   calenderCheck,
+  threedots,
   // packageIcon,
   hospitalicon,
   packageBlue,

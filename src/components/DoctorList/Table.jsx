@@ -1,8 +1,8 @@
-import { MoreVertical, Eye, ChevronsUpDown } from "lucide-react";
+import { MoreVertical,  ChevronsUpDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AvatarCircle from "../AvatarCircle";
 import Badge from "../Badge";
-
+import { Eye,threedots } from "/Users/khushiagrawal1367/Desktop/eclinicQ-frontend/public/index.js";
 export default function Table({ doctors = [] }) {
   const navigate = useNavigate();
 
@@ -89,11 +89,11 @@ export default function Table({ doctors = [] }) {
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1 text-gray-600" onClick={(e) => e.stopPropagation()}>
                       <button className="p-1.5 rounded hover:bg-gray-100" aria-label="View" onClick={() => openDoctor(doc)}>
-                        <Eye className="h-4 w-4" />
+                        <img src={Eye} alt="eye" />
                       </button>
                       <span className="mx-2 h-4 w-px bg-gray-200" aria-hidden="true" />
                       <button className="p-1.5 rounded hover:bg-gray-100" aria-label="More">
-                        <MoreVertical className="h-4 w-4" />
+                        <img src={threedots} alt="more" />
                       </button>
                     </div>
                   </td>
