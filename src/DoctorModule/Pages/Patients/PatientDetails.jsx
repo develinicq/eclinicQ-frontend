@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { MoreHorizontal, CheckCircle, MoveUp } from "lucide-react";
 import AvatarCircle from "../../../components/AvatarCircle";
 import Badge from "../../../components/Badge";
@@ -15,6 +15,7 @@ import { getPatientVitalsForDoctor } from "../../../services/doctorService";
 
 export default function PatientDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   // load patient details (overview & demographics) by id param
   const [patient, setPatient] = useState(
     history.state?.usr?.patient || history.state?.patient || {}
@@ -54,14 +55,13 @@ export default function PatientDetails() {
           address: contactInfo.address || prev.address || null,
           lastVisit:
             lastVisit.date && (lastVisit.time || lastVisit.time === null)
-              ? `${new Date(lastVisit.date).toLocaleDateString("en-GB")} | ${
-                  lastVisit.time
-                    ? new Date(lastVisit.time).toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })
-                    : ""
-                }`
+              ? `${new Date(lastVisit.date).toLocaleDateString("en-GB")} | ${lastVisit.time
+                ? new Date(lastVisit.time).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+                : ""
+              }`
               : prev.lastVisit || "",
           // accept either nested doctor object or a direct doctorName field
           lastVisitDoctor:
@@ -154,6 +154,7 @@ export default function PatientDetails() {
       <div className="bg-white px-4 py-3 border border-gray-200  flex items-center justify-between">
         <div className="flex items-center gap-[10px]">
           <button
+            onClick={() => navigate(-1)}
             className="
               w-6 h-6 p-1 rounded
               opacity-100
@@ -341,21 +342,19 @@ export default function PatientDetails() {
               <div className="w-[100%] h-10 px-2 bg-white opacity-100 border-b-[1.5px] border-[#D6D6D6] flex gap-[4px]">
                 <button
                   onClick={() => setLeftTab("overview")}
-                  className={`${
-                    leftTab === "overview"
-                      ? "h-10 py-1 gap-1 opacity-100 border-b-[2px] border-[#2372EC]"
-                      : "h-10 py-1 gap-1 opacity-100 border-b-[1px] text-gray-600 hover:text-gray-800"
-                  }`}
+                  className={`${leftTab === "overview"
+                    ? "h-10 py-1 gap-1 opacity-100 border-b-[2px] border-[#2372EC]"
+                    : "h-10 py-1 gap-1 opacity-100 border-b-[1px] text-gray-600 hover:text-gray-800"
+                    }`}
                 >
                   Overview
                 </button>
                 <button
                   onClick={() => setLeftTab("demographics")}
-                  className={`${
-                    leftTab === "demographics"
-                      ? "h-10 px-[6px] py-1 gap-1 opacity-100 border-b-[2px] border-[#2372EC]"
-                      : "h-10 px-[6px] py-1 gap-1 opacity-100 border-b-[1px] text-gray-600 hover:text-gray-800"
-                  }`}
+                  className={`${leftTab === "demographics"
+                    ? "h-10 px-[6px] py-1 gap-1 opacity-100 border-b-[2px] border-[#2372EC]"
+                    : "h-10 px-[6px] py-1 gap-1 opacity-100 border-b-[1px] text-gray-600 hover:text-gray-800"
+                    }`}
                 >
                   Demographics
                 </button>
@@ -523,20 +522,18 @@ export default function PatientDetails() {
                               />
                             </svg>
                             {patient.address &&
-                            (patient.address.blockNo ||
-                              patient.address.areaStreet ||
-                              patient.address.city ||
-                              patient.address.state)
-                              ? `${patient.address.areaStreet || ""}${
-                                  patient.address.areaStreet &&
-                                  patient.address.city
-                                    ? ", "
-                                    : ""
-                                }${patient.address.city || ""}${
-                                  patient.address.state
-                                    ? " - " + patient.address.state
-                                    : ""
-                                }`
+                              (patient.address.blockNo ||
+                                patient.address.areaStreet ||
+                                patient.address.city ||
+                                patient.address.state)
+                              ? `${patient.address.areaStreet || ""}${patient.address.areaStreet &&
+                                patient.address.city
+                                ? ", "
+                                : ""
+                              }${patient.address.city || ""}${patient.address.state
+                                ? " - " + patient.address.state
+                                : ""
+                              }`
                               : "Jawahar Nagar , Jaipur - Rajasthan"}
                           </div>
                           {patient.address && patient.address.city ? (
@@ -580,7 +577,7 @@ export default function PatientDetails() {
                               "English/Hindi/Marathi"}
                           </div>
                           {patient.demographics &&
-                          patient.demographics.contactDetails ? (
+                            patient.demographics.contactDetails ? (
                             <CheckCircle className="h-4 w-4 text-green-500" />
                           ) : null}
                         </div>
@@ -655,74 +652,73 @@ export default function PatientDetails() {
                           ).toLocaleDateString("en-GB")) ||
                           "Recorded on —"}
                         {patient.lastRecordedVitals.recordedBy
-                          ? ` by ${
-                              patient.lastRecordedVitals.recordedBy.name ||
-                              patient.lastRecordedVitals.recordedBy
-                            }`
+                          ? ` by ${patient.lastRecordedVitals.recordedBy.name ||
+                          patient.lastRecordedVitals.recordedBy
+                          }`
                           : ""}
                       </div>
                       <div className="text-sm text-gray-700 space-y-1">
                         {/** handle a few possible shapes: entries array, measurements object, or flat key-values */}
                         {Array.isArray(patient.lastRecordedVitals.entries) &&
-                        patient.lastRecordedVitals.entries.length > 0
+                          patient.lastRecordedVitals.entries.length > 0
                           ? patient.lastRecordedVitals.entries.map((e, i) => (
-                              <div key={i} className="flex justify-between">
-                                <span>{e.name || e.label || e.key}:</span>{" "}
-                                <span>
-                                  {e.value}
-                                  {e.unit ? ` ${e.unit}` : ""}
-                                </span>
-                              </div>
-                            ))
+                            <div key={i} className="flex justify-between">
+                              <span>{e.name || e.label || e.key}:</span>{" "}
+                              <span>
+                                {e.value}
+                                {e.unit ? ` ${e.unit}` : ""}
+                              </span>
+                            </div>
+                          ))
                           : // iterate over object keys excluding metadata
-                            Object.keys(patient.lastRecordedVitals)
-                              .filter(
-                                (k) =>
-                                  ![
-                                    "recordedOn",
-                                    "recordedBy",
-                                    "entries",
-                                  ].includes(k)
-                              )
-                              .map((k) => {
-                                const v = patient.lastRecordedVitals[k];
-                                // if nested object has value/unit
-                                if (
-                                  v &&
-                                  typeof v === "object" &&
-                                  ("value" in v || "unit" in v)
-                                ) {
-                                  return (
-                                    <div
-                                      key={k}
-                                      className="flex justify-between"
-                                    >
-                                      <span>
-                                        {k.replace(/([A-Z])/g, " $1")}:
-                                      </span>
-                                      <span>
-                                        {v.value}
-                                        {v.unit ? ` ${v.unit}` : ""}
-                                      </span>
-                                    </div>
-                                  );
-                                }
-                                // primitive
-                                if (v !== null && v !== undefined && v !== "") {
-                                  return (
-                                    <div
-                                      key={k}
-                                      className="flex justify-between"
-                                    >
-                                      <span>
-                                        {k.replace(/([A-Z])/g, " $1")}:
-                                      </span>
-                                      <span>{String(v)}</span>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })}
+                          Object.keys(patient.lastRecordedVitals)
+                            .filter(
+                              (k) =>
+                                ![
+                                  "recordedOn",
+                                  "recordedBy",
+                                  "entries",
+                                ].includes(k)
+                            )
+                            .map((k) => {
+                              const v = patient.lastRecordedVitals[k];
+                              // if nested object has value/unit
+                              if (
+                                v &&
+                                typeof v === "object" &&
+                                ("value" in v || "unit" in v)
+                              ) {
+                                return (
+                                  <div
+                                    key={k}
+                                    className="flex justify-between"
+                                  >
+                                    <span>
+                                      {k.replace(/([A-Z])/g, " $1")}:
+                                    </span>
+                                    <span>
+                                      {v.value}
+                                      {v.unit ? ` ${v.unit}` : ""}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              // primitive
+                              if (v !== null && v !== undefined && v !== "") {
+                                return (
+                                  <div
+                                    key={k}
+                                    className="flex justify-between"
+                                  >
+                                    <span>
+                                      {k.replace(/([A-Z])/g, " $1")}:
+                                    </span>
+                                    <span>{String(v)}</span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
                       </div>
                     </div>
                   ) : (
@@ -821,7 +817,7 @@ export default function PatientDetails() {
                               <span className="text-xs text-gray-500">
                                 {d.relation
                                   ? d.relation.charAt(0) +
-                                    d.relation.slice(1).toLowerCase()
+                                  d.relation.slice(1).toLowerCase()
                                   : "Dependant"}
                               </span>
                             </div>
@@ -854,31 +850,28 @@ export default function PatientDetails() {
               <div className="h-10 gap-2 px-2 opacity-100 border-b-[0.5px] border-[#D6D6D6]">
                 <button
                   onClick={() => setRightTab("vitals")}
-                  className={`h-10 px-2 ${
-                    rightTab === "vitals"
-                      ? "text-blue-600 border-b-2 border-blue-600"
-                      : "text-gray-600 hover:text-gray-800"
-                  }`}
+                  className={`h-10 px-2 ${rightTab === "vitals"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                    }`}
                 >
                   Vitals & Biometrics
                 </button>
                 <button
                   onClick={() => setRightTab("appointment")}
-                  className={`h-10 px-2 ${
-                    rightTab === "appointment"
-                      ? "text-blue-600 border-b-2 border-blue-600"
-                      : "text-gray-600 hover:text-gray-800"
-                  }`}
+                  className={`h-10 px-2 ${rightTab === "appointment"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                    }`}
                 >
                   Appointment
                 </button>
                 <button
                   onClick={() => setRightTab("medical")}
-                  className={`h-10 px-2 ${
-                    rightTab === "medical"
-                      ? "text-blue-600 border-b-2 border-blue-600"
-                      : "text-gray-600 hover:text-gray-800"
-                  }`}
+                  className={`h-10 px-2 ${rightTab === "medical"
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                    }`}
                 >
                   Medical History
                 </button>

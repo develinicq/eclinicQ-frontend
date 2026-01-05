@@ -8,6 +8,7 @@ const sizeMap = {
   md: 'w-10 h-10 text-lg', // 40px
   s: 'w-8 h-8 text-sm', // 32px
   xs: 'w-6 h-6 text-[10px]', // 24px
+  f4: 'w-16 h-16 text-[30px]', // 24px
 };
 
 const colorTokens = {
@@ -36,7 +37,8 @@ const AvatarCircle = ({ name, size = 'md', color = 'blue', className = '', icon 
         color: text,
         borderColor: border,
         borderStyle: 'solid',
-        borderWidth: '0.5px', // approximates 0.5px across displays
+        borderWidth: '0.5px', // approximates 0.5px across d
+        // isplays
       }}
     >
       {icon || initial}

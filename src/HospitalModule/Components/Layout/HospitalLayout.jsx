@@ -3,13 +3,25 @@ import HSidebar from '../HSidebar'
 import HNavbar from '../HNavbar'
 import { Outlet } from 'react-router-dom'
 
-export default function HospitalLayout(){
+export default function HospitalLayout() {
   return (
-    <div className="min-h-screen bg-white flex">
-      <HSidebar />
-      <div className="flex-1 min-w-0">
-        <div className="sticky top-0 z-10 bg-white border-b"><HNavbar /></div>
-        <main className="min-h-[calc(100vh-56px)]"><Outlet /></main>
+    <div className="flex h-screen">
+      {/* Fixed Sidebar */}
+      <div className="fixed left-0 top-0 h-full z-20">
+        <HSidebar className="w-64" />
+      </div>
+
+      {/* Main Content Area - Constrained to viewport minus sidebar */}
+      <div className="flex flex-col flex-1 ml-[210px] max-w-[calc(100vw-210px)] overflow-x-hidden">
+        {/* Fixed Navbar */}
+        <div className="fixed top-0 right-0 left-[210px] z-30 bg-white">
+          <HNavbar className="w-full" />
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 pt-12 overflow-auto no-scrollbar">
+          <Outlet />
+        </div>
       </div>
     </div>
   )

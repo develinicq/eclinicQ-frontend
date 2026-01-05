@@ -11,6 +11,8 @@ import {
   vertical,
 } from "../../../../public/index.js";
 import AvatarCircle from "../../../components/AvatarCircle.jsx";
+import { getPatientColumns } from "./columns";
+
 
 const demoPatients = Array.from({ length: 300 }).map((_, i) => ({
   name: `Patient ${i + 1}`,
@@ -34,6 +36,7 @@ const demoPatients = Array.from({ length: 300 }).map((_, i) => ({
     "Diabetes management",
     "General health check-up",
   ][i % 5],
+  status: i % 3 === 0 ? 'Inactive' : 'Active'
 }));
 
 export default function Patient() {
@@ -64,10 +67,11 @@ export default function Patient() {
   const displayPatients = loading
     ? []
     : patients && patients.length > 0
-    ? patients
-    : error
-    ? demoPatients
-    : [];
+      ? patients
+      : error
+        ? demoPatients
+        : demoPatients; // Fallback to demo for now if store empty
+
   const counts = useMemo(
     () => ({ all: displayPatients.length, online: 0, walkin: 0 }),
     [displayPatients]
@@ -83,104 +87,10 @@ export default function Patient() {
 
   // Define columns for patient table view
   const columns = useMemo(
-    () => [
-      {
-        key: "patient",
-        header: "Patient",
-        sticky: "left",
-        width: 260,
-        render: (row) => (
-          <div className="flex items-center gap-3">
-            <AvatarCircle size="s" name={row.name?.[0] ?? "?"}></AvatarCircle>
-            <div className="">
-              <div
-                className="text-secondary-grey400"
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: 500,
-                  fontSize: "14px",
-                  lineHeight: "120%",
-                  letterSpacing: "0%",
-                  verticalAlign: "middle",
-                }}
-              >
-                {row.name}
-              </div>
-              <div
-                className="text-secondary-grey300"
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: 400,
-                  fontSize: "12px",
-                  lineHeight: "120%",
-                  letterSpacing: "0%",
-                  verticalAlign: "middle",
-                }}
-              >
-                {row.gender} | {row.dob}
-              </div>
-            </div>
-          </div>
-        ),
-      },
-      { key: "patientId", header: "Patient ID", width: 140 },
-      { key: "contact", header: "Contact", width: 160 },
-      { key: "email", header: "Email", width: 190, icon: false },
-      {
-        key: "location",
-        width: 160,
-        header: "Location",
-        icon: false,
-        render: (row) => (
-          <span
-            className="text-secondary-grey400 bg-secondary-grey50"
-            style={{
-              fontFamily: "Inter",
-              fontWeight: 400,
-              fontSize: "14px",
-              lineHeight: "120%",
-              letterSpacing: "0%",
-              textAlign: "center",
-              verticalAlign: "middle",
-              minWidth: "22px",
-              paddingTop: "2px",
-              paddingRight: "6px",
-              paddingBottom: "2px",
-              paddingLeft: "6px",
-              borderRadius: "4px",
-              display: "inline-block",
-            }}
-          >
-            {row.location}
-          </span>
-        ),
-      },
-      { key: "lastVisit", header: "Last Visit Date & Time", width: 200 },
-      {
-        key: "reason",
-        header: "Reason",
-        width: 450,
-        cellClass: "w-[720px] whitespace-normal break-words",
-      },
-      {
-        key: "actions",
-        header: "Actions",
-        icon: false,
-        sticky: "right",
-        align: "center",
-        width: 160,
-        render: (row) => (
-          <div className="flex items-center justify-center gap-4 text-gray-600">
-            {/* Wire your own action handlers here */}
-            <img src={action_calendar} alt="" className="w-5 h-5" />
-            <img src={vertical} alt="|" className="w-[1px] h-5" />
-            <img src={action_heart} alt="" className="w-5 " />
-            <img src={vertical} alt="|" className="w-[1px] h-5" />
-            <img src={action_dot} alt="" className="w-4" />
-          </div>
-        ),
-      },
-    ],
+    () => getPatientColumns(
+      (row) => console.log('Open Log', row),
+      (row) => console.log('Schedule', row)
+    ),
     []
   );
 
@@ -208,7 +118,7 @@ export default function Patient() {
             </div>
           </div>
         ) : (
-          <div className="overflow-y-hidden">
+          <div className="h-[calc(100vh-140px)] overflow-hidden border border-gray-200 rounded-lg shadow-sm bg-white">
             <SampleTable
               columns={columns}
               data={pageRows}

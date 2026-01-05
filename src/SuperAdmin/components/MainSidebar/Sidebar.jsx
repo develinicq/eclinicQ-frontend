@@ -73,7 +73,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="sidebar flex flex-col justify-between min-h-screen w-[210px] bg-white border-r border-[#D6D6D6]">
+    <div className="sidebar flex flex-col justify-between min-h-screen w-[210px] bg-white border-r border-secondary-grey100/50">
       {/* Top Section */}
       <div>
         {/* Logo */}

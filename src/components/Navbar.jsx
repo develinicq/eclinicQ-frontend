@@ -177,7 +177,7 @@ const Navbar = () => {
 
   return (
     <>
-      <div className='w-full h-12 border-b-[0.5px]  border-[#D6D6D6] flex items-center px-4 justify-between'>
+      <div className='w-full h-12 border-b-[0.5px]  border-secondary-grey100/50 flex items-center px-4 justify-between'>
         <div>
           <span className='text-sm text=[#424242]'>Super Admin</span>
         </div>
@@ -209,7 +209,7 @@ const Navbar = () => {
           <div className='relative flex items-center gap-2' ref={profileRef}>
             <span className='font-semibold text-base text-[#424242]'>Super Admin</span>
             <button type='button' onClick={() => setShowProfile(v => !v)} className='cursor-pointer'>
-              <AvatarCircle name={'Super Admin'} size='s' color='orange' />
+              <AvatarCircle name={'Super Admin'} size='s' color='grey' />
             </button>
             {showProfile && (
               <div className='absolute top-12 right-0 w-[326px] bg-white border border-gray-100 rounded-lg shadow-xl overflow-hidden z-50'>

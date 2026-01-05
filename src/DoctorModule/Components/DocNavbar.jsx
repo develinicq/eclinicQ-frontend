@@ -53,7 +53,7 @@ import {
 const Partition = () => {
   return (
     <div className="w-[8px] h-[20px] flex gap-[10px] items-center justify-center">
-      <div className="w-[2px] h-full bg-[#B8B8B8]"></div>
+      <div className="w-[1px] h-full bg-secondary-grey100/50"></div>
     </div>
   );
 };
@@ -209,7 +209,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
   const titledName = doctorLoading ? "" : getDoctorNameWithTitle(doctorDetails);
 
   return (
-    <div className="w-full h-12 border-b-[0.5px] border-[#D6D6D6] flex items-center py-2 px-4 gap-3">
+    <div className="w-full h-12 border-b-[0.5px] border-secondary-grey100/50 flex items-center py-2 px-4 gap-3">
       {/* Left: Title */}
       <div className="flex items-center gap-4 ">
         <img src={collapse_white} alt="Collapse" className="w-4 h-4" />
@@ -407,7 +407,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
                         ? "?"
                         : displayName || (doctorError ? "!" : "?")
                     }
-                    size="xl"
+                    size="f4"
                     color={doctorError ? "grey" : "orange"}
                   />
                   <div className="flex flex-col">

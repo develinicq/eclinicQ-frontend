@@ -23,7 +23,7 @@ export default function HSidebar() {
     { label: 'Security Settings', to: '/hospital/settings/security' },
   ]
   return (
-    <aside className="min-h-screen w-[210px] bg-white border-r border-[#D6D6D6]">
+    <aside className="min-h-screen w-[210px] bg-white border-r border-secondary-grey100/50">
       <div className="px-4 py-3"><img src={logo} alt="logo" className="w-[128px]" /></div>
       <nav>
         {topItems.map((it) => (
