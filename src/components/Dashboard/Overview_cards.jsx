@@ -1,10 +1,15 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
-  CalendarCheck,
+ 
   Users,
 } from "lucide-react";
 import React from "react";
+import {
+  UserAvatar,
+ 
+  CalendarCheck,
+} from "../../../public/index.js";
 
 const Overview_cards = ({
   title = "Title",
@@ -36,9 +41,9 @@ const Overview_cards = ({
       {icon ? (
         icon
       ) : isProfit ? (
-        <Users className="w-5 h-5 text-gray-700" />
+        <img src={UserAvatar} alt="user-avatar" className=' object-contain'/>
       ) : (
-        <CalendarCheck className="w-5 h-5 text-gray-700" />
+          <img src={CalendarCheck} alt="user-avatar" className=' object-contain'/>
       )}
     </div>
   );

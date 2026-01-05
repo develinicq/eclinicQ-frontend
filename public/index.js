@@ -1,6 +1,6 @@
 import checkbox from "./checkbox.png";
 import iIcon from "./i-icon.png";
-import logo from "./logo.svg";
+import logo from "./superAdmin/main_sidebar/logo.svg";
 import normalTick from "./normal-tick.png";
 import tick from "./tick.png";
 // Newly added contact icons
@@ -21,18 +21,25 @@ import package2 from "./package_page/2.png";
 import package3 from "./package_page/3.png";
 import package4 from "./package_page/4.png";
 
+
 // Sidebar Registration Steps Icons Supe-Admin
 import accountBlue from "./superAdmin/sideBar/accountBlue.svg";
-import hospitalIcon from "./superAdmin/sideBar/ hospitalIcon.svg";
+import hospitalIcon from "./superAdmin/Add_New/hospotalicon.svg";
 import documentBlue from "./superAdmin/sideBar/documentBlue.svg";
 import reviewBlue from "./superAdmin/sideBar/reviewBlue.svg";
 import packageBlue from "./superAdmin/sideBar/packageBlue.svg";
 import checkCircle from './superAdmin/sideBar/checkCircle.svg';
 import ChevronRight from './superAdmin/sideBar/chevronRight.svg';
 
-import stethoscope from "./icons/Sidebar/Registration_Steps/Doctor/sthesoscope.png";
-import stethoscopeBlue from "./icons/Sidebar/Registration_Steps/Doctor/sthesoscope_blue.png";
+// super-admin Dashboard icons
+import ChevronDown from "./superAdmin/dashboard/chevronDown.svg";
+import UserAvatar from "./superAdmin/dashboard/userAvatar.svg";
+import CalendarCheck from "./superAdmin/dashboard/calendarCheck.svg";
+
+import stethoscope from "./superAdmin/sideBar/stethoscopeBlue.svg";
+import stethoscopeBlue from "./superAdmin/Add_New/stethoscopeBlue.svg";
 import document from "./icons/Sidebar/Registration_Steps/Document/document.png";
+import patientunselect from "./superAdmin/Add_New/patientUnselect.svg";
 
 
 import hospitalGrey from "./icons/Sidebar/Registration_Steps/Hospital/hospital_grey.png";
@@ -40,20 +47,22 @@ import hospitalGrey from "./icons/Sidebar/Registration_Steps/Hospital/hospital_g
 
 import review from "./icons/Sidebar/Registration_Steps/Review/review.png";
 
-
+import chevdown from "./superAdmin/chevdown.svg"
 // Sidebar MainSidebar Icons
-import dashboardSelected from "./icons/Sidebar/MainSidebar/dashboard_selected.png";
+import dashboardSelected from "./superAdmin/main_sidebar/dashboard_selected.svg";
 import dashboardUnselect from "./icons/Sidebar/MainSidebar/dashboard_unselect.png";
-import doctorSelect from "./icons/Sidebar/MainSidebar/doctor_select.png";
+import doctorSelect from "./superAdmin/main_sidebar/doctorSelect.svg";
 import doctorUnselect from "./icons/Sidebar/MainSidebar/doctor_unselect.png";
-import hospitalSelected from "./icons/Sidebar/MainSidebar/hos_selected.png";
+import hospitalSelected from "./superAdmin/main_sidebar/hospitalSelected.svg";
 import hospitalUnselect from "./icons/Sidebar/MainSidebar/hospital_unselect.png";
-import patientUnselect from "./icons/Sidebar/MainSidebar/patient_unselect.png";
-import settingUnselect from "./icons/Sidebar/MainSidebar/setting_unselect.png";
+import patientUnselect from "./superAdmin/main_sidebar/patientUnselect.svg";
+import settingUnselect from "./superAdmin/main_sidebar/settingUnselect.svg";
+import HelpCircle from "./superAdmin/main_sidebar/helpCircle.svg";
 
 // Navbar icons
-import bell from "./icons/Navbar/bell.png";
-import appointement from "./Doctor_module/appointement.png";
+import bell from "./superAdmin/bell.svg";
+import AvatarCircle from "./superAdmin/avatarCircle.svg";
+import appointement from "./superAdmin/Add_New/appointement.svg";
 // Doctor module navbar avatar icons
 import blueCall from "./Doctor_module/navbar/avatar/blue_call.png";
 import blueId from "./Doctor_module/navbar/avatar/blue_id.png";
@@ -162,6 +171,11 @@ export {
   documentBlue,
   hospitalIcon,
   hospitalGrey,
+  //supder-admin Dashboard icons
+  ChevronDown,
+  UserAvatar,
+  CalendarCheck,
+  // reviewIcon,
   // packageIcon,
   packageBlue,
   review,
@@ -179,7 +193,9 @@ export {
   hospitalUnselect,
   patientUnselect,
   settingUnselect,
+  HelpCircle,
   // Navbar icons
+  AvatarCircle,
   bell,
   blueCall,
   blueId,
@@ -191,6 +207,7 @@ export {
   whiteSubscription,
   collapse_white,
   vertical,
+  patientunselect,
   // Doctor module dashboard icons
   admitWhite,
   appointementWhite,
@@ -223,6 +240,7 @@ export {
   queueWhite,
   settingBlue,
   helpWhite,
+  chevdown,
   //queue icons
   morningQueue,
   eveningQueue,

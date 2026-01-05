@@ -1,7 +1,9 @@
 import React from 'react'
 import Overview_cards from '../../../components/Dashboard/Overview_cards'
 import AppointmentsChart from '../../../components/Dashboard/AppointmentsChart'
-
+import {
+ChevronDown  
+} from "../../../../public/index.js";
 
 const Dashboard = () => {
   return (
@@ -34,16 +36,12 @@ const Dashboard = () => {
             {/* All Months dropdown pill */}
             <div className='flex items-center gap-2 border border-[#E5E7EB] rounded px-3 h-8 bg-white text-xs text-[#424242] shadow-[inset_0_1px_0_#fff]'>
               <span className='text-[#6B7280]'>All Months</span>
-              <svg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg' className='text-[#9CA3AF]'>
-                <path d='M6 9l6 6 6-6' stroke='currentColor' strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/>
-              </svg>
+               <img src={ChevronDown} alt="chevron-down" className='w-3 h-3 object-contain'/> 
             </div>
             {/* Year dropdown pill */}
             <div className='flex items-center gap-2 border border-[#E5E7EB] rounded px-3 h-8 bg-white text-xs text-[#424242] shadow-[inset_0_1px_0_#fff]'>
               <span className='text-[#6B7280]'>2025</span>
-              <svg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg' className='text-[#9CA3AF]'>
-                <path d='M6 9l6 6 6-6' stroke='currentColor' strokeWidth='1.6' strokeLinecap='round' strokeLinejoin='round'/>
-              </svg>
+              <img src={ChevronDown} alt="chevron-down" className='w-3 h-3 object-contain'/>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { HelpCircle, ArrowRight } from "lucide-react";
+
 import BaseNavbar from "../../../components/Sidebar/BaseNavbar.jsx";
 import {
   logo,
@@ -12,6 +12,8 @@ import {
   hospitalUnselect,
   patientUnselect,
   settingUnselect,
+  ChevronRight,
+  HelpCircle,
 } from "../../../../public/index.js";
 
 const Sidebar = () => {
@@ -106,11 +108,11 @@ const Sidebar = () => {
         <div
           className={`flex items-center gap-[6px] w-full text-left `}
         >
-          <HelpCircle size={18} /> Help & Support
+        <img src={HelpCircle} alt="Help & Support" /> Help & Support
         </div>
 
         <div>
-            <ArrowRight size={18}/>
+           <img src={ChevronRight} alt="chevron right" />
         </div>
       </div>
     </div>
