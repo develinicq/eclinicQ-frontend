@@ -174,7 +174,7 @@ export default function SampleTable({
       {/* Scroll Area: flex-1 to take available space */}
       <div className="flex-1 no-scrollbar overflow-auto">
         <table
-          className={`w-full border-collapse text-sm table-auto`}
+          className={`w-full border-collapse text-sm table-fixed`}
           style={{ minWidth }}
         >
           {/* Header */}
@@ -211,7 +211,7 @@ export default function SampleTable({
                 return (
                   <th
                     key={col.key}
-                    className={`${base}${stickyLeft}${stickyRight}${align}${headerClass} ${col.sticky  ? "" : "border-r"}`}
+                    className={`${base}${stickyLeft}${stickyRight}${align}${headerClass} ${hideSeparators ? "" : "border-r"} `}
                     style={widthStyle}
                   >
                     {renderHeaderContent(col)}
@@ -219,13 +219,13 @@ export default function SampleTable({
                     {/* Edge shadows for sticky columns */}
                     {col.sticky === "left" && (
                       <span
-                        className="border-r pointer-events-none absolute right-0 top-0 h-full w-2"
+                        className={`${hideSeparators ? "" : "border-r"} pointer-events-none absolute right-0 top-0 h-full w-2"`}
 
                       ></span>
                     )}
                     {col.sticky === "right" && (
                       <span
-                        className="border-l pointer-events-none absolute left-0 top-0 h-full w-2"
+                        className={`${hideSeparators ? "" : "border-l"} pointer-events-none absolute left-0 top-0 h-full w-2`}
 
                       ></span>
                     )}
@@ -314,13 +314,13 @@ export default function SampleTable({
                       {/* Edge shadows for sticky columns */}
                       {col.sticky === "left" && (
                         <span
-                          className="border-r pointer-events-none absolute right-0 top-0 h-full w-2"
+                          className={`${hideSeparators ? "" : "border-r"} pointer-events-none absolute right-0 top-0 h-full w-2`}
 
                         ></span>
                       )}
                       {col.sticky === "right" && (
                         <span
-                          className="border-l pointer-events-none absolute left-0 top-0 h-full w-2"
+                          className={`${hideSeparators ? "" : "border-l"} pointer-events-none absolute left-0 top-0 h-full w-2`}
 
                         ></span>
                       )}

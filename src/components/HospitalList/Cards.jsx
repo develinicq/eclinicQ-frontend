@@ -114,7 +114,7 @@ const Cards = ({ hospital }) => {
   const initial = (hospital?.name?.[0] || 'H').toUpperCase();
 
   return (
-    <div className="group relative pb-3 flex flex-col w-full min-w-[300px] bg-white rounded-md border border-secondary-grey100 transition-all duration-300 hover:shadow-[0_0_11.4px_4px_rgba(35,114,236,0.15)] overflow-hidden cursor-pointer">
+    <div className="group relative pb-3 flex flex-col w-full min-w-[350px] bg-white rounded-md border border-secondary-grey100 transition-all duration-300 hover:shadow-[0_0_11.4px_4px_rgba(35,114,236,0.15)] overflow-hidden cursor-pointer">
       {/* Header / Banner Section */}
       <div className="relative h-[120px] w-full">
         <img
@@ -139,7 +139,7 @@ const Cards = ({ hospital }) => {
           {resolvedLogo || hospital.logo ? (
             <img src={resolvedLogo || hospital.logo} alt="Logo" className="w-16 h-16 rounded-full object-cover " onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/hospital-sample.png'; }} />
           ) : (
-            <AvatarCircle name={hospital.name} size="xl" color={isActive ? "blue" : "grey"} />
+            <AvatarCircle name={hospital.name} size="xl" color={isActive ? "orange" : "grey"} />
           )}
           {/* Verified Tick */}
           <div className="absolute -top-1 -right-0">
@@ -161,7 +161,7 @@ const Cards = ({ hospital }) => {
 
         <span className="text-[16px] font-semibold text-secondary-grey400">{hospital.name || "Hospital Name"}</span>
         <p className="text-sm text-secondary-grey400 ">
-          {hospital.type || "Multi-speciality"} | {hospital.doctors || "10+"} Doctors | {hospital.beds || "250"} Beds
+          {hospital.type || "Multi-speciality"} | {hospital.doctors || "10+"} Doctors | {hospital.beds || "250"} 
         </p>
         <div className="flex items-center gap-2 text-sm text-secondary-grey400">
           <span>Est in {hospital.estYear || "2010"}</span>

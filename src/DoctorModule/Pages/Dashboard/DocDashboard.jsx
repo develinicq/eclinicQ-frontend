@@ -22,12 +22,12 @@ import {
 const PeriodTabs = ({ value, onChange }) => {
   const tabs = ["Daily", "Weekly", "Monthly", "Yearly"];
   return (
-    <div className="flex rounded-md items-center gap-2 bg-blue-primary50 p-[4px] text-sm ">
+    <div className="flex rounded-md items-center gap-2 bg-blue-primary50 p-[2px] text-sm ">
       {tabs.map((t) => (
         <button
           key={t}
           onClick={() => onChange(t)}
-          className={`px-[8px]  py-1 rounded-[4px] transition-colors ${
+          className={`px-[6px]  py-1 rounded-[4px] transition-colors ${
             value === t
               ? "bg-[#2372EC] text-white"
               : "bg-transparent text-[#626060] hover:bg-gray-50"

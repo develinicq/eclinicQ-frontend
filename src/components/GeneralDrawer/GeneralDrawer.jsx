@@ -15,6 +15,7 @@ export default function GeneralDrawer({
   className: Class,
   // New: control visibility of the primary action button in header
   showPrimaryAction = true,
+  zIndex = 5000,
 }) {
   const panelRef = useRef(null);
   const [mounted, setMounted] = useState(false);
@@ -71,8 +72,9 @@ export default function GeneralDrawer({
 
   if (!mounted && !closing) return null;
 
+  if (!mounted && !closing) return null;
   return (
-    <div className="fixed inset-0 z-[5000] ">
+    <div className="fixed inset-0 " style={{ zIndex }}>
       <style>{`
         @keyframes drawerIn { from { transform: translateX(100%); opacity: 0.6; } to { transform: translateX(0%); opacity: 1; } }
         @keyframes drawerOut { from { transform: translateX(0%); opacity: 1; } to { transform: translateX(100%); opacity: 0.6; } }
@@ -82,11 +84,10 @@ export default function GeneralDrawer({
 
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/40 ${
-          closing
-            ? "animate-[fadeOut_.2s_ease-in_forwards]"
-            : "animate-[fadeIn_.25s_ease-out_forwards]"
-        }`}
+        className={`absolute inset-0 bg-black/40 ${closing
+          ? "animate-[fadeOut_.2s_ease-in_forwards]"
+          : "animate-[fadeIn_.25s_ease-out_forwards]"
+          }`}
         onClick={requestClose}
         style={{ zIndex: 5001 }}
       />
@@ -94,15 +95,14 @@ export default function GeneralDrawer({
       {/* Drawer panel with 16px inset from edges */}
       <aside
         aria-hidden={!isOpen}
-        className={` absolute top-4 right-4 bottom-4 bg-white shadow-2xl border border-gray-200 rounded-xl overflow-hidden ${
-          closing
-            ? "animate-[drawerOut_.22s_ease-in_forwards]"
-            : "animate-[drawerIn_.25s_ease-out_forwards]"
-        }`}
+        className={` absolute top-4 right-4 bottom-4 bg-white shadow-2xl border border-gray-200 rounded-xl overflow-hidden ${closing
+          ? "animate-[drawerOut_.22s_ease-in_forwards]"
+          : "animate-[drawerIn_.25s_ease-out_forwards]"
+          }`}
         ref={panelRef}
         style={{ zIndex: 5002, width: `${width}px` }}
       >
-  <div className={`${Class} flex h-full w-full p-4 flex-col bg-white gap-4 min-h-0`} >
+        <div className={`${Class} flex h-full w-full p-4 flex-col bg-white gap-4 min-h-0`} >
           {/* Header */}
           <div className="sticky top-0 z-10 bg-white border-b pb-3">
             <div className="flex items-center justify-between">
@@ -119,11 +119,10 @@ export default function GeneralDrawer({
                       onPrimaryAction ? onPrimaryAction() : onClose?.()
                     }
                     disabled={primaryActionDisabled}
-                    className={`text-sm min-w-8 font-medium rounded-[4px] py-1.5 px-2 border ${
-                      primaryActionDisabled
-                        ? "text-secondary-grey100 bg-secondary-grey50 border-transparent cursor-not-allowed"
-                        : "bg-blue-primary250 text-white border-transparent hover:bg-blue-primary300"
-                    }`}
+                    className={`text-sm min-w-8 font-medium rounded-[4px] py-1.5 px-2 border ${primaryActionDisabled
+                      ? "text-secondary-grey100 bg-secondary-grey50 border-transparent cursor-not-allowed"
+                      : "bg-blue-primary250 text-white border-transparent hover:bg-blue-primary300"
+                      }`}
                   >
                     {primaryActionLabel || "Save"}
                   </button>

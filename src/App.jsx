@@ -36,6 +36,7 @@ import HPatientDetails from "./HospitalModule/Pages/Patients/PatientDetails";
 import HSettings from "./HospitalModule/Pages/Settings/HSettings";
 import HCalendar from "./HospitalModule/Pages/Calendar/Calendar";
 import HDoctors from "./HospitalModule/Pages/Doctors/Doctors";
+import HDoctorDetailsPage from "./HospitalModule/Pages/Doctors/DoctorInfo/DoctorDetailsPage";
 import HRxTemplate from "./HospitalModule/Pages/Settings/HRxTemplate";
 import HSubscriptions from "./HospitalModule/Pages/Settings/HSubscriptions";
 import HFDLayout from "./HospitalFDModule/Components/Layout/HFDLayout";
@@ -158,6 +159,7 @@ function App() {
         <Route path="patients" element={<HPatients />} />
         <Route path="calendar" element={<HCalendar />} />
         <Route path="doctors" element={<HDoctors />} />
+        <Route path="doctor/:id" element={<HDoctorDetailsPage />} />
         <Route path="patients/:id" element={<HPatientDetails />} />
         <Route path="settings/account" element={<HSettings />} />
         <Route path="settings/timing" element={<HSettings />} />

@@ -1,6 +1,7 @@
 import React from "react";
 import { useRegistration } from "../SuperAdmin/context/RegistrationContext";
 import useDoctorRegistrationStore from '../store/useDoctorRegistrationStore';
+import { ArrowLeft, ChevronLeft } from "lucide-react";
 
 const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next", disablePrev = false }) => {
   const { registrationType, formData } = useRegistration();
@@ -13,14 +14,14 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
   if ((registrationType === 'doctor' && currentStep === 6) || (isHospital && !hospitalOwnerAlsoDoctor && currentStep === 6)) {
     return (
       <footer className="flex-shrink-0 p-4 border-t border-gray-200 flex justify-between bg-white">
-        <button onClick={onCancel} className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
+        <button onClick={onCancel} className="w-[200px] h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
           Back to Home
         </button>
 
         <div className="flex gap-3">
           <button
             onClick={onPrev}
-            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="w-[200px] h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
             disabled={true}
           >
             ← Previous
@@ -28,7 +29,7 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
 
           <button
             onClick={onNext}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="w-[200px] h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
             {registrationType === 'doctor' ? 'Go to Doctors Dashboard' : 'Go to Hospitals Dashboard'}
           </button>
@@ -41,13 +42,13 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
   if (currentStep === 7 && isHospital) {
     return (
       <footer className="flex-shrink-0 p-4 border-t border-gray-200 flex justify-between bg-white">
-        <button onClick={onCancel} className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
+        <button onClick={onCancel} className="w-[200px] h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
           Back to Home
         </button>
 
         <div className="flex gap-3">
           <button
-            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="w-[200px] h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
             disabled={true}
           >
             Previous
@@ -55,7 +56,7 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
 
           <button
             onClick={onNext}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="w-[200px] h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
             Go to Hospitals Dashboard
           </button>
@@ -73,23 +74,7 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
 
   const handleSubmit = async () => {
     setLocalError(null);
-    // Guard: ensure userId exists (set after Step1 registers the doctor)
-    /*
-    if (!userId) {
-      const msg = 'User ID is missing. Please complete Step 1 (Account Creation) successfully before submitting.';
-      setLocalError(msg);
-      alert(msg);
-      return;
-    }
-    // Guard: required business fields
-    const specOk = specialization && (typeof specialization === 'object' ? specialization.value : specialization);
-    if (!specOk) {
-      const msg = 'Please enter your Specialization in Step 2 before submitting.';
-      setLocalError(msg);
-      alert(msg);
-      return;
-    }
-    */
+
     const ok = await submit();
     // Bypass validation: Always proceed
     if (!ok) {
@@ -100,26 +85,27 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
   };
 
   return (
-    <footer className="flex-shrink-0 p-4 border-t border-gray-200 flex justify-between bg-white">
-      <button onClick={onCancel} className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
+    <footer className="flex-shrink-0 px-6 py-6 border-t border-gray-200 flex justify-between bg-white text-sm">
+      <button onClick={onCancel} className="ml-6 w-[200px] h-8 flex items-center justify-center rounded-sm border border-secondary-grey200 hover:bg-secondary-grey50 transition-colors text-secondary-grey400">
         Cancel
       </button>
 
-      <div className="flex gap-3 items-center">
+      <div className="flex gap-5 items-center px-6">
         {currentStep > 1 && (
           <button
             onClick={onPrev}
-            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className=" h-8 flex gap-1 items-center justify-center rounded-sm text-secondary-grey400 hover:text-gray-900 transition-colors disabled:opacity-50"
             disabled={false /* Always enable previous for testing */}
           >
-            ← Previous
+            <ArrowLeft size={14} />
+            Previous
           </button>
         )}
 
         {isLastStep ? (
           <button
             onClick={handleSubmit}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+            className="w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
             disabled={loading}
           >
             {loading ? 'Submitting...' : 'Submit Registration'}
@@ -127,7 +113,7 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
         ) : (
           <button
             onClick={onNext}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
             {nextLabel}
           </button>

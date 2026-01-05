@@ -3,11 +3,11 @@ import {Building2} from "lucide-react"
 
 // Size tokens: L(48px), MD(40px), S(32px), XS(24px)
 const sizeMap = {
-  xl: 'w-16 h-16 text-[30px]', // 64px
+  xl: 'w-[90px] h-[90px] text-[30px]', // 64px
   l: 'w-12 h-12 text-xl', // 48px
   md: 'w-10 h-10 text-lg', // 40px
   s: 'w-8 h-8 text-sm', // 32px
-  xs: 'w-6 h-6 text-sm', // 24px
+  xs: 'w-6 h-6 text-[10px]', // 24px
 };
 
 const colorTokens = {

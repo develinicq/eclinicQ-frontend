@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import Header from '../../../components/DoctorList/Header'
-import Table from '../../../components/DoctorList/Table'
+import SampleTable from '../../../pages/SampleTable'
+import { doctorColumns } from './columns'
+import { useNavigate } from 'react-router-dom';
 
 // Temporary hardcoded dataset for Hospital doctors
 const SAMPLE_ACTIVE = [
@@ -15,7 +17,7 @@ const SAMPLE_ACTIVE = [
     specialization: 'Cardiology',
     specializationMore: 2,
     designation: 'Senior Cardiologist, Fortis',
-    exp: '12 yrs exp',
+    exp: '12',
     status: 'Active',
   },
   {
@@ -29,7 +31,7 @@ const SAMPLE_ACTIVE = [
     specialization: 'Orthopedics',
     specializationMore: 0,
     designation: 'Consultant Orthopedic Surgeon',
-    exp: '8 yrs exp',
+    exp: '8',
     status: 'Active',
   },
 ]
@@ -46,13 +48,16 @@ const SAMPLE_INACTIVE = [
     specialization: 'Dermatology',
     specializationMore: 1,
     designation: 'Consultant Dermatologist',
-    exp: '6 yrs exp',
+    exp: '6',
     status: 'Inactive',
   },
 ]
 
-export default function HDoctors(){
+export default function HDoctors() {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState('all')
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const counts = useMemo(() => ({
     all: SAMPLE_ACTIVE.length + SAMPLE_INACTIVE.length,
@@ -63,18 +68,40 @@ export default function HDoctors(){
   const doctorsAll = useMemo(() => ([...SAMPLE_ACTIVE, ...SAMPLE_INACTIVE]), [])
 
   const doctors = useMemo(() => {
-    if (selected === 'active') return doctorsAll.filter(d => d.status === 'Active')
-    if (selected === 'inactive') return doctorsAll.filter(d => d.status === 'Inactive')
-    return doctorsAll
+    let filtered = doctorsAll;
+    if (selected === 'active') filtered = doctorsAll.filter(d => d.status === 'Active')
+    if (selected === 'inactive') filtered = doctorsAll.filter(d => d.status === 'Inactive')
+    return filtered;
   }, [doctorsAll, selected])
 
+  const pagedData = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return doctors.slice(start, start + pageSize);
+  }, [doctors, page, pageSize]);
+
+  const handleRowClick = (doc) => {
+    navigate(`/hospital/doctor/${encodeURIComponent(doc.userId || doc.id)}`, { state: { doctor: doc } });
+  };
+
   return (
-    <div className="pb-2">
-      <div className="mt-2">
+    <div className="flex flex-col h-full overflow-hidden bg-secondary-grey50">
+      <div className="shrink-0 mt-2">
         <Header counts={counts} selected={selected} onChange={setSelected} addLabel="Add New Doctor" />
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden m-3">
-          <Table doctors={doctors} />
-        </div>
+      </div>
+
+      <div className="h-[calc(100vh-140px)] overflow-hidden m-3 border border-gray-200 rounded-lg shadow-sm bg-white">
+        <SampleTable
+          columns={doctorColumns}
+          data={pagedData}
+          page={page}
+          pageSize={pageSize}
+          total={doctors.length}
+          onPageChange={setPage}
+          stickyLeftWidth={335}
+          stickyRightWidth={120}
+          onRowClick={handleRowClick}
+          hideSeparators={true}
+        />
       </div>
     </div>
   )

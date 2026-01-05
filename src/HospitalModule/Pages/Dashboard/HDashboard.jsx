@@ -3,24 +3,32 @@ import { Download, ChevronLeft, ChevronRight, UserPlus, Check, ChevronsUpDown } 
 import Overview_cards from '../../../components/Dashboard/Overview_cards'
 import AvatarCircle from '../../../components/AvatarCircle'
 import BookAppointmentDrawer from '../../../components/Appointment/BookAppointmentDrawer.jsx'
+import SampleTable from '../../../pages/SampleTable'
+import TableHeader from '../../../components/TableHeader'
 
 const PeriodTabs = ({ value, onChange }) => {
-  const tabs = ['Daily', 'Weekly', 'Monthly', 'Yearly']
+  const ranges = ['Daily', 'Weekly', 'Monthly', 'Yearly']
   return (
-    <div className="flex items-center gap-2 text-xs sm:text-sm">
-      {tabs.map((t) => (
-        <button
-          key={t}
-          onClick={() => onChange(t)}
-          className={`px-2.5 sm:px-3 py-1 rounded-md transition-colors ${
-            value === t
-              ? 'bg-[#2372EC] text-white'
-              : 'bg-transparent text-[#626060] hover:bg-gray-50'
-          }`}
-        >
-          {t}
-        </button>
-      ))}
+    <div className='flex items-center gap-2 p-[2px] rounded-sm bg-blue-primary50  h-8 overflow-hidden w-fit'>
+      {ranges.map((range, idx) => {
+        const isActive = value === range
+
+        return (
+          <React.Fragment key={range}>
+            <button
+              onClick={() => onChange(range)}
+              className={`
+                px-[6px] h-7 py-1 text-sm rounded-sm transition
+                ${isActive
+                  ? 'bg-blue-primary250 text-white'
+                  : 'text-[#6B7280] hover:bg-gray-100'}
+              `}
+            >
+              {range}
+            </button>
+          </React.Fragment>
+        )
+      })}
     </div>
   )
 }
@@ -42,9 +50,9 @@ const SectionCard = ({ title, children, right }) => (
 
 export default function HDashboard() {
   const [period, setPeriod] = useState('Daily')
-  const [activeTab, setActiveTab] = useState('hospital') 
+  const [activeTab, setActiveTab] = useState('hospital')
   // Month dropdown state
-  const months = ['All Months','January','February','March','April','May','June','July','August','September','October','November','December']
+  const months = ['All Months', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   const [selectedMonth, setSelectedMonth] = useState('All Months')
   const [isMonthOpen, setMonthOpen] = useState(false)
   const monthBtnRef = useRef(null)
@@ -73,7 +81,7 @@ export default function HDashboard() {
         <p className="text-sm text-[#626060]">Welcome, Manipal Hospital. Here's an overview of your practice.</p>
         <div className="flex items-center gap-2">
           <div className="hidden sm:block w-px h-6 bg-[#E5F0FF]" />
-          <button onClick={()=> setBookOpen(true)} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm border-[#BFD6FF] bg-[#F3F8FF] text-[#2372EC] hover:bg-[#E9F2FF]">
+          <button onClick={() => setBookOpen(true)} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm border-[#BFD6FF] bg-[#F3F8FF] text-[#2372EC] hover:bg-[#E9F2FF]">
             <UserPlus className="w-4 h-4" />
             <span>Walk-In Appointment</span>
           </button>
@@ -82,19 +90,28 @@ export default function HDashboard() {
 
       {/* Tabs row with optional right-side filters */}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {['hospital','appointment','doctors'].map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setActiveTab(t)}
-              className={`px-3 py-1.5 rounded-md text-sm border ${activeTab===t ? 'bg-[#2372EC] text-white border-[#2372EC]' : 'bg-white text-[#626060] border-gray-200'}`}
-            >
-              {t==='hospital' ? 'Hospital Overview' : t==='appointment' ? 'Appointment Analytics' : 'Doctors overview'}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 p-[2px] rounded-sm bg-blue-primary50 h-8 overflow-hidden w-fit flex-shrink-0">
+          {['hospital', 'appointment', 'doctors'].map((t) => {
+            const isActive = activeTab === t;
+            return (
+              <React.Fragment key={t}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(t)}
+                  className={`
+                    px-[6px] h-7 py-1 text-sm rounded-sm transition
+                    ${isActive
+                      ? 'bg-blue-primary250 text-white'
+                      : 'text-[#6B7280] hover:bg-gray-100'}
+                  `}
+                >
+                  {t === 'hospital' ? 'Hospital Overview' : t === 'appointment' ? 'Appointment Analytics' : 'Doctors overview'}
+                </button>
+              </React.Fragment>
+            )
+          })}
         </div>
-  {activeTab === 'appointment' && (
+        {activeTab === 'appointment' && (
           // Right column strictly aligned to the far right
           <div className="flex flex-col items-end w-auto">
             {/* Top row: period + months + year aligned right */}
@@ -102,29 +119,29 @@ export default function HDashboard() {
               <PeriodTabs value={period} onChange={setPeriod} />
               {/* All Months dropdown */}
               <div className="relative">
-              <button
-                ref={monthBtnRef}
-                type="button"
-                onClick={() => setMonthOpen(v => !v)}
-                className={`inline-flex items-center gap-2 px-3 h-8 rounded-md border border-gray-200 bg-white text-sm text-[#424242] ${isMonthOpen ? 'ring-1 ring-[#2372EC]/30' : ''}`}
-                aria-haspopup="listbox"
-                aria-expanded={isMonthOpen}
-              >
-                <span className="text-[#6B7280]">{selectedMonth}</span>
-                <ChevronRight className={`w-4 h-4 text-gray-500 transition-transform ${isMonthOpen ? 'rotate-90' : ''}`} />
-              </button>
-              {isMonthOpen && (
-                <div ref={monthDropRef} className="absolute z-[1000] right-0 top-10 w-[200px] rounded-md border border-gray-200 bg-white shadow-lg" role="listbox">
-                  <div className="py-1">
-                    {months.map((m) => (
-                      <button key={m} type="button" onClick={() => { setSelectedMonth(m); setMonthOpen(false); }} className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 ${selectedMonth===m ? 'bg-[#F5F9FF] border border-[#D5E6FF]' : ''}`} role="option" aria-selected={selectedMonth===m}>
-                        <span className="text-[#424242]">{m}</span>
-                        {selectedMonth===m && <Check className="w-4 h-4 text-[#2372EC]" />}
-                      </button>
-                    ))}
+                <button
+                  ref={monthBtnRef}
+                  type="button"
+                  onClick={() => setMonthOpen(v => !v)}
+                  className={`inline-flex items-center gap-2 px-3 h-8 rounded-md border border-gray-200 bg-white text-sm text-[#424242] ${isMonthOpen ? 'ring-1 ring-[#2372EC]/30' : ''}`}
+                  aria-haspopup="listbox"
+                  aria-expanded={isMonthOpen}
+                >
+                  <span className="text-[#6B7280]">{selectedMonth}</span>
+                  <ChevronRight className={`w-4 h-4 text-gray-500 transition-transform ${isMonthOpen ? 'rotate-90' : ''}`} />
+                </button>
+                {isMonthOpen && (
+                  <div ref={monthDropRef} className="absolute z-[1000] right-0 top-10 w-[200px] rounded-md border border-gray-200 bg-white shadow-lg" role="listbox">
+                    <div className="py-1">
+                      {months.map((m) => (
+                        <button key={m} type="button" onClick={() => { setSelectedMonth(m); setMonthOpen(false); }} className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 ${selectedMonth === m ? 'bg-[#F5F9FF] border border-[#D5E6FF]' : ''}`} role="option" aria-selected={selectedMonth === m}>
+                          <span className="text-[#424242]">{m}</span>
+                          {selectedMonth === m && <Check className="w-4 h-4 text-[#2372EC]" />}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
               </div>
             </div>
           </div>
@@ -153,9 +170,9 @@ export default function HDashboard() {
                   <div ref={monthDropRef} className="absolute z-[1000] right-0 top-10 w-[200px] rounded-md border border-gray-200 bg-white shadow-lg" role="listbox">
                     <div className="py-1">
                       {months.map((m) => (
-                        <button key={m} type="button" onClick={() => { setSelectedMonth(m); setMonthOpen(false); }} className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 ${selectedMonth===m ? 'bg-[#F5F9FF] border border-[#D5E6FF]' : ''}`} role="option" aria-selected={selectedMonth===m}>
+                        <button key={m} type="button" onClick={() => { setSelectedMonth(m); setMonthOpen(false); }} className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-gray-50 ${selectedMonth === m ? 'bg-[#F5F9FF] border border-[#D5E6FF]' : ''}`} role="option" aria-selected={selectedMonth === m}>
                           <span className="text-[#424242]">{m}</span>
-                          {selectedMonth===m && <Check className="w-4 h-4 text-[#2372EC]" />}
+                          {selectedMonth === m && <Check className="w-4 h-4 text-[#2372EC]" />}
                         </button>
                       ))}
                     </div>
@@ -260,90 +277,67 @@ export default function HDashboard() {
           <div className="bg-white border border-gray-200 rounded-[12px]">
             <div className="">
               <div className="overflow-auto">
-                <table className="min-w-[980px] w-full table-fixed text-sm text-left text-gray-700">
-                  <colgroup>
-                    <col className="w-[280px]" />
-                    <col className="w-[80px]" />
-                    <col className="w-[90px]" />
-                    <col className="w-[90px]" />
-                    <col className="w-[90px]" />
-                    <col className="w-[110px]" />
-                    <col className="w-[140px]" />
-                    <col className="w-[100px]" />
-                  </colgroup>
-                  <thead className="bg-white text-[12px] uppercase font-medium text-gray-500 border-b">
-                    <tr className="h-8">
-                      <th className="text-left px-4 py-0 h-8 whitespace-nowrap w-[280px]">
-                        <span className="inline-flex items-center gap-1 h-8">Doctor Name <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                      </th>
-                      <th className="text-left px-4 py-0 h-8 whitespace-nowrap w-[80px]">
-                        <span className="inline-flex items-center gap-1 h-8">Total <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                      </th>
-                      <th className="text-left px-4 py-0 h-8 whitespace-nowrap w-[90px]">
-                        <span className="inline-flex items-center gap-1 h-8">Engaged <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                      </th>
-                      <th className="text-left px-4 py-0 h-8 whitespace-nowrap w-[90px]">
-                        <span className="inline-flex items-center gap-1 h-8">No-show <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                      </th>
-                      <th className="text-left px-4 py-0 h-8 whitespace-nowrap w-[90px]">
-                        <span className="inline-flex items-center gap-1 h-8">Admitted <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                      </th>
-                      <th className="text-left px-4 py-0 h-8 whitespace-nowrap w-[110px]">
-                        <span className="inline-flex items-center gap-1 h-8">Rescheduled <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                      </th>
-                      <th className="text-left px-4 py-0 h-8 whitespace-nowrap w-[140px]">
-                        <span className="inline-flex items-center gap-1 h-8">Completion rate <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                      </th>
-                      <th className="text-left px-4 py-0 h-8 whitespace-nowrap w-[100px]">
-                        <span className="inline-flex items-center gap-1 h-8">Rating <ChevronsUpDown className="h-3.5 w-3.5" /></span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-[#424242]">
-                    {[
-                      { name: 'Dr. Millin Chavan', total: 789, engaged: 712, noshow: 60, admitted: 20, rescheduled: 5, completion: '90%', rating: '4.5/5' },
-                      { name: 'John Doe', total: 845, engaged: 620, noshow: 45, admitted: 18, rescheduled: 3, completion: '85%', rating: '4.0/5' },
-                      { name: 'Jane Smith', total: 912, engaged: 680, noshow: 50, admitted: 22, rescheduled: 4, completion: '95%', rating: '4.8/5' },
-                      { name: 'Alice Johnson', total: 710, engaged: 590, noshow: 30, admitted: 15, rescheduled: 2, completion: '88%', rating: '4.2/5' },
-                      { name: 'Robert Brown', total: 800, engaged: 700, noshow: 55, admitted: 19, rescheduled: 4, completion: '92%', rating: '4.6/5' },
-                      { name: 'Emily Davis', total: 765, engaged: 530, noshow: 35, admitted: 12, rescheduled: 3, completion: '80%', rating: '4.1/5' },
-                      { name: 'Michael Wilson', total: 920, engaged: 710, noshow: 60, admitted: 25, rescheduled: 5, completion: '93%', rating: '4.7/5' },
-                      { name: 'Jessica Taylor', total: 850, engaged: 640, noshow: 40, admitted: 20, rescheduled: 3, completion: '84%', rating: '4.3/5' },
-                      { name: 'David Lee', total: 780, engaged: 620, noshow: 50, admitted: 17, rescheduled: 2, completion: '81%', rating: '4.0/5' },
-                      { name: 'Sophia Martinez', total: 900, engaged: 710, noshow: 55, admitted: 21, rescheduled: 4, completion: '90%', rating: '4.5/5' },
-                    ].map((r) => (
-                      <tr key={r.name} className="[border-bottom-width:0.5px] [border-bottom-style:solid] [border-bottom-color:#D6D6D6] hover:bg-gray-50 cursor-pointer">
-                        <td className="px-4 py-0 h-[54px] align-middle">
-                          <div className="flex items-center gap-3">
-                            <AvatarCircle size={32} initials={r.name.split(' ').map(p=>p[0]).slice(0,2).join('')} />
-                            <div className="leading-tight">
-                              <div className="text-[13px] sm:text-sm font-medium text-[#424242]">{r.name}</div>
-                              <div className="text-[11px] text-[#6B7280]">G | 19 Years Exps</div>
-                            </div>
+                <SampleTable
+                  columns={[
+                    {
+                      key: 'name',
+                      header: <TableHeader label="Doctor Name"  />,
+                      width: 280,
+                      render: (row) => (
+                        <div className="flex items-center gap-3">
+                          <AvatarCircle size="s" name={row.name} color={row.badgeColor} />
+                          <div className="leading-tight">
+                            <div className="text-[14px] font-medium text-[#424242]">{row.name}</div>
+                            <div className="text-[12px] text-[#6B7280]">{row.spec} | {row.exp}</div>
                           </div>
-                        </td>
-                        <td className="px-4 py-0 h-[54px] align-middle">{r.total}</td>
-                        <td className="px-4 py-0 h-[54px] align-middle text-[#15A364]">{r.engaged}</td>
-                        <td className="px-4 py-0 h-[54px] align-middle text-[#E45050]">{r.noshow}</td>
-                        <td className="px-4 py-0 h-[54px] align-middle text-[#2372EC]">{r.admitted}</td>
-                        <td className="px-4 py-0 h-[54px] align-middle">{r.rescheduled}</td>
-                        <td className="px-4 py-0 h-[54px] align-middle"><span className="inline-flex items-center gap-1 text-[#15A364] bg-[#EAF7F1] px-2 py-0.5 rounded">{r.completion}<span className="text-[10px]">↗</span></span></td>
-                        <td className="px-4 py-0 h-[54px] align-middle"><span className="inline-flex items-center gap-1 bg-[#FFF7E6] text-[#B97700] px-2 py-0.5 rounded">★ {r.rating}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {/* Pagination footer placeholder */}
-              <div className="flex items-center justify-end gap-2 px-3 py-2 text-xs text-[#6B7280]">
-                <button className="px-2 py-1 border rounded">←</button>
-                <button className="px-2 py-1 border rounded bg-[#F3F8FF] text-[#2372EC]">1</button>
-                <button className="px-2 py-1 border rounded">2</button>
-                <button className="px-2 py-1 border rounded">3</button>
-                <span className="px-2 py-1 border rounded">…</span>
-                <span className="px-2 py-1 border rounded">10</span>
-                <span className="px-2 py-1 border rounded">10 / Page</span>
-                <span className="px-2 py-1 border rounded">Go to Page</span>
+                        </div>
+                      )
+                    },
+                    { key: 'total', header: <TableHeader label="Total" />, width: 80 },
+                    { key: 'engaged', header: <TableHeader label="Engaged" />, width: 90, render: (row) => <span className="text-[#15A364]">{row.engaged}</span> },
+                    { key: 'noshow', header: <TableHeader label="No-show" />, width: 90, render: (row) => <span className="text-[#E45050]">{row.noshow}</span> },
+                    { key: 'admitted', header: <TableHeader label="Admitted" />, width: 90, render: (row) => <span className="text-[#2372EC]">{row.admitted}</span> },
+                    { key: 'rescheduled', header: <TableHeader label="Rescheduled" />, width: 110 },
+                    {
+                      key: 'completion',
+                      header: <TableHeader label="Completion rate" />,
+                      width: 140,
+                      render: (row) => (
+                        <span className="inline-flex items-center gap-1 text-[#15A364] bg-[#EAF7F1] px-2 py-0.5 rounded text-xs font-medium">
+                          {row.completion}
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7" /><path d="M7 7h10v10" /></svg>
+                        </span>
+                      )
+                    },
+                    {
+                      key: 'rating',
+                      header: <TableHeader label="Rating" />,
+                      width: 100,
+                      render: (row) => (
+                        <span className="inline-flex items-center gap-1 bg-[#FFF7E6] text-[#B97700] px-2 py-0.5 rounded text-xs font-medium">
+                          <span className="text-[10px]">★</span> {row.rating}
+                        </span>
+                      )
+                    }
+                  ]}
+                  data={[
+                    { name: 'Dr. Millin Chavan', exp: '19 Years Exps', spec: 'G', total: 789, engaged: 712, noshow: 60, admitted: 20, rescheduled: 5, completion: '90%', rating: '4.5/5', badgeColor: "orange" },
+                    { name: 'John Doe', exp: '12 Years Exps', spec: 'L', total: 845, engaged: 620, noshow: 45, admitted: 18, rescheduled: 3, completion: '85%', rating: '4.0/5', badgeColor: "orange" },
+                    { name: 'Jane Smith', exp: '25 Years Exps', spec: 'M', total: 912, engaged: 680, noshow: 50, admitted: 22, rescheduled: 4, completion: '95%', rating: '4.8/5', badgeColor: "orange" },
+                    { name: 'Alice Johnson', exp: '15 Years Exps', spec: 'G', total: 710, engaged: 590, noshow: 30, admitted: 15, rescheduled: 2, completion: '88%', rating: '4.2/5', badgeColor: "orange" },
+                    { name: 'Robert Brown', exp: '20 Years Exps', spec: 'L', total: 800, engaged: 700, noshow: 55, admitted: 19, rescheduled: 4, completion: '92%', rating: '4.6/5', badgeColor: "orange" },
+                    { name: 'Emily Davis', exp: '10 Years Exps', spec: 'M', total: 765, engaged: 530, noshow: 35, admitted: 12, rescheduled: 3, completion: '80%', rating: '4.1/5', badgeColor: "orange" },
+                    { name: 'Michael Wilson', exp: '17 Years Exps', spec: 'G', total: 920, engaged: 710, noshow: 60, admitted: 25, rescheduled: 5, completion: '93%', rating: '4.7/5', badgeColor: "orange" },
+                    { name: 'Jessica Taylor', exp: '22 Years Exps', spec: 'L', total: 850, engaged: 640, noshow: 40, admitted: 20, rescheduled: 3, completion: '84%', rating: '4.3/5', badgeColor: "orange" },
+                    { name: 'David Lee', exp: '14 Years Exps', spec: 'M', total: 780, engaged: 620, noshow: 50, admitted: 17, rescheduled: 2, completion: '81%', rating: '4.0/5', badgeColor: "orange" },
+                    { name: 'Sophia Martinez', exp: '18 Years Exps', spec: 'G', total: 900, engaged: 710, noshow: 55, admitted: 21, rescheduled: 4, completion: '90%', rating: '4.5/5', badgeColor: "orange" },
+                  ]}
+                  page={1}
+                  pageSize={10}
+                  total={120} // Mock total
+                  onPageChange={() => { }}
+                  hideSeparators={true}
+                />
               </div>
             </div>
           </div>
@@ -361,7 +355,7 @@ export default function HDashboard() {
       )}
 
       {/* Appointment booking drawer */}
-      <BookAppointmentDrawer open={bookOpen} onClose={()=> setBookOpen(false)} />
+      <BookAppointmentDrawer open={bookOpen} onClose={() => setBookOpen(false)} />
     </div>
   )
 }

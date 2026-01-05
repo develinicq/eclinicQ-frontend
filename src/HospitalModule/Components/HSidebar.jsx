@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { logo, doctorSelect, doctorUnselect, patientUnselect, settingUnselect, hospitalSelected, hospitalUnselect } from '../../../public/index.js'
 
-export default function HSidebar(){
+export default function HSidebar() {
   const location = useLocation()
   const isSettingsRoute = location.pathname.startsWith('/hospital/settings')
   const [openSettings, setOpenSettings] = useState(isSettingsRoute)
@@ -18,26 +18,42 @@ export default function HSidebar(){
   const settingsSubItems = [
     { label: 'Hospital Account', to: '/hospital/settings/account' },
     { label: 'Timing and Schedule', to: '/hospital/settings/timing' },
-  { label: 'Surgeries', to: '/hospital/settings/surgeries' },
+    { label: 'Surgeries', to: '/hospital/settings/surgeries' },
     { label: 'Staff Permissions', to: '/hospital/settings/staff-permissions' },
-  { label: 'Security Settings', to: '/hospital/settings/security' },
+    { label: 'Security Settings', to: '/hospital/settings/security' },
   ]
   return (
     <aside className="min-h-screen w-[210px] bg-white border-r border-[#D6D6D6]">
       <div className="px-4 py-3"><img src={logo} alt="logo" className="w-[128px]" /></div>
       <nav>
         {topItems.map((it) => (
-          <NavLink key={it.to} to={it.to} end={it.to==='/hospital'} className={({isActive})=>`flex items-center gap-2 py-3 px-4 h-[44px] w-full ${isActive? 'bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF]': 'text-gray-800 hover:bg-gray-100'}`}>
-            {({isActive}) => (<>
-              <img src={isActive? it.iconActive: it.icon} alt={it.name} className="w-5 h-5" />
-              <span className="text-sm">{it.name}</span>
-            </>)}
+          <NavLink
+            key={it.to}
+            to={it.to}
+            end={it.to === '/hospital'}
+            className={({ isActive }) => {
+              // Special case for Doctors: match '/hospital/doctor/' (detail) as well as '/hospital/doctors' (list)
+              const isDoctorsDetail = it.to === '/hospital/doctors' && location.pathname.startsWith('/hospital/doctor/');
+              const active = isActive || isDoctorsDetail;
+              return `flex items-center gap-2 py-3 px-4 h-[44px] w-full ${active ? 'bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF]' : 'text-gray-800 hover:bg-gray-100'}`;
+            }}
+          >
+            {({ isActive }) => {
+              const isDoctorsDetail = it.to === '/hospital/doctors' && location.pathname.startsWith('/hospital/doctor/');
+              const active = isActive || isDoctorsDetail;
+              return (
+                <>
+                  <img src={active ? it.iconActive : it.icon} alt={it.name} className="w-5 h-5" />
+                  <span className="text-sm">{it.name}</span>
+                </>
+              );
+            }}
           </NavLink>
         ))}
 
         {/* Settings collapsible */}
         <div className="">
-          <button type="button" onClick={() => setOpenSettings(v=>!v)} className={`w-full flex items-center justify-between py-3 px-4 h-[44px] transition-colors ${isSettingsRoute ? 'bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF]' : 'text-gray-800 hover:bg-gray-100'}`}>
+          <button type="button" onClick={() => setOpenSettings(v => !v)} className={`w-full flex items-center justify-between py-3 px-4 h-[44px] transition-colors ${isSettingsRoute ? 'bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF]' : 'text-gray-800 hover:bg-gray-100'}`}>
             <span className="inline-flex items-center gap-[6px]">
               <img src={settingUnselect} alt="Settings" className="w-5 h-5" />
               <span className="font-normal text-sm">Settings</span>

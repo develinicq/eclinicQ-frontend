@@ -6,6 +6,7 @@ import ScheduleAppointmentDrawer from '../../../components/PatientList/ScheduleA
 import SampleTable from '../../../pages/SampleTable'
 import { getPatientColumns } from './columns'
 import patientData from './data.json'
+import PatientDetailsDrawer from './PatientDetailsDrawer'
 
 const Patients = () => {
   const [selected, setSelected] = useState('all')
@@ -13,7 +14,9 @@ const Patients = () => {
   const [page, setPage] = useState(1);
   const [logDrawerOpen, setLogDrawerOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedPatientForSchedule, setSelectedPatientForSchedule] = useState(null);
+  const [selectedPatientDetails, setSelectedPatientDetails] = useState(null);
   const pageSize = 10;
 
   // Filter logic (placeholder)
@@ -71,7 +74,10 @@ const Patients = () => {
           onPageChange={setPage}
           stickyLeftWidth={260}
           stickyRightWidth={160}
-          onRowClick={() => { }} // No navigation for now
+          onRowClick={(row) => {
+            setSelectedPatientDetails(row);
+            setDetailsOpen(true);
+          }}
           hideSeparators={false} // Show dividers
         />
       </div>
@@ -83,6 +89,11 @@ const Patients = () => {
         onClose={() => setScheduleOpen(false)}
         patient={selectedPatientForSchedule}
         onSchedule={() => setScheduleOpen(false)}
+      />
+      <PatientDetailsDrawer
+        isOpen={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        patient={selectedPatientDetails}
       />
     </div>
   )

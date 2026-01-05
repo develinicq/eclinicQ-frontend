@@ -63,7 +63,7 @@ const ActionCell = ({ row, onOpenLog, onSchedule }) => {
 
             <button
                 ref={buttonRef}
-                className="hover:opacity-75"
+                className="hover:opacity-75 py-2"
                 onClick={toggleMenu}
             >
                 <img src={action_dot} alt="" className="w-[17px]" />

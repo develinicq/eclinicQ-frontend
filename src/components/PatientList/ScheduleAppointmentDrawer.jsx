@@ -7,7 +7,7 @@ import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
 import calendarWhite from "../../../public/Doctor_module/sidebar/calendar_white.png";
 import AvatarCircle from '../AvatarCircle';
 
-const ScheduleAppointmentDrawer = ({ open, onClose, patient, onSchedule }) => {
+const ScheduleAppointmentDrawer = ({ open, onClose, patient, onSchedule, zIndex }) => {
     const [apptType, setApptType] = useState("New Consultation");
     const [reason, setReason] = useState("");
     const [doctor, setDoctor] = useState("");
@@ -82,8 +82,9 @@ const ScheduleAppointmentDrawer = ({ open, onClose, patient, onSchedule }) => {
             primaryActionLabel="Schedule"
             onPrimaryAction={handleSave}
             width={600}
+            zIndex={zIndex}
         >
-            <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-4 ">
                 {/* Patient Info Read-only */}
                 <div>
                     <InputWithMeta
