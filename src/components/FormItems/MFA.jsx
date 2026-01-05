@@ -40,5 +40,5 @@ const MFA = ({ formData, handleInputChange }) => {
     </div>
   )
 }
-
+ 
 export default MFA

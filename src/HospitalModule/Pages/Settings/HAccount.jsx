@@ -560,6 +560,7 @@ export default function HAccount({ profile }) {
                     <div className="text-[14px] text-secondary-grey200 ">Proof of Pan Card</div>
                     <InputWithMeta imageUpload={true} fileName="PAN Proof.pdf" showInput={false} />
                   </div>
+                </div> 
                 </div>
               </div>
 

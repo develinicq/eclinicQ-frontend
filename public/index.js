@@ -1,6 +1,6 @@
 import checkbox from "./checkbox.png";
 import iIcon from "./i-icon.png";
-import logo from "./logo.svg";
+import logo from "./superAdmin/main_sidebar/logo.svg";
 import normalTick from "./normal-tick.png";
 import tick from "./tick.png";
 // Newly added contact icons
@@ -21,32 +21,44 @@ import package2 from "./package_page/2.png";
 import package3 from "./package_page/3.png";
 import package4 from "./package_page/4.png";
 
-// Sidebar Registration Steps Icons
-import accountBlue from "./icons/Sidebar/Registration_Steps/Account/account_blue.png";
+// Sidebar Registration Steps Icons Supe-Admin
+import accountBlue from "./superAdmin/sideBar/accountBlue.svg";
+import hospitalIcon from "./superAdmin/sideBar/ hospitalIcon.svg";
+import documentBlue from "./superAdmin/sideBar/documentBlue.svg";
+import reviewBlue from "./superAdmin/sideBar/reviewBlue.svg";
+import packageBlue from "./superAdmin/sideBar/packageBlue.svg";
+import checkCircle from './superAdmin/sideBar/checkCircle.svg';
+import ChevronRight from './superAdmin/sideBar/chevronRight.svg';
+import chevdown from './superAdmin/chevdown.svg';
 import stethoscope from "./icons/Sidebar/Registration_Steps/Doctor/sthesoscope.png";
-import stethoscopeBlue from "./icons/Sidebar/Registration_Steps/Doctor/sthesoscope_blue.png";
+import stethoscopeBlue from "./superAdmin/Add_new/stethoscopeBlue.svg";
 import document from "./icons/Sidebar/Registration_Steps/Document/document.png";
-import documentBlue from "./icons/Sidebar/Registration_Steps/Document/document_blue.png";
-import hospitalIcon from "./icons/Sidebar/Registration_Steps/Hospital/hospital.png";
+import patientunselect from "./superAdmin/Add_new/patientUnselect.svg";
+import arrowRight from "./superAdmin/main_sidebar/arrowRight.svg";
 import hospitalGrey from "./icons/Sidebar/Registration_Steps/Hospital/hospital_grey.png";
-import packageIcon from "./icons/Sidebar/Registration_Steps/Package/package.png";
-import packageBlue from "./icons/Sidebar/Registration_Steps/Package/package_blue.png";
+// import packageIcon from "./icons/Sidebar/Registration_Steps/Package/package.png";
+import Eye from "./superAdmin/Doctors/Eye.svg";
+import threedots from "./superAdmin/Doctors/Threedots.svg";
 import review from "./icons/Sidebar/Registration_Steps/Review/review.png";
-import reviewBlue from "./icons/Sidebar/Registration_Steps/Review/review_blue.png";
+import userAvatar from "./superAdmin/dashboard/useravatar.svg";
+import calenderCheck from "./superAdmin/dashboard/calendarCheck.svg";
+import angledown from "./superAdmin/dashboard/angledown.svg";
 
 // Sidebar MainSidebar Icons
-import dashboardSelected from "./icons/Sidebar/MainSidebar/dashboard_selected.png";
-import dashboardUnselect from "./icons/Sidebar/MainSidebar/dashboard_unselect.png";
-import doctorSelect from "./icons/Sidebar/MainSidebar/doctor_select.png";
-import doctorUnselect from "./icons/Sidebar/MainSidebar/doctor_unselect.png";
-import hospitalSelected from "./icons/Sidebar/MainSidebar/hos_selected.png";
+import dashboardSelected from "./superAdmin/main_sidebar/dashboardSelected.svg";
+import dashboardUnselect from "./superAdmin/main_sidebar/dashboardUnselect.svg";
+import doctorSelect from "./superAdmin/main_sidebar/doctorSelect.svg";
+import doctorUnselect from "./superAdmin/main_sidebar/doctorUnselect.svg";
+import hospitalSelected from "./superAdmin/main_sidebar/hospitalSelected.svg";
 import hospitalUnselect from "./icons/Sidebar/MainSidebar/hospital_unselect.png";
-import patientUnselect from "./icons/Sidebar/MainSidebar/patient_unselect.png";
-import settingUnselect from "./icons/Sidebar/MainSidebar/setting_unselect.png";
+import patientUnselect from "./superAdmin/main_sidebar/patientUnselect.svg";
+import settingUnselect from "./superAdmin/main_sidebar/settingUnselect.svg";
+import helpCircle from "./superAdmin/main_sidebar/helpCircle.svg";
 
 // Navbar icons
-import bell from "./icons/Navbar/bell.png";
-import appointement from "./Doctor_module/appointement.png";
+import bell from "./superAdmin/bell.svg";
+import appointement from "./superAdmin/Add_new/appointment.svg";
+import hospitalicon from "./superAdmin/Add_new/hospitalicon.svg";
 // Doctor module navbar avatar icons
 import blueCall from "./Doctor_module/navbar/avatar/blue_call.png";
 import blueId from "./Doctor_module/navbar/avatar/blue_id.png";
@@ -105,17 +117,17 @@ import afternoonQueue from "./Doctor_module/queue/afternoonQueue.svg";
 import scheduleCalender from "./schedule-calender.svg";
 import calendarMinimalistic from "./Calendar-Minimalistic.svg";
 import arrowLeft from "./arrow-left.svg";
-import arrowRight from "./arrow-right.svg";
+
 import verifiedTick from "./verified-tick.svg";
 import inviteUserIcon from "./invite-user-icon.svg";
-import searchIcon from "./search-icon.svg";
+import searchIcon from "./superAdmin/Doctors/SearchIcon.svg";
 import drawerCross from "./drawer-cross.svg";
 import calenderArrowLeft from "./calender-arrow-left.svg";
 import calenderArrowRight from "./calender-arrow-right.svg";
 import calenderUndo from "./calender-undo.svg";
 import queueUndo from "./queue-undo.svg";
 import angelDown from "./angel-down.svg";
-import filerIcon from "./filter-icon.svg";
+import filerIcon from "./superAdmin/Doctors/filterIcon.svg";
 import sortIcon from "./sort-icon.svg";
 import paginationDown from "./pagination-down.svg";
 import downloadIcon from "./download-icon.svg";
@@ -129,6 +141,7 @@ import dangerIcon from "./danger-icon.svg";
 
 export {
   // Root PNGs
+  
   checkbox,
   iIcon,
   logo,
@@ -145,14 +158,23 @@ export {
   package3,
   package4,
   // Sidebar Registration Steps Icons
+ userAvatar,
+ angledown,
+ Eye,
+  patientunselect,
   accountBlue,
+  ChevronRight,
+  checkCircle,
   stethoscope,
   stethoscopeBlue,
   document,
   documentBlue,
   hospitalIcon,
   hospitalGrey,
-  packageIcon,
+  calenderCheck,
+  threedots,
+  // packageIcon,
+  hospitalicon,
   packageBlue,
   review,
   reviewBlue,
@@ -169,7 +191,9 @@ export {
   hospitalUnselect,
   patientUnselect,
   settingUnselect,
+  helpCircle,
   // Navbar icons
+chevdown,
   bell,
   blueCall,
   blueId,
@@ -213,6 +237,7 @@ export {
   queueWhite,
   settingBlue,
   helpWhite,
+
   //queue icons
   morningQueue,
   eveningQueue,

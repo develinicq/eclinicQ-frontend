@@ -291,7 +291,7 @@ export default function InputWithMeta({
         {/* Custom content slot replacing the input box when showInput=false */}
         {!showInput && children}
       </div>
-
+ 
       {/* External dropdown slot */}
       {dropdown}
 

@@ -1,14 +1,22 @@
 import React from "react";
+
+import { Check } from "lucide-react";
+import { useRegistration } from "../../context/RegistrationContext.jsx"; 
+
 import { Check, FileText, User, Building2, ClipboardList, CreditCard, Stethoscope, CheckCircle, Package, ChevronRight, ArrowLeft } from "lucide-react";
 import { useRegistration } from "../../context/RegistrationContext.jsx";
 import { useNavigate } from "react-router-dom";
+
 import {
-  accountBlue,
+  accountBlue, 
   stethoscopeBlue,
   documentBlue,
   reviewBlue,
   packageBlue,
   hospitalIcon,
+  checkCircle,
+  ChevronRight
+  
 } from "../../../../public/index.js";
 
 // ... (keep steps arrays as is)
@@ -69,7 +77,15 @@ const doctorSteps = [
       />
     )
   },
-  { id: 6, title: "Registration Complete", icon: <CheckCircle size={20} /> },
+  { id: 6, title: "Registration Complete", 
+   icon: (isCompleted, isCurrent) => (
+      <img
+        src={checkCircle}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="Package"
+      />
+    ) 
+   },
 ];
 
 const hospitalSteps = [
@@ -139,7 +155,15 @@ const hospitalSteps = [
       />
     )
   },
-  { id: 7, title: "Registration Complete", icon: <CheckCircle size={20} /> },
+  { id: 7, title: "Registration Complete", 
+    icon: (isCompleted, isCurrent) => (
+      <img
+        src={checkCircle}
+        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        alt="checkCircle"
+      />
+    )
+   },
 ];
 
 export default function SidebarSteps({ currentStep }) {
@@ -281,7 +305,12 @@ export default function SidebarSteps({ currentStep }) {
 
                     {/* Arrow for current step */}
                     {isCurrent && (
-                      <ChevronRight size={20} className="text-gray-400" />
+                     <img
+                        src={ChevronRight}
+                        alt="chevron-right"
+                        className="w-[20px] h-[20px]"
+                      />
+
                     )}
                   </div>
                 </div>
