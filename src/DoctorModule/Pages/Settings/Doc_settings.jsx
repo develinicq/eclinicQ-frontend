@@ -24,6 +24,8 @@ import {
   award
 } from "../../../../public/index.js";
 
+import InputWithMeta from "../../../components/GeneralDrawer/InputWithMeta";
+
 import Toggle from "../../../components/FormItems/Toggle";
 import TimeInput from "../../../components/FormItems/TimeInput";
 import { Checkbox } from "../../../components/ui/checkbox";
@@ -921,7 +923,6 @@ import {
   getDoctorConsultationDetails,
   putDoctorConsultationDetails,
 } from "../../../services/doctorConsultationService";
-import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 
 const Doc_settings = () => {
   const location = useLocation();
@@ -1483,53 +1484,20 @@ const Doc_settings = () => {
                       value={medicalRegistration?.registrationCouncil || "-"}
                     />
 
-                    <div className="h-[32px]  w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm overflow-x-hidden bg-secondary-grey50">
-                      <span className="flex items-center gap-3 text-secondary-grey300 flex-1 min-w-0 p-[0.5px]">
-                        <img src="/Doctor_module/settings/pdf_black.png" alt="file" className="h-6 w-6" />
-                        <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
-                          {(() => {
-                            const url = String(medicalRegistration?.proofDocumentUrl || "");
-                            const name = url ? (url.split("/").pop() || "MRN Proof.pdf") : "-";
-                            const max = 22;
-                            if (name.length <= max) return name;
-                            const keep = Math.max(4, Math.floor((max - 3) / 2));
-                            return `${name.slice(0, keep)}...${name.slice(-keep)}`;
-                          })()}
-                        </span>
-
-                        <button
-                          type="button"
-                          title="View"
-                          className="hover:text-secondary-grey400"
-                          onClick={() => onFileView?.(fileName)}
-                        >
-
-                        </button>
-                      </span>
-                      <span className="flex items-center gap-3 text-secondary-grey300 flex-shrink-0">
-                        <button
-                          type="button"
-                          title="View"
-                          className="hover:text-secondary-grey400 p-2"
-                          onClick={() => onFileView?.(fileName)}
-                        >
-                          {/* simple eye */}
-                          <img src="/Doctor_module/settings/eye.png" alt="" className="w-4 h-4" />
-                        </button>
-
-                        {medicalRegistration?.proofDocumentUrl ? (
-                          <a
-                            href={medicalRegistration.proofDocumentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="View"
-                            className="hover:text-secondary-grey400 inline-flex items-center justify-center"
-                          >
-                            <img src="/Doctor_module/settings/eye.png" alt="view" className="w-3.5 h-3.5" />
-                          </a>
-                        ) : null}
-                      </span>
-                    </div>
+                    <InputWithMeta
+                   
+                      imageUpload={true}
+                      fileName={(() => {
+                        const url = String(medicalRegistration?.proofDocumentUrl || "");
+                        return url ? (url.split("/").pop() || "MRN Proof.pdf") : "MRN Proof.pdf";
+                      })()}
+                      onFileView={() => {
+                        if (medicalRegistration?.proofDocumentUrl) {
+                          window.open(medicalRegistration.proofDocumentUrl, "_blank");
+                        }
+                      }}
+                      disabled={true}
+                    />
 
 
                   </div>
@@ -2313,56 +2281,20 @@ const Doc_settings = () => {
                     }
                   />
 
-                  <div className="text-secondary-grey200 text-sm flex flex-col gap-1">
-                    <span>Establishment Proof</span>
-                    <div className="h-[32px]  w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm overflow-x-hidden bg-secondary-grey50">
-                      <span className="flex items-center gap-3 text-secondary-grey300 flex-1 min-w-0 p-[0.5px]">
-                        <img src="/Doctor_module/settings/pdf_black.png" alt="file" className="h-6 w-6" />
-                        <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
-                          {(() => {
-                            const url = String(clinic?.proofDocumentUrl || "");
-                            const name = url ? (url.split("/").pop() || "MRN Proof.pdf") : "Establishment.pdf";
-                            const max = 22;
-                            if (name.length <= max) return name;
-                            const keep = Math.max(4, Math.floor((max - 3) / 2));
-                            return `${name.slice(0, keep)}...${name.slice(-keep)}`;
-                          })()}
-                        </span>
-
-                        <button
-                          type="button"
-                          title="View"
-                          className="hover:text-secondary-grey400"
-                          onClick={() => onFileView?.(fileName)}
-                        >
-
-                        </button>
-                      </span>
-                      <span className="flex items-center gap-3 text-secondary-grey300 flex-shrink-0">
-                        <button
-                          type="button"
-                          title="View"
-                          className="hover:text-secondary-grey400 p-2"
-                          onClick={() => onFileView?.(fileName)}
-                        >
-                          {/* simple eye */}
-                          <img src="/Doctor_module/settings/eye.png" alt="" className="w-4 h-4" />
-                        </button>
-
-                        {medicalRegistration?.proofDocumentUrl ? (
-                          <a
-                            href={medicalRegistration.proofDocumentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            title="View"
-                            className="hover:text-secondary-grey400 inline-flex items-center justify-center"
-                          >
-                            <img src="/Doctor_module/settings/eye.png" alt="view" className="w-3.5 h-3.5" />
-                          </a>
-                        ) : null}
-                      </span>
-                    </div>
-                  </div>
+                  <InputWithMeta
+                    label="Establishment Proof"
+                    imageUpload={true}
+                    fileName={(() => {
+                      const url = String(clinic?.proofDocumentUrl || "");
+                      return url ? (url.split("/").pop() || "MRN Proof.pdf") : "Establishment.pdf";
+                    })()}
+                    onFileView={() => {
+                      if (clinic?.proofDocumentUrl) {
+                        window.open(clinic.proofDocumentUrl, "_blank");
+                      }
+                    }}
+                    disabled={true}
+                  />
 
                 </div>
 

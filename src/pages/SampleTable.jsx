@@ -138,7 +138,8 @@ export default function SampleTable({
     if (headerContent && headerContent.type === TableHeader)
       return headerContent;
     // If it's primitive and they want icon (default true), wrap with TableHeader
-    const wantsIcon = col.icon !== false; // default true
+    // Support both 'icon' (legacy) and 'showIcon' (explicit) props
+    const wantsIcon = col.icon !== false && col.showIcon !== false;
     if (
       typeof headerContent === "string" ||
       typeof headerContent === "number"
