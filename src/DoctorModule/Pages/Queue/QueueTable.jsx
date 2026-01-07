@@ -6,13 +6,13 @@ import {
   ChevronsUpDown,
   User,
   Bed,
-  CalendarClock,
+ 
   Calendar,
   UserX,
   Undo2,
   ChevronDown,
 } from "lucide-react";
-import { arrowLeft, arrowRight } from "../../../../public/index.js";
+import { arrowLeft, arrowRight,calendarClock,chevronUpDown, } from "../../../../public/index.js";
 
 // Dimensions for sticky columns (px)
 const COL_W = {
@@ -640,7 +640,7 @@ const QueueTable = ({
                               </li>
                               <li>
                                 <button className="w-full text-left px-3 py-2 hover:bg-gray-50 inline-flex items-center gap-2">
-                                  <CalendarClock className="w-4 h-4 text-gray-500" />
+                                  <img src={calendarClock} alt="calendar clock" />
                                   Schedule Follow-up
                                 </button>
                               </li>

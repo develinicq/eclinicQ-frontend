@@ -7,7 +7,7 @@ import { doctorColumns } from '../../../../Doctors/DoctorList/columns'
 // Using sample data as fallback if needed, adjusting path
 import sampleData from '../../../../Doctors/DoctorList/data.json'
 import { useNavigate } from 'react-router-dom';
-
+ 
 const Doctor = ({ hospital }) => {
   const navigate = useNavigate();
   const isAuthed = useAuthStore((s) => Boolean(s.token))

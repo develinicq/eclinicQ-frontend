@@ -67,6 +67,13 @@ import helpCircle from "./superAdmin/main_sidebar/helpCircle.svg";
 import bell from "./superAdmin/bell.svg";
 import appointement from "./superAdmin/Add_new/appointment.svg";
 import hospitalicon from "./superAdmin/Add_new/hospitalicon.svg";
+//hospital-superadmin
+import trash from "./superAdmin/hospital/trash_bin.svg";
+import calendarClock from "./superAdmin/hospital/calendarClock.svg";
+import link from "./superAdmin/hospital/link.svg";
+import userMinus from "./superAdmin/hospital/userminus.svg";
+//doctor-superadmin
+import chevronUpDown  from "./superAdmin/Doctors/Chevronupdown.svg";
 // Doctor module navbar avatar icons
 import blueCall from "./Doctor_module/navbar/avatar/blue_call.png";
 import blueId from "./Doctor_module/navbar/avatar/blue_id.png";
@@ -180,6 +187,13 @@ export {
   hospitalIcon,
   hospitalGrey,
   calenderCheck,
+  //hospital-superadmin
+  trash,
+  calendarClock,
+  link,
+  userMinus,
+  // doctor-superadmin
+  chevronUpDown,
   threedots,
   // packageIcon,
   hospitalicon,
@@ -199,6 +213,7 @@ export {
   hospitalUnselect,
   patientUnselect,
   settingUnselect,
+
   helpCircle,
   // Navbar icons
 chevdown,

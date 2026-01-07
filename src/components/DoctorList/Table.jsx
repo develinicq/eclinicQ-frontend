@@ -1,8 +1,8 @@
-import { MoreVertical,  ChevronsUpDown } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 import AvatarCircle from "../AvatarCircle";
 import Badge from "../Badge";
-import { Eye,threedots } from "/Users/khushiagrawal1367/Desktop/eclinicQ-frontend/public/index.js";
+import { Eye,threedots,chevronUpDown } from "/Users/khushiagrawal1367/Desktop/eclinicQ-frontend/public/index.js";
 export default function Table({ doctors = [] }) {
   const navigate = useNavigate();
 
@@ -31,20 +31,20 @@ export default function Table({ doctors = [] }) {
                 <th className="pl-4 pr-4 py-0 h-8 whitespace-nowrap">
                   <span className="inline-flex items-center gap-2 h-8">
                     <input type="checkbox" className="accent-blue-600" aria-label="Select all" />
-                    <span className="inline-flex items-center gap-1 whitespace-nowrap">Doctors <ChevronsUpDown className="h-3.5 w-3.5" /></span>
+                    <span className="inline-flex items-center gap-1 whitespace-nowrap">Doctors <img src={chevronUpDown} alt="chevron-up-down" /></span>
                   </span>
                 </th>
                 <th className="px-4 py-0 h-8 whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Doc ID <ChevronsUpDown className="h-3.5 w-3.5" /></span>
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Doc ID <img src={chevronUpDown} alt="chevron-up-down" /></span>
                 </th>
-                <th className="px-4 py-0 h-8 whitespace-nowrap"><span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Contact Number <ChevronsUpDown className="h-3.5 w-3.5" /></span></th>
+                <th className="px-4 py-0 h-8 whitespace-nowrap"><span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Contact Number <img src={chevronUpDown} alt="chevron-up-down" /></span></th>
                 <th className="px-4 py-0 h-8 whitespace-nowrap">Email</th>
                 <th className="px-4 py-0 h-8 whitespace-nowrap">Location</th>
                 <th className="px-4 py-0 h-8 whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Specializations <ChevronsUpDown className="h-3.5 w-3.5" /></span>
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Specializations <img src={chevronUpDown} alt="chevron-up-down" /></span>
                 </th>
                 <th className="px-4 py-0 h-8 whitespace-nowrap">
-                  <span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Designation <ChevronsUpDown className="h-3.5 w-3.5" /></span>
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap h-8">Designation <img src={chevronUpDown} alt="chevron-up-down" /></span>
                 </th>
                 <th className="px-11 py-0 h-8 whitespace-nowrap text-right">Actions</th>
               </tr>

@@ -2,9 +2,10 @@ import React from 'react';
 import TableHeader from '../../../components/TableHeader';
 import AvatarCircle from '../../../components/AvatarCircle';
 import Badge from '../../../components/Badge';
-import { MoreVertical, Eye, CalendarClock, Briefcase, Link, UserX, Trash2 } from 'lucide-react';
+import { MoreVertical, Eye,  Briefcase, UserX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import {calendarClock,trash,link,userMinus} from "/Users/khushiagrawal1367/Desktop/eclinicQ-frontend/public/index.js";
 
 const eye = '/black_eye.png';
 const more = '/more_black.png';
@@ -105,7 +106,7 @@ const ActionCell = ({ row }) => {
                         onClick={(e) => handleAction('Update Availability Timing', e)}
                         className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                     >
-                        <CalendarClock className="w-4 h-4 text-gray-500" />
+                        <img src={calendarClock} alt="calendar clock" />
                         Update Availability Timing
                     </button>
                     <button
@@ -119,14 +120,14 @@ const ActionCell = ({ row }) => {
                         onClick={(e) => handleAction('Send Magic Link', e)}
                         className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                     >
-                        <Link className="w-4 h-4 text-gray-500" />
+                        <img src={link} alt="link" className="w-4 h-4 text-gray-500" />
                         Send Magic Link
                     </button>
                     <button
                         onClick={(e) => handleAction('Mark as Inactive', e)}
                         className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                     >
-                        <UserX className="w-4 h-4 text-gray-500" />
+                        <img src={userMinus} alt="user minus" />
                         Mark as Inactive
                     </button>
                     <div className="h-px bg-gray-100 my-1"></div>
@@ -134,7 +135,7 @@ const ActionCell = ({ row }) => {
                         onClick={(e) => handleAction('Delete Profile', e)}
                         className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                     >
-                        <Trash2 className="w-4 h-4" />
+                        <img src={trash} alt="trash" />
                         Delete Profile
                     </button>
                 </div>,
