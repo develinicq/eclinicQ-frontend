@@ -114,7 +114,7 @@ const Cards = ({ hospital }) => {
   const initial = (hospital?.name?.[0] || 'H').toUpperCase();
 
   return (
-    <div className="group relative pb-3 flex flex-col w-full min-w-[350px] bg-white rounded-md border border-secondary-grey100 transition-all duration-300 hover:shadow-[0_0_11.4px_4px_rgba(35,114,236,0.15)] overflow-hidden cursor-pointer">
+    <div className="group relative pb-3 flex flex-col w-full min-w-[300px] bg-white rounded-md border border-secondary-grey100 transition-all duration-300 hover:shadow-[0_0_11.4px_4px_rgba(35,114,236,0.15)] overflow-hidden cursor-pointer">
       {/* Header / Banner Section */}
       <div className="relative h-[120px] w-full">
         <img

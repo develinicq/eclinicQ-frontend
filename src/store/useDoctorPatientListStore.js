@@ -33,7 +33,7 @@ const useDoctorPatientListStore = create((set, get) => ({
             const dt = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
             const date = dt.toLocaleDateString('en-GB');
             const time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-            lastVisit = `${date} | ${time}`;
+            lastVisit = `${date} | ${time}`;   
           } else {
             // Try generic parse (ISO etc.)
             const parsed = new Date(lastVisitRaw);

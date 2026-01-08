@@ -7,7 +7,7 @@ import {
   RegistrationHeader
 } from '../../../../components/FormItems';
 import InputWithMeta from '../../../../components/GeneralDrawer/InputWithMeta';
-const upload= '/upload_blue.png'
+const upload = '/upload_blue.png'
 
 
 import { ChevronDown } from 'lucide-react';
@@ -103,7 +103,19 @@ const Step1 = forwardRef((props, ref) => {
     }
 
     setIsSubmitting(true);
-    const result = await submit();
+    // const result = await submit();
+    // Mock success - Bypass backend
+    const mockDoctorId = 'dummy_doctor_' + Date.now();
+
+    // Update Doctor Registration Store
+    try {
+      const useDoctorRegistrationStore = (await import('../../../../store/useDoctorRegistrationStore')).default;
+      useDoctorRegistrationStore.getState().setField('userId', mockDoctorId);
+    } catch (e) {
+      console.error("Failed to update doc store", e);
+    }
+
+    const result = { success: true, doctorId: mockDoctorId };
     setIsSubmitting(false);
 
     // Bypass validation: Always return true to allow navigation
@@ -248,8 +260,8 @@ const Step1 = forwardRef((props, ref) => {
             />
             <span className="text-xs text-secondary-grey200 mb-1">Support Size upto 1MB in .png, .jpg, .svg, .webp</span>
             <div className='flex gap-1 cursor-pointer items-center justify-center flex-col rounded-sm border-[0.5px] border-dashed border-blue-primary150 w-[130px] h-[130px]'>
-                  <img src={upload} alt="" className='w-4 h-4' />
-                  <span className='text-blue-primary250 text-sm'>Upload Image</span>
+              <img src={upload} alt="" className='w-4 h-4' />
+              <span className='text-blue-primary250 text-sm'>Upload Image</span>
             </div>
           </div>
 

@@ -138,7 +138,8 @@ export default function SampleTable({
     if (headerContent && headerContent.type === TableHeader)
       return headerContent;
     // If it's primitive and they want icon (default true), wrap with TableHeader
-    const wantsIcon = col.icon !== false; // default true
+    // Support both 'icon' (legacy) and 'showIcon' (explicit) props
+    const wantsIcon = col.icon !== false && col.showIcon !== false;
     if (
       typeof headerContent === "string" ||
       typeof headerContent === "number"
@@ -243,101 +244,112 @@ export default function SampleTable({
           {/* Body */}
           <tbody>
             {data.map((row, i) => (
-              <tr
-                key={i}
-                className={`border-b group`}
-              >
-                {columns.map((col) => {
-                  // Prevent wrapping; keep sticky widths only on sticky columns
-                  const base =
-                    "px-3 min-h-[54px] py-2 bg-white relative whitespace-normal text-left break-words align-middle transition-colors";
+              row.isHeader ? (
+                <tr key={i} className="">
+                  <td
+                    colSpan={columns.length}
+                    className="px-[10px] py-1 text-[12px] text-secondary-grey400 border-b w-full"
+                  >
+                    <span className="bg-secondary-grey50 px-1 py-[2px]">{row.label}</span>
+                  </td>
+                </tr>
+              ) : (
+                <tr
+                  key={i}
+                  className={`border-b group`}
+                >
+                  {columns.map((col) => {
+                    // Prevent wrapping; keep sticky widths only on sticky columns
+                    const base =
+                      "px-3 min-h-[54px] py-2 bg-white relative whitespace-normal text-left break-words align-middle transition-colors";
 
-                  const isSticky = col.sticky === 'left' || col.sticky === 'right';
-                  // Sticky cells: highlight individually on hover
-                  // Non-sticky cells: highlight ONLY when a fellow non-sticky cell is hovered (via CSS below)
-                  const hoverClass = isSticky
-                    ? ' hover:bg-secondary-grey50'
-                    : ' ns-cell';
+                    const isSticky = col.sticky === 'left' || col.sticky === 'right';
+                    // Sticky cells: highlight individually on hover
+                    // Non-sticky cells: highlight ONLY when a fellow non-sticky cell is hovered (via CSS below)
+                    const hoverClass = isSticky
+                      ? ' hover:bg-secondary-grey50'
+                      : ' ns-cell';
 
-                  const stickyLeft =
-                    col.sticky === "left" ? " bg-white sticky left-0 z-30" : ""; // below header (z-50)
-                  const stickyRight =
-                    col.sticky === "right" ? " sticky right-0 z-30" : "";
-                  const align = col.align === "center" ? " " : "";
-                  const cellClass = col.cellClass ? ` ${col.cellClass}` : "";
-                  const rawContent = col.render
-                    ? col.render(row)
-                    : row[col.key];
-                  const content = col.render ? (
-                    rawContent
-                  ) : (
-                    <span
-                      className=" text-secondary-grey300"
-                      style={{
-                        fontFamily: "Inter",
-                        fontWeight: 400,
-                        fontSize: "14px",
-                        lineHeight: "120%",
-                        letterSpacing: "0%",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      {rawContent}
-                    </span>
-                  );
-                  const widthStyle =
-                    col.sticky === "left"
-                      ? {
-                        minWidth: STICKY_LEFT_WIDTH,
-                        width: STICKY_LEFT_WIDTH,
-                      }
-                      : col.sticky === "right"
+                    const stickyLeft =
+                      col.sticky === "left" ? " bg-white sticky left-0 z-30" : ""; // below header (z-50)
+                    const stickyRight =
+                      col.sticky === "right" ? " sticky right-0 z-30" : "";
+                    const align = col.align === "center" ? " " : "";
+                    const cellClass = col.cellClass ? ` ${col.cellClass}` : "";
+                    const rawContent = col.render
+                      ? col.render(row)
+                      : row[col.key];
+                    const content = col.render ? (
+                      rawContent
+                    ) : (
+                      <span
+                        className=" text-secondary-grey300"
+                        style={{
+                          fontFamily: "Inter",
+                          fontWeight: 400,
+                          fontSize: "14px",
+                          lineHeight: "120%",
+                          letterSpacing: "0%",
+                          verticalAlign: "middle",
+                        }}
+                      >
+                        {rawContent}
+                      </span>
+                    );
+                    const widthStyle =
+                      col.sticky === "left"
                         ? {
-                          minWidth: STICKY_RIGHT_WIDTH,
-                          width: STICKY_RIGHT_WIDTH,
+                          minWidth: STICKY_LEFT_WIDTH,
+                          width: STICKY_LEFT_WIDTH,
                         }
-                        : col.width
-                          ? { minWidth: col.width, width: col.width }
-                          : undefined;
-                  const showRightDivider = col.sticky === "left";
-                  const showLeftDivider = col.sticky === "right";
-                  const nonStickyBorder =
-                    (!hideSeparators && !col.sticky && col.key !== lastColKey) ? " border-r" : "";
+                        : col.sticky === "right"
+                          ? {
+                            minWidth: STICKY_RIGHT_WIDTH,
+                            width: STICKY_RIGHT_WIDTH,
+                          }
+                          : col.width
+                            ? { minWidth: col.width, width: col.width }
+                            : undefined;
+                    const showRightDivider = col.sticky === "left";
+                    const showLeftDivider = col.sticky === "right";
+                    const nonStickyBorder =
+                      (!hideSeparators && !col.sticky && col.key !== lastColKey) ? " border-r" : "";
 
-                  // Clickable logic: only if sticky left and onRowClick exists
-                  const isClickable = col.sticky === "left" && onRowClick;
+                    // Clickable logic: only if sticky left and onRowClick exists
+                    const isClickable = col.sticky === "left" && onRowClick;
 
-                  const cellStyle = {
-                    ...(widthStyle || {}),
-                    ...(col.height ? { height: col.height } : {}),
-                  };
+                    const cellStyle = {
+                      ...(widthStyle || {}),
+                      ...(col.height ? { height: col.height } : {}),
+                    };
 
-                  return (
-                    <td
-                      key={col.key}
-                      className={`${base}${hoverClass}${nonStickyBorder}${stickyLeft}${stickyRight}${align}${cellClass} ${isClickable ? 'cursor-pointer' : ''}`}
-                      style={cellStyle}
-                      onClick={() => isClickable && onRowClick(row)}
-                    >
-                      {content}
+                    return (
+                      <td
+                        key={col.key}
+                        className={`${base}${hoverClass}${nonStickyBorder}${stickyLeft}${stickyRight}${align}${cellClass} ${isClickable ? 'cursor-pointer' : ''}`}
+                        style={cellStyle}
+                        onClick={() => isClickable && onRowClick(row)}
+                      >
+                        {content}
 
-                      {/* Edge shadows for sticky columns */}
-                      {col.sticky === "left" && (
-                        <span
-                          className={`${hideSeparators ? "" : "border-r"} pointer-events-none absolute right-0 top-0 h-full w-2`}
+                        {/* Edge shadows for sticky columns */}
+                        {col.sticky === "left" && (
+                          <span
+                            className={`${hideSeparators ? "" : "border-r"} pointer-events-none absolute right-0 top-0 h-full w-2`}
 
-                        ></span>
-                      )}
-                      {col.sticky === "right" && (
-                        <span
-                          className={`${hideSeparators ? "" : "border-l"} pointer-events-none absolute left-0 top-0 h-full w-2`}
+                          ></span>
+                        )}
+                        {col.sticky === "right" && (
+                          <span
+                            className={`${hideSeparators ? "" : "border-l"} pointer-events-none absolute left-0 top-0 h-full w-2`}
 
-                        ></span>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
+                          ></span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              )
             ))}
           </tbody>
         </table>

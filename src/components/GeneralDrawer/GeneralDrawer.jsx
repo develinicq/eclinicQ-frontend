@@ -84,7 +84,7 @@ export default function GeneralDrawer({
 
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/40 ${closing
+        className={`absolute inset-0 bg-black/90 ${closing
           ? "animate-[fadeOut_.2s_ease-in_forwards]"
           : "animate-[fadeIn_.25s_ease-out_forwards]"
           }`}
@@ -95,7 +95,7 @@ export default function GeneralDrawer({
       {/* Drawer panel with 16px inset from edges */}
       <aside
         aria-hidden={!isOpen}
-        className={` absolute top-4 right-4 bottom-4 bg-white shadow-2xl border border-gray-200 rounded-xl overflow-hidden ${closing
+        className={` absolute top-2 right-2 bottom-2 bg-white shadow-2xl border border-gray-200 rounded-xl overflow-hidden ${closing
           ? "animate-[drawerOut_.22s_ease-in_forwards]"
           : "animate-[drawerIn_.25s_ease-out_forwards]"
           }`}

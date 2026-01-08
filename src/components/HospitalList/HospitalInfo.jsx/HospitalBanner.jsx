@@ -6,7 +6,7 @@ import {verified,mapPoint,medicineBox,box,globe,threedots} from "/Users/khushiag
 
 // Reusable Stat Card Component (Matched to InfoBox style)
 const StatCard = ({ label, value, valueClass = "text-[#2372EC]" }) => (
-  <div className="w-[116px] h-[100px] border-dashed border border-[#D6D6D6] rounded-sm text-left p-[10px]">
+  <div className="w-[116px] h-[90px] border-dashed border border-secondary-grey100/50 rounded-sm text-left p-[10px]">
     <div className='flex flex-col h-full justify-between items-start'>
       <span className="text-[#626060] text-sm text-left" style={{ lineHeight: '17px' }}>{label}</span>
       <span className={`font-semibold text-sm text-left ${valueClass}`} style={{ lineHeight: '17px' }}>{value}</span>
@@ -48,12 +48,10 @@ const HospitalBanner = ({
   const isActive = (status || '').toLowerCase() === 'active'
 
   const statCards = [
-    { label: "Patients Served", value: stats.patientsManaged },
-    { label: "Appts Booked", value: stats.appointmentsBooked }, // Shortened label
-    { label: "Total Beds", value: stats.totalBeds || '—' },
-    { label: "Total Doctors", value: stats.totalDoctors || '—' },
-    // Limit to 4-5 key stats to fit well, or wrap
-    { label: "Active Package", value: stats.activePackage, valueClass: "text-green-600" },
+    { label: "No. of Patient Manages", value: stats.patientsManaged },
+    { label: "No. of Appt. Booked", value: stats.appointmentsBooked }, // Shortened label
+    { label: "Active Package", value: stats.activePackage || 'Premium', valueClass: "text-[#90BE6D] font-semibold text-sm" },
+    { label: "UpChar-Q ID", value: stats.upCharQId || '—' },
   ]
 
   return (

@@ -56,6 +56,7 @@ const sizeTokens = {
   l: "h-8 px-3 text-sm rounded-lg",
   small: "h-6 px-2 text-xs rounded-md", // legacy alias
   large: "h-8 px-3 text-sm rounded-md", // legacy alias
+  ss: "h-4 w-4 rounded-sm flex items-center justify-center text-[10px] px-1 py-[2px]"
 };
 
 

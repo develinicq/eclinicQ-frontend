@@ -1,8 +1,8 @@
-// HSurgeries.jsx
 import React, { useState } from 'react'
 import { ChevronsUpDown } from 'lucide-react'
 import { pencil } from '../../../../public/index.js'
 import { Checkbox } from '../../../components/ui/checkbox'
+import AddSurgeryDrawer from './Drawers/AddSurgeryDrawer'
 
 export default function HSurgeries() {
   // Local UI-only state for surgeries list
@@ -17,6 +17,7 @@ export default function HSurgeries() {
     { id: 8, name: 'Rhinoplasty', description: 'Surgical procedure to reshape the nose for aesthetic or functional improvement.' },
   ])
   const [selected, setSelected] = useState(() => new Set())
+  const [isAddDrawerOpen, setAddDrawerOpen] = useState(false)
 
   const allSelected = surgeries.length > 0 && selected.size === surgeries.length
 
@@ -28,11 +29,15 @@ export default function HSurgeries() {
 
   const onDelete = (id) => setSurgeries((list) => list.filter((x) => x.id !== id))
 
+  const handleAddSurgery = (newSurgery) => {
+    setSurgeries([...surgeries, { id: Date.now(), ...newSurgery }])
+  }
+
   return (
     <div className="">
       {/* Header bar with action link to avoid overlap */}
       <div className="flex items-center justify-end px-4 mb-2">
-        <button type="button" className="text-blue-primary250 text-sm hover:underline">+ New Surgery</button>
+        <button type="button" onClick={() => setAddDrawerOpen(true)} className="text-blue-primary250 text-sm hover:underline">+ New Surgery</button>
       </div>
       <div className="overflow-x-auto border border-secondary-grey100 rounded-lg">
         <table className="min-w-full table-fixed text-sm text-left ">
@@ -99,6 +104,12 @@ export default function HSurgeries() {
           </tbody>
         </table>
       </div>
+
+      <AddSurgeryDrawer
+        open={isAddDrawerOpen}
+        onClose={() => setAddDrawerOpen(false)}
+        onSave={handleAddSurgery}
+      />
     </div>
   )
 }

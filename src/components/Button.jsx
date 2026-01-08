@@ -4,7 +4,7 @@ import { XCircle, Clipboard, Clock, ChevronDown } from "lucide-react";
 
 // Variants
 const variants = {
-  primary: "bg-blue-600 text-white hover:bg-blue-700",
+  primary: "bg-blue-primary250  text-white hover:bg-blue-primary400 shadow-[0px_2px_10px_0px_rgba(35,114,236,0.27)] min-w-[32px]",
   secondary: "border border-gray-400 text-gray-800 hover:bg-gray-100",
   tertiary: "text-blue-600 hover:text-blue-800",
   success: "bg-green-600 text-white hover:bg-green-700",
@@ -15,7 +15,7 @@ const variants = {
 
 // Sizes
 const sizes = {
-  small: "px-3 py-1 text-sm rounded-sm",
+  small: "px-3 py-1 text-sm rounded-md",
   large: "p-2 h-8 text-sm rounded-sm",
 };
 

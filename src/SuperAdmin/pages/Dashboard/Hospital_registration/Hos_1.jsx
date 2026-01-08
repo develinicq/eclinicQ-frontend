@@ -127,7 +127,31 @@ const Hos_1 = forwardRef((props, ref) => {
       }
       setLoading(true);
       try {
-        await submit();
+        // await submit();
+
+        // Mock success logic
+        const adminId = 'dummy_admin_id_' + Date.now();
+
+        // Update Hospital Registration Store
+        const useHospitalRegistrationStore = (await import('../../../../store/useHospitalRegistrationStore')).default;
+        useHospitalRegistrationStore.getState().setField('adminId', adminId);
+
+        // Update Auth Store
+        const useAuthStore = (await import('../../../../store/useAuthStore')).default;
+        useAuthStore.getState().setToken('dummy_token');
+
+        if (form.isAlsoDoctor) {
+          const doctorId = 'dummy_doctor_id_' + Date.now();
+
+          // Update Doctor Registration Store
+          const useDoctorRegistrationStore = (await import('../../../../store/useDoctorRegistrationStore')).default;
+          useDoctorRegistrationStore.getState().setField('userId', doctorId);
+
+          // Update Hospital Doctor Details Store
+          const useHospitalDoctorDetailsStore = (await import('../../../../store/useHospitalDoctorDetailsStore')).default;
+          useHospitalDoctorDetailsStore.getState().setField('userId', doctorId);
+        }
+
         setLoading(false);
         return true;
       } catch (err) {

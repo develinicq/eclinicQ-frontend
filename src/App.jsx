@@ -9,7 +9,7 @@ import Layout_registration_new from "./components/Layouts/Layout_registration_ne
 import DoctorDetailsPage from "./SuperAdmin/pages/Doctors/DoctorList/DoctorInfo/DoctorDetailsPage";
 import HospitalDetailsPage from "./SuperAdmin/pages/Hospitals/HospitalList/HospitalInfo/HospitalDetailsPage";
 import { RegistrationProvider } from "./SuperAdmin/context/RegistrationContext";
-import DummyLogin from "./pages/DummyLogin";
+import SuperAdminSignIn from "./pages/SuperAdminSignIn";
 import GetStarted from "./pages/GetStarted";
 import OnboardingFlow from "./DoctorModule/Pages/Login/OnboardingFlow";
 import Doctor_layout from "./DoctorModule/Components/Layout/DoctorLayout";
@@ -60,7 +60,7 @@ import TabDemo from "./pages/TabDemo";
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<DummyLogin />} />
+      <Route path="/" element={<SuperAdminSignIn />} />
       {/* Demo route for Tab component */}
       <Route path="tab-demo" element={<TabDemo />} />
 

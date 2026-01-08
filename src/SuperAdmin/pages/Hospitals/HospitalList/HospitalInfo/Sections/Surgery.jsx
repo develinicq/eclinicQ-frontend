@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { ChevronsUpDown } from 'lucide-react'
 import { pencil } from '../../../../../../../public/index.js'
 import { Checkbox } from '../../../../../../components/ui/checkbox'
+import AddSurgeryDrawer from '../../../../../../HospitalModule/Pages/Settings/Drawers/AddSurgeryDrawer.jsx'
 
 export default function Surgery({ hospital }) {
     // Local UI-only state for surgeries list, initializing from hospital prop if available or defaults
@@ -23,6 +24,7 @@ export default function Surgery({ hospital }) {
             { id: 8, name: 'Rhinoplasty', description: 'Surgical procedure to reshape the nose for aesthetic or functional improvement.' },
         ]
     })
+    const [isAddDrawerOpen, setAddDrawerOpen] = useState(false)
 
     // Watch for prop updates
     useEffect(() => {
@@ -45,11 +47,15 @@ export default function Surgery({ hospital }) {
     // In real app, this might be disabled or restricted.
     const onDelete = (id) => setSurgeries((list) => list.filter((x) => x.id !== id))
 
+    const handleAddSurgery = (newSurgery) => {
+        setSurgeries([...surgeries, { id: Date.now(), ...newSurgery }])
+    }
+
     return (
         <div className="p-4">
             {/* Header bar with action link */}
             <div className="flex items-center justify-end mb-2">
-                <button type="button" className="text-blue-primary250 text-sm hover:underline">+ New Surgery</button>
+                <button type="button" onClick={() => setAddDrawerOpen(true)} className="text-blue-primary250 text-sm hover:underline">+ New Surgery</button>
             </div>
             <div className="overflow-x-auto border border-secondary-grey100 rounded-lg">
                 <table className="min-w-full table-fixed text-sm text-left ">
@@ -116,6 +122,12 @@ export default function Surgery({ hospital }) {
                     </tbody>
                 </table>
             </div>
+
+            <AddSurgeryDrawer
+                open={isAddDrawerOpen}
+                onClose={() => setAddDrawerOpen(false)}
+                onSave={handleAddSurgery}
+            />
         </div>
     )
 }

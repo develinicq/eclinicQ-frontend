@@ -154,7 +154,7 @@ export default function QueueDatePicker({ date, onChange }) {
       <div className="flex items-center space-x-2">
         {relativeDay && (
           <button
-            className="font-inter font-normal text-[14px] leading-[120%] text-center text-blue-primary250 bg-blue-primary50 px-2 py-1 rounded-md border border-transparent hover:border-blue-primary250 hover:border-[0.5px] transition-colors"
+            className="h-[22px] text-[14px] leading-tight text-center text-blue-primary250 bg-blue-primary50 px-2 rounded-sm border border-transparent hover:border-blue-primary250/50 hover:border-[0.5px] transition-colors"
             onClick={goToday}
           >
             {relativeDay}
@@ -163,7 +163,7 @@ export default function QueueDatePicker({ date, onChange }) {
         <button
           type="button"
           onClick={() => setShowCal((v) => !v)}
-          className="text-gray-700 font-medium hover:text-gray-900"
+          className="text-secondary-grey400 font-semibold text-sm"
         >
           {formattedDate}
         </button>
