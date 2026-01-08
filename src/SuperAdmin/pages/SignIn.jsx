@@ -2,15 +2,15 @@ import React, { useState, useRef } from "react";
 import UniversalLoader from "@/components/UniversalLoader";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import axios from "../lib/axios";
-import useAuthStore from "../store/useAuthStore";
+import axios from "../../lib/axios";
+import useSuperAdminAuthStore from "../../store/useSuperAdminAuthStore";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 
 export default function SuperAdminSignIn() {
     const navigate = useNavigate();
-    const { setToken, setUser } = useAuthStore();
+    const { setToken, setUser } = useSuperAdminAuthStore();
 
     const [remember, setRemember] = useState(true);
     const [identifier, setIdentifier] = useState(""); // email
