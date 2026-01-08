@@ -8,20 +8,26 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 
+import useToastStore from "../../store/useToastStore";
+
 export default function SuperAdminSignIn() {
     const navigate = useNavigate();
     const { setToken, setUser } = useSuperAdminAuthStore();
+    const { addToast } = useToastStore();
 
     const [remember, setRemember] = useState(true);
     const [identifier, setIdentifier] = useState(""); // email
     const [password, setPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [identifierMeta, setIdentifierMeta] = useState("");
+    const [passwordMeta, setPasswordMeta] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
     // OTP State
     const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' | 'otp'
     const [otp, setOtp] = useState(new Array(6).fill(""));
+    const [challengeId, setChallengeId] = useState(null);
     const otpInputRefs = useRef([]);
 
     const canLogin = identifier.trim().length > 0 && password.trim().length > 0;
@@ -43,27 +49,54 @@ export default function SuperAdminSignIn() {
     };
 
     const handleLogin = async () => {
-        if (!canLogin) return;
+        // reset meta
+        setIdentifierMeta("");
+        setPasswordMeta("");
+
+        if (!canLogin) {
+            if (!identifier.trim()) setIdentifierMeta("Please enter mobile/email.");
+            if (!password.trim()) setPasswordMeta("Please enter password.");
+            return;
+        }
         setSubmitting(true);
         setErrorMsg("");
 
-        // Basic email format check
-        const emailRegex = /[^\s@]+@[^\s@]+\.[^\s@]+/;
-        if (!emailRegex.test(identifier)) {
-            // Check if it might be a mobile number (simple check)
-            const mobileRegex = /^[0-9]{10}$/;
-            if (!mobileRegex.test(identifier) && !identifier.includes("@")) { // Basic heuristic
-                setErrorMsg('Please enter a valid email address or mobile number.');
-                setSubmitting(false);
-                return;
-            }
-        }
+        try {
+            const res = await axios.post('/superAdmin/login', {
+                userName: identifier,
+                password: password
+            });
 
-        // Simulate sending OTP
-        setTimeout(() => {
+            if (res.data.success) {
+                const challengeId = res.data.data?.data?.challengeId;
+                if (challengeId) {
+                    setChallengeId(challengeId);
+                    addToast({
+                        title: "OTP Sent",
+                        message: "OTP sent successfully to your registered mobile/email.",
+                        type: "success",
+                        duration: 3000
+                    });
+                    setLoginStep('otp');
+                } else {
+                    throw new Error("Invalid response from server: Missing challengeId");
+                }
+            } else {
+                throw new Error(res.data.message || "Login failed");
+            }
+        } catch (error) {
+            console.error(error);
+            const msg = error.response?.data?.message || error.message || "Something went wrong";
+            setErrorMsg(msg);
+            addToast({
+                title: "Login Failed",
+                message: msg,
+                type: "error",
+                duration: 4000
+            });
+        } finally {
             setSubmitting(false);
-            setLoginStep('otp');
-        }, 1000);
+        }
     };
 
     const handleVerify = async () => {
@@ -72,27 +105,51 @@ export default function SuperAdminSignIn() {
         setErrorMsg("");
 
         try {
-            // Logic from DummyLogin.jsx
-            const res = await axios.post('/superAdmin/login', { emailId: identifier, password });
-            const data = res?.data;
+            const otpValue = otp.join("");
+            const res = await axios.post('/superAdmin/verify-otp', {
+                challengeId: challengeId,
+                otp: otpValue
+            });
 
-            const token = data?.token || data?.accessToken || data?.data?.token;
-            const user = data?.user || data?.data?.user || null;
+            if (res.data.success) {
+                const token = res.data.data?.token;
 
-            if (!token) {
-                throw new Error('No token in response');
+                if (token) {
+                    setToken(token);
+                    if (remember) {
+                        try {
+                            localStorage.setItem('superAdminToken', token);
+                        } catch {}
+                    }
+                    // You might want to set user details here if returned, or fetch /me
+                    // setUser(res.data.data.user); 
+
+                    addToast({
+                        title: "Login Successful",
+                        message: "Redirecting to dashboard...",
+                        type: "success",
+                        duration: 2000
+                    });
+
+                    navigate("/dashboard", { replace: true });
+                } else {
+                    throw new Error("Invalid response: Missing token");
+                }
+            } else {
+                throw new Error(res.data.message || "OTP Verification failed");
             }
 
-            setToken(token);
-            if (user) setUser(user);
-
-            // Redirect to dashboard
-            navigate("/dashboard", { replace: true });
         } catch (e) {
-            const raw = e?.response?.data?.message ?? e?.message ?? 'Login failed';
+            const raw = e?.response?.data?.message ?? e?.message ?? 'Verification failed';
             const msg = typeof raw === 'string' ? raw : (raw?.message || raw?.error || JSON.stringify(raw));
             setErrorMsg(msg);
-            console.error('Login failed:', e);
+            addToast({
+                title: "Verification Failed",
+                message: msg,
+                type: "error",
+                duration: 4000
+            });
+        } finally {
             setSubmitting(false);
         }
     };
@@ -170,17 +227,15 @@ export default function SuperAdminSignIn() {
 
                         {loginStep === 'credentials' ? (
                             <div className="space-y-3">
-                                {errorMsg && (
-                                    <div className="p-3 bg-red-50 text-red-500 text-sm rounded-md border border-red-100">
-                                        {errorMsg}
-                                    </div>
-                                )}
                                 <InputWithMeta
                                     label="Enter Mobile/Email ID"
                                     placeholder="Enter Mobile/Email ID"
                                     value={identifier}
                                     requiredDot
                                     onChange={(value) => setIdentifier(value)}
+                                    meta={identifierMeta}
+                                    metaClassName="text-red-500"
+                                    isInvalid={!!identifierMeta}
                                 />
 
                                 <InputWithMeta
@@ -197,6 +252,9 @@ export default function SuperAdminSignIn() {
                                         if (e.key === "Enter" && canLogin)
                                             handleLogin();
                                     }}
+                                    meta={passwordMeta}
+                                    metaClassName="text-red-500"
+                                    isInvalid={!!passwordMeta}
                                 />
 
                                 <div className="flex items-center gap-2 justify-between">

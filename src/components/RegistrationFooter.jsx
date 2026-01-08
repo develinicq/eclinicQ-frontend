@@ -13,25 +13,17 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
   // - Hospital flow finishes at step 6 when isDoctor === 'no'
   if ((registrationType === 'doctor' && currentStep === 6) || (isHospital && !hospitalOwnerAlsoDoctor && currentStep === 6)) {
     return (
-      <footer className="flex-shrink-0 p-4 border-t border-gray-200 flex justify-between bg-white">
-        <button onClick={onCancel} className="w-[200px] h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
-          Back to Home
+      <footer className="flex-shrink-0 px-6 py-6 border-t border-gray-200 flex justify-between bg-white text-sm">
+        <button onClick={onCancel} className="ml-6 w-[200px] h-8 flex items-center justify-center rounded-sm border border-secondary-grey200 hover:bg-secondary-grey50 transition-colors text-secondary-grey400">
+          Close
         </button>
 
-        <div className="flex gap-3">
-          <button
-            onClick={onPrev}
-            className="w-[200px] h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            disabled={true}
-          >
-            ← Previous
-          </button>
-
+        <div className="flex gap-5 items-center px-6">
           <button
             onClick={onNext}
-            className="w-[200px] h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
-            {registrationType === 'doctor' ? 'Go to Doctors Dashboard' : 'Go to Hospitals Dashboard'}
+            Go to Profile →
           </button>
         </div>
       </footer>
@@ -41,24 +33,17 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
   // For Step 7 (hospital success page), show different navigation
   if (currentStep === 7 && isHospital) {
     return (
-      <footer className="flex-shrink-0 p-4 border-t border-gray-200 flex justify-between bg-white">
-        <button onClick={onCancel} className="w-[200px] h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
-          Back to Home
+      <footer className="flex-shrink-0 px-6 py-6 border-t border-gray-200 flex justify-between bg-white text-sm">
+        <button onClick={onCancel} className="ml-6 w-[200px] h-8 flex items-center justify-center rounded-sm border border-secondary-grey200 hover:bg-secondary-grey50 transition-colors text-secondary-grey400">
+          Close
         </button>
 
-        <div className="flex gap-3">
-          <button
-            className="w-[200px] h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            disabled={true}
-          >
-            Previous
-          </button>
-
+        <div className="flex gap-5 items-center px-6">
           <button
             onClick={onNext}
-            className="w-[200px] h-8 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
-            Go to Hospitals Dashboard
+            Go to Profile →
           </button>
         </div>
       </footer>
@@ -108,7 +93,7 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
             className="w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
             disabled={loading}
           >
-            {loading ? 'Submitting...' : 'Submit Registration'}
+            {loading ? 'Submitting...' : 'Preview Purchase ->'}
           </button>
         ) : (
           <button

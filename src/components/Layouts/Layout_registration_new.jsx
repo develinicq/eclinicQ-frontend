@@ -496,13 +496,10 @@ const Layout_registration_new = () => {
         const currentSubStep = formData.step4SubStep || 1;
         if (currentSubStep === 1) {
           return "Save & Next →";
-        } else if (currentSubStep === 2) {
-          // Review & Agreement sub-step 2
-          return formData.termsAccepted && formData.privacyAccepted ? "Save & Activate" : "Accept Terms to Continue";
-        }
+        } 
       } else if (currentStep === 5) {
         // Package & Payment step
-        return "Send Payment Link";
+        return "Preview Purchase";
       } else if (currentStep === 6) {
         // Profile completion page
         return "Go to Profile";

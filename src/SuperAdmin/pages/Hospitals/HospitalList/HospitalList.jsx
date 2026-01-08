@@ -194,11 +194,11 @@ function HospitalList() {
   }, [hospitals, selected]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white">
       <div className="sticky mt-2 top-0 z-10 ">
         <Header counts={counts} selected={selected} onChange={setSelected} addLabel="Add New Hospital" addPath="/register/hospital" />
       </div>
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1  overflow-y-auto p-3 bg-white">
         {loading && <div className="p-6 text-gray-600">Loading hospitals…</div>}
         {!loading && error && <div className="p-6 text-red-600">{String(error)}</div>}
         {!loading && !error && <HospitalGrid hospitals={hospitalsFiltered} />}

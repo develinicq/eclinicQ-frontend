@@ -1,5 +1,6 @@
 import axios from "axios";
 import useAuthStore from "../store/useAuthStore";
+import useSuperAdminAuthStore from "../store/useSuperAdminAuthStore";
 
 // Normalize base URL to always include '/api' segment
 const raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
@@ -21,8 +22,18 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     try {
-      // Read token from store (persisted via localStorage)
-      const { token } = useAuthStore.getState();
+      // Prefer Super Admin token, fallback to general auth store, then localStorage
+      const saToken = (() => {
+        try { return useSuperAdminAuthStore.getState().token; } catch { return null; }
+      })();
+      const genericToken = (() => {
+        try { return useAuthStore.getState().token; } catch { return null; }
+      })();
+      const lsToken = (() => {
+        try { return localStorage.getItem('superAdminToken'); } catch { return null; }
+      })();
+
+      const token = saToken || genericToken || lsToken;
       if (token) {
         config.headers = config.headers || {};
         const raw = String(token).trim();
