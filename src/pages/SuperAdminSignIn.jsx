@@ -1,9 +1,12 @@
-import React, { useState } from "react";
-import Button from "../components/Button";
+import React, { useState, useRef } from "react";
+import UniversalLoader from "@/components/UniversalLoader";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import axios from "../lib/axios";
 import useAuthStore from "../store/useAuthStore";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
+import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 
 export default function SuperAdminSignIn() {
     const navigate = useNavigate();
@@ -16,7 +19,28 @@ export default function SuperAdminSignIn() {
     const [errorMsg, setErrorMsg] = useState("");
     const [showPassword, setShowPassword] = useState(false);
 
+    // OTP State
+    const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' | 'otp'
+    const [otp, setOtp] = useState(new Array(6).fill(""));
+    const otpInputRefs = useRef([]);
+
     const canLogin = identifier.trim().length > 0 && password.trim().length > 0;
+    const isOtpFilled = otp.every(val => val !== "");
+
+    // OTP Handlers
+    const handleOtpChange = (element, index) => {
+        if (isNaN(element.value)) return false;
+        setOtp([...otp.map((d, idx) => (idx === index ? element.value : d))]);
+        if (element.nextSibling && element.value) {
+            element.nextSibling.focus();
+        }
+    };
+
+    const handleKeyDown = (e, index) => {
+        if (e.key === 'Backspace' && !otp[index] && index > 0) {
+            otpInputRefs.current[index - 1].focus();
+        }
+    };
 
     const handleLogin = async () => {
         if (!canLogin) return;
@@ -26,10 +50,26 @@ export default function SuperAdminSignIn() {
         // Basic email format check
         const emailRegex = /[^\s@]+@[^\s@]+\.[^\s@]+/;
         if (!emailRegex.test(identifier)) {
-            setErrorMsg('Please enter a valid email address.');
-            setSubmitting(false);
-            return;
+            // Check if it might be a mobile number (simple check)
+            const mobileRegex = /^[0-9]{10}$/;
+            if (!mobileRegex.test(identifier) && !identifier.includes("@")) { // Basic heuristic
+                setErrorMsg('Please enter a valid email address or mobile number.');
+                setSubmitting(false);
+                return;
+            }
         }
+
+        // Simulate sending OTP
+        setTimeout(() => {
+            setSubmitting(false);
+            setLoginStep('otp');
+        }, 1000);
+    };
+
+    const handleVerify = async () => {
+        if (!isOtpFilled) return;
+        setSubmitting(true);
+        setErrorMsg("");
 
         try {
             // Logic from DummyLogin.jsx
@@ -53,20 +93,19 @@ export default function SuperAdminSignIn() {
             const msg = typeof raw === 'string' ? raw : (raw?.message || raw?.error || JSON.stringify(raw));
             setErrorMsg(msg);
             console.error('Login failed:', e);
-        } finally {
             setSubmitting(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex bg-white">
+        <div className="min-h-screen flex flex-1 bg-secondary-grey50 p-3 w-full">
             {/* Left panel - fixed 600px */}
-            <div className="hidden md:flex flex-1 relative p-6">
+            <div className="hidden md:flex flex-1 relative w-1/2">
                 <div
                     className="absolute inset-0 rounded-[12px]"
                     style={{
                         background: "linear-gradient(180deg, #2372EC 22.83%, #E184FD 100%)",
-                        margin: "24px",
+
                     }}
                 />
                 {/* Decorative circles */}
@@ -74,30 +113,33 @@ export default function SuperAdminSignIn() {
                     src="/Group-1898.svg"
                     alt=""
                     className="absolute top-0 left-0 pointer-events-none"
-                    style={{ margin: "24px" }}
+
                 />
                 <img
                     src="/Group-1899.svg"
                     alt=""
                     className="absolute bottom-0 right-0 pointer-events-none"
-                    style={{ margin: "24px" }}
+
                 />
                 <div
                     className="relative h-full w-full flex items-center justify-center"
-                    style={{ paddingTop: "40px", paddingBottom: "12px" }}
+
                 >
-                    <div className="text-white text-center max-w-sm select-none">
+                    <div className="text-white text-center select-none">
                         <img
                             src="/sign-in-object.svg"
                             alt="welcome"
-                            className="w-[599px] md:w-[599px] mx-auto"
+                            className="  mx-auto"
                         />
-                        <h2 className="text-xl font-semibold mt-4">Welcome To Upchar-Q</h2>
-                        <p className="text-sm opacity-90">
-                            Your Turn, Your Time
-                            <br />
-                            Track Appointments in Real-Time!
-                        </p>
+                        <div className="flex flex-col gap-3 mt-10">
+                            <h2 className="text-[28px] font-medium  leading-[24px]">Welcome To Upchar-Q</h2>
+                            <p className="text-[20px] opacity-90 leading-[20px]">
+                                <span className="block mb-1">Your Turn, Your Time</span>
+                                <span className="block">Track Appointments in Real-Time!</span>
+                            </p>
+
+
+                        </div>
 
                         {/* Bottom dots decoration */}
                         <img
@@ -108,119 +150,190 @@ export default function SuperAdminSignIn() {
                     </div>
                 </div>
             </div>
+
             {/* Right form */}
-            <div className="relative flex-1 flex items-center justify-center px-6 pb-10 md:px-10 md:pb-10">
-                <div className="absolute left-8 md:left-12 top-8 md:top-8">
-                    <img src="/logo.svg" alt="eClinic-Q" className="h-6" />
+            <div className=" flex flex-col gap-16  bg-white px-3 p-3 w-1/2">
+                <div className=" flex flex-col items-start gap-1 px-3">
+                    <img src="/logo.svg" alt="eClinic-Q" className="h-7" />
+                    <div className="bg-warning-50 px-1 w-fit py-[2px] min-w-[18px] text-warning-400 text-[12px]">Super Admin</div>
                 </div>
-                <div className="w-full max-w-[520px] relative -top-2 md:-top-4 pb-16">
-                    <h1 className="text-2xl font-semibold text-gray-800">
-                        Super Admin Login
-                    </h1>
-                    <p className="text-sm text-gray-500 mb-3">Sign in to continue</p>
 
-                    <div className="space-y-3 mt-4">
-                        {errorMsg && (
-                            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
-                                {errorMsg}
-                            </div>
-                        )}
+                <div className="flex items-center justify-center">
+                    <div className="w-full max-w-[500px] flex flex-col gap-6">
+                        <div className="flex flex-col gap-1">
+                            <h1 className="text-[24px]  font-bold text-secondary-grey400 leading-tight">
+                                Welcome Back!
+                            </h1>
+                            <p className="text-[14px] text-secondary-grey300 leading-tight">Login in to access super admin.</p>
+                        </div>
 
-                        <div>
-                            <div>
-                                <label className="text-sm text-gray-700">
-                                    Enter Email ID{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    className="mt-1 h-9 w-full border border-gray-300 rounded px-2 text-sm"
-                                    placeholder="Enter Email ID"
+
+                        {loginStep === 'credentials' ? (
+                            <div className="space-y-3">
+                                {errorMsg && (
+                                    <div className="p-3 bg-red-50 text-red-500 text-sm rounded-md border border-red-100">
+                                        {errorMsg}
+                                    </div>
+                                )}
+                                <InputWithMeta
+                                    label="Enter Mobile/Email ID"
+                                    placeholder="Enter Mobile/Email ID"
                                     value={identifier}
-                                    onChange={(e) => setIdentifier(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            // Focus password field if email entered
-                                        }
-                                    }}
+                                    requiredDot
+                                    onChange={(value) => setIdentifier(value)}
                                 />
-                            </div>
-                            <label className="text-sm text-gray-700 mt-3 block">
-                                Password <span className="text-red-500">*</span>
-                            </label>
-                            <div className="mt-1 relative">
-                                <input
-                                    className="h-9 w-full border border-gray-300 rounded px-2 text-sm pr-8"
+
+                                <InputWithMeta
+                                    label="Enter Password"
                                     placeholder="Enter Password"
-                                    type={showPassword ? "text" : "password"}
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    requiredDot
+                                    onChange={(value) => setPassword(value)}
+                                    type={showPassword ? "text" : "password"}
+                                    RightIcon={showPassword ? Eye : EyeOff}
+                                    onIconClick={() => setShowPassword(!showPassword)}
+                                    readonlyWhenIcon={false}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && canLogin)
                                             handleLogin();
                                     }}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-gray-700"
-                                >
-                                    {showPassword ? "Hide" : "Show"}
-                                </button>
+
+                                <div className="flex items-center gap-2 justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox
+                                            id="remember"
+                                            checked={remember}
+                                            onCheckedChange={setRemember}
+                                        />
+                                        <label
+                                            htmlFor="remember"
+                                            className="text-[14px] text-secondary-grey300 cursor-pointer"
+                                        >
+                                            Remember Me
+                                        </label>
+                                    </div>
+
+                                    <div className="text-right text-[14px] text-blue-primary250 cursor-pointer">
+                                        Forgot Password?
+                                    </div>
+                                </div>
+
+                                {submitting ? (
+                                    <button
+                                        disabled
+                                        className="w-full h-[32px] flex items-center justify-center gap-2 bg-blue-primary250 text-white rounded-md text-sm font-medium transition-colors cursor-wait"
+                                    >
+                                        <UniversalLoader
+                                            size={20}
+                                            style={{
+                                                background: 'transparent',
+                                                width: 'auto',
+                                                height: 'auto',
+                                                minHeight: 0,
+                                                minWidth: 0
+                                            }}
+                                        />
+                                        Logging In...
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleLogin}
+                                        disabled={!canLogin}
+                                        className={`w-full h-[32px] rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2
+                                            ${!canLogin
+                                                ? 'bg-secondary-grey50 cursor-not-allowed text-secondary-grey100'
+                                                : 'bg-blue-primary250 hover:bg-blue-700 text-white shadow-sm'
+                                            }`}
+                                    >
+                                        <div className="w-4 h-4 rounded-full border border-current flex items-center justify-center">
+                                            <svg width="8" height="6" viewBox="0 0 8 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M1 3L3 5L7 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
+                                        Login
+                                    </button>
+                                )}
                             </div>
-                            <div className="text-right mt-1 text-xs text-[#2F66F6] cursor-pointer">
-                                Forgot Password?
+                        ) : (
+                            <div className="flex flex-col items-center  gap-4 w-full animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className="text-[14px] text-secondary-grey300 ">
+                                    We have sent a 6 digit OTP on <span className="font-semibold">{identifier.replace(/(\+?91)?(\d{2}).*(\d{4})/, '*******$3')}</span> and registered email Id <span className="font-semibold"> {identifier.includes('@') ? identifier.replace(/^(.{2}).*(@.*)$/, '$1*****$2') : 'ke*****@gmail.com'}</span>, please sign up if you are a new user
+                                </div>
+
+                                <div className="flex flex-col items-center gap-3 w-full">
+                                    <div className="flex flex-col gap-1 items-center">
+                                        <label className="text-[14px] font-medium text-secondary-grey400">
+                                            Enter Mobile Verification Code
+                                        </label>
+                                        <div className="text-[12px] text-secondary-grey200">It may take a minute or two to receive your code.</div>
+                                    </div>
+
+                                    <div className="flex gap-4 justify-center w-full">
+                                        {otp.map((data, index) => (
+                                            <input
+                                                className="w-[32px] h-[32px] border border-secondary-grey150 rounded-md text-center text-[14px] text-secondary-grey400 focus:border-blue-primary150 outline-none transition-all"
+                                                type="password"
+                                                name="otp"
+                                                maxLength="1"
+                                                key={index}
+                                                value={data}
+                                                ref={el => otpInputRefs.current[index] = el}
+                                                onChange={e => handleOtpChange(e.target, index)}
+                                                onKeyDown={e => handleKeyDown(e, index)}
+                                                onFocus={e => e.target.select()}
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="text-[12px] text-secondary-grey200 flex items-center gap-2">
+                                        Haven’t Received Your Code yet? <button type="button" onClick={() => { setOtp(new Array(6).fill("")); alert("OTP Resent"); }} className="text-blue-primary250 text-[14px] hover:underline">Resend</button>
+                                    </div>
+                                </div>
+
+                                <div className="w-full">
+                                    {submitting ? (
+                                        <button
+                                            disabled
+                                            className="w-full h-[32px] flex items-center justify-center gap-2 bg-blue-600 text-white rounded-md text-sm font-medium transition-colors cursor-wait"
+                                        >
+                                            <UniversalLoader
+                                                size={20}
+                                                style={{
+                                                    background: 'transparent',
+                                                    width: 'auto',
+                                                    height: 'auto',
+                                                    minHeight: 0,
+                                                    minWidth: 0
+                                                }}
+                                            />
+                                            Verify OTP
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleVerify}
+                                            disabled={!isOtpFilled}
+                                            className={`w-full h-[32px] rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2
+                                            ${!isOtpFilled
+                                                    ? 'bg-secondary-grey50 cursor-not-allowed text-secondary-grey100'
+                                                    : 'bg-blue-primary250 hover:bg-blue-700 text-white shadow-sm'
+                                                }`}
+                                        >
+                                            <div className="w-4 h-4 rounded-full border border-current flex items-center justify-center">
+                                                <svg width="8" height="6" viewBox="0 0 8 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M1 3L3 5L7 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            </div>
+                                            Verify OTP
+                                        </button>
+                                    )}
+                                </div>
+
                             </div>
-                        </div>
+                        )}
 
-                        <div className="flex items-center gap-2">
-                            <Checkbox
-                                id="remember"
-                                checked={remember}
-                                onCheckedChange={setRemember}
-                            />
-                            <label
-                                htmlFor="remember"
-                                className="text-xs text-gray-700 cursor-pointer"
-                            >
-                                Remember Me
-                            </label>
-                        </div>
-
-                        <Button
-                            className="w-full"
-                            disabled={!canLogin || submitting}
-                            onClick={handleLogin}
-                        >
-                            {submitting ? "Logging in..." : "Login"}
-                        </Button>
-
-                        <div className="text-[11px] text-gray-500 flex items-start gap-2">
-                            <span className="mt-[2px] inline-flex items-center justify-center w-[14px] h-[14px] border border-gray-400 rounded-full text-[9px] text-gray-600">
-                                i
-                            </span>
-                            <span>
-                                By clicking the button above, you agree to our{" "}
-                                <a className="text-[#2F66F6]" href="#">
-                                    Terms of Service
-                                </a>{" "}
-                                and{" "}
-                                <a className="text-[#2F66F6]" href="#">
-                                    Privacy Policy
-                                </a>
-                                .
-                            </span>
-                        </div>
                     </div>
-                    {/* Help & Support button */}
-                    <a
-                        className="absolute left-8 md:left-12 bottom-6 bg-white text-gray-600 text-sm rounded-full border border-gray-200 shadow-sm px-4 py-2 inline-flex items-center gap-2 hover:bg-gray-50 w-fit"
-                        href="#"
-                    >
-                        <img src="/Help.svg" alt="help" className="w-4 h-4" />
-                        Help & Support
-                        <span className="ml-2 text-gray-400">›</span>
-                    </a>
                 </div>
+
             </div>
         </div>
     );
