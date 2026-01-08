@@ -34,13 +34,8 @@ const Overview_cards = ({
     <div
       className={`w-12 h-12 rounded-full border flex items-center justify-center bg-white shadow-sm ${className}`}
     >
-      {icon ? (
-        icon
-      ) : isProfit ? (
-        <img src={userAvatar} alt="user-avatar" />
-      ) : (
-        <img src={calenderCheck} alt="calendar-check" />
-      )}
+      {icon && <img src={icon} alt="card-icon" />}
+
     </div>
   );
 

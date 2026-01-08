@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { MapPin, Building2, Calendar, Globe, MoreHorizontal } from 'lucide-react'
+
 import AvatarCircle from '../../AvatarCircle'
 import { getDownloadUrl } from '../../../services/uploadsService'
-const horizontal = '/horizontal.png'
+import {verified,mapPoint,medicineBox,box,globe,threedots} from "/Users/khushiagrawal1367/Desktop/eclinicQ-frontend/public/index.js"
 
 // Reusable Stat Card Component (Matched to InfoBox style)
 const StatCard = ({ label, value, valueClass = "text-[#2372EC]" }) => (
@@ -66,7 +66,7 @@ const HospitalBanner = ({
             onError={(e) => { e.currentTarget.src = '/images/hospital_logo.png' }}
           />
         </div>
-        <img src="/tick.png" alt="Verified" className="absolute -bottom-0 left-16 w-6 h-6" />
+        <img src={verified} alt="Verified" className="absolute -bottom-0 left-16 w-6 h-6" />
       </div>
 
       {/* Hospital Info */}
@@ -84,18 +84,18 @@ const HospitalBanner = ({
 
         <div className="flex flex-col gap-1 text-sm text-secondary-grey400">
           <div className="flex gap-2 items-center">
-            <MapPin className="w-4 h-4 text-gray-400" />
+           <img src={mapPoint} alt="map-point" />
             <span className="line-clamp-1">{address}</span>
           </div>
           <div className="flex gap-2 items-center">
-            <Building2 className="w-4 h-4 text-gray-400" />
+           <img src={medicineBox} alt="medical-box" />
             <span>{type}</span>
             <span className="text-gray-300">|</span>
-            <Calendar className="w-4 h-4 text-gray-400" />
+          <img src={box} alt="est-box" />
             <span>Est. {established}</span>
           </div>
           <div className="flex gap-2 items-center">
-            <Globe className="w-4 h-4 text-gray-400" />
+           <img src={globe} alt="globe" />
             <a href={website} target="_blank" rel="noreferrer" className="hover:underline hover:text-blue-600 text-inherit">
               {website}
             </a>
@@ -113,10 +113,9 @@ const HospitalBanner = ({
             valueClass={card.valueClass}
           />
         ))}
-    <button className="p-2 text-gray-500 hover:text-gray-700 mr-2 ml-1 mt-2" aria-label="More options">
-     <img src={horizontal} alt="" />
-    </button>
-  
+        <button className="p-2 text-gray-500 hover:text-gray-700 mt-2" aria-label="More options">
+          <img src={threedots} alt="More options"  />
+        </button>
       </div>
     </div>
   )

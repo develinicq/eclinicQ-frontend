@@ -13,7 +13,7 @@ import add from './Doctor_module/settings/add.png';
 import pdf_blue from './Doctor_module/settings/pdf_blue.png';
 // Images from /public/images
 import hospitalLogo from "./images/hospital_logo.png";
-import hospital from "./images/hospital.png";
+import hospital from "./superAdmin/dashboard/hospital.svg";
 
 // Images from /public/package_page
 import package1 from "./package_page/1.png";
@@ -43,7 +43,15 @@ import review from "./icons/Sidebar/Registration_Steps/Review/review.png";
 import userAvatar from "./superAdmin/dashboard/useravatar.svg";
 import calenderCheck from "./superAdmin/dashboard/calendarCheck.svg";
 import angledown from "./superAdmin/dashboard/angledown.svg";
+import dash_sthethoscope from "./superAdmin/dashboard/doct_scope.svg";
+import patient from "./superAdmin/dashboard/patient.svg";
+import clinic from "./superAdmin/dashboard/clinic.svg";
 
+import checkCalendar from "./superAdmin/dashboard/checkCalendar.svg";
+
+import hand from "./superAdmin/dashboard/hand.svg";
+import crossCalendar from "./superAdmin/dashboard/crossCalendar.svg";
+import clock from "./superAdmin/dashboard/clock.svg";
 // Sidebar MainSidebar Icons
 import dashboardSelected from "./superAdmin/main_sidebar/dashboardSelected.svg";
 import dashboardUnselect from "./superAdmin/main_sidebar/dashboardUnselect.svg";
@@ -59,6 +67,17 @@ import helpCircle from "./superAdmin/main_sidebar/helpCircle.svg";
 import bell from "./superAdmin/bell.svg";
 import appointement from "./superAdmin/Add_new/appointment.svg";
 import hospitalicon from "./superAdmin/Add_new/hospitalicon.svg";
+//hospital-superadmin
+import box from "./superAdmin/hospital/box.svg";
+import globe from "./superAdmin/hospital/globe.svg";
+import verified from "./superAdmin/hospital/verified.svg";
+import trash from "./superAdmin/hospital/trash_bin.svg";
+import calendarClock from "./superAdmin/hospital/calendarClock.svg";
+import link from "./superAdmin/hospital/link.svg";
+import userMinus from "./superAdmin/hospital/userminus.svg";
+import medicineBox from "./superAdmin/hospital/medicinebox.svg";
+//doctor-superadmin
+import chevronUpDown  from "./superAdmin/Doctors/Chevronupdown.svg";
 // Doctor module navbar avatar icons
 import blueCall from "./Doctor_module/navbar/avatar/blue_call.png";
 import blueId from "./Doctor_module/navbar/avatar/blue_id.png";
@@ -73,7 +92,7 @@ import vertical from "./Doctor_module/vertical.png";
 // Doctor module dashboard icons
 import arrowRightNav from "./Doctor_module/dashboard/arrowRightNav.svg";
 import appointementNav from "./Doctor_module/dashboard/appointementNav.svg";
-import mapPoint from "./Doctor_module/dashboard/mapPoint.svg";
+import mapPoint from "./superAdmin/hospital/map.svg";
 import staff from "./Doctor_module/dashboard/staff.svg";
 import vector from "./Doctor_module/dashboard/Vector.svg";
 import admitWhite from "./Doctor_module/dashboard/admit_white.png";
@@ -172,6 +191,18 @@ export {
   hospitalIcon,
   hospitalGrey,
   calenderCheck,
+  //hospital-superadmin
+  trash,
+  calendarClock,
+  link,
+  userMinus,
+  verified,
+  mapPoint,
+  medicineBox,
+  box,
+  globe,
+  // doctor-superadmin
+  chevronUpDown,
   threedots,
   // packageIcon,
   hospitalicon,
@@ -191,6 +222,7 @@ export {
   hospitalUnselect,
   patientUnselect,
   settingUnselect,
+
   helpCircle,
   // Navbar icons
 chevdown,
@@ -214,7 +246,7 @@ chevdown,
   newPatientWhite,
   vector,
   staff,
-  mapPoint,
+ 
   arrowRightNav,
   appointementNav,
   tokenWhite,
@@ -237,7 +269,15 @@ chevdown,
   queueWhite,
   settingBlue,
   helpWhite,
+// dashboard icons
+  dash_sthethoscope,
+  patient,
+  clinic,
+  checkCalendar,
 
+  hand,
+  crossCalendar,
+  clock,
   //queue icons
   morningQueue,
   eveningQueue,
