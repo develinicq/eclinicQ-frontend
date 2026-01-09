@@ -19,25 +19,25 @@ const Doc_list = () => {
 
   useEffect(() => {
     let ignore = false
-  const load = async () => {
+    const load = async () => {
       setLoading(true)
       setError(null)
       try {
-    const resp = await getAllDoctorsBySuperAdmin()
+        const resp = await getAllDoctorsBySuperAdmin()
         if (ignore) return
-  const list = resp?.data?.doctors || []
-  const counts = resp?.data?.counts || null
-  setDoctorsRaw(list)
-  setServerCounts(counts)
+        const list = resp?.data?.doctors || []
+        const counts = resp?.data?.counts || null
+        setDoctorsRaw(list)
+        setServerCounts(counts)
       } catch (e) {
         if (ignore) return
-    const msg = e?.response?.data?.message || e?.message || 'Failed to fetch doctors'
-    setError(msg)
+        const msg = e?.response?.data?.message || e?.message || 'Failed to fetch doctors'
+        setError(msg)
       } finally {
         if (!ignore) setLoading(false)
       }
     }
-  load()
+    load()
     return () => {
       ignore = true
     }
@@ -73,13 +73,13 @@ const Doc_list = () => {
         specializationMore: specsArray.length > 1 ? specsArray.length - 1 : 0,
         designation: d?.designation || '',
         exp: expYears != null ? `${expYears} years of experience` : '',
-  status: d?.status || '',
-  rating: d?.rating ?? null,
+        status: d?.status || '',
+        rating: d?.rating ?? null,
         startDate: d?.startDate || '',
-  draftDate: d?.draftDate || '',
-  plan: d?.plan ?? '—',
-  planStatus: d?.planStatus ?? '—',
-  _bucket: statusToBucket(d?.status),
+        draftDate: d?.draftDate || '',
+        plan: d?.plan ?? '—',
+        planStatus: d?.planStatus ?? '—',
+        _bucket: statusToBucket(d?.status),
       };
     };
     return doctorsRaw.map(mapOne);
@@ -100,9 +100,9 @@ const Doc_list = () => {
 
   const doctors = useMemo(() => {
     let filtered = doctorsAll;
-  if (selected === 'active') filtered = doctorsAll.filter(d => d._bucket === 'active')
-  if (selected === 'inactive') filtered = doctorsAll.filter(d => d._bucket === 'inactive')
-  if (selected === 'draft') filtered = doctorsAll.filter(d => d._bucket === 'draft')
+    if (selected === 'active') filtered = doctorsAll.filter(d => d._bucket === 'active')
+    if (selected === 'inactive') filtered = doctorsAll.filter(d => d._bucket === 'inactive')
+    if (selected === 'draft') filtered = doctorsAll.filter(d => d._bucket === 'draft')
     return filtered;
   }, [doctorsAll, selected])
 
@@ -117,7 +117,10 @@ const Doc_list = () => {
   }, [doctors, page, pageSize]);
 
   const handleRowClick = (doc) => {
-    navigate(`/doctor/${encodeURIComponent(doc.userId || doc.id)}`, { state: { doctor: doc } });
+    console.log("Doc_list: Row clicked. Doc object:", doc);
+    const targetUrl = `/doctor/${encodeURIComponent(doc.userId || doc.id)}`;
+    console.log("Doc_list: Navigating to:", targetUrl);
+    navigate(targetUrl, { state: { doctor: doc } });
   };
 
   return (
@@ -141,15 +144,15 @@ const Doc_list = () => {
       )}
 
       {loading && (
-          <div className="flex items-center justify-center bg-white h-screen">
-            <UniversalLoader size={32} style={{ background: 'white' }} />
-          </div>
-        )}
-        {!loading && error && <div className="p-6 bg-white h-screen text-red-600">{String(error)}</div>}
-{!loading && !error && (
-      <div className="h-[calc(100vh-140px)] overflow-hidden m-3 border border-gray-200 rounded-lg shadow-sm bg-white">
-        
-        
+        <div className="flex items-center justify-center bg-white h-screen">
+          <UniversalLoader size={32} style={{ background: 'white' }} />
+        </div>
+      )}
+      {!loading && error && <div className="p-6 bg-white h-screen text-red-600">{String(error)}</div>}
+      {!loading && !error && (
+        <div className="h-[calc(100vh-140px)] overflow-hidden m-3 border border-gray-200 rounded-lg shadow-sm bg-white">
+
+
           <SampleTable
             columns={selected === 'draft' ? draftColumns : doctorColumns}
             data={pagedData}
@@ -162,8 +165,8 @@ const Doc_list = () => {
             onRowClick={handleRowClick}
             hideSeparators={true}
           />
-        
-      </div>
+
+        </div>
       )}
     </div>
   )

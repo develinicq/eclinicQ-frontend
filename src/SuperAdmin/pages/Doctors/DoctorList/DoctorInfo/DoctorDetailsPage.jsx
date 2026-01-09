@@ -5,6 +5,8 @@ import PageNav from "../../../../../components/DoctorList/DoctorInfo/PageNav";
 import { getDoctorDetailsByIdBySuperAdmin } from "../../../../../services/doctorService";
 import useAuthStore from "../../../../../store/useAuthStore";
 
+import UniversalLoader from "@/components/UniversalLoader";
+
 const DoctorDetailsPage = () => {
   const { id } = useParams();
   const location = useLocation();
@@ -21,19 +23,27 @@ const DoctorDetailsPage = () => {
       try {
         // prefer userId from route param; fallback to state.doctor.userId
         const userId = decodeURIComponent(String(id || "")).trim() || location.state?.doctor?.userId;
+        console.log("DoctorDetailsPage: userId extracted:", userId);
+
         if (!userId) throw new Error("Doctor userId is missing");
+
+        console.log("DoctorDetailsPage: Fetching data for:", userId);
         const resp = await getDoctorDetailsByIdBySuperAdmin(userId);
+        console.log("DoctorDetailsPage: API Success:", resp);
+
         if (ignore) return;
         const d = resp?.data || {};
-        // Map API details to UI contract used by banner & tabs
+        // Map API details to UI contract
         const mapped = {
           id: d?.doctorCode || userId,
           userId,
-          name: d?.doctorName || location.state?.doctor?.name || "",
+          name: d?.doctorName || "", // Use API name strictly
+          workplace: d?.workplace || { clinics: [], hospitals: [] }, // Added workplace mapping
           designation: d?.qualification || "",
           specialization: d?.specialization || "",
-          exp: d?.experience != null ? `${d.experience} yrs exp` : "",
-          status: d?.status || location.state?.doctor?.status,
+          // If experienceOverall is 0, we still show it? Or only if > 0? User example has 0.
+          exp: d?.experienceOverall != null ? `${d.experienceOverall} yrs exp` : "",
+          status: d?.status || 'Active',
           avatar: d?.profilePhoto || "",
           activePackage: d?.activePackage,
           clinicHospitalName: d?.clinicHospitalName,
@@ -52,16 +62,19 @@ const DoctorDetailsPage = () => {
           age: d?.age,
           dateJoinedPlatform: d?.dateJoinedPlatform,
           profileCreated: d?.profileCreated,
+          rating: d?.rating || 'N/A', // Added rating mapping
+          // ... map other fields ensuring they match UI expectations
         };
+        console.log("DoctorDetailsPage: Mapped doctor object:", mapped);
         setDoctor(mapped);
       } catch (e) {
         if (ignore) return;
-        // Fallback: prefer route state if present; if API returned 401/403 (or forbidden text), suppress server message
+        console.error("DoctorDetailsPage: API/Logic Error:", e);
+
+        // Fallback: prefer route state if present
         const stateDoc = location.state?.doctor;
-        const status = e?.response?.status;
-        const serverMsg = e?.response?.data?.message || e?.message || '';
-        const isAuthError = status === 401 || status === 403 || /forbidden/i.test(serverMsg) || /SUPER_ACCESS/i.test(serverMsg);
         if (stateDoc) {
+          console.log("DoctorDetailsPage: Falling back to navigation state data.");
           const mapped = {
             id: stateDoc.id || stateDoc.docId,
             userId: stateDoc.userId,
@@ -73,10 +86,6 @@ const DoctorDetailsPage = () => {
             avatar: '',
           };
           setDoctor(mapped);
-        } else if (isAuthError) {
-          // show a minimal dummy doctor when permissions prevent fetching details
-          setDoctor({ id: id || 'DOC-DUMMY', userId: id || 'user-dummy', name: 'Doctor (preview)', designation: '', specialization: '', exp: '', status: 'Active', avatar: '' });
-          setError(null);
         } else {
           setError('Failed to fetch doctor details');
         }
@@ -108,7 +117,13 @@ const DoctorDetailsPage = () => {
     return () => { ignore = true; };
   }, [id, isAuthed, location.state]);
 
-  if (loading) return <div className="p-6 text-gray-600">Loading doctor details…</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center bg-white h-screen">
+        <UniversalLoader size={32} style={{ background: 'white' }} />
+      </div>
+    );
+  }
   if (error) return <div className="p-6 text-red-600">{String(error)}</div>;
   if (!doctor) return <div className="p-6 text-gray-600">Doctor not found.</div>;
 

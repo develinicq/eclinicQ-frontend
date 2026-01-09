@@ -1,10 +1,14 @@
 import { ChevronDown, Hospital, MoreHorizontal, Building2, Stethoscope, MoreVertical, Plus, MinusCircle, Trash2, Calendar, CalendarOff, Link, UserX } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import AvatarCircle from '../../AvatarCircle';
 import { docIcon, blueBag, whiteBag } from '../../../../public/index.js';
 import InfoBox from './InfoBox';
 import RadioButton from '../../GeneralDrawer/RadioButton';
 import Badge from '@/components/Badge';
+import { getDoctorDetailsByIdBySuperAdmin } from '@/services/doctorService';
+import UniversalLoader from "@/components/UniversalLoader";
+
 const star = '/star.png'
 const down = '/angel-down.svg'
 const horizontal = '/superAdmin/Doctors/Threedots.svg'
@@ -13,8 +17,65 @@ const clinic = '/superAdmin/Doctors/Medical Kit.svg'
 
 
 const hospital = '/icons/Sidebar/MainSidebar/hospital_unselect.png'
-const DoctorBanner = ({ doctor }) => {
+const DoctorBanner = ({ doctor: initialDoctor }) => {
+  const { id } = useParams();
+  const [doctor, setDoctor] = useState(initialDoctor);
+  const [loading, setLoading] = useState(true); // Start loading true by default if we expect to fetch
+
+  useEffect(() => {
+    // If we have initial doctor data passed, we might show it, but user wants loader until API loads. 
+    // So we can stick to loading=true initially. State update below handles it.
+    if (initialDoctor) setDoctor(initialDoctor);
+  }, [initialDoctor]);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      const userId = id || initialDoctor?.userId || initialDoctor?.id;
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+
+      console.log("DoctorBanner: Fetching latest details for:", userId);
+      setLoading(true);
+      try {
+        const resp = await getDoctorDetailsByIdBySuperAdmin(userId);
+        console.log("DoctorBanner: Fetched Data:", resp);
+        if (resp?.data) {
+          const d = resp.data;
+          const mapped = {
+            ...initialDoctor,
+            ...d,
+            id: d?.doctorCode || userId,
+            userId: userId,
+            name: d?.doctorName || initialDoctor?.name,
+            workplace: d?.workplace || { clinics: [], hospitals: [] },
+            designation: d?.qualification || initialDoctor?.designation,
+            specialization: d?.specialization || initialDoctor?.specialization,
+            medicalPracticeType: d?.medicalPracticeType || d?.medicalPracticeType, // Map medicalPracticeType
+            exp: d?.experienceOverall != null ? `${d.experienceOverall} yrs exp` : initialDoctor?.exp,
+            status: d?.status || initialDoctor?.status,
+            rating: d?.rating || initialDoctor?.rating,
+            activePackage: d?.activePackage || initialDoctor?.activePackage,
+            clinicHospitalName: d?.clinicHospitalName || initialDoctor?.clinicHospitalName,
+            noOfPatientsManaged: d?.noOfPatientsManaged,
+            noOfAppointmentsBooked: d?.noOfAppointmentsBooked,
+          };
+          setDoctor(mapped);
+        }
+      } catch (error) {
+        console.error("DoctorBanner: API Error", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDetails();
+  }, [id, initialDoctor?.userId]);
+
+
   const isActive = (doctor?.status || '').toLowerCase() === 'active'
+
   const [isClinicOpen, setIsClinicOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(1);
   const [openMenu, setOpenMenu] = useState(null); // Track which menu is open by name or id
@@ -42,6 +103,14 @@ const DoctorBanner = ({ doctor }) => {
       setOpenMenu(null)
     }
   }, [isClinicOpen])
+
+  if (loading) {
+    return (
+      <div className="w-full h-48 flex items-center justify-center bg-white border rounded-lg">
+        <UniversalLoader size={30} />
+      </div>
+    );
+  }
 
 
   const ICONS = {
@@ -72,7 +141,7 @@ const DoctorBanner = ({ doctor }) => {
       `}
       >
         {/* LEFT */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {/* Radio */}
           <RadioButton
             checked={selected}
@@ -126,6 +195,9 @@ const DoctorBanner = ({ doctor }) => {
     );
   }
 
+  // Helper to format display value: 0 stays 0, null/undefined becomes '-'
+  const displayVal = (val) => (val === 0 || val === '0') ? val : (val || '-');
+
   return (
     <div className="w-full p-4 flex  items-center gap-4 bg-white">
       {/* Profile Circle with tick using reusable AvatarCircle */}
@@ -138,7 +210,7 @@ const DoctorBanner = ({ doctor }) => {
       <div className="flex flex-col gap-1 flex-1">
         <div className="flex flex-wrap gap-3 items-center">
           <span className="text-secondary-grey400 font-semibold text-[20px]">
-            {doctor?.name || 'Doctor'}
+            {doctor?.name || '-'}
           </span>
           <div className={`min-w-[22px] px-[6px] py-[2px] rounded-sm ${isActive ? 'bg-success-100' : 'bg-[#FFF8F2]'}`}>
             <span className={` text-sm ${isActive ? 'text-success-300' : 'text-[#F59E0B]'}`}>{isActive ? 'Active' : 'Inactive'}</span>
@@ -150,7 +222,7 @@ const DoctorBanner = ({ doctor }) => {
           >
             <img src={hospital} alt="" className='h-4 w-4' />
             <span className=" text-sm font-normal">
-              {doctor?.clinicHospitalName || 'Sunrise Family Clinic'}
+              {doctor?.clinicHospitalName || '-'}
             </span>
             <div className='flex items-center pl-2 pr-1 border-l ml-1 '>
               <img
@@ -164,13 +236,22 @@ const DoctorBanner = ({ doctor }) => {
               <div className="absolute top-full left-0 mt-1 p-2  bg-white shadow-lg rounded-lg border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className='flex flex-col gap-1'>
                   <span className='text-secondary-grey300 px-2 font-medium text-[12px]'>SWITCH ACCOUNT</span>
-                  <FacilityCard
-                    name="Chauhan Clinic"
-                    location="Aundh"
-                    variant="clinic"
-                    selected={selectedId === 1}
-                    onClick={() => setSelectedId(1)}
-                  />
+
+                  {/* render clinics */}
+                  {(doctor?.workplace?.clinics || []).map((clinic, idx) => (
+                    <FacilityCard
+                      key={clinic.id || `clinic-${idx}`}
+                      name={clinic.name || "-"}
+                      location={clinic.city || clinic.location || ""}
+                      variant="clinic"
+                      selected={selectedId === clinic.id}
+                      onClick={() => setSelectedId(clinic.id)}
+                    />
+                  ))}
+                  {/* fallback if no clinics just to show something? or user wants exact api data. Assume exact api data. */}
+                  {(!doctor?.workplace?.clinics?.length && !doctor?.workplace?.hospitals?.length) && (
+                    <div className="px-3 py-2 text-xs text-gray-500">No clinics or hospitals found.</div>
+                  )}
 
 
 
@@ -184,13 +265,17 @@ const DoctorBanner = ({ doctor }) => {
 
                 <div className='bg-secondary-grey100/50 h-[1px] mt-1 mb-2'></div>
                 <div className='flex flex-col gap-1'>
-                  <FacilityCard
-                    name="Chauhan Hospital"
-                    location="Baner"
-                    variant="hospital"
-                    selected={selectedId === 2}
-                    onClick={() => setSelectedId(2)}
-                  />
+                  {/* render hospitals */}
+                  {(doctor?.workplace?.hospitals || []).map((hosp, idx) => (
+                    <FacilityCard
+                      key={hosp.id || `hosp-${idx}`}
+                      name={hosp.name || "-"}
+                      location={hosp.city || hosp.location || ""}
+                      variant="hospital"
+                      selected={selectedId === hosp.id}
+                      onClick={() => setSelectedId(hosp.id)}
+                    />
+                  ))}
                 </div>
 
               </div>
@@ -203,7 +288,7 @@ const DoctorBanner = ({ doctor }) => {
               color="warning"
               leadingIcon={<img src={star} alt="" className='w-2.5' />}
             >
-              {doctor?.rating || '4.5'}
+              {doctor?.rating ? doctor.rating : '-'}
             </Badge>
           </div>
         </div>
@@ -212,16 +297,16 @@ const DoctorBanner = ({ doctor }) => {
           <div className="flex gap-1 items-center">
             <img src={docIcon} alt="Doctor icon" className="w-4 h-4" />
             <span className="">
-              {doctor?.designation || 'MBBS, MD - General Medicine'}
+              {doctor?.designation || '-'}
             </span>
           </div>
           <div className="flex gap-1 items-center">
             <img src={blueBag} alt="Blue bag icon" className="w-4 h-4" />
-            <span className="">{doctor?.specialization || 'General Physician'}</span>
+            <span className="">{doctor?.medicalPracticeType || '-'}</span>
           </div>
           <div className="flex  items-center gap-1">
             <img src={whiteBag} alt="White bag icon" className="w-4 h-4" />
-            <span className="">{doctor?.exp || 'Experience details'}</span>
+            <span className="">{doctor?.exp || '-'}</span>
           </div>
         </div>
       </div>
@@ -230,8 +315,8 @@ const DoctorBanner = ({ doctor }) => {
 
       {/* Info Boxes + menu */}
       <div className="flex items-start gap-4">
-        <InfoBox label="No. of Patient Managed" value="1,000" valueClass="text-[#2372EC]" />
-        <InfoBox label="No. of Appointments Booked" value="1,000" valueClass="text-[#2372EC]" />
+        <InfoBox label="No. of Patient Managed" value={displayVal(doctor?.noOfPatientsManaged)} valueClass="text-[#2372EC]" />
+        <InfoBox label="No. of Appointments Booked" value={displayVal(doctor?.noOfAppointmentsBooked)} valueClass="text-[#2372EC]" />
         <InfoBox label="Active Package" value={doctor?.activePackage || '-'} valueClass="text-green-600" />
         <InfoBox label="eClinic-Q ID" value={doctor?.id || '-'} valueClass="text-[#2372EC] break-all" />
         <div className="relative" ref={actionMenuRef}>
