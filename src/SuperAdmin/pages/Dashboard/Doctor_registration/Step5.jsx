@@ -1,6 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef, useImperativeHandle } from "react";
 import useDoctorRegistrationStore from '../../../../store/useDoctorRegistrationStore';
 import { RegistrationHeader } from '../../../../components/FormItems';
+import { activateDoctor } from '../../../../services/doctorService';
+import useToastStore from '../../../../store/useToastStore';
+import { useRegistration } from '../../../context/RegistrationContext';
+import { Loader2 } from 'lucide-react';
+import useDoctorStep1Store from '../../../../store/useDoctorStep1Store';
 
 const plans = [
   {
@@ -49,12 +54,49 @@ const plans = [
   },
 ];
 
-const Step5 = () => {
+const Step5 = forwardRef((props, ref) => {
   const [selectedPlan, setSelectedPlan] = useState("Basic Hospital");
+  const [loading, setLoading] = useState(false);
+  const { userId: regUserId } = useDoctorRegistrationStore();
+  const { userId: step1UserId } = useDoctorStep1Store();
+  const addToast = useToastStore((state) => state.addToast);
+  const { nextStep } = useRegistration();
+
+  const userId = regUserId || step1UserId;
+
+  // Expose a dummy submit to prevent parent form from triggering unwanted store actions
+  // Expose submit to parent Layout_registration_new
+  useImperativeHandle(ref, () => ({
+    submit: async () => {
+      if (!userId) {
+        addToast({ title: 'Error', message: 'User ID is missing. Cannot activate.', type: 'error' });
+        return false;
+      }
+
+      try {
+        setLoading(true);
+        console.log("Activating doctor via Footer/Ref with ID:", userId);
+        const res = await activateDoctor(userId);
+
+        if (res && res.success) {
+          addToast({ title: 'Success', message: 'Account activated successfully!', type: 'success' });
+          return true; // Signal success to parent
+        } else {
+          addToast({ title: 'Error', message: res?.message || 'Activation failed', type: 'error' });
+          return false;
+        }
+      } catch (err) {
+        const errorMessage = err.response?.data?.message || err.message || 'Activation failed';
+        addToast({ title: 'Error', message: errorMessage, type: 'error' });
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    }
+  }), [userId]);
 
   const handlePlanSelection = (planTitle) => {
     setSelectedPlan(planTitle);
-    // Optionally, store plan in registration store if needed
   };
 
   return (
@@ -72,7 +114,8 @@ const Step5 = () => {
               return (
                 <div
                   key={index}
-                  className={`w-[330px] transition-colors h-auto border-[0.5px] rounded-lg shadow-sm p-4 flex gap-3 flex-col ${isSelected ? "bg-blue-600 text-white border-[#0E4395]" : "bg-white"
+                  onClick={() => handlePlanSelection(plan.title)}
+                  className={`w-[330px] transition-colors h-auto border-[0.5px] rounded-lg shadow-sm p-4 flex gap-3 flex-col cursor-pointer ${isSelected ? "bg-blue-600 text-white border-[#0E4395]" : "bg-white"
                     }`}
                 >
                   {/* Top Row with package image + Title/Price */}
@@ -102,13 +145,13 @@ const Step5 = () => {
 
                   {/* Button */}
                   <button
-                    onClick={() => handlePlanSelection(plan.title)}
-                    className={`py-2 rounded transition-colors ${isSelected
+                    type="button"
+                    className={`py-2 rounded transition-colors flex justify-center items-center gap-2 ${isSelected
                       ? "bg-white text-blue-600 font-semibold"
                       : " bg-blue-600 text-white"
                       }`}
                   >
-                    {isSelected ? "Selected Plan" : "Choose"}
+                    {isSelected ? "Selected" : "Choose"}
                   </button>
                 </div>
               );
@@ -118,6 +161,6 @@ const Step5 = () => {
       </div>
     </div>
   );
-};
+});
 
 export default Step5;

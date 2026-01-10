@@ -7,6 +7,8 @@ import RegistrationFooter from "../RegistrationFooter";
 import RegistrationFlow from "../RegistrationFlow";
 import React, { useRef, useState } from "react";
 import Step1 from '../../SuperAdmin/pages/Dashboard/Doctor_registration/Step1';
+import Step2 from '../../SuperAdmin/pages/Dashboard/Doctor_registration/Step2';
+import Step5 from '../../SuperAdmin/pages/Dashboard/Doctor_registration/Step5';
 // Import stores directly to avoid runtime require (ESM only)
 import useDoctorRegistrationStore from '../../store/useDoctorRegistrationStore';
 import useDoctorStep1Store from '../../store/useDoctorStep1Store';
@@ -19,6 +21,9 @@ const Layout_registration_new = () => {
   const [footerLoading, setFooterLoading] = useState(false);
   // Ref for Step1 form
   const step1Ref = useRef();
+  const step2Ref = useRef();
+  const step3Ref = useRef();
+  const step5Ref = useRef(); // Added ref for Step 5
   const hos1Ref = useRef();
   const location = useLocation();
   const navigate = useNavigate();
@@ -157,10 +162,63 @@ const Layout_registration_new = () => {
     if (registrationType === 'doctor') {
       // Step 1: trigger form submit via ref, only move if valid
       if (currentStep === 1 && step1Ref.current && step1Ref.current.submit) {
-        await step1Ref.current.submit(); // Always returns true now in Step1.jsx
-        nextStep();
+        setFooterLoading(true);
+        try {
+          const success = await step1Ref.current.submit();
+          if (success) {
+            nextStep();
+          }
+        } catch (error) {
+          console.error("Step 1 submission error", error);
+        } finally {
+          setFooterLoading(false);
+        }
         return;
       }
+
+      // Step 2: trigger form submit via ref (Doctor Professional Details)
+      if (currentStep === 2) {
+        if (step2Ref.current && step2Ref.current.submit) {
+          setFooterLoading(true);
+          try {
+            const success = await step2Ref.current.submit();
+            if (success) {
+              nextStep();
+            }
+          } catch (error) {
+            console.error("Step 2 submission error", error);
+          } finally {
+            setFooterLoading(false);
+          }
+        } else {
+          console.warn("Step 2 Ref or Submit method missing", step2Ref.current);
+        }
+        return;
+      }
+
+      // Step 3: trigger form submit via ref (Doctor Clinic Setup)
+      if (currentStep === 3) {
+        if (step3Ref.current && step3Ref.current.submit) {
+          setFooterLoading(true);
+          try {
+            const success = await step3Ref.current.submit();
+            if (success) {
+              nextStep();
+            }
+          } catch (error) {
+            console.error("Step 3 submission error", error);
+          } finally {
+            setFooterLoading(false);
+          }
+        } else {
+          console.warn("Step 3 Ref or Submit method missing", step3Ref.current);
+          // If no submit handler (e.g. step not fully wired), assume next for now to unblock UI?
+          // No, safer to wait for Ref. If missing, it log warning.
+          // But wait, the hook useRef is step1Ref, step2Ref... do we have step3Ref?
+        }
+        return;
+      }
+
       // Handle Step 4 sub-steps
       if (currentStep === 4) {
         const currentSubStep = formData.step4SubStep || 1;
@@ -178,23 +236,24 @@ const Layout_registration_new = () => {
           }
         }
       } else if (currentStep === 5) {
-        // On Step 5, submit all data to API, then go to Step 6 ONLY on OK
-        setFooterLoading(true);
-        try {
-          // Use the centralized doctor registration store submit
-          const ok = await useDoctorRegistrationStore.getState().submit();
-          if (ok === true) {
-            nextStep();
-          } else {
-            // Bypass: still move next but log/alert
-            console.warn('Backend validation failed but ignored (Step 5)');
-            nextStep();
+        // Step 5: Activate Doctor via Ref
+        if (step5Ref.current && step5Ref.current.submit) {
+          setFooterLoading(true);
+          try {
+            // The submit method in Step5 returns true on success
+            const success = await step5Ref.current.submit();
+            if (success) {
+              nextStep();
+            }
+          } catch (error) {
+            console.error("Step 5 submission error", error);
+          } finally {
+            setFooterLoading(false);
           }
-        } catch (err) {
-          alert(err?.message || 'Submission failed');
-        } finally {
-          setFooterLoading(false);
+        } else {
+          console.warn("Step 5 Ref missing, cannot submit");
         }
+        return;
       } else if (currentStep === 6) {
         // Navigate to doctor profile/dashboard
         navigate('/doctor');
@@ -496,7 +555,7 @@ const Layout_registration_new = () => {
         const currentSubStep = formData.step4SubStep || 1;
         if (currentSubStep === 1) {
           return "Save & Next →";
-        } 
+        }
       } else if (currentStep === 5) {
         // Package & Payment step
         return "Preview Purchase";
@@ -602,10 +661,34 @@ const Layout_registration_new = () => {
               <div className="h-full">
                 <Step1 ref={step1Ref} onNext={nextStep/*Directly advance*/} onCancel={handleCancel} />
               </div>
+            ) : registrationType === 'doctor' && currentStep === 2 ? (
+              <div className="h-full">
+                <Step2 ref={step2Ref} />
+              </div>
+            ) : registrationType === 'doctor' && currentStep === 5 ? (
+              <div className="h-full">
+                <Step5 ref={step5Ref} />
+              </div>
             ) : registrationType === 'hospital' && currentStep === 1 ? (
               <RegistrationFlow type={registrationType} ref={hos1Ref} />
             ) : (
-              <RegistrationFlow type={registrationType} />
+              <div
+                className={`flex-1 transition-opacity duration-500 ease-in-out ${false ? "opacity-0" : "opacity-100"
+                  } w-[100%] h-full`}
+              >
+                <div className="flex-1 h-full w-[100%]">
+                  <RegistrationFlow ref={
+                    registrationType === 'doctor' ? (
+                      currentStep === 1 ? step1Ref :
+                        currentStep === 2 ? step2Ref :
+                          currentStep === 3 ? step3Ref :
+                            null
+                    ) : (
+                      currentStep === 1 ? hos1Ref : null
+                    )
+                  } type={registrationType} />
+                </div>
+              </div>
             )}
           </main>
 

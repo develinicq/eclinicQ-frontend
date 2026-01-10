@@ -7,6 +7,7 @@ import {
   RegistrationHeader
 } from '../../../../components/FormItems';
 import InputWithMeta from '../../../../components/GeneralDrawer/InputWithMeta';
+import CustomUpload from '../../../../components/CustomUpload';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ChevronDown } from 'lucide-react';
 
@@ -25,18 +26,9 @@ const Hos_1 = forwardRef((props, ref) => {
   const [genderOpen, setGenderOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
 
-  const uploadUrlData = useImageUploadStore((state) => state.uploadUrl);
-
-  useEffect(() => {
-    if (uploadUrlData && uploadUrlData.key) {
-      setProfilePhotoKey(uploadUrlData.key);
-    }
-  }, [uploadUrlData, setProfilePhotoKey]);
 
   // Ensure MFA flags are always true in state
   useEffect(() => {
-    setMfa('emailId', true);
-    setMfa('phone', true);
   }, [setMfa]);
 
   // Validation functions
@@ -306,30 +298,15 @@ const Hos_1 = forwardRef((props, ref) => {
             </div>
 
             {form.isAlsoDoctor && (
-              <div className='flex flex-col'>
-                <InputWithMeta
-                  label="Upload Profile Picture"
-                  showInput={false}
-                  infoIcon
-                  requiredDot
-                />
-                <span className="text-xs text-secondary-grey200 mb-1">Support Size upto 1MB in .png, .jpg, .svg, .webp</span>
-                <div
-                  className='flex gap-1 cursor-pointer items-center justify-center flex-col rounded-sm border-[0.5px] border-dashed border-blue-primary150 w-[130px] h-[130px] bg-secondary-grey50'
-                  onClick={() => {
-                  }}
-                >
-                  {form.profilePhotoKey ? (
-                    <div className="text-xs text-green-600">Uploaded</div>
-                  ) : (
-                    <>
-                      <img src={upload} alt="" className='w-4 h-4' />
-                      <span className='text-blue-primary250 text-sm'>Upload Image</span>
-                    </>
-                  )}
-                </div>
-                {formErrors.profilePhotoKey && <span className="text-red-500 text-xs">{formErrors.profilePhotoKey}</span>}
-              </div>
+              <CustomUpload
+                label="Upload Profile Picture"
+                variant="box"
+                compulsory={true}
+                uploadContent="Upload Image"
+                onUpload={(key) => setProfilePhotoKey(key)} // or setField('profilePhotoKey', key)
+                uploadedKey={form.profilePhotoKey}
+                meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
+              />
             )}
 
             {/* Filler div to maintain grid structure if upload is hidden but we want to reserve space? 

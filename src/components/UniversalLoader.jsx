@@ -10,7 +10,6 @@ const UniversalLoader = ({ size = 64, style = {}, className = '', color = 'curre
       justifyContent: 'center',
       width: '100%',
       height: '100%',
-      backgroundColor: style.background || 'rgba(0,0,0,0.7)',
       ...style
     }}
   >

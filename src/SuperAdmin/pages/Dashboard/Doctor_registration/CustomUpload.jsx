@@ -87,15 +87,17 @@ const CustomUpload = ({ label, onUpload, meta, compulsory, uploadedKey, fileName
         return (
             <InputWithMeta
                 label={label}
+                on
                 infoIcon
                 imageUpload={true}
                 showDivider
+                
                 fileName={fileName || uploadedKey}
                 showReupload={true}
                 onFileSelect={(file) => {
                     handleFileChange({ target: { files: [file] } });
                 }}
-                onFileView={noView ? undefined : () => window.open(uploadedKey, '_blank')}
+                onFileView={true} //noView ? undefined : () => window.open(uploadedKey, '_blank')
                 requiredDot={compulsory}
             />
         );

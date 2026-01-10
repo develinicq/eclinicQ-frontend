@@ -36,7 +36,7 @@ export async function getDownloadUrl(key) {
     candidate = key.key || key.url || key.path || key.src || '';
   }
   const str = String(candidate || '');
-  if (/^(https?:)?\/\//i.test(str) || /^data:/i.test(str)) return str;
+  if (/^(https?:)?\/\//i.test(str) || /^data:/i.test(str) || str.startsWith('/')) return str;
 
   const cached = getFromCache(str);
   if (cached) return cached;

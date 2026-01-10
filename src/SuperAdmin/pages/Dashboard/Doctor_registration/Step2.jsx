@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useImperativeHandle, forwardRef } from "react";
 import {
   FormFieldRow,
   RegistrationHeader
@@ -7,11 +7,15 @@ import useDoctorRegistrationStore from '../../../../store/useDoctorRegistrationS
 import InputWithMeta from '../../../../components/GeneralDrawer/InputWithMeta';
 import { ChevronDown } from 'lucide-react';
 import RadioButton from '../../../../components/GeneralDrawer/RadioButton';
-import CustomUpload from './CustomUpload';
+import CustomUpload from '../../../../components/CustomUpload';
+import useToastStore from '../../../../store/useToastStore';
+import { completeDoctorProfile } from '../../../../services/doctorService';
 
 
-const Step2 = () => {
+const Step2 = forwardRef((props, ref) => {
+  console.log("Step2 rendering");
   const {
+    userId,
     specialization,
     experienceYears,
     medicalCouncilName,
@@ -165,6 +169,85 @@ const Step2 = () => {
     { value: "Obstetrics & Gynecology", label: "Obstetrics & Gynecology" },
     { value: "Dermatology", label: "Dermatology" },
   ];
+
+  const addToast = useToastStore((state) => state.addToast);
+
+  const handleSubmit = async () => {
+    // Validate
+    if (!validateAll()) return false;
+    
+    // Check if userId is present (from Step 1)
+    if (!userId) {
+       addToast({ title: 'Error', message: 'User ID is missing. Please complete Step 1 first.', type: 'error' });
+       return false; 
+    }
+
+    // Documents validation
+    if (!getDoc(1)?.url) { addToast({ title: 'Error', message: 'Medical Registration Proof is required', type: 'error' }); return false; }
+    if (!getDoc(2)?.url) { addToast({ title: 'Error', message: 'Graduation Degree Proof is required', type: 'error' }); return false; }
+
+    try {
+      // Specialization
+      const specs = [];
+      const primarySpecName = typeof specialization === 'object' ? (specialization.value || specialization.name) : specialization;
+      if (primarySpecName) specs.push({ name: primarySpecName, expYears: String(experienceYears) });
+
+      if (Array.isArray(additionalPractices)) {
+        additionalPractices.forEach(p => {
+          const sName = typeof p.specialization === 'object' ? (p.specialization.value || p.specialization.name) : p.specialization;
+          if (sName) specs.push({ name: sName, expYears: String(p.experienceYears) });
+        });
+      }
+
+      // Education
+      const edu = [];
+      edu.push({
+        instituteName: medicalDegreeUniversityName,
+        graduationType: "GRADUATE",
+        degree: medicalDegreeType,
+        completionYear: Number(medicalDegreeYearOfCompletion),
+        proofDocumentUrl: getDoc(2)?.url
+      });
+
+      if (pgMedicalDegreeType) {
+        edu.push({
+          instituteName: pgMedicalDegreeUniversityName,
+          graduationType: "POST_GRADUATE",
+          degree: pgMedicalDegreeType,
+          completionYear: Number(pgMedicalDegreeYearOfCompletion),
+          proofDocumentUrl: getDoc(3)?.url || ""
+        });
+      }
+
+      const payload = {
+        userId,
+        specialization: specs,
+        medicalCouncilName,
+        medicalCouncilRegYear: String(medicalCouncilRegYear),
+        medicalCouncilRegNo,
+        medicalCouncilProof: getDoc(1)?.url,
+        education: edu
+      };
+
+      const res = await completeDoctorProfile(payload);
+      if (res.success) {
+        addToast({ title: 'Success', message: 'Professional Details Saved', type: 'success' });
+        return true;
+      } else {
+        addToast({ title: 'Error', message: res.message || 'Saving failed', type: 'error' });
+        return false;
+      }
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.message || err.message || "Saving failed";
+      addToast({ title: 'Error', message: msg, type: 'error' });
+      return false;
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    submit: handleSubmit
+  }));
 
   return (
     <div className="flex flex-col h-full bg-white rounded-md shadow-sm overflow-hidden">
@@ -483,6 +566,6 @@ const Step2 = () => {
       </div>
     </div >
   );
-};
+});
 
 export default Step2;

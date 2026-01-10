@@ -151,21 +151,24 @@ const Doc_list = () => {
       {!loading && error && <div className="p-6 bg-white h-screen text-red-600">{String(error)}</div>}
       {!loading && !error && (
         <div className="h-[calc(100vh-140px)] overflow-hidden m-3 border border-gray-200 rounded-lg shadow-sm bg-white">
-
-
-          <SampleTable
-            columns={selected === 'draft' ? draftColumns : doctorColumns}
-            data={pagedData}
-            page={page}
-            pageSize={pageSize}
-            total={doctors.length}
-            onPageChange={setPage}
-            stickyLeftWidth={300}
-            stickyRightWidth={110}
-            onRowClick={handleRowClick}
-            hideSeparators={true}
-          />
-
+          {doctors.length === 0 ? (
+            <div className="w-full h-full flex items-center justify-center text-gray-500">
+              No Doctors found.
+            </div>
+          ) : (
+            <SampleTable
+              columns={selected === 'draft' ? draftColumns : doctorColumns}
+              data={pagedData}
+              page={page}
+              pageSize={pageSize}
+              total={doctors.length}
+              onPageChange={setPage}
+              stickyLeftWidth={300}
+              stickyRightWidth={110}
+              onRowClick={handleRowClick}
+              hideSeparators={true}
+            />
+          )}
         </div>
       )}
     </div>

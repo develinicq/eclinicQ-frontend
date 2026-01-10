@@ -106,8 +106,8 @@ const DoctorBanner = ({ doctor: initialDoctor }) => {
 
   if (loading) {
     return (
-      <div className="w-full h-48 flex items-center justify-center bg-white border rounded-lg">
-        <UniversalLoader size={30} />
+      <div className="w-full h-[125px] flex items-center justify-center bg-white border rounded-lg">
+        <UniversalLoader size={30} className='bg-white' />
       </div>
     );
   }

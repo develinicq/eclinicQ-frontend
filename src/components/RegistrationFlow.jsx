@@ -27,11 +27,11 @@ const RegistrationFlow = React.forwardRef(({ type }, ref) => {
     if (type === 'doctor') {
       switch (currentStep) {
         case 1:
-          return <Step1 />;
+          return <Step1 ref={ref} />;
         case 2:
-          return <Step2 />;
+          return <Step2 ref={ref} />;
         case 3:
-          return <Step3 />;
+          return <Step3 ref={ref} />;
         case 4:
           return <Step4 />;
         case 5:

@@ -3,7 +3,9 @@ import { useRegistration } from "../SuperAdmin/context/RegistrationContext";
 import useDoctorRegistrationStore from '../store/useDoctorRegistrationStore';
 import { ArrowLeft, ChevronLeft } from "lucide-react";
 
-const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next", disablePrev = false }) => {
+import UniversalLoader from "./UniversalLoader";
+
+const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next", disablePrev = false, loading = false }) => {
   const { registrationType, formData } = useRegistration();
   const isHospital = registrationType === 'hospital';
   const hospitalOwnerAlsoDoctor = isHospital && String(formData?.isDoctor || 'no') === 'yes';
@@ -50,12 +52,13 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
     );
   }
 
-  const { submit, loading, error, success, userId, specialization } = useDoctorRegistrationStore();
+  const { submit, loading: storeLoading, error, success, userId, specialization } = useDoctorRegistrationStore();
   const { setCurrentStep } = useRegistration();
   const [localError, setLocalError] = React.useState(null);
   const [disablePrevLocal, setDisablePrevLocal] = React.useState(false);
 
-  const isLastStep = registrationType === 'doctor' ? currentStep === 5 : false; // adjust for hospital if needed
+  // We disable the footer's direct submission logic for Step 5 because Step 5 now handles its own activation via internal buttons.
+  const isLastStep = false; // registrationType === 'doctor' ? currentStep === 5 : false;
 
   const handleSubmit = async () => {
     setLocalError(null);
@@ -80,7 +83,7 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
           <button
             onClick={onPrev}
             className=" h-8 flex gap-1 items-center justify-center rounded-sm text-secondary-grey400 hover:text-gray-900 transition-colors disabled:opacity-50"
-            disabled={false /* Always enable previous for testing */}
+            disabled={disablePrev || disablePrevLocal}
           >
             <ArrowLeft size={14} />
             Previous
@@ -91,16 +94,27 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
           <button
             onClick={handleSubmit}
             className="w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
-            disabled={loading}
+            disabled={storeLoading || loading}
           >
-            {loading ? 'Submitting...' : 'Preview Purchase ->'}
+            {(storeLoading || loading) ? (
+              <div className="flex items-center gap-2">
+                <UniversalLoader size={16} />
+                <span>Submitting...</span>
+              </div>
+            ) : 'Preview Purchase ->'}
           </button>
         ) : (
           <button
             onClick={onNext}
-            className="w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            disabled={loading}
+            className={`w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors ${loading ? 'cursor-wait opacity-80' : ''}`}
           >
-            {nextLabel}
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <UniversalLoader size={16} color="white" style={{ width: 'auto', height: 'auto' }} />
+                <span>Saving...</span>
+              </div>
+            ) : nextLabel}
           </button>
         )}
         {/* Error alerts are shown via window.alert in handleSubmit; no inline red text */}

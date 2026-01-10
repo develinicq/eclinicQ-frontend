@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, forwardRef, useImperativeHandle } from 'react'
 import {
   MFA,
   FormFieldRow,
@@ -7,19 +7,24 @@ import {
 } from '../../../../components/FormItems';
 import InputWithMeta from '../../../../components/GeneralDrawer/InputWithMeta';
 import useDoctorRegistrationStore from '../../../../store/useDoctorRegistrationStore';
-import CustomUpload from './CustomUpload';
+import CustomUpload from '../../../../components/CustomUpload';
 import { ChevronDown } from 'lucide-react';
 import RadioButton from '../../../../components/GeneralDrawer/RadioButton';
-const upload= '/upload_blue.png'
+import { setupClinic } from '../../../../services/doctorService';
+import useToastStore from '../../../../store/useToastStore';
+const upload = '/upload_blue.png'
 
 
-const Step3 = () => {
+const Step3 = forwardRef((props, ref) => {
   const {
+    userId,
     clinicData,
     setClinicField,
     setField,
-    hasClinic
+    hasClinic,
+    profilePhotoKey
   } = useDoctorRegistrationStore();
+  const addToast = useToastStore((state) => state.addToast);
 
   const [formErrors, setFormErrors] = React.useState({});
   const [openDropdowns, setOpenDropdowns] = useState({});
@@ -46,11 +51,11 @@ const Step3 = () => {
         return "";
       case "email":
         if (!value) return "Required";
-        if (!/^\S+@\S+\.\S+$/.test(value)) return "Invalid email format";
+        // if (!/^\S+@\S+\.\S+$/.test(value)) return "Invalid email format";
         return "";
       case "phone":
         if (!value) return "Required";
-        if (!/^\d{10}$/.test(value)) return "Phone must be 10 digits";
+        // if (!/^\d{10}$/.test(value)) return "Phone must be 10 digits";
         return "";
       case "blockNo":
       case "areaStreet":
@@ -67,6 +72,89 @@ const Step3 = () => {
         return "";
     }
   };
+
+  const validateAll = () => {
+    if (!hasClinic) return true; // Step is valid (skipped) if no clinic
+
+    const fieldsToValidate = {
+      name: clinicData.name,
+      email: clinicData.email,
+      phone: clinicData.phone,
+      blockNo: clinicData.blockNo,
+      areaStreet: clinicData.areaStreet,
+      landmark: clinicData.landmark,
+      city: clinicData.city,
+      state: clinicData.state,
+      pincode: clinicData.pincode
+    };
+    const newErrors = {};
+    Object.entries(fieldsToValidate).forEach(([key, val]) => {
+      const err = validateField(key, val);
+      if (err) newErrors[key] = err;
+    });
+    setFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    // If "No" clinic, we skip or treat as success immediately?
+    // Assuming for now user might just skip. 
+    // Button state logic for Next handles "No" case as pass-through or different API.
+    // Based on prompt "setup-clinic" is the endpoint. 
+    // If hasClinic is false, maybe we don't call anything or call with empty data?
+    // User requirement implies valid clinic setup. Let's assume hasClinic=true flow.
+    
+    if (!hasClinic) {
+       // If specific behavior for "No Clinic" is needed (e.g. skip content), return true.
+       return true;
+    }
+
+    if (!validateAll()) return false;
+    
+    if (!userId) {
+       addToast({ title: 'Error', message: 'User ID missing', type: 'error' });
+       return false;
+    }
+
+    try {
+        const payload = {
+        doctorId: userId,
+        clinicData: {
+          name: clinicData.name,
+          emailId: clinicData.email,
+          phone: clinicData.phone,
+          latitude: Number(clinicData.latitude) || 0,
+          longitude: Number(clinicData.longitude) || 0,
+          blockNo: clinicData.blockNo,
+          areaStreet: clinicData.areaStreet,
+          landmark: clinicData.landmark,
+          city: clinicData.city,
+          state: clinicData.state,
+          pincode: clinicData.pincode,
+          tempImageKey: profilePhotoKey || "", // Using profile photo as tempImageKey as per payload sample example
+          tempProofKey: clinicData.proof || ""
+        }
+      };
+
+      const res = await setupClinic(payload);
+      if (res.success) {
+        addToast({ title: 'Success', message: 'Clinic setup successful', type: 'success' });
+        return true;
+      } else {
+        addToast({ title: 'Error', message: res.message || 'Setup failed', type: 'error' });
+        return false;
+      }
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.message || err.message || "Setup failed";
+      addToast({ title: 'Error', message: msg, type: 'error' });
+      return false;
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    submit: handleSubmit
+  }));
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -207,8 +295,8 @@ const Step3 = () => {
                     infoIcon
                     placeholder="Search Location"
                     fileName={clinicData.latitude + ', ' + clinicData.longitude}
-                    
-                    
+
+
                   />
                   <MapLocation
                     heightClass="h-[100px]"
@@ -321,29 +409,25 @@ const Step3 = () => {
                 </FormFieldRow>
               </div>
 
-          <div className='flex flex-col '>
-              <InputWithMeta
+              <CustomUpload
                 label="Upload Profile Picture"
-                showInput={false}
-                infoIcon
-                requiredDot
+                variant="box"
+                compulsory={true}
+                uploadContent="Upload"
+                onUpload={(key) => setField('profilePhotoKey', key)} // Assuming profilePhotoKey is correct field
+                uploadedKey={profilePhotoKey}
+                meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
               />
-              <span className="text-xs text-secondary-grey200 mb-1">Support Size upto 1MB in .png, .jpg, .svg, .webp</span>
-              <div className='flex gap-1 cursor-pointer items-center justify-center flex-col rounded-sm border-[0.5px] border-dashed border-blue-primary150 w-[130px] h-[130px]'>
-                    <img src={upload} alt="" className='w-4 h-4' />
-                    <span className='text-blue-primary250 text-sm'>Upload</span>
-              </div>
-          </div>
 
             </>
           )}
 
-          
+
         </div>
       </div>
     </div >
   );
-}
+})
 
 
 export default Step3

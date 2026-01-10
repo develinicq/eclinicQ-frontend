@@ -114,7 +114,10 @@ const Cards = ({ hospital }) => {
   const initial = (hospital?.name?.[0] || 'H').toUpperCase();
 
   return (
-    <div className="group relative pb-3 flex flex-col w-full min-w-[300px] bg-white rounded-md border border-secondary-grey100 transition-all duration-300 hover:shadow-[0_0_11.4px_4px_rgba(35,114,236,0.15)] overflow-hidden cursor-pointer">
+    <div
+      onClick={openHospital}
+      className="group relative pb-3 flex flex-col w-full min-w-[300px] bg-white rounded-md border border-secondary-grey100 transition-all duration-300 hover:shadow-[0_0_11.4px_4px_rgba(35,114,236,0.15)] overflow-hidden cursor-pointer"
+    >
       {/* Header / Banner Section */}
       <div className="relative h-[120px] w-full">
         <img
@@ -161,7 +164,7 @@ const Cards = ({ hospital }) => {
 
         <span className="text-[16px] font-semibold text-secondary-grey400">{hospital.name || "Hospital Name"}</span>
         <p className="text-sm text-secondary-grey400 ">
-          {hospital.type || "Multi-speciality"} | {hospital.doctors || "10+"} Doctors | {hospital.beds || "250"} 
+          {hospital.type || "Multi-speciality"} | {hospital.doctors || "10+"} Doctors | {hospital.beds || "250"}
         </p>
         <div className="flex items-center gap-2 text-sm text-secondary-grey400">
           <span>Est in {hospital.estYear || "2010"}</span>
@@ -197,7 +200,7 @@ const Cards = ({ hospital }) => {
         {/* Action Buttons */}
         <div className="flex mt-2 gap-3 items-center ">
           <button
-            onClick={openHospital}
+
             className="flex-1 h-9 bg-blue-primary250 hover:bg-blue-600 rounded-md flex items-center justify-center gap-2 text-white text-sm font-medium transition-colors shadow-[2px_2px_10px_0px_rgba(35,114,236,0.3)]"
           >
             View Details

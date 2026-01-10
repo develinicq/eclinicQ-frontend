@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react'
 import { MapPin, Building2, Calendar, Globe, MoreHorizontal } from 'lucide-react'
 import AvatarCircle from '../../AvatarCircle'
 import { getDownloadUrl } from '../../../services/uploadsService'
+import UniversalLoader from "@/components/UniversalLoader";
 const horizontal = '/horizontal.png'
 
 // Reusable Stat Card Component (Matched to InfoBox style)
 const StatCard = ({ label, value, valueClass = "text-[#2372EC]" }) => (
   <div className="w-[116px] h-[90px] border-dashed border border-secondary-grey100/50 rounded-sm text-left p-[10px]">
     <div className='flex flex-col h-full justify-between items-start'>
-      <span className="text-[#626060] text-sm text-left" style={{ lineHeight: '17px' }}>{label}</span>
-      <span className={`font-semibold text-sm text-left ${valueClass}`} style={{ lineHeight: '17px' }}>{value}</span>
+      <span className="text-[#626060] text-sm text-left" style={{ lineHeight: '14px' }}>{label}</span>
+      <span className={`font-semibold text-sm text-left ${valueClass} break-words w-full`} style={{ lineHeight: '16px', wordBreak: 'break-word' }}>{value}</span>
     </div>
   </div>
 )
@@ -25,8 +26,10 @@ const HospitalBanner = ({
     bannerImage: "",
     logoImage: "",
     stats: {}
-  }
+  },
+  isLoading = false
 }) => {
+  console.log("HospitalBanner: received hospitalData:", hospitalData);
   const { name, status, address, type, established, website, bannerImage, logoImage, stats } = hospitalData
   const [resolvedLogo, setResolvedLogo] = useState('')
 
@@ -55,7 +58,7 @@ const HospitalBanner = ({
   ]
 
   return (
-    <div className="w-full p-4 flex items-center gap-4 bg-white">
+    <div className="w-full p-4 flex items-center gap-4 bg-white relative">
       {/* Profile Circle with tick */}
       <div className="relative">
         <div className="w-[90px] h-[90px] rounded-full overflow-hidden border border-gray-100">
@@ -113,11 +116,16 @@ const HospitalBanner = ({
             valueClass={card.valueClass}
           />
         ))}
-    <button className="p-2 text-gray-500 hover:text-gray-700 mr-2 ml-1 mt-2" aria-label="More options">
-     <img src={horizontal} alt="" />
-    </button>
-  
+        <button className="p-2 text-gray-500 hover:text-gray-700 mr-2 ml-1 mt-2" aria-label="More options">
+          <img src={horizontal} alt="" />
+        </button>
+
       </div>
+      {isLoading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-[1px]">
+          <UniversalLoader size={30} className="bg-white" />
+        </div>
+      )}
     </div>
   )
 }

@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Header from '../../../../../../components/DoctorList/Header'
 import { getAllDoctorsBySuperAdmin } from '../../../../../../services/doctorService'
-import useAuthStore from '../../../../../../store/useAuthStore'
+import useSuperAdminAuthStore from '../../../../../../store/useSuperAdminAuthStore'
 import SampleTable from '../../../../../../pages/SampleTable'
 import { doctorColumns } from '../../../../Doctors/DoctorList/columns'
-// Using sample data as fallback if needed, adjusting path
 import sampleData from '../../../../Doctors/DoctorList/data.json'
+import { getDoctorsByHospitalIdForSuperAdmin } from '../../../../../../services/hospitalService';
+import UniversalLoader from '@/components/UniversalLoader';
 import { useNavigate } from 'react-router-dom';
 
 const Doctor = ({ hospital }) => {
   const navigate = useNavigate();
-  const isAuthed = useAuthStore((s) => Boolean(s.token))
+  const isAuthed = useSuperAdminAuthStore((s) => Boolean(s.token))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [active, setActive] = useState([])
@@ -24,89 +25,92 @@ const Doctor = ({ hospital }) => {
       setLoading(true)
       setError(null)
       try {
-        const resp = await getAllDoctorsBySuperAdmin()
-        if (ignore) return
+        const hospitalId = hospital?.temp || hospital?.id || '';
+        console.log("Doctors Section: Fetching for hospitalId:", hospitalId);
 
-        // Filter by Hospital Name if available
-        const hospitalName = hospital?.name || '';
-
-        // Helper to filter by hospital
-        const byHospital = (d) => {
-          if (!hospitalName) return true; // Show all if check hard
-          return (d?.clinicHospitalName || '').toLowerCase() === hospitalName.toLowerCase();
+        // If no ID (yet), maybe don't fetch or wait? 
+        // Assuming we always have at least an ID if we are at this stage.
+        if (!hospitalId) {
+          console.warn("Doctors Section: No hospital ID available");
+          setLoading(false);
+          return;
         }
 
-        const a = (resp?.data?.active || []).filter(byHospital)
-        const i = (resp?.data?.inactive || []).filter(byHospital)
-        setActive(a)
-        setInactive(i)
+        // Validate UUID to prevent 400 Bad Request
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hospitalId);
+        if (!isUuid) {
+          console.log("Doctors Section: hospitalId is not a UUID yet, waiting...", hospitalId);
+          // Do not disable loading here if we expect it to eventually resolve to a UUID?
+          // Or just set loading false?
+          // If we stick in loading state forever it's bad.
+          // But if it's the initial render with "HO-xxxx", we expect a re-render shortly with UUID.
+          // So keep loading true? Or false.
+          // If we say setLoading(false), it shows "No doctors" or empty table.
+          // Let's keep it true if we think it's transient.
+          return;
+        }
+
+        const resp = await getDoctorsByHospitalIdForSuperAdmin(hospitalId, page, pageSize);
+        if (ignore) return;
+
+        console.log("Doctors Section: API Response:", resp);
+        const list = resp?.data?.doctors || [];
+        // The API returns mixed status in one list. We need to filter for active/inactive tabs locally?
+        // OR does the API return all and we bucket them?
+        // The provided sample response shows "status": "ACTIVE".
+        // Let's bucket them locally as before.
+
+        const a = list.filter(d => (d?.status || '').toUpperCase() === 'ACTIVE');
+        const i = list.filter(d => (d?.status || '').toUpperCase() === 'INACTIVE'); // Assuming 'INACTIVE' is possible
+
+        // Current implementation expects separate arrays for active/inactive state usage
+        setActive(a);
+        setInactive(i);
+
       } catch (e) {
         if (ignore) return
+        console.error("Doctors Section: API Error", e);
+        setError("Failed to fetch doctors");
 
-        // Fallback to sample data filtered by hospital name (mock check)
-        // If sample data doesn't match names, it might show empty. 
-        // For UI replication purposes, we might want to show ALL if filtered is empty,
-        // but let's try to filter first.
-
-        const hospitalName = hospital?.name || '';
-        const byHospital = (d) => {
-          // Loose matching for sample data
-          if (!hospitalName) return true;
-          return (d?.clinicHospitalName || '').includes('Hospital') || true; // Just showing all for sample if mock failed
-        }
-
-        const a = sampleData.filter(d => d.status === 'Active') // Show all active for demo if API fails
-        const i = sampleData.filter(d => d.status !== 'Active')
-
-        setActive(a)
-        setInactive(i)
-
-        const status = e?.response?.status
-        const serverMsg = e?.response?.data?.message || e?.message || ''
-        const isAuthError = status === 401 || status === 403 || /forbidden/i.test(serverMsg) || /SUPER_ACCESS/i.test(serverMsg)
-
-        if (!isAuthError) {
-          console.error("API failed, using sample data", e)
-        }
+        // Fallback to empty
+        setActive([]);
+        setInactive([]);
       } finally {
         if (!ignore) setLoading(false)
       }
     }
     if (isAuthed) load()
-    else {
-      const a = sampleData.filter(d => d.status === 'Active')
-      const i = sampleData.filter(d => d.status !== 'Active')
-      setActive(a)
-      setInactive(i)
-      setLoading(false)
-    }
+    else setLoading(false);
+
     return () => {
       ignore = true
     }
-  }, [isAuthed, hospital])
+  }, [isAuthed, hospital, page])
+
 
   const doctorsAll = useMemo(() => {
-    const mapOne = (d, status) => ({
+    const mapOne = (d) => ({
       id: d?.docId || '',
-      userId: d?.userId || '',
+      userId: d?.id || '',
       name: d?.name || '',
       gender: d?.gender || '',
       contact: d?.contactNumber || '',
       email: d?.email || '',
       location: d?.location || '',
-      specialization: Array.isArray(d?.specializations) ? (d.specializations[0] || '') : (d?.specializations || ''),
-      specializationMore: Array.isArray(d?.specializations) && d.specializations.length > 1 ? d.specializations.length - 1 : 0,
+      // Handle specializations string "Ophthalmology, General Medicine" to first item or count
+      specialization: d?.specializations ? d.specializations.split(',')[0].trim() : '',
+      specializationMore: d?.specializations ? Math.max(0, d.specializations.split(',').length - 1) : 0,
       designation: d?.designation || '',
-      exp: d?.yearOfExperience != null ? `${d.yearOfExperience} years of experience` : '',
-      status: d?.planStatus || status,
+      exp: d?.experience != null ? `${d.experience} years of experience` : '',
+      status: d?.planStatus || d?.status,
       rating: d?.rating || 4.0,
-      startDate: d?.startDate || '02/02/2024',
+      startDate: d?.startDate || '',
       plan: d?.plan || 'Basic',
       planStatus: d?.planStatus || 'Active',
     })
     return [
-      ...active.map((d) => mapOne(d, 'Active')),
-      ...inactive.map((d) => mapOne(d, 'Inactive')),
+      ...active.map(mapOne),
+      ...inactive.map(mapOne),
     ]
   }, [active, inactive])
 
@@ -144,8 +148,12 @@ const Doctor = ({ hospital }) => {
         <Header counts={counts} selected={selected} onChange={setSelected} addLabel="Add New Doctor" addPath="/register/doctor" />
       </div>
 
-      <div className="h-[600px] overflow-hidden m-3 border border-gray-200 rounded-lg shadow-sm bg-white">
-        {loading && <div className="p-6 text-gray-600">Loading doctors…</div>}
+      <div className="h-[600px] overflow-hidden m-3 border border-gray-200 rounded-lg shadow-sm bg-white relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
+            <UniversalLoader size={30} className="bg-transparent" />
+          </div>
+        )}
         {!loading && error && <div className="p-6 text-red-600">{String(error)}</div>}
         {!loading && !error && (
           <SampleTable

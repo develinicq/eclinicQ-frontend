@@ -7,10 +7,14 @@ import {
   RegistrationHeader
 } from '../../../../components/FormItems';
 import InputWithMeta from '../../../../components/GeneralDrawer/InputWithMeta';
+import CustomUpload from '../../../../components/CustomUpload';
 const upload = '/upload_blue.png'
 
 
 import { ChevronDown } from 'lucide-react';
+import { registerDoctor } from '../../../../services/doctorService';
+import useToastStore from '../../../../store/useToastStore';
+import useDoctorRegistrationStore from '../../../../store/useDoctorRegistrationStore';
 
 const Step1 = forwardRef((props, ref) => {
   const {
@@ -20,6 +24,7 @@ const Step1 = forwardRef((props, ref) => {
     phone,
     gender,
     city,
+    profilePhotoKey,
     loading,
     error,
     setField,
@@ -32,13 +37,8 @@ const Step1 = forwardRef((props, ref) => {
   const [genderOpen, setGenderOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
 
-  const uploadUrlData = useImageUploadStore((state) => state.uploadUrl);
-
-  useEffect(() => {
-    if (uploadUrlData && uploadUrlData.key) {
-      setField('profilePhotoKey', uploadUrlData.key);
-    }
-  }, [uploadUrlData, setField]);
+  // const uploadUrlData = useImageUploadStore((state) => state.uploadUrl);
+  // useEffect(() => { ... } removed as CustomUpload handles it via onUpload
 
   // Ensure MFA flags are always true in state
   useEffect(() => {
@@ -87,45 +87,65 @@ const Step1 = forwardRef((props, ref) => {
   };
 
 
+  const addToast = useToastStore((state) => state.addToast);
+  const setDocRegField = useDoctorRegistrationStore((state) => state.setField);
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    // Validate all fields before submit
     const fieldsToValidate = { firstName, lastName, emailId, phone, gender, city };
     const newErrors = {};
     Object.entries(fieldsToValidate).forEach(([key, val]) => {
       const err = validateField(key, val);
       if (err) newErrors[key] = err;
     });
+
+    if (!profilePhotoKey) {
+      newErrors['profilePhotoKey'] = "Profile Photo is required";
+      addToast({ title: 'Error', message: 'Profile Photo is required', type: 'error' });
+    }
+
     setFormErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
-      // Focus first error field if needed
       return false;
     }
 
     setIsSubmitting(true);
-    // const result = await submit();
-    // Mock success - Bypass backend
-    const mockDoctorId = 'dummy_doctor_' + Date.now();
-
-    // Update Doctor Registration Store
     try {
-      const useDoctorRegistrationStore = (await import('../../../../store/useDoctorRegistrationStore')).default;
-      useDoctorRegistrationStore.getState().setField('userId', mockDoctorId);
-    } catch (e) {
-      console.error("Failed to update doc store", e);
-    }
+      const payload = {
+        firstName,
+        lastName,
+        emailId,
+        phone,
+        gender: gender?.toUpperCase(), // Ensure uppercase as per request example 'MALE'
+        city,
+        profilePhotoKey
+      };
 
-    const result = { success: true, doctorId: mockDoctorId };
-    setIsSubmitting(false);
+      const res = await registerDoctor(payload);
 
-    // Bypass validation: Always return true to allow navigation
-    if (!result?.success) {
-      const msg = result?.error || error || "Registration failed (Bypassed)";
-      console.warn("Backend validation failed but ignored:", msg);
-      // alert(msg); // Optional: show alert but still allow next
+      if (res.success) {
+        addToast({ title: 'Success', message: 'Doctor Registered Successfully', type: 'success' });
+        // Store the userId for subsequent steps
+        const userId = res.data?.doctorId || res.data?.userId || res.data?.id;
+        if (userId) {
+          setDocRegField('userId', userId);
+        } else {
+             console.error("No userId found in response data", res.data);
+        }
+        setIsSubmitting(false);
+        return true;
+      } else {
+        addToast({ title: 'Error', message: res.message || 'Registration failed', type: 'error' });
+        setIsSubmitting(false);
+        return false;
+      }
+    } catch (err) {
+      console.error("Doctor registration error:", err);
+      const msg = err.response?.data?.message || err.message || "Registration failed";
+      addToast({ title: 'Error', message: msg, type: 'error' });
+      setIsSubmitting(false);
+      return false;
     }
-    // Always return true so Layout proceeds
-    return true;
   };
 
   useImperativeHandle(ref, () => ({
@@ -251,19 +271,15 @@ const Step1 = forwardRef((props, ref) => {
           </FormFieldRow>
 
           {/* Upload Profile Picture */}
-          <div className='flex flex-col '>
-            <InputWithMeta
-              label="Upload Profile Picture"
-              showInput={false}
-              infoIcon
-              requiredDot
-            />
-            <span className="text-xs text-secondary-grey200 mb-1">Support Size upto 1MB in .png, .jpg, .svg, .webp</span>
-            <div className='flex gap-1 cursor-pointer items-center justify-center flex-col rounded-sm border-[0.5px] border-dashed border-blue-primary150 w-[130px] h-[130px]'>
-              <img src={upload} alt="" className='w-4 h-4' />
-              <span className='text-blue-primary250 text-sm'>Upload Image</span>
-            </div>
-          </div>
+          <CustomUpload
+            label="Upload Profile Picture"
+            variant="box"
+            compulsory={true}
+            uploadContent="Upload Image"
+            onUpload={(key) => setField('profilePhotoKey', key)}
+            uploadedKey={profilePhotoKey}
+            meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
+          />
 
           <div className="pb-4"></div>
         </div>

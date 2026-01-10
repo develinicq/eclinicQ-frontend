@@ -44,3 +44,51 @@ export const getPatientVitalsForDoctor = async (patientId) => {
     throw error;
   }
 };
+
+// Register a new doctor
+export const registerDoctor = async (payload) => {
+  try {
+    const res = await axios.post("/doctors/onboarding/register", payload);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const completeDoctorProfile = async (payload) => {
+  try {
+    const res = await axios.post("/doctors/onboarding/complete-profile", payload);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const setupClinic = async (payload) => {
+  try {
+    const res = await axios.post("/doctors/onboarding/setup-clinic", payload);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getDoctorReviewDetails = async (doctorId) => {
+  try {
+    // GET /onboarding/review/:doctorId
+    const response = await axios.get(`/doctors/onboarding/review/${doctorId}`);
+    return response.data; // Expecting { success: true, data: { ... } }
+  } catch (error) {
+    console.error("Error fetching doctor review details:", error);
+    throw error;
+  }
+};
+// Activate doctor account
+export const activateDoctor = async (doctorId) => {
+  try {
+    const response = await axios.post(`/doctors/onboarding/activate/${doctorId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
