@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState , useEffect} from "react";
 import {
   cap,
   add,
@@ -13,12 +13,13 @@ import { ChevronDown } from "lucide-react";
 
 
 
-import EditBasicInfoDrawer from "@/DoctorModule/Pages/Settings/Drawers/EditBasicInfoDrawer.jsx";
-import AddEducationDrawer from "@/DoctorModule/Pages/Settings/Drawers/AddEducationDrawer.jsx";
-import AddAwardDrawer from "@/DoctorModule/Pages/Settings/Drawers/AddAwardDrawer.jsx";
-import AddPublicationDrawer from "@/DoctorModule/Pages/Settings/Drawers/AddPublicationDrawer.jsx";
-import EditPracticeDetailsDrawer from "@/DoctorModule/Pages/Settings/Drawers/EditPracticeDetailsDrawer.jsx";
-import ExperienceDrawerNew from "@/DoctorModule/Pages/Settings/Drawers/ExperienceDrawer.jsx";
+import EditBasicInfoDrawer from "../Drawers/EditBasicInfoDrawer.jsx";
+import { getDoctorBasicInfoForSuperAdmin } from "../../../../../../services/doctorService";
+import AddEducationDrawer from "../Drawers/AddEducationDrawer.jsx";
+import AddAwardDrawer from "../Drawers/AddAwardDrawer.jsx";
+import AddPublicationDrawer from "../Drawers/AddPublicationDrawer.jsx";
+import EditPracticeDetailsDrawer from "../Drawers/EditPracticeDetailsDrawer.jsx";
+import ExperienceDrawerNew from "../Drawers/ExperienceDrawer.jsx";
 
 const InfoField = ({ label, value, right, className: Class }) => (
   <div
@@ -238,8 +239,8 @@ const Info = ({ doctor }) => {
 
   // --- Data Adapters ---
 
-  // Basic Info Adapter
-  const basic = {
+  // Basic Info state fetched from API for Super Admin view
+  const [basic, setBasic] = useState({
     firstName: doctor?.name?.split(' ')[0] || '',
     lastName: doctor?.name?.split(' ').slice(1).join(' ') || '',
     phone: doctor?.primaryPhone || doctor?.contact || '',
@@ -250,7 +251,35 @@ const Info = ({ doctor }) => {
     website: doctor?.website || '',
     headline: doctor?.designation || '',
     about: doctor?.about || ''
-  };
+  });
+
+  useEffect(() => {
+    const id = doctor?.userId || doctor?.id;
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getDoctorBasicInfoForSuperAdmin(id);
+        const d = res?.data || {};
+        const mapped = {
+          firstName: d.firstName || '',
+          lastName: d.lastName || '',
+          phone: d.phone || '',
+          email: d.emailId || '',
+          gender: d.gender || '',
+          city: d.city || '',
+          website: d.website || '',
+          headline: d.headline || '',
+          about: d.about || '',
+          languages: Array.isArray(d.languages) ? d.languages : []
+        };
+        if (!cancelled) setBasic(mapped);
+      } catch (err) {
+        console.error('Failed to fetch basic info for SuperAdmin:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [doctor?.userId, doctor?.id]);
 
   // 'profile' object wrapper to match Doc_settings JSX structure
   const profile = { basic };
@@ -773,9 +802,31 @@ const Info = ({ doctor }) => {
         open={basicOpen}
         onClose={() => setBasicOpen(false)}
         initialData={basic}
-        onSave={(data) => {
-          console.log("SuperAdmin updated basic info (mock):", data);
-          setBasicOpen(false);
+  doctorId={doctor?.userId || doctor?.id}
+        onSave={async () => {
+          const id = doctor?.userId || doctor?.id;
+          if (!id) { setBasicOpen(false); return; }
+          try {
+            const res = await getDoctorBasicInfoForSuperAdmin(id);
+            const d = res?.data || {};
+            const mapped = {
+              firstName: d.firstName || '',
+              lastName: d.lastName || '',
+              phone: d.phone || '',
+              email: d.emailId || '',
+              gender: d.gender || '',
+              city: d.city || '',
+              website: d.website || '',
+              headline: d.headline || '',
+              about: d.about || '',
+              languages: Array.isArray(d.languages) ? d.languages : []
+            };
+            setBasic(mapped);
+          } catch (err) {
+            console.error('Failed to refresh basic info after update:', err);
+          } finally {
+            setBasicOpen(false);
+          }
         }}
       />
 

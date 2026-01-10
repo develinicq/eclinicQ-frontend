@@ -8,6 +8,8 @@ import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
 import Dropdown from "@/components/GeneralDrawer/Dropdown";
 import FileUploadBox from "@/components/GeneralDrawer/FileUploadBox";
 import { ChevronDown } from "lucide-react";
+import EditClinicDetailsDrawer from "../Drawers/EditClinicDetailsDrawer.jsx";
+
 const upload = '/Doctor_module/settings/upload.png'
 
 const SectionCard = ({

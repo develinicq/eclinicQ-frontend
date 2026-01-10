@@ -15,8 +15,8 @@ import axiosClient from "../../../../../../lib/axios";
 import { fetchAllRoles } from "../../../../../../services/rbac/roleService";
 import { fetchClinicStaff } from "../../../../../../services/staffService";
 import { registerStaff } from "../../../../../../services/staff/registerStaffService";
-import InviteStaffDrawer from "../../../../../../DoctorModule/Pages/Settings/Drawers/InviteStaffDrawer.jsx";
-import RoleDrawerShared from "../../../../../../DoctorModule/Pages/Settings/Drawers/RoleDrawer.jsx";
+import InviteStaffDrawer from "../Drawers/InviteStaffDrawer.jsx";
+import RoleDrawerShared from "../Drawers/RoleDrawer.jsx";
 
 // --- Inline Components ---
 

@@ -83,6 +83,26 @@ export const getDoctorReviewDetails = async (doctorId) => {
     throw error;
   }
 };
+// Get Super Admin view: doctor's personalInfo basicInfo
+export const getDoctorBasicInfoForSuperAdmin = async (doctorId) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  try {
+    const res = await axios.get(`/doctors/forSuperAdmin/doctorDetails/personalInfo/basicInfo/${encodeURIComponent(doctorId)}`);
+    return res.data; // { success, message, data: { firstName, lastName, phone, emailId, gender, city, website, headline, about, languages } }
+  } catch (error) {
+    throw error;
+  }
+};
+// Update Super Admin view: doctor's personalInfo basicInfo (partial payload)
+export const updateDoctorBasicInfoForSuperAdmin = async (doctorId, payload) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  try {
+    const res = await axios.put(`/doctors/forSuperAdmin/doctorDetails/personalInfo/basicInfo/${encodeURIComponent(doctorId)}`, payload);
+    return res.data; // { success, message, data: { ...updated } }
+  } catch (error) {
+    throw error;
+  }
+};
 // Activate doctor account
 export const activateDoctor = async (doctorId) => {
   try {

@@ -4,6 +4,7 @@ import Toggle from "@/components/FormItems/Toggle";
 import TimeInput from "@/components/FormItems/TimeInput";
 import { ChevronDown, Trash2 } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
+import EditClinicDetailsDrawer from "../Drawers/EditClinicDetailsDrawer.jsx";
 
 // Reusable SectionCard (same as others)
 const SectionCard = ({
