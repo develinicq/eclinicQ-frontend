@@ -6,6 +6,9 @@ import { ChevronDown } from "lucide-react";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import calendarWhite from "/Doctor_module/sidebar/calendar_white.png";
 import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
+import UniversalLoader from "@/components/UniversalLoader";
+import useToastStore from "@/store/useToastStore";
+import { addDoctorAwardForSuperAdmin, updateDoctorAwardForSuperAdmin } from "@/services/doctorService";
 
 /**
  * AddAwardDrawer — Add/Edit Award form matching provided design
@@ -15,13 +18,33 @@ import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
  * - mode: 'add' | 'edit'
  * - initial: optional initial values for edit
  */
-export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", initial = {} }) {
+export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", initial = {}, doctorId }) {
   const [title, setTitle] = useState("");
   const [issuer, setIssuer] = useState("");
   const [assoc, setAssoc] = useState("");
   const [date, setDate] = useState("");
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Detect changes vs initial (only matters in edit mode)
+  const isDirty = React.useMemo(() => {
+    const norm = (v) => (v ?? "");
+    const iTitle = norm(initial?.title || initial?.awardName);
+    const iIssuer = norm(initial?.issuer || initial?.issuerName);
+    const iAssoc = norm(initial?.with || initial?.associatedWith);
+    const iDate = norm(initial?.date || (initial?.issueDate ? initial.issueDate.split("T")[0] : ""));
+    const iUrl = norm(initial?.url || initial?.awardUrl);
+    const iDesc = norm(initial?.desc || initial?.description);
+    return (
+      norm(title) !== iTitle ||
+      norm(issuer) !== iIssuer ||
+      norm(assoc) !== iAssoc ||
+      norm(date) !== iDate ||
+      norm(url) !== iUrl ||
+      norm(desc) !== iDesc
+    );
+  }, [title, issuer, assoc, date, url, desc, initial]);
 
   const [assocOpen, setAssocOpen] = useState(false);
   const [showIssueCalendar, setShowIssueCalendar] = useState(false);
@@ -51,10 +74,50 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
     []
   );
 
-  const save = () => {
+  const save = async () => {
     if (!canSave) return;
-    onSave?.({ title, issuer, with: assoc, date, url, desc });
-    onClose?.();
+    const { addToast } = useToastStore.getState();
+    if (!doctorId) {
+      addToast({ title: "Missing doctorId", message: "Cannot add award.", type: "error" });
+      return;
+    }
+    const base = {
+      awardName: title,
+      issuerName: issuer,
+      associatedWith: assoc || "",
+      issueDate: date, // YYYY-MM-DD
+      awardUrl: url || "",
+      description: desc || "",
+    };
+    try {
+      setSaving(true);
+      if (mode === 'edit') {
+        // Build partial diff payload
+        const norm = (v) => (v ?? "");
+        const diff = { id: initial?.id };
+        const push = (key, newVal, oldVal) => { if (norm(newVal) !== norm(oldVal)) diff[key] = newVal; };
+        push('awardName', base.awardName, initial?.awardName || initial?.title);
+        push('issuerName', base.issuerName, initial?.issuerName || initial?.issuer);
+        push('associatedWith', base.associatedWith, initial?.associatedWith || initial?.with);
+        push('issueDate', base.issueDate, (initial?.issueDate ? initial.issueDate.split('T')[0] : initial?.date || ""));
+        push('awardUrl', base.awardUrl, initial?.awardUrl || initial?.url);
+        push('description', base.description, initial?.description || initial?.desc);
+        const res = await updateDoctorAwardForSuperAdmin(doctorId, diff);
+        addToast({ title: "Updated", message: res?.message || "Award updated", type: "success" });
+        onSave?.(res?.data || diff);
+        onClose?.();
+      } else {
+        const res = await addDoctorAwardForSuperAdmin(doctorId, base);
+        addToast({ title: "Added", message: res?.message || "Award added", type: "success" });
+        onSave?.(res?.data || base);
+        onClose?.();
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to add award";
+      addToast({ title: "Add failed", message: msg, type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -62,9 +125,14 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
       isOpen={open}
       onClose={onClose}
       title={mode === "edit" ? "Edit Award" : "Add Award"}
-      primaryActionLabel="Save"
-      onPrimaryAction={save}
-      primaryActionDisabled={!canSave}
+      primaryActionLabel={saving ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} style={{ width: 'auto', height: 'auto' }} />
+          <span>{mode === 'edit' ? 'Updating...' : 'Saving...'}</span>
+        </div>
+      ) : (mode === 'edit' ? "Update" : "Save")}
+  onPrimaryAction={save}
+  primaryActionDisabled={saving || !canSave || (mode === 'edit' && !isDirty)}
       width={600}
     >
       <div className="flex flex-col gap-4">

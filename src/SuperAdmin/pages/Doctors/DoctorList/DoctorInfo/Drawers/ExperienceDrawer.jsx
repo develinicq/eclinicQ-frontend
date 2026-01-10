@@ -6,6 +6,9 @@ import Dropdown from "@/components/GeneralDrawer/Dropdown";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 const calendarBlackPath = '/Doctor_module/settings/calendar.png';
 import { ChevronDown } from "lucide-react";
+import UniversalLoader from "@/components/UniversalLoader";
+import useToastStore from "@/store/useToastStore";
+import { addDoctorExperienceForSuperAdmin, updateDoctorExperienceForSuperAdmin } from "@/services/doctorService";
 
 
 // Local checkbox-with-label row used inside this drawer
@@ -40,7 +43,7 @@ const CheckboxWithLabel = ({ label, checked, onChange }) => (
   </InputWithMeta>
 );
 
-export default function ExperienceDrawer({ open, onClose, initial = {}, mode = "add", onSave }) {
+export default function ExperienceDrawer({ open, onClose, initial = {}, mode = "add", onSave, doctorId }) {
   
   const [data, setData] = useState({
     jobTitle: "",
@@ -54,6 +57,7 @@ export default function ExperienceDrawer({ open, onClose, initial = {}, mode = "
   });
   const [typeOpen, setTypeOpen] = useState(false);
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
   const [showStartCalendar, setShowStartCalendar] = useState(false);
   const [showEndCalendar, setShowEndCalendar] = useState(false);
   const [hospitalOpen, setHospitalOpen] = useState(false);
@@ -150,10 +154,43 @@ export default function ExperienceDrawer({ open, onClose, initial = {}, mode = "
 
   async function handleSave() {
     if (!validate()) return;
-    const payload = { ...data };
-    if (payload.isCurrentlyWorking) payload.endDate = "";
-    await onSave?.(payload);
-    onClose?.();
+    const { addToast } = useToastStore.getState();
+    if (!doctorId) {
+      addToast({ title: "Missing doctorId", message: "Cannot save experience.", type: "error" });
+      return;
+    }
+    const base = { ...data };
+    if (base.isCurrentlyWorking) base.endDate = "";
+    try {
+      setSaving(true);
+      if (mode === 'edit') {
+        // Build partial diff payload
+        const norm = (v) => (v ?? "");
+        const diff = { id: initial?.id };
+        const push = (key, newVal, oldVal) => { if (norm(newVal) !== norm(oldVal)) diff[key] = newVal; };
+        push('jobTitle', base.jobTitle, initial?.jobTitle);
+        push('employmentType', base.employmentType, initial?.employmentType);
+        push('hospitalOrClinicName', base.hospitalOrClinicName, initial?.hospitalOrClinicName);
+        push('isCurrentlyWorking', Boolean(base.isCurrentlyWorking), Boolean(initial?.isCurrentlyWorking));
+        push('startDate', base.startDate, (initial?.startDate ? initial.startDate.split('T')[0] : ""));
+        push('endDate', base.endDate, (initial?.endDate ? initial.endDate.split('T')[0] : ""));
+        push('description', base.description, initial?.description);
+        const res = await updateDoctorExperienceForSuperAdmin(doctorId, diff);
+        addToast({ title: "Updated", message: res?.message || "Experience updated", type: "success" });
+        onSave?.(res?.data || diff);
+        onClose?.();
+      } else {
+        const res = await addDoctorExperienceForSuperAdmin(doctorId, base);
+        addToast({ title: "Added", message: res?.message || "Experience added", type: "success" });
+        onSave?.(res?.data || base);
+        onClose?.();
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || (mode === 'edit' ? "Failed to update experience" : "Failed to add experience");
+      addToast({ title: mode === 'edit' ? "Update failed" : "Add failed", message: msg, type: "error" });
+    } finally {
+      setSaving(false);
+    }
   }
 
 
@@ -162,9 +199,14 @@ export default function ExperienceDrawer({ open, onClose, initial = {}, mode = "
       isOpen={open}
       onClose={onClose}
       title={title}
-      primaryActionLabel="Save"
+      primaryActionLabel={saving ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} style={{ width: 'auto', height: 'auto' }} />
+          <span>{mode === 'edit' ? 'Updating...' : 'Saving...'}</span>
+        </div>
+      ) : (mode === 'edit' ? "Update" : "Save")}
       onPrimaryAction={handleSave}
-      primaryActionDisabled={!canSave}
+      primaryActionDisabled={saving || !canSave}
       width={600}
     >
       <div className="flex flex-col gap-3">

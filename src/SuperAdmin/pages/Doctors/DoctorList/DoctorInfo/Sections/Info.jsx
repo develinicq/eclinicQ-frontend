@@ -15,7 +15,7 @@ import { ChevronDown } from "lucide-react";
 
 import EditBasicInfoDrawer from "../Drawers/EditBasicInfoDrawer.jsx";
 // merged imports below
-import { getDoctorBasicInfoForSuperAdmin, getDoctorEducationalDetailsForSuperAdmin } from "../../../../../../services/doctorService";
+import { getDoctorBasicInfoForSuperAdmin, getDoctorEducationalDetailsForSuperAdmin, getDoctorAwardsAndPublicationsForSuperAdmin, getDoctorExperienceDetailsForSuperAdmin } from "../../../../../../services/doctorService";
 import AddEducationDrawer from "../Drawers/AddEducationDrawer.jsx";
 import AddAwardDrawer from "../Drawers/AddAwardDrawer.jsx";
 import AddPublicationDrawer from "../Drawers/AddPublicationDrawer.jsx";
@@ -209,6 +209,17 @@ const ProfileItemCard = ({
   );
 };
 const Info = ({ doctor }) => {
+  // Local helper to format a date string into 'Mon YYYY'. Accepts ISO/date-like strings.
+  const formatMonthYear = (dateStr) => {
+    if (!dateStr) return undefined;
+    try {
+      const d = new Date(dateStr);
+      if (Number.isNaN(d.getTime())) return undefined;
+      return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    } catch {
+      return undefined;
+    }
+  };
   // --- UI State for Drawers/Menus (Visual only for SuperAdmin) ---
   const [basicOpen, setBasicOpen] = useState(false);
   const [eduOpen, setEduOpen] = useState(false);
@@ -284,6 +295,7 @@ const Info = ({ doctor }) => {
 
   // 'profile' object wrapper to match Doc_settings JSX structure
   const profile = { basic };
+  const [experiences, setExperiences] = useState([]);
 
   // Medical Registration Adapter
   const medicalRegistration = {
@@ -301,10 +313,22 @@ const Info = ({ doctor }) => {
     practiceArea: doctor?.services || [] // hypothetical
   };
 
-  // Experience Adapter
-  // If doctor.experiences is actually an array, use it. Otherwise empty.
-  const experiences = Array.isArray(doctor?.experiences) ? doctor.experiences :
-    (doctor?.experienceDetails ? doctor.experienceDetails : []);
+  // Fetch experiences for SuperAdmin
+  useEffect(() => {
+    const id = doctor?.userId || doctor?.id;
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getDoctorExperienceDetailsForSuperAdmin(id);
+        const list = Array.isArray(res?.data?.experiences) ? res.data.experiences : [];
+        if (!cancelled) setExperiences(list);
+      } catch (err) {
+        console.error('Failed to fetch experiences for SuperAdmin:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [doctor?.userId, doctor?.id]);
 
 
   // Mock data/adapters for lists not fully in doctor prop
@@ -331,8 +355,28 @@ const Info = ({ doctor }) => {
 
   // Awards/Publications (mocked/empty if not present)
   // Assuming doctor object might have these in future, currently using empty arrays or props if available
-  const awards = doctor?.awards || [];
-  const publications = doctor?.publications || [];
+  const [awards, setAwards] = useState([]);
+  const [publications, setPublications] = useState([]);
+
+  useEffect(() => {
+    const id = doctor?.userId || doctor?.id;
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getDoctorAwardsAndPublicationsForSuperAdmin(id);
+        const aw = Array.isArray(res?.data?.awards) ? res.data.awards : [];
+        const pub = Array.isArray(res?.data?.publications) ? res.data.publications : [];
+        if (!cancelled) {
+          setAwards(aw);
+          setPublications(pub);
+        }
+      } catch (err) {
+        console.error('Failed to fetch awards/publications for SuperAdmin:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [doctor?.userId, doctor?.id]);
 
   return (
     <div className="pt-6 px-4 grid grid-cols-12 gap-6 bg-secondary-grey50">
@@ -537,7 +581,15 @@ const Info = ({ doctor }) => {
                   title={aw.awardName}
                   subtitle={aw.issuerName}
                   date={formatMonthYear(aw.issueDate)}
-                  linkLabel="Certificate ↗"
+                  linkLabel={(() => {
+                    const url = String(aw.awardUrl || '');
+                    if (!url) return 'Certificate ↗';
+                    const name = url.split('/').pop() || url;
+                    const max = 24;
+                    if (name.length <= max) return name;
+                    const keep = Math.max(4, Math.floor((max - 3) / 2));
+                    return `${name.slice(0, keep)}...${name.slice(-keep)}`;
+                  })()}
                   linkUrl={aw.awardUrl}
                   showEditEducation={true}
                   editEducationIcon={pencil}
@@ -558,22 +610,24 @@ const Info = ({ doctor }) => {
                   title={pub.title}
                   subtitle={pub.publisher || pub.associatedWith}
                   date={pub.publicationDate ? formatMonthYear(pub.publicationDate) : undefined}
-                  linkLabel="Publication ↗"
+                  linkLabel={(() => {
+                    const url = String(pub.publicationUrl || '');
+                    if (!url) return 'Publication ↗';
+                    const name = url.split('/').pop() || url;
+                    const max = 28;
+                    if (name.length <= max) return name;
+                    const keep = Math.max(4, Math.floor((max - 3) / 2));
+                    return `${name.slice(0, keep)}...${name.slice(-keep)}`;
+                  })()}
                   linkUrl={pub.publicationUrl}
                   description={pub.description}
-                  rightActions={
-                    <button
-                      onClick={() => {
-                        setPubEditData(pub);
-                        setPubEditMode("edit");
-                        setPubOpen(true);
-                      }}
-                      className="text-gray-400 hover:text-blue-600 transition"
-                      title="Edit"
-                    >
-                      <img src={pencil} alt="edit" className="w-4 h-4" />
-                    </button>
-                  }
+                  showEditEducation={true}
+                  onEditEducationClick={() => {
+                    setPubEditData(pub);
+                    setPubEditMode("edit");
+                    setPubOpen(true);
+                  }}
+                  
                 />
               ))}
           </div>
@@ -865,9 +919,23 @@ const Info = ({ doctor }) => {
         onClose={() => setAwardOpen(false)}
         mode={awardEditMode}
         initial={awardEditData}
+        doctorId={doctor?.userId || doctor?.id}
         onSave={(data) => {
-          console.log("SuperAdmin updated award (mock):", data);
-          setAwardOpen(false);
+          const id = doctor?.userId || doctor?.id;
+          if (!id) { setAwardOpen(false); return; }
+          (async () => {
+            try {
+              const res = await getDoctorAwardsAndPublicationsForSuperAdmin(id);
+              const aw = Array.isArray(res?.data?.awards) ? res.data.awards : [];
+              const pub = Array.isArray(res?.data?.publications) ? res.data.publications : [];
+              setAwards(aw);
+              setPublications(pub);
+            } catch (err) {
+              console.error('Failed to refresh awards/publications after add:', err);
+            } finally {
+              setAwardOpen(false);
+            }
+          })();
         }}
       />
 
@@ -876,9 +944,23 @@ const Info = ({ doctor }) => {
         onClose={() => setPubOpen(false)}
         mode={pubEditMode}
         initial={pubEditData}
+        doctorId={doctor?.userId || doctor?.id}
         onSave={(data) => {
-          console.log("SuperAdmin updated publication (mock):", data);
-          setPubOpen(false);
+          const id = doctor?.userId || doctor?.id;
+          if (!id) { setPubOpen(false); return; }
+          (async () => {
+            try {
+              const res = await getDoctorAwardsAndPublicationsForSuperAdmin(id);
+              const aw = Array.isArray(res?.data?.awards) ? res.data.awards : [];
+              const pub = Array.isArray(res?.data?.publications) ? res.data.publications : [];
+              setAwards(aw);
+              setPublications(pub);
+            } catch (err) {
+              console.error('Failed to refresh awards/publications after add:', err);
+            } finally {
+              setPubOpen(false);
+            }
+          })();
         }}
       />
 
@@ -897,9 +979,21 @@ const Info = ({ doctor }) => {
         onClose={() => setExpOpen(false)}
         mode={expEditMode}
         initial={expEditData}
+        doctorId={doctor?.userId || doctor?.id}
         onSave={(data) => {
-          console.log("SuperAdmin updated experience (mock):", data);
-          setExpOpen(false);
+          const id = doctor?.userId || doctor?.id;
+          if (!id) { setExpOpen(false); return; }
+          (async () => {
+            try {
+              const res = await getDoctorExperienceDetailsForSuperAdmin(id);
+              const list = Array.isArray(res?.data?.experiences) ? res.data.experiences : [];
+              setExperiences(list);
+            } catch (err) {
+              console.error('Failed to refresh experiences after save:', err);
+            } finally {
+              setExpOpen(false);
+            }
+          })();
         }}
       />
 
