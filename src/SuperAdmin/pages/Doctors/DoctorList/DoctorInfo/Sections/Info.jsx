@@ -14,7 +14,8 @@ import { ChevronDown } from "lucide-react";
 
 
 import EditBasicInfoDrawer from "../Drawers/EditBasicInfoDrawer.jsx";
-import { getDoctorBasicInfoForSuperAdmin } from "../../../../../../services/doctorService";
+// merged imports below
+import { getDoctorBasicInfoForSuperAdmin, getDoctorEducationalDetailsForSuperAdmin } from "../../../../../../services/doctorService";
 import AddEducationDrawer from "../Drawers/AddEducationDrawer.jsx";
 import AddAwardDrawer from "../Drawers/AddAwardDrawer.jsx";
 import AddPublicationDrawer from "../Drawers/AddPublicationDrawer.jsx";
@@ -310,26 +311,23 @@ const Info = ({ doctor }) => {
   // In a real scenario, we'd ensure doctor prop has these lists or fetch them
 
   // Education adapter
-  const education = [
-    doctor?.graduationDegree && {
-      degree: doctor.graduationDegree.degree,
-      fieldOfStudy: '',
-      graduationType: 'Graduation',
-      instituteName: doctor.graduationDegree.college,
-      startYear: '',
-      completionYear: doctor.graduationDegree.completionYear,
-      proofDocumentUrl: doctor.graduationDegreeProof
-    },
-    doctor?.postGraduationDegree && {
-      degree: doctor.postGraduationDegree.degree,
-      fieldOfStudy: '',
-      graduationType: 'Post Graduation',
-      instituteName: doctor.postGraduationDegree.college,
-      startYear: '',
-      completionYear: doctor.postGraduationDegree.completionYear,
-      proofDocumentUrl: doctor.postGraduationProof
-    }
-  ].filter(Boolean);
+  const [education, setEducation] = useState([]);
+
+  useEffect(() => {
+    const id = doctor?.userId || doctor?.id;
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getDoctorEducationalDetailsForSuperAdmin(id);
+        const list = Array.isArray(res?.data?.education) ? res.data.education : [];
+        if (!cancelled) setEducation(list);
+      } catch (err) {
+        console.error('Failed to fetch educational details for SuperAdmin:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [doctor?.userId, doctor?.id]);
 
   // Awards/Publications (mocked/empty if not present)
   // Assuming doctor object might have these in future, currently using empty arrays or props if available
@@ -442,8 +440,16 @@ const Info = ({ doctor }) => {
                   }`}
                 badge={ed.graduationType}
                 subtitle={ed.instituteName}
-                date={`${ed.startYear} - ${ed.completionYear}`}
-                linkLabel="Degree_Certificate.pdf"
+                date={`${ed.startYear || ''} - ${ed.completionYear || ''}`}
+                linkLabel={(() => {
+                  const url = String(ed.proofDocumentUrl || '');
+                  const name = url ? (url.split('/').pop() || 'Document') : '';
+                  if (!name) return undefined;
+                  const max = 22;
+                  if (name.length <= max) return name;
+                  const keep = Math.max(4, Math.floor((max - 3) / 2));
+                  return `${name.slice(0, keep)}...${name.slice(-keep)}`;
+                })()}
                 linkUrl={ed.proofDocumentUrl}
                 showEditEducation={true}
                 editEducationIcon={pencil}
@@ -456,7 +462,8 @@ const Info = ({ doctor }) => {
                     field: ed.fieldOfStudy || "",
                     start: ed.startYear?.toString() || "",
                     end: ed.completionYear?.toString() || "",
-
+                    proof: ed.proofDocumentUrl || "",
+                    isVerified: ed.isVerified || false,
                   });
                   setEduEditMode("edit");
                   setEduOpen(true);
@@ -835,9 +842,21 @@ const Info = ({ doctor }) => {
         onClose={() => setEduOpen(false)}
         mode={eduEditMode}
         initial={eduEditData}
+        doctorId={doctor?.userId || doctor?.id}
         onSave={(data) => {
-          console.log("SuperAdmin updated education (mock):", data);
-          setEduOpen(false);
+          const id = doctor?.userId || doctor?.id;
+          if (!id) { setEduOpen(false); return; }
+          (async () => {
+            try {
+              const res = await getDoctorEducationalDetailsForSuperAdmin(id);
+              const list = Array.isArray(res?.data?.education) ? res.data.education : [];
+              setEducation(list);
+            } catch (err) {
+              console.error('Failed to refresh education after add:', err);
+            } finally {
+              setEduOpen(false);
+            }
+          })();
         }}
       />
 

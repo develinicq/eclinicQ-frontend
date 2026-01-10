@@ -103,6 +103,40 @@ export const updateDoctorBasicInfoForSuperAdmin = async (doctorId, payload) => {
     throw error;
   }
 };
+
+// Get Super Admin view: doctor's personalInfo educationalDetails
+export const getDoctorEducationalDetailsForSuperAdmin = async (doctorId) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  try {
+    const res = await axios.get(`/doctors/forSuperAdmin/doctorDetails/personalInfo/educationalDetails/${encodeURIComponent(doctorId)}`);
+    return res.data; // { success, data: { education: [ ... ] } }
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Create a new educational detail for Super Admin
+export const addDoctorEducationForSuperAdmin = async (doctorId, payload) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  try {
+    const res = await axios.post(`/doctors/forSuperAdmin/doctorDetails/personalInfo/educationalDetails/${encodeURIComponent(doctorId)}`, payload);
+    return res.data; // { success, message, data: { id, ... } }
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Update an educational detail (edit) for Super Admin
+export const updateDoctorEducationForSuperAdmin = async (doctorId, payload) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  if (!payload?.id) throw new Error("education id is required");
+  try {
+    const res = await axios.put(`/doctors/forSuperAdmin/doctorDetails/personalInfo/educationalDetails/${encodeURIComponent(doctorId)}`, payload);
+    return res.data; // { success, message, data: { ... } }
+  } catch (error) {
+    throw error;
+  }
+};
 // Activate doctor account
 export const activateDoctor = async (doctorId) => {
   try {

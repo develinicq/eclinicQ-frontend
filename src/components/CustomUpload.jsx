@@ -17,7 +17,8 @@ const CustomUpload = ({
     onRemove,
     uploadContent = "Upload Image",
     noView = true,
-    variant = "default" // 'default' | 'box'
+    variant = "default", // 'default' | 'box'
+    fullWidth = false
 }) => {
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
@@ -160,7 +161,7 @@ const CustomUpload = ({
 
                 <div
                     onClick={triggerUpload}
-                    className="cursor-pointer rounded-sm border-[0.5px] border-dashed border-blue-primary150 transition-colors text-blue-primary250 text-sm mb-1 flex flex-col items-center justify-center gap-1 w-[130px] h-[130px] overflow-hidden bg-white relative hover:bg-gray-50 group"
+                    className={`cursor-pointer rounded-sm border-[0.5px] border-dashed border-blue-primary150 transition-colors text-blue-primary250 text-sm mb-1 flex flex-col items-center justify-center gap-1 ${fullWidth ? 'w-full h-32' : 'w-[130px] h-[130px]'} overflow-hidden bg-white relative hover:bg-gray-50 group`}
                 >
                     {uploading ? (
                         <span className="text-blue-primary250 text-xs">Uploading...</span>

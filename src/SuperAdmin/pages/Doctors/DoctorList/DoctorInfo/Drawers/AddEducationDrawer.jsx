@@ -4,7 +4,11 @@ import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import Dropdown from "@/components/GeneralDrawer/Dropdown";
 import { ChevronDown, Info } from "lucide-react";
 import FileUploadBox from "@/components/GeneralDrawer/FileUploadBox";
+import CustomUpload from "@/components/CustomUpload";
 import useImageUploadStore from "@/store/useImageUploadStore";
+import UniversalLoader from "@/components/UniversalLoader";
+import useToastStore from "@/store/useToastStore";
+import { addDoctorEducationForSuperAdmin, updateDoctorEducationForSuperAdmin } from "@/services/doctorService";
 
 /**
  * AddEducationDrawer — Add/Edit Education with dropdowns and file upload
@@ -15,7 +19,7 @@ import useImageUploadStore from "@/store/useImageUploadStore";
  * - mode: 'add' | 'edit'
  * - initial: object // when editing; { school, gradType, degree, field, start, end, proof }
  */
-export default function AddEducationDrawer({ open, onClose, onSave, mode = "add", initial = {} }) {
+export default function AddEducationDrawer({ open, onClose, onSave, mode = "add", initial = {}, doctorId }) {
   const [school, setSchool] = useState("");
   const [gradType, setGradType] = useState("");
   const [degree, setDegree] = useState("");
@@ -24,6 +28,7 @@ export default function AddEducationDrawer({ open, onClose, onSave, mode = "add"
   const [end, setEnd] = useState("");
   const [proofKey, setProofKey] = useState("");
   const [proofName, setProofName] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Dropdown states
   const [schoolOpen, setSchoolOpen] = useState(false);
@@ -47,6 +52,27 @@ export default function AddEducationDrawer({ open, onClose, onSave, mode = "add"
   }, [open, initial]);
 
   const canSave = Boolean(school && gradType && degree && start && end);
+  
+  // Disable Update when nothing changed in edit mode
+  const isDirty = React.useMemo(() => {
+    const norm = (v) => (v ?? "");
+    const initialSchool = norm(initial?.school);
+    const initialGrad = norm(initial?.gradType);
+    const initialDegree = norm(initial?.degree);
+    const initialField = norm(initial?.field);
+    const initialStart = norm(initial?.start);
+    const initialEnd = norm(initial?.end);
+    const initialProof = norm(initial?.proof);
+    return (
+      norm(school) !== initialSchool ||
+      norm(gradType) !== initialGrad ||
+      norm(degree) !== initialDegree ||
+      norm(field) !== initialField ||
+      norm(start) !== initialStart ||
+      norm(end) !== initialEnd ||
+      norm(proofKey || initial?.proof || "") !== initialProof
+    );
+  }, [school, gradType, degree, field, start, end, proofKey, initial]);
 
   // Suggestions (can be later sourced from API)
   const schoolOptions = useMemo(
@@ -114,10 +140,55 @@ export default function AddEducationDrawer({ open, onClose, onSave, mode = "add"
     }
   };
 
-  const save = () => {
+  const save = async () => {
     if (!canSave) return;
-    onSave?.({ school, gradType, degree, field, start, end, proof: proofKey || initial?.proof || "" });
-    onClose?.();
+    const { addToast } = useToastStore.getState();
+    if (!doctorId) {
+      addToast({ title: "Missing doctorId", message: "Cannot add education.", type: "error" });
+      return;
+    }
+    const basePayload = {
+      instituteName: school,
+      graduationType: gradType, // expects 'UG' | 'PG' | 'Fellowship'
+      degree,
+      fieldOfStudy: field || "",
+      startYear: Number(start),
+      completionYear: Number(end),
+      proofDocumentUrl: proofKey || initial?.proof || "",
+    };
+    try {
+      setSaving(true);
+      if (mode === 'edit') {
+        // Build partial payload with only changed fields
+        const norm = (v) => (v ?? "");
+        const diffPayload = { id: initial?.id };
+        const pushIfChanged = (key, newVal, oldVal) => {
+          if (norm(newVal) !== norm(oldVal)) diffPayload[key] = newVal;
+        };
+        pushIfChanged('instituteName', basePayload.instituteName, initial?.school);
+        pushIfChanged('graduationType', basePayload.graduationType, initial?.gradType);
+        pushIfChanged('degree', basePayload.degree, initial?.degree);
+        pushIfChanged('fieldOfStudy', basePayload.fieldOfStudy, initial?.field);
+        pushIfChanged('startYear', basePayload.startYear, Number(initial?.start));
+        pushIfChanged('completionYear', basePayload.completionYear, Number(initial?.end));
+        pushIfChanged('proofDocumentUrl', basePayload.proofDocumentUrl, initial?.proof);
+        const payload = diffPayload;
+        const res = await updateDoctorEducationForSuperAdmin(doctorId, payload);
+        addToast({ title: "Updated", message: res?.message || "Educational detail updated", type: "success" });
+        onSave?.(res?.data || payload);
+        onClose?.();
+      } else {
+        const res = await addDoctorEducationForSuperAdmin(doctorId, basePayload);
+        addToast({ title: "Added", message: res?.message || "Educational detail added", type: "success" });
+        onSave?.(res?.data || basePayload);
+        onClose?.();
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || (mode === 'edit' ? "Failed to update education" : "Failed to add education");
+      addToast({ title: mode === 'edit' ? "Update failed" : "Add failed", message: msg, type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -125,9 +196,14 @@ export default function AddEducationDrawer({ open, onClose, onSave, mode = "add"
       isOpen={open}
       onClose={onClose}
       title={mode === "edit" ? "Edit Education" : "Add Education"}
-      primaryActionLabel="Save"
-      onPrimaryAction={save}
-      primaryActionDisabled={!canSave}
+      primaryActionLabel={saving ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} style={{ width: 'auto', height: 'auto' }} />
+          <span>{mode === 'edit' ? 'Updating...' : 'Saving...'}</span>
+        </div>
+      ) : (mode === 'edit' ? "Update" : "Save")}
+  onPrimaryAction={save}
+  primaryActionDisabled={saving || !canSave || (mode === 'edit' && !isDirty)}
       width={600}
     >
       <div className="flex flex-col gap-3.5">
@@ -257,19 +333,28 @@ export default function AddEducationDrawer({ open, onClose, onSave, mode = "add"
           />
         </div>
 
-  {/* Upload Proof using InputWithMeta label with info icon */}
-          <InputWithMeta label="Upload Proof" showInput={false} infoIcon InfoIconComponent={Info}>
-          <FileUploadBox
-            value={proofName ? { name: proofName } : null}
-            onChange={(file) => {
-              if (file) onUploadFile(file);
-            }}
-            accept={".png,.jpg,.jpeg,.svg,.webp"}
-            maxSizeMB={1}
-            helperText={uploadError ? uploadError : "Support Size upto 1MB in .png, .jpg, .svg, .webp"}
-            disabled={uploading}
+        {/* Upload Proof: show box upload before uploading; after upload, show InputWithMeta image upload option */}
+        {proofKey ? (
+          <CustomUpload
+            label="Upload Proof"
+            compulsory
+            meta={uploadError ? uploadError : "Support Size upto 1MB in .png, .jpg, .svg, .webp"}
+            uploadedKey={proofKey}
+            fileName={proofName}
+            onUpload={(key, name) => { setProofKey(key); setProofName(name); }}
           />
-        </InputWithMeta>
+        ) : (
+          <CustomUpload
+            label="Upload Proof"
+            variant="box"
+            fullWidth
+            compulsory
+            meta={uploadError ? uploadError : "Support Size upto 1MB in .png, .jpg, .svg, .webp"}
+            uploadedKey={proofKey}
+            fileName={proofName}
+            onUpload={(key, name) => { setProofKey(key); setProofName(name); }}
+          />
+        )}
       </div>
     </GeneralDrawer>
   );
