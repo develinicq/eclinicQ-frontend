@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import Header from '../../../components/DoctorList/Header'
 import AddPatientDrawer from '../../../components/PatientList/AddPatientDrawer'
 import AppointmentLogDrawer from '../../../components/PatientList/AppointmentLogDrawer'
@@ -6,9 +6,14 @@ import ScheduleAppointmentDrawer from '../../../components/PatientList/ScheduleA
 import SampleTable from '../../../pages/SampleTable'
 import PatientDetailsDrawer from './PatientDetailsDrawer'
 import { getPatientColumns } from './columns'
-import patientData from './data.json'
+import { getPatientsForSuperAdmin } from '../../../services/patientService'
+import UniversalLoader from '../../../components/UniversalLoader'
 
 const Patients = () => {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [patientsRaw, setPatientsRaw] = useState([])
+
   const [selected, setSelected] = useState('all')
   const [addOpen, setAddOpen] = useState(false)
   const [page, setPage] = useState(1);
@@ -19,13 +24,81 @@ const Patients = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const pageSize = 10;
 
-  // Filter logic (placeholder)
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const resp = await getPatientsForSuperAdmin()
+        if (resp && resp.success && resp.data && Array.isArray(resp.data.patients)) {
+          setPatientsRaw(resp.data.patients)
+        } else {
+          setPatientsRaw([])
+        }
+      } catch (e) {
+        console.error("Error fetching patients:", e)
+        setError('Failed to load patients')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  // Start Mapping Data
+  const patientsMapped = useMemo(() => {
+    return patientsRaw.map(p => {
+      const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || '-'
+
+      // Format DOB to MM/DD/YYYY
+      let formattedDob = '-';
+      if (p.dob) {
+        const d = new Date(p.dob);
+        if (!isNaN(d.getTime())) {
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const year = d.getFullYear();
+          formattedDob = `${month}/${day}/${year}`;
+        }
+      }
+
+      // Format Age to (XY)
+      const formattedAge = (p.age !== null && p.age !== undefined) ? `${p.age}Y` : '-';
+
+      return {
+        id: p.patientCode || '-',
+        userId: p.userId, // Adding userId for detailed view API call
+        name: fullName,
+        contact: p.phone || '-',
+        email: p.email || '-',
+        location: [p.city, p.state].filter(Boolean).join(', ') || '-',
+        lastVisit: p.lastVisit ? new Date(p.lastVisit).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-',
+        reason: p.reason || '-',
+        gender: p.gender || '-',
+        dob: formattedDob,
+        age: formattedAge,
+        status: '-'
+      }
+    })
+  }, [patientsRaw])
+
+
+  // Filter logic (placeholder since status is missing)
   const patientsFiltered = useMemo(() => {
-    // Basic filtering simulation
-    if (selected === 'active') return patientData.filter(p => p.status === 'Active');
-    if (selected === 'inactive') return patientData.filter(p => p.status === 'Inactive');
-    return patientData;
-  }, [selected]);
+    // If we had status, we would filter here.
+    // Since API doesn't return status, we just return all for 'active'/'inactive' placeholders or empty.
+    // For now, let's just show all patients for 'all' tab, and maybe nothing for others to avoid confusion, 
+    // OR just show all for everything since we can't distinguish.
+    // User request said: "no precoded or hardcoded values", so if data is missing show -
+
+    // However, the UI has tabs. If I show all for 'Active', it might be misleading if they aren't active.
+    // But returning empty array might look like a bug.
+    // Let's assume for now we only show list on 'All'.
+
+    if (selected === 'all') return patientsMapped;
+    // For other tabs, we have no data to filter by.
+    return [];
+  }, [selected, patientsMapped]);
 
   const pagedData = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -33,11 +106,11 @@ const Patients = () => {
   }, [patientsFiltered, page, pageSize]);
 
   const counts = useMemo(() => ({
-    all: patientData.length,
-    active: patientData.filter(p => p.status === 'Active').length,
-    inactive: patientData.filter(p => p.status === 'Inactive').length,
+    all: patientsMapped.length,
+    active: 0,
+    inactive: 0,
     draft: 0
-  }), [])
+  }), [patientsMapped])
 
   const handleOpenLog = useCallback((row) => {
     setLogDrawerOpen(true);
@@ -49,6 +122,22 @@ const Patients = () => {
   }, []);
 
   const columns = useMemo(() => getPatientColumns(handleOpenLog, handleOpenSchedule), [handleOpenLog, handleOpenSchedule]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-secondary-grey50">
+        <UniversalLoader size={32} />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-secondary-grey50">
+        <p className="text-red-500">{error}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full bg-secondary-grey50 overflow-hidden">

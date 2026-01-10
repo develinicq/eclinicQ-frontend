@@ -218,7 +218,7 @@ const Step4 = () => {
   const renderPage1 = () => {
     if (loading) {
       return <div className="flex items-center justify-center h-[24px]
-       "><UniversalLoader /></div>;
+       "><UniversalLoader size={32}  /></div>;
     }
     return (
       <div className="max-w-[700px] mx-auto flex flex-col gap-4">
