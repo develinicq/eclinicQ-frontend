@@ -237,3 +237,28 @@ export const updateDoctorExperienceForSuperAdmin = async (doctorId, payload) => 
     throw error;
   }
 };
+
+// Get Super Admin consultation details for a doctor (requires clinicId)
+export const getDoctorConsultationDetailsForSuperAdmin = async (doctorId, clinicId) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  if (!clinicId) throw new Error("clinicId is required");
+  try {
+    const res = await axios.get(`/doctors/forSuperAdmin/doctorDetails/consultationDetails/${encodeURIComponent(doctorId)}`, {
+      params: { clinicId },
+    });
+    return res.data; // { success, data: { consultationFees: { ... }, scheduleDetails: { ... } } }
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get Super Admin view: clinical details (hasClinic + clinic object)
+export const getDoctorClinicalDetailsForSuperAdmin = async (doctorId) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  try {
+    const res = await axios.get(`/doctors/forSuperAdmin/doctorDetails/clinicalDetails/${encodeURIComponent(doctorId)}`);
+    return res.data; // { success, message, data: { hasClinic, clinic: { ... } } }
+  } catch (error) {
+    throw error;
+  }
+};

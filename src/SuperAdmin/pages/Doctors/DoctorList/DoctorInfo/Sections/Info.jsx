@@ -21,6 +21,7 @@ import AddAwardDrawer from "../Drawers/AddAwardDrawer.jsx";
 import AddPublicationDrawer from "../Drawers/AddPublicationDrawer.jsx";
 import EditPracticeDetailsDrawer from "../Drawers/EditPracticeDetailsDrawer.jsx";
 import ExperienceDrawerNew from "../Drawers/ExperienceDrawer.jsx";
+import UniversalLoader from "@/components/UniversalLoader";
 
 const InfoField = ({ label, value, right, className: Class }) => (
   <div
@@ -208,7 +209,7 @@ const ProfileItemCard = ({
     </div>
   );
 };
-const Info = ({ doctor }) => {
+const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
   // Local helper to format a date string into 'Mon YYYY'. Accepts ISO/date-like strings.
   const formatMonthYear = (dateStr) => {
     if (!dateStr) return undefined;
@@ -265,12 +266,31 @@ const Info = ({ doctor }) => {
     about: doctor?.about || ''
   });
 
+  // Track individual loading flags for this page
+  const [basicLoading, setBasicLoading] = useState(false);
+  const [expLoading, setExpLoading] = useState(false);
+  const [eduLoading, setEduLoading] = useState(false);
+  const [awardsLoading, setAwardsLoading] = useState(false);
+
+  // Bubble overall loading up
+  useEffect(() => {
+    const anyLoading = basicLoading || expLoading || eduLoading || awardsLoading;
+    if (typeof onLoadingChange === 'function') onLoadingChange(anyLoading);
+  }, [basicLoading, expLoading, eduLoading, awardsLoading, onLoadingChange]);
+
   useEffect(() => {
     const id = doctor?.userId || doctor?.id;
     if (!id) return;
     let cancelled = false;
+    // Use cache if present
+    if (cache.basic) {
+      setBasic(cache.basic);
+      setBasicLoading(false);
+      return () => { cancelled = true; };
+    }
     (async () => {
       try {
+        setBasicLoading(true);
         const res = await getDoctorBasicInfoForSuperAdmin(id);
         const d = res?.data || {};
         const mapped = {
@@ -285,10 +305,14 @@ const Info = ({ doctor }) => {
           about: d.about || '',
           languages: Array.isArray(d.languages) ? d.languages : []
         };
-        if (!cancelled) setBasic(mapped);
+        if (!cancelled) {
+          setBasic(mapped);
+          if (typeof updateCache === 'function') updateCache({ basic: mapped });
+        }
       } catch (err) {
         console.error('Failed to fetch basic info for SuperAdmin:', err);
       }
+      finally { if (!cancelled) setBasicLoading(false); }
     })();
     return () => { cancelled = true; };
   }, [doctor?.userId, doctor?.id]);
@@ -318,14 +342,24 @@ const Info = ({ doctor }) => {
     const id = doctor?.userId || doctor?.id;
     if (!id) return;
     let cancelled = false;
+    if (cache.experiences) {
+      setExperiences(cache.experiences);
+      setExpLoading(false);
+      return () => { cancelled = true; };
+    }
     (async () => {
       try {
+        setExpLoading(true);
         const res = await getDoctorExperienceDetailsForSuperAdmin(id);
         const list = Array.isArray(res?.data?.experiences) ? res.data.experiences : [];
-        if (!cancelled) setExperiences(list);
+        if (!cancelled) {
+          setExperiences(list);
+          if (typeof updateCache === 'function') updateCache({ experiences: list });
+        }
       } catch (err) {
         console.error('Failed to fetch experiences for SuperAdmin:', err);
       }
+      finally { if (!cancelled) setExpLoading(false); }
     })();
     return () => { cancelled = true; };
   }, [doctor?.userId, doctor?.id]);
@@ -341,14 +375,24 @@ const Info = ({ doctor }) => {
     const id = doctor?.userId || doctor?.id;
     if (!id) return;
     let cancelled = false;
+    if (cache.education) {
+      setEducation(cache.education);
+      setEduLoading(false);
+      return () => { cancelled = true; };
+    }
     (async () => {
       try {
+        setEduLoading(true);
         const res = await getDoctorEducationalDetailsForSuperAdmin(id);
         const list = Array.isArray(res?.data?.education) ? res.data.education : [];
-        if (!cancelled) setEducation(list);
+        if (!cancelled) {
+          setEducation(list);
+          if (typeof updateCache === 'function') updateCache({ education: list });
+        }
       } catch (err) {
         console.error('Failed to fetch educational details for SuperAdmin:', err);
       }
+      finally { if (!cancelled) setEduLoading(false); }
     })();
     return () => { cancelled = true; };
   }, [doctor?.userId, doctor?.id]);
@@ -362,21 +406,42 @@ const Info = ({ doctor }) => {
     const id = doctor?.userId || doctor?.id;
     if (!id) return;
     let cancelled = false;
+    if (cache.awards && cache.publications) {
+      setAwards(cache.awards);
+      setPublications(cache.publications);
+      setAwardsLoading(false);
+      return () => { cancelled = true; };
+    }
     (async () => {
       try {
+        setAwardsLoading(true);
         const res = await getDoctorAwardsAndPublicationsForSuperAdmin(id);
         const aw = Array.isArray(res?.data?.awards) ? res.data.awards : [];
         const pub = Array.isArray(res?.data?.publications) ? res.data.publications : [];
         if (!cancelled) {
           setAwards(aw);
           setPublications(pub);
+          if (typeof updateCache === 'function') updateCache({ awards: aw, publications: pub });
         }
       } catch (err) {
         console.error('Failed to fetch awards/publications for SuperAdmin:', err);
       }
+      finally { if (!cancelled) setAwardsLoading(false); }
     })();
     return () => { cancelled = true; };
   }, [doctor?.userId, doctor?.id]);
+
+  const anyLoading = basicLoading || expLoading || eduLoading || awardsLoading;
+
+  if (anyLoading) {
+    return (
+      <div className="relative min-h-[320px]">
+        <div className="absolute inset-0 flex items-center justify-center bg-white">
+          <UniversalLoader size={28} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-6 px-4 grid grid-cols-12 gap-6 bg-secondary-grey50">

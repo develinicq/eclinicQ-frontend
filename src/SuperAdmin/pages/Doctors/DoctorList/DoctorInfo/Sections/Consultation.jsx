@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import Toggle from "@/components/FormItems/Toggle";
 import TimeInput from "@/components/FormItems/TimeInput";
 import { ChevronDown, Trash2 } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import EditClinicDetailsDrawer from "../Drawers/EditClinicDetailsDrawer.jsx";
+import { getDoctorConsultationDetailsForSuperAdmin, getDoctorDetailsByIdBySuperAdmin } from "@/services/doctorService";
+import UniversalLoader from "@/components/UniversalLoader";
 
 // Reusable SectionCard (same as others)
 const SectionCard = ({
@@ -84,7 +86,7 @@ const DEFAULT_SCHEDULE = [
   { day: "Sunday", available: false, sessions: [] },
 ];
 
-const Consultation = ({ doctor }) => {
+const Consultation = ({ doctor, onLoadingChange, cache = {}, updateCache, clinicId: externalClinicId }) => {
   const [consultationDetails, setConsultationDetails] = useState(doctor?.consultationDetails || {});
   const [consultationDirty, setConsultationDirty] = useState(false);
   const [savingConsultation, setSavingConsultation] = useState(false);
@@ -94,10 +96,101 @@ const Consultation = ({ doctor }) => {
   const doctorDetails = doctor;
 
   useEffect(() => {
+    console.log('[Consultation] Mounted with doctor:', doctor);
     if (doctor?.consultationDetails) {
       setConsultationDetails(doctor.consultationDetails);
     }
+    // Hydrate from per-clinic cache if available
+    else if (cache) {
+      setConsultationDetails(cache);
+    }
   }, [doctor]);
+
+  // Bubble loading state up to parent (PageNav) for universal loader
+  useEffect(() => {
+    if (typeof onLoadingChange === 'function') {
+      onLoadingChange(!!consultationLoading);
+    }
+  }, [consultationLoading, onLoadingChange]);
+
+  // Fetch consultation details for SuperAdmin using clinicId from doctor banner/details
+  const memoClinicId = useMemo(() => {
+    return (
+      externalClinicId ||
+      doctorDetails?.clinicId ||
+      doctorDetails?.workplace?.clinics?.[0]?.id ||
+      doctorDetails?.associatedWorkplaces?.clinics?.[0]?.id ||
+      doctorDetails?.associatedWorkplaces?.clinic?.id ||
+      doctorDetails?.associatedWorkplaces?.clinicId ||
+      doctorDetails?.clinicId ||
+      null
+    );
+  }, [externalClinicId, doctorDetails?.clinicId, doctorDetails?.workplace?.clinics, doctorDetails?.associatedWorkplaces]);
+
+  useEffect(() => {
+    const id = doctorDetails?.userId || doctorDetails?.id;
+    const clinicId = memoClinicId;
+    console.log('[Consultation] useEffect triggered. Resolved ids:', { id, clinicId, workplace: doctorDetails?.workplace });
+    if (!id) return;
+  // If we already have consultationDetails (from cache or previous fetch) AND clinicId didn't change, skip re-fetch
+  const cachedClinicId = consultationDetails?.consultationFees?.[0]?.clinicId || consultationDetails?.slotTemplates?.clinicId;
+  if (consultationDetails && cachedClinicId === clinicId) {
+      setConsultationLoading(false);
+      return;
+    }
+    let resolvedClinicId = clinicId;
+    let cancelled = false;
+    const resolveAndFetch = async () => {
+      try {
+        setConsultationLoading(true);
+        if (!resolvedClinicId) {
+          console.warn('[Consultation] clinicId missing. Fetching doctor details to resolve clinicId…');
+          try {
+            const docResp = await getDoctorDetailsByIdBySuperAdmin(id);
+            const w = docResp?.data?.workplace;
+            resolvedClinicId = w?.clinics?.[0]?.id || null;
+            console.log('[Consultation] Resolved clinicId from doctor details:', resolvedClinicId);
+          } catch (e) {
+            console.error('[Consultation] Failed to fetch doctor details for clinicId resolution:', e);
+          }
+        }
+        if (!resolvedClinicId) {
+          console.warn('[Consultation] Still missing clinicId after resolution; skipping consultation fetch');
+          return;
+        }
+        console.log('[Consultation] Fetching consultation details for', { doctorId: id, clinicId: resolvedClinicId });
+        const res = await getDoctorConsultationDetailsForSuperAdmin(id, resolvedClinicId);
+        const fees = res?.data?.consultationFees || {};
+        const sched = res?.data?.scheduleDetails || {};
+        const schedule = Array.isArray(sched?.schedule) ? sched.schedule : DEFAULT_SCHEDULE;
+        if (!cancelled) {
+          const payload = {
+            consultationFees: [
+              {
+                hospitalId: fees.hospitalId ?? null,
+                clinicId: fees.clinicId ?? resolvedClinicId,
+                consultationFee: fees.consultationFee ?? "",
+                followUpFee: fees.followUpFee ?? "",
+                autoApprove: Boolean(fees.autoApprove),
+                avgDurationMinutes: Number(fees.avgDurationMinutes) || 0,
+                availabilityDurationDays: Number(fees.availabilityDays) || undefined,
+              },
+            ],
+            slotTemplates: { schedule, clinicId: resolvedClinicId },
+          };
+          setConsultationDetails(payload);
+          if (typeof updateCache === 'function') updateCache(payload);
+          setConsultationDirty(false);
+        }
+      } catch (err) {
+        console.error('Failed to fetch consultation details for SuperAdmin:', err);
+      } finally {
+        setConsultationLoading(false);
+      }
+    };
+    resolveAndFetch();
+    return () => { cancelled = true; };
+  }, [doctorDetails?.userId, doctorDetails?.id, memoClinicId]);
 
   // Mock API for SuperAdmin view
   const putDoctorConsultationDetails = async (payload) => {
@@ -107,6 +200,12 @@ const Consultation = ({ doctor }) => {
 
   return (
     <div className=" space-y-6 p-4 bg-secondary-grey50">
+      {consultationLoading ? (
+        <div className="flex items-center justify-center h-48 bg-white rounded-lg">
+          <UniversalLoader size={28} className="bg-white" />
+        </div>
+      ) : (
+        <>
 
       {/* In-Clinic Consultation Fees */}
       <SectionCard
@@ -185,9 +284,9 @@ const Consultation = ({ doctor }) => {
           </div>
 
         </div>
-      </SectionCard>
+    </SectionCard>
 
-      <SectionCard
+  <SectionCard
         title="Set your consultation hours"
         headerRight={
           <label className="inline-flex items-center gap-2 text-sm text-gray-700">
@@ -302,11 +401,7 @@ const Consultation = ({ doctor }) => {
 
         </div>
 
-        {consultationLoading && (
-          <div className="text-xs text-gray-500 mt-2">
-            Loading consultation details…
-          </div>
-        )}
+  {/* inline loader removed in favor of page-level loader */}
         {/* {consultationError && (
                   <div className="text-xs text-red-600 mt-2">
                     {consultationError}
@@ -314,7 +409,7 @@ const Consultation = ({ doctor }) => {
                 )} */}
 
         {/* Days grid (from API schedule or default fallback) */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 items-start">
+  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 items-start">
           {(
             consultationDetails?.slotTemplates?.schedule?.length
               ? consultationDetails.slotTemplates.schedule
@@ -585,9 +680,9 @@ const Consultation = ({ doctor }) => {
             );
           })}
         </div>
-      </SectionCard>
+  </SectionCard>
 
-      {/* Footer consent + Save */}
+  {/* Footer consent + Save */}
       <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200">
         <div className="px-2 sm:px-4 md:px-6 py-3 flex items-center justify-between gap-3">
           <label className="flex items-center gap-2 text-[12px] text-gray-600">
@@ -684,6 +779,8 @@ const Consultation = ({ doctor }) => {
           </button>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

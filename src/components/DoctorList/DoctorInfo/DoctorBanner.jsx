@@ -17,7 +17,7 @@ const clinic = '/superAdmin/Doctors/Medical Kit.svg'
 
 
 const hospital = '/icons/Sidebar/MainSidebar/hospital_unselect.png'
-const DoctorBanner = ({ doctor: initialDoctor }) => {
+const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
   const { id } = useParams();
   const [doctor, setDoctor] = useState(initialDoctor);
   const [loading, setLoading] = useState(true); // Start loading true by default if we expect to fetch
@@ -245,7 +245,10 @@ const DoctorBanner = ({ doctor: initialDoctor }) => {
                       location={clinic.city || clinic.location || ""}
                       variant="clinic"
                       selected={selectedId === clinic.id}
-                      onClick={() => setSelectedId(clinic.id)}
+                      onClick={() => {
+                        setSelectedId(clinic.id);
+                        if (typeof onClinicChange === 'function') onClinicChange(clinic.id);
+                      }}
                     />
                   ))}
                   {/* fallback if no clinics just to show something? or user wants exact api data. Assume exact api data. */}
@@ -273,7 +276,10 @@ const DoctorBanner = ({ doctor: initialDoctor }) => {
                       location={hosp.city || hosp.location || ""}
                       variant="hospital"
                       selected={selectedId === hosp.id}
-                      onClick={() => setSelectedId(hosp.id)}
+                      onClick={() => {
+                        setSelectedId(hosp.id);
+                        if (typeof onClinicChange === 'function') onClinicChange(hosp.id);
+                      }}
                     />
                   ))}
                 </div>
