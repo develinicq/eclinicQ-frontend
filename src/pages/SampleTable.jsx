@@ -171,7 +171,7 @@ export default function SampleTable({
   };
 
   return (
-    <div className="flex flex-col h-full z-10 rounded-xl  no-scrollbar border-secondary-grey100/50 bg-white overflow-hidden">
+    <div className="flex flex-col h-full rounded-xl  no-scrollbar border-secondary-grey100/50 bg-white overflow-hidden">
       <style>{`
         tr:has(.ns-cell:hover) .ns-cell {
           background-color: #F9F9F9;
@@ -184,16 +184,16 @@ export default function SampleTable({
           style={{ minWidth }}
         >
           {/* Header */}
-          <thead className="sticky top-0 z-40 border-b border-secondary-grey100/50">
+          <thead className="sticky top-0 z-[4] border-b border-secondary-grey100/50">
             <tr>
               {columns.map((col) => {
                 // Base header cell style; prevent wrapping for cleaner column alignment
                 const base =
                   "px-3 py-1 text-left text-sm font-medium relative bg-white whitespace-nowrap";
                 const stickyLeft =
-                  col.sticky === "left" ? " sticky left-0 z-50" : "";
+                  col.sticky === "left" ? " sticky left-0 z-[5]" : "";
                 const stickyRight =
-                  col.sticky === "right" ? " sticky right-0 z-50" : "";
+                  col.sticky === "right" ? " sticky right-0 z-[5]" : "";
                 const align = col.align === "center" ? " " : "";
                 // width: constrain sticky columns; allow optional widths for non-sticky
                 const widthStyle =
@@ -271,9 +271,9 @@ export default function SampleTable({
                       : ' ns-cell';
 
                     const stickyLeft =
-                      col.sticky === "left" ? " bg-white sticky left-0 z-30" : ""; // below header (z-50)
+                      col.sticky === "left" ? " bg-white sticky left-0 z-[3]" : ""; // below header (z-50)
                     const stickyRight =
-                      col.sticky === "right" ? " sticky right-0 z-30" : "";
+                      col.sticky === "right" ? " sticky right-0 z-[3]" : "";
                     const align = col.align === "center" ? " " : "";
                     const cellClass = col.cellClass ? ` ${col.cellClass}` : "";
                     const rawContent = col.render
@@ -356,7 +356,7 @@ export default function SampleTable({
       </div>
 
       {/* Sticky pagination footer */}
-      <div className="z-30 bg-monochrom-white border-t border-secondary-grey100/50">
+      <div className="z-[3] bg-monochrom-white border-t border-secondary-grey100/50">
         <TablePagination
           page={page}
           pageSize={pageSize}
