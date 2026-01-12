@@ -3,13 +3,16 @@ import InputWithMeta from '../../../components/GeneralDrawer/InputWithMeta'
 import PasswordRequirements from '../../../components/FormItems/PasswordRequirements'
 import PopupSmall from '../../../components/PopupSmall'
 import DetailPopup from '../../../components/DetailPopup'
+import UniversalLoader from '../../../components/UniversalLoader'
 import { Phone, RefreshCw } from 'lucide-react'
 import useSuperAdminAuthStore from '../../../store/useSuperAdminAuthStore'
+import useToastStore from '../../../store/useToastStore'
 const phone = '/phone2.png'
 const mail = '/mail.png'
 
 const Settings = () => {
-  const { user } = useSuperAdminAuthStore();
+  const { user, requestVerificationOtp, verifyExistingOtp, sendNewOtp, verifyNewContact, requestPasswordChange, confirmPasswordChange } = useSuperAdminAuthStore();
+  const { addToast } = useToastStore();
   const [mobile, setMobile] = useState(user?.phone ? `+91${user.phone}` : '+919175367487')
   const [email, setEmail] = useState(user?.emailId || 'ketanpatni02@gmail.com')
 
@@ -18,6 +21,7 @@ const Settings = () => {
     if (user?.phone) setMobile(`+91${user.phone}`);
     if (user?.emailId) setEmail(user.emailId);
   }, [user]);
+
   const [currentPwd, setCurrentPwd] = useState('')
   const [newPwd, setNewPwd] = useState('')
   const [confirmPwd, setConfirmPwd] = useState('')
@@ -27,10 +31,16 @@ const Settings = () => {
   const [showNewMobileVerifyPopup, setShowNewMobileVerifyPopup] = useState(false)
   const [newMobileNumber, setNewMobileNumber] = useState('')
 
+  // Loading States
+  const [isRequestingMobileOtp, setIsRequestingMobileOtp] = useState(false)
+  const [isRequestingEmailOtp, setIsRequestingEmailOtp] = useState(false)
+  const [isRequestingPasswordChange, setIsRequestingPasswordChange] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [verificationData, setVerificationData] = useState(null)
+
   // OTP State
   const [otp, setOtp] = useState(new Array(6).fill(""))
   const [newOtp, setNewOtp] = useState(new Array(6).fill("")) // For new mobile verification
-  const [isVerifying, setIsVerifying] = useState(false)
   const otpInputRefs = useRef([])
   const otpNewInputRefs = useRef([])
 
@@ -62,34 +72,79 @@ const Settings = () => {
     }
   };
 
-  const verifyOtp = () => {
+  const verifyOtp = async () => {
     setIsVerifying(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const payload = { otp: otp.join('') };
+      const res = await verifyExistingOtp(payload);
+      if (res?.success) {
+        addToast({ message: res.message || 'Verification successful', type: 'success' });
+        setShowVerifyPopup(false);
+        setOtp(new Array(6).fill(""));
+        setShowAddMobilePopup(true);
+      } else {
+        addToast({ message: res.message || 'Invalid OTP', type: 'error' });
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Verification failed', type: 'error' });
+    } finally {
       setIsVerifying(false);
-      setShowVerifyPopup(false);
-      setOtp(new Array(6).fill("")); // Reset
-      setShowAddMobilePopup(true);
-    }, 2000);
+    }
   };
 
-  const handleAddMobileVerify = () => {
-    // Switch to next popup without verifying animation (as requested "not be verifying after thsi")
-    setShowAddMobilePopup(false);
-    setShowNewMobileVerifyPopup(true);
-    setNewOtp(new Array(6).fill("")); // Reset new otp
+  const handleMobileRequestOtp = async () => {
+    setIsRequestingMobileOtp(true);
+    try {
+      const res = await requestVerificationOtp('mobile');
+      if (res?.success) {
+        addToast({ message: res.message || 'OTP sent successfully', type: 'success' });
+        setVerificationData(res.data);
+        setShowMobilePopup(false);
+        setShowVerifyPopup(true);
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Failed to send OTP', type: 'error' });
+    } finally {
+      setIsRequestingMobileOtp(false);
+    }
+  };
+
+  const handleAddMobileVerify = async () => {
+    setIsVerifying(true);
+    try {
+      const payload = { type: 'mobile', newContact: newMobileNumber };
+      const res = await sendNewOtp(payload);
+      if (res?.success) {
+        addToast({ message: res.message || 'OTP sent to new mobile number', type: 'success' });
+        setVerificationData(res.data);
+        setShowAddMobilePopup(false);
+        setShowNewMobileVerifyPopup(true);
+        setNewOtp(new Array(6).fill(""));
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Failed to send OTP', type: 'error' });
+    } finally {
+      setIsVerifying(false);
+    }
   }
 
-  const handleFinalVerify = () => {
+  const handleFinalVerify = async () => {
     setIsVerifying(true);
-    // Simulate API call to verify new mobile OTP
-    setTimeout(() => {
+    try {
+      const payload = { otp: newOtp.join('') };
+      const res = await verifyNewContact(payload);
+      if (res?.success) {
+        addToast({ message: res.message || 'Mobile number updated successfully!', type: 'success' });
+        setShowNewMobileVerifyPopup(false);
+        setNewMobileNumber('');
+      } else {
+        addToast({ message: res.message || 'Invalid OTP', type: 'error' });
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Verification failed', type: 'error' });
+    } finally {
       setIsVerifying(false);
-      setShowNewMobileVerifyPopup(false);
-      setMobile(`+91${newMobileNumber}`);
-      setNewMobileNumber('');
-      alert("New mobile number added and verified!");
-    }, 2000);
+    }
   }
 
   const isOtpFilled = otp.every(val => val !== "");
@@ -128,69 +183,150 @@ const Settings = () => {
     }
   };
 
-  const verifyEmailAuth = () => {
+  const verifyEmailAuth = async () => {
     setIsVerifying(true);
-    setTimeout(() => {
+    try {
+      const payload = {
+        mobileOtp: otpAuthMobile.join(''),
+        emailOtp: otpAuthEmail.join('')
+      };
+      const res = await verifyExistingOtp(payload);
+      if (res?.success) {
+        addToast({ message: res.message || 'Verification successful', type: 'success' });
+        setShowEmailAuthPopup(false);
+        setOtpAuthMobile(new Array(6).fill(""));
+        setOtpAuthEmail(new Array(6).fill(""));
+        setShowAddEmailPopup(true);
+      } else {
+        addToast({ message: res.message || 'Invalid OTP', type: 'error' });
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Verification failed', type: 'error' });
+    } finally {
       setIsVerifying(false);
-      setShowEmailAuthPopup(false);
-      setOtpAuthMobile(new Array(6).fill(""));
-      setOtpAuthEmail(new Array(6).fill(""));
-      setShowAddEmailPopup(true);
-    }, 2000);
-  }
-
-  const handleAddEmailVerify = () => {
-    setShowAddEmailPopup(false);
-    setShowNewEmailVerifyPopup(true);
-    setOtpVerifyNewEmail(new Array(6).fill(""));
-  }
-
-  const handleFinalEmailVerify = () => {
-    setIsVerifying(true);
-    setTimeout(() => {
-      setIsVerifying(false);
-      setShowNewEmailVerifyPopup(false);
-      setEmail(newEmailAddress);
-      setNewEmailAddress('');
-      alert("Email ID updated successfully!");
-    }, 2000);
-  }
-
-  const handlePasswordVerifyClick = () => {
-    // Validation bypassed for testing as requested
-    /*
-    if (!currentPwd || !newPwd || !confirmPwd) {
-      alert("Please fill all password fields");
-      return;
     }
-    if (newPwd !== confirmPwd) {
-      alert("New password and confirm password do not match");
-      return;
+  };
+
+  const handleEmailRequestOtp = async () => {
+    setIsRequestingEmailOtp(true);
+    try {
+      const res = await requestVerificationOtp('email');
+      if (res?.success) {
+        addToast({ message: res.message || 'OTP sent successfully', type: 'success' });
+        setVerificationData(res.data);
+        setShowEmailPopup(false);
+        setShowEmailAuthPopup(true);
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Failed to send OTP', type: 'error' });
+    } finally {
+      setIsRequestingEmailOtp(false);
     }
-    */
-    setOtpAuthMobile(new Array(6).fill(""));
-    setOtpAuthEmail(new Array(6).fill(""));
-    setShowPasswordAuthPopup(true);
+  };
+
+  const handleAddEmailVerify = async () => {
+    setIsVerifying(true);
+    try {
+      const payload = { type: 'email', newContact: newEmailAddress };
+      const res = await sendNewOtp(payload);
+      if (res?.success) {
+        addToast({ message: res.message || 'OTP sent to new email address', type: 'success' });
+        setVerificationData(res.data);
+        setShowAddEmailPopup(false);
+        setShowNewEmailVerifyPopup(true);
+        setOtpVerifyNewEmail(new Array(6).fill(""));
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Failed to send OTP', type: 'error' });
+    } finally {
+      setIsVerifying(false);
+    }
   }
 
-  const handlePasswordAuthVerify = () => {
+  const handleFinalEmailVerify = async () => {
     setIsVerifying(true);
-    setTimeout(() => {
+    try {
+      const payload = { otp: otpVerifyNewEmail.join('') };
+      const res = await verifyNewContact(payload);
+      if (res?.success) {
+        addToast({ message: res.message || 'Email ID updated successfully!', type: 'success' });
+        setShowNewEmailVerifyPopup(false);
+        setNewEmailAddress('');
+      } else {
+        addToast({ message: res.message || 'Invalid OTP', type: 'error' });
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Verification failed', type: 'error' });
+    } finally {
       setIsVerifying(false);
-      setShowPasswordAuthPopup(false);
-      setCurrentPwd('');
-      setNewPwd('');
-      setConfirmPwd('');
-      setOtpAuthMobile(new Array(6).fill(""));
-      setOtpAuthEmail(new Array(6).fill(""));
-      alert("Password updated successfully!");
-    }, 2000);
+    }
+  }
+
+  const handlePasswordVerifyClick = async () => {
+    setIsRequestingPasswordChange(true);
+    try {
+      const res = await requestPasswordChange(currentPwd);
+      if (res?.success) {
+        setVerificationData(res.data);
+        setOtpAuthMobile(new Array(6).fill(""));
+        setOtpAuthEmail(new Array(6).fill(""));
+        setShowPasswordAuthPopup(true);
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Failed to request password change', type: 'error' });
+    } finally {
+      setIsRequestingPasswordChange(false);
+    }
+  }
+
+  const handlePasswordAuthVerify = async () => {
+    setIsVerifying(true);
+    try {
+      const payload = {
+        mobileOtp: otpAuthMobile.join(''),
+        emailOtp: otpAuthEmail.join(''),
+        newPassword: newPwd,
+        confirmPassword: confirmPwd
+      };
+      const res = await confirmPasswordChange(payload);
+      if (res?.success) {
+        addToast({ message: res.message || 'Password updated successfully!', type: 'success' });
+        setShowPasswordAuthPopup(false);
+        setCurrentPwd('');
+        setNewPwd('');
+        setConfirmPwd('');
+        setOtpAuthMobile(new Array(6).fill(""));
+        setOtpAuthEmail(new Array(6).fill(""));
+      } else {
+        addToast({ message: res.message || 'Failed to update password', type: 'error' });
+      }
+    } catch (error) {
+      addToast({ message: error.message || 'Verification failed', type: 'error' });
+    } finally {
+      setIsVerifying(false);
+    }
   }
 
   const isAuthMobileFilled = otpAuthMobile.every(v => v !== "");
   const isAuthEmailFilled = otpAuthEmail.every(v => v !== "");
   const isEmailAuthValid = isAuthMobileFilled && isAuthEmailFilled;
   const isNewEmailFilled = otpVerifyNewEmail.every(v => v !== "");
+
+  // Basic Validation for inputs
+  const isNewMobileValid = /^\d{10}$/.test(newMobileNumber);
+  const isNewEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmailAddress);
+
+  // Password Validation
+  const pwdRequirements = [
+    newPwd.length >= 8 && newPwd.length <= 15,
+    /[A-Z]/.test(newPwd),
+    /[a-z]/.test(newPwd),
+    /[0-9]/.test(newPwd),
+    /[!@#$%^&*]/.test(newPwd)
+  ];
+  const allPwdRequirementsMet = pwdRequirements.every(Boolean);
+  const passwordsMatch = newPwd === confirmPwd;
+  const isPasswordChangeValid = currentPwd && allPwdRequirementsMet && passwordsMatch;
 
   return (
     <div className="p-4 bg-secondary-grey50">
@@ -232,10 +368,8 @@ const Settings = () => {
             {
               label: "Yes",
               variant: "blue",
-              onClick: () => {
-                setShowMobilePopup(false);
-                setShowVerifyPopup(true);
-              }
+              loading: isRequestingMobileOtp,
+              onClick: handleMobileRequestOtp
             }
           ]}
         />
@@ -247,7 +381,7 @@ const Settings = () => {
           subHeading={
             <>
               For your security, please verify your existing account information. <br />
-              OTP sent to <span className="font-semibold text-gray-800">{mobile}</span>
+              OTP sent to <span className="font-semibold text-gray-800">{verificationData?.contact || mobile}</span>
             </>
           }
           onCancel={() => setShowVerifyPopup(false)}
@@ -289,7 +423,7 @@ const Settings = () => {
           onCancel={() => setShowAddMobilePopup(false)}
           onVerify={handleAddMobileVerify}
           isVerifying={isVerifying}
-          isVerifyDisabled={!newMobileNumber}
+          isVerifyDisabled={!isNewMobileValid}
           verifyBtnText="Confirm & Verify"
         >
           <div className="flex items-center border border-secondary-grey150 rounded-md h-12 w-full max-w-[400px] mx-auto overflow-hidden">
@@ -313,7 +447,7 @@ const Settings = () => {
           subHeading={
             <>
               Please Verify your new  account information. <br />
-              OTP sent to <span className="font-semibold text-gray-800">+91 {newMobileNumber}</span>
+              OTP sent to <span className="font-semibold text-gray-800">+91 {verificationData?.contact || newMobileNumber}</span>
             </>
           }
           onCancel={() => setShowNewMobileVerifyPopup(false)}
@@ -354,7 +488,12 @@ const Settings = () => {
           text="Are you sure you want to change super admin Email ID?"
           buttons={[
             { label: "Cancel", variant: "grey", onClick: () => setShowEmailPopup(false) },
-            { label: "Yes", variant: "blue", onClick: () => { setShowEmailPopup(false); setShowEmailAuthPopup(true); } }
+            {
+              label: "Yes",
+              variant: "blue",
+              loading: isRequestingEmailOtp,
+              onClick: handleEmailRequestOtp
+            }
           ]}
         />
 
@@ -364,7 +503,7 @@ const Settings = () => {
           subHeading={
             <>
               For your security, please verify your existing account information. <br />
-              Enter 6-digit OTP sent on your mobile number (*******487) and email (*******@*****)
+              Enter 6-digit OTP sent on your mobile number ({verificationData?.mobile || '*******487'}) and email ({verificationData?.email || '*******@*****'})
             </>
           }
           onCancel={() => setShowEmailAuthPopup(false)}
@@ -418,7 +557,7 @@ const Settings = () => {
           onCancel={() => setShowAddEmailPopup(false)}
           onVerify={handleAddEmailVerify}
           isVerifying={isVerifying}
-          isVerifyDisabled={!newEmailAddress}
+          isVerifyDisabled={!isNewEmailValid}
           verifyBtnText="Confirm & Verify"
         >
           <div className="flex items-center border border-secondary-grey150 rounded-md h-12 w-full max-w-[400px] mx-auto overflow-hidden px-3 bg-white">
@@ -438,7 +577,7 @@ const Settings = () => {
           subHeading={
             <>
               Please Verify your new account information. <br />
-              OTP sent to <span className="font-semibold text-gray-800">{newEmailAddress}</span>
+              OTP sent to <span className="font-semibold text-gray-800">{verificationData?.contact || newEmailAddress}</span>
             </>
           }
           onCancel={() => setShowNewEmailVerifyPopup(false)}
@@ -517,14 +656,30 @@ const Settings = () => {
           value={confirmPwd}
           onChange={setConfirmPwd}
         />
+        {confirmPwd && !passwordsMatch && (
+          <p className="text-xs text-red-500 mt-[-8px]">Passwords don't match</p>
+        )}
 
         {/* Actions */}
         <div className="flex items-center">
           <button
             onClick={handlePasswordVerifyClick}
-            className={`h-8 px-4 rounded-sm text-sm font-medium bg-blue-primary250 text-white hover:bg-blue-600 transition-colors shadow-sm`}
+            disabled={!isPasswordChangeValid || isRequestingPasswordChange}
+            className={`h-8 px-4 rounded-sm text-sm font-medium bg-blue-primary250 text-white hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center gap-2 ${(!isPasswordChangeValid || isRequestingPasswordChange) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Send OTP and Verify
+            {isRequestingPasswordChange && (
+              <UniversalLoader
+                size={16}
+                style={{
+                  background: 'transparent',
+                  width: 'auto',
+                  height: 'auto',
+                  minHeight: 0,
+                  minWidth: 0
+                }}
+              />
+            )}
+            {isRequestingPasswordChange ? 'Verifying...' : 'Send OTP and Verify'}
           </button>
         </div>
 
@@ -535,7 +690,7 @@ const Settings = () => {
           subHeading={
             <>
               For your security, please verify your existing account information. <br />
-              Enter 6-digit OTP sent on your mobile number (*******487) and email (*******@*****)
+              Enter 6-digit OTP sent on your mobile number ({verificationData?.mobile || '*******487'}) and email ({verificationData?.email || '*******@*****'})
             </>
           }
           onCancel={() => setShowPasswordAuthPopup(false)}

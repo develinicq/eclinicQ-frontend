@@ -1,4 +1,5 @@
 import React from 'react';
+import UniversalLoader from './UniversalLoader';
 
 /**
  * PopupSmall Component
@@ -56,9 +57,22 @@ const PopupSmall = ({
                         <button
                             key={idx}
                             onClick={btn.onClick}
-                            className={`flex-1 min-w-8 h-8 rounded-sm text-sm font-medium transition-colors outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-100 ${BUTTON_VARIANTS[btn.variant] || BUTTON_VARIANTS.grey
-                                }`}
+                            disabled={btn.loading}
+                            className={`flex-1 min-w-8 h-8 rounded-sm text-sm font-medium transition-colors outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-100 flex items-center justify-center gap-2 ${BUTTON_VARIANTS[btn.variant] || BUTTON_VARIANTS.grey
+                                } ${btn.loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
+                            {btn.loading && (
+                                <UniversalLoader
+                                    size={16}
+                                    style={{
+                                        background: 'transparent',
+                                        width: 'auto',
+                                        height: 'auto',
+                                        minHeight: 0,
+                                        minWidth: 0
+                                    }}
+                                />
+                            )}
                             {btn.label}
                         </button>
                     ))}
