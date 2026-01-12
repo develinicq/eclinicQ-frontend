@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Header from '../../../../components/DoctorList/Header'
-import { getAllDoctorsBySuperAdmin } from '../../../../services/doctorService'
 import useSuperAdminAuthStore from '../../../../store/useSuperAdminAuthStore'
+import useSuperAdminListStore from '../../../../store/useSuperAdminListStore'
 import SampleTable from '../../../../pages/SampleTable'
 import { doctorColumns, draftColumns } from './columns'
 import { useNavigate } from 'react-router-dom';
@@ -9,39 +9,23 @@ import UniversalLoader from '@/components/UniversalLoader'
 
 const Doc_list = () => {
   const navigate = useNavigate();
-  const isAuthed = useSuperAdminAuthStore((s) => Boolean(s.token))
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [doctorsRaw, setDoctorsRaw] = useState([])
-  const [serverCounts, setServerCounts] = useState(null)
+  const isAuthed = useSuperAdminAuthStore((s) => Boolean(s.token));
+
+  const {
+    doctorsRaw,
+    doctorsLoading: loading,
+    doctorsError: error,
+    fetchDoctors
+  } = useSuperAdminListStore();
+
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
   useEffect(() => {
-    let ignore = false
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const resp = await getAllDoctorsBySuperAdmin()
-        if (ignore) return
-        const list = resp?.data?.doctors || []
-        const counts = resp?.data?.counts || null
-        setDoctorsRaw(list)
-        setServerCounts(counts)
-      } catch (e) {
-        if (ignore) return
-        const msg = e?.response?.data?.message || e?.message || 'Failed to fetch doctors'
-        setError(msg)
-      } finally {
-        if (!ignore) setLoading(false)
-      }
+    if (isAuthed) {
+      fetchDoctors();
     }
-    load()
-    return () => {
-      ignore = true
-    }
-  }, [isAuthed])
+  }, [isAuthed, fetchDoctors]);
 
   // Bucket mapping from status to categories used in filters
   const statusToBucket = (status) => {

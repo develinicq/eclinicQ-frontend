@@ -1,57 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "../../../../components/DoctorList/Header";
 import HospitalGrid from "../../../../components/HospitalList/HospitalGrid";
-import { getAllHospitalsBySuperAdmin } from "../../../../services/hospitalService";
 import useSuperAdminAuthStore from "../../../../store/useSuperAdminAuthStore";
 import TablePagination from "@/pages/TablePagination";
 import UniversalLoader from "@/components/UniversalLoader";
+import useSuperAdminListStore from "../../../../store/useSuperAdminListStore";
 
 function HospitalList() {
   const isAuthed = useSuperAdminAuthStore((s) => Boolean(s.token));
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [hospitalsRaw, setHospitalsRaw] = useState([]);
-  const [serverCounts, setServerCounts] = useState(null);
+
+  const {
+    hospitalsRaw,
+    hospitalsLoading: loading,
+    hospitalsError: error,
+    fetchHospitals
+  } = useSuperAdminListStore();
 
   useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      console.log("HospitalList: load triggered. isAuthed:", isAuthed);
-      setLoading(true);
-      setError(null);
-      try {
-        console.log("HospitalList: calling getAllHospitalsBySuperAdmin...");
-        const resp = await getAllHospitalsBySuperAdmin();
-        console.log("HospitalList: API response received:", resp);
-        if (ignore) return;
-
-        const list = resp?.data?.hospitals || [];
-        const counts = resp?.data?.counts || null;
-        setHospitalsRaw(list);
-        setServerCounts(counts);
-
-      } catch (e) {
-        if (ignore) return;
-        const msg = e?.response?.data?.message || e?.message || 'Failed to fetch hospitals';
-        // setError(msg); // Optional: show error or just fallback to empty
-        console.error("HospitalList: API Error", e);
-
-        // Use empty list if error
-        setHospitalsRaw([]);
-        setServerCounts(null);
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-    if (isAuthed) load();
-    else {
-      // Unauthed fallback
-      setLoading(false);
+    if (isAuthed) {
+      fetchHospitals();
     }
-    return () => {
-      ignore = true;
-    };
-  }, [isAuthed]);
+  }, [isAuthed, fetchHospitals]);
 
   // Bucket mapping
   // Bucket mapping

@@ -45,3 +45,23 @@ export const getDoctorsByHospitalIdForSuperAdmin = async (hospitalId) => {
     throw error;
   }
 };
+// Get hospital review details for Super Admin (onboarding)
+export const getHospitalReviewDetails = async (hospitalId) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.get(`/hospitals/onboarding/review/${encodeURIComponent(hospitalId)}`);
+    return res.data; // { success, message, data: { ... } }
+  } catch (error) {
+    throw error;
+  }
+};
+// Activate hospital (final step)
+export const activateHospital = async (hospitalId) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.post(`/hospitals/onboarding/activate/${encodeURIComponent(hospitalId)}`);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};

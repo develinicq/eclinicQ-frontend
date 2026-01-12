@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import axiosInstance from '../lib/axios';
+import { getHospitalReviewDetails } from '../services/hospitalService';
 import useToastStore from './useToastStore';
 
 const DEFAULT_SCHEDULE = [
@@ -43,6 +44,8 @@ const initialState = {
   loading: false,
   error: null,
   success: false,
+  reviewData: null,
+  reviewLoading: false,
 };
 
 const useHospitalRegistrationStore = create((set, get) => ({
@@ -277,6 +280,25 @@ const useHospitalRegistrationStore = create((set, get) => ({
 
       set({ loading: false, error: msg, success: false });
       return false;
+    }
+  },
+
+  fetchReviewData: async () => {
+    const state = get();
+    if (!state.hospitalId) return;
+
+    set({ reviewLoading: true, error: null });
+    try {
+      const res = await getHospitalReviewDetails(state.hospitalId);
+      if (res?.success) {
+        set({ reviewData: res.data, reviewLoading: false });
+      } else {
+        throw new Error(res?.message || 'Failed to fetch review data');
+      }
+    } catch (error) {
+      const msg = error?.response?.data?.message || error.message || 'Failed to fetch review data';
+      set({ reviewLoading: false, error: msg });
+      // We don't necessarily want a toast here if it's an initial load, but maybe for debugging
     }
   },
 }));

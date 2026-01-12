@@ -3,6 +3,7 @@ import { useRegistration } from '../../../context/RegistrationContext';
 import { ProgressBar, ReviewBanner, AgreementBox, ActionButton, RegistrationHeader } from '../../../../components/FormItems';
 import useHospitalRegistrationStore from '../../../../store/useHospitalRegistrationStore';
 import useHospitalStep1Store from '../../../../store/useHospitalStep1Store';
+import UniversalLoader from '../../../../components/UniversalLoader';
 
 const verified2 = '/verified-tick.svg';
 
@@ -11,6 +12,12 @@ const Hos_5 = () => {
 
   // Hospital Data Store
   const hospitalStore = useHospitalRegistrationStore();
+  const {
+    hospitalId,
+    reviewData,
+    reviewLoading,
+    fetchReviewData
+  } = hospitalStore;
 
   // Admin Data Store (Step 1)
   const adminStore = useHospitalStep1Store();
@@ -20,6 +27,25 @@ const Hos_5 = () => {
   const [termsAccepted, setTermsAccepted] = useState(formData.hosTermsAccepted || false);
   const [privacyAccepted, setPrivacyAccepted] = useState(formData.hosPrivacyAccepted || false);
   const [formError, setFormError] = useState("");
+
+  // Fetch review data on mount or when hospitalId becomes available
+  useEffect(() => {
+    if (hospitalId) {
+      fetchReviewData();
+    }
+  }, [hospitalId, fetchReviewData]);
+
+  // Sync terms/privacy from reviewData metadata if available
+  useEffect(() => {
+    if (reviewData?.metadata) {
+      if (reviewData.metadata.termsAccepted !== undefined) {
+        setTermsAccepted(reviewData.metadata.termsAccepted);
+      }
+      if (reviewData.metadata.dataPrivacyAccepted !== undefined) {
+        setPrivacyAccepted(reviewData.metadata.dataPrivacyAccepted);
+      }
+    }
+  }, [reviewData]);
 
   // Update context when local state changes
   useEffect(() => {
@@ -45,8 +71,19 @@ const Hos_5 = () => {
     if (formError) setFormError("");
   };
 
-  // Helper to safely join strings
-  const join = (arr, sep = ', ') => arr.filter(Boolean).join(sep);
+  // Helper to safely join strings or objects with name/label fields
+  const join = (arr, sep = ', ') => {
+    if (!Array.isArray(arr)) return '';
+    return arr
+      .map(item => {
+        if (!item) return '';
+        if (typeof item === 'string') return item;
+        if (typeof item === 'object') return item.name || item.label || item.value || '';
+        return String(item);
+      })
+      .filter(Boolean)
+      .join(sep);
+  };
   const orDash = (val) => (val ? val : '—');
 
   // Badge Component
@@ -102,49 +139,77 @@ const Hos_5 = () => {
     </div>
   );
 
-  // --- Data Preparation ---
-  const hospitalData = {
-    name: hospitalStore.name || 'Manipal Hospitals Life\'s On',
-    type: hospitalStore.type || 'Private Hospital',
-    speciality: 'Multi Speciality', // Hardcoded as per image or need store field? Store has 'medicalSpecialties' but that is list. This looks like a single "Hospital Specialty" field? Assuming hardcode or derived.
-    profileUrl: hospitalStore.url || 'manipalhospital@eclinicq.com',
-    address: (() => {
+  // --- Data Preparation from reviewData ---
+  const hospitalInfo = reviewData?.hospitalInformation || {};
+  const servicesInfo = reviewData?.servicesAndFacilities || {};
+  const adminInfo = reviewData?.primaryAdminAccount || {};
+  const documentsInfo = reviewData?.documentsAndStatus || [];
+
+  const hospitalDisplay = {
+    name: hospitalInfo.name || orDash(hospitalStore.name),
+    type: hospitalInfo.type || orDash(hospitalStore.type),
+    speciality: join(servicesInfo.medicalSpecialties, ', ') || '—',
+    profileUrl: hospitalInfo.url || orDash(hospitalStore.url),
+    address: hospitalInfo.address || (() => {
       const a = hospitalStore.address || {};
       return join([
         join([hospitalStore.name, a.blockNo, a.street], ', '),
-        join([a.landmark, a.state, a.city, hospitalStore.pincode], ', ')
+        join([a.landmark, hospitalStore.city, hospitalStore.state, hospitalStore.pincode], ', ')
       ], ' ');
     })(),
-    email: hospitalStore.emailId || 'support@Manipal.com',
-    contact: hospitalStore.phone || '+91 92826 39045',
-    rohiniId: '8900080336704',
-    website: hospitalStore.url || 'manipalhospital.com/bengaluru',
-    upcharId: 'HLN-001'
+    email: hospitalInfo.emailId || orDash(hospitalStore.emailId),
+    contact: hospitalInfo.phone || orDash(hospitalStore.phone),
+    rohiniId: documentsInfo.find(d => d.docType === 'ROHINI_ID')?.docNo || '—',
+    website: hospitalInfo.url || orDash(hospitalStore.url),
+    upcharId: hospitalInfo.hospitalCode || '—'
   };
 
-  const servicesData = {
-    medicalSpecialties: join(hospitalStore.medicalSpecialties || [], ', '),
-    hospitalServices: join(hospitalStore.hospitalServices || [], ', '),
-    hospitalFacilities: 'ICU, Blood Bank, 24/7 Emergency care', // Placeholder or from store?
-    accreditations: join(hospitalStore.accreditation || [], ', '),
-    operatingHours: (hospitalStore.operatingHours || []).map(d => `${d}(09:0am-06:00pm)`).join(' | ') // Simplified format matching image roughly
+  const hospitalFacilities = [
+    hospitalInfo.noOfIcuBeds > 0 ? 'ICU' : null,
+    hospitalInfo.hasBloodBank ? 'Blood Bank' : null,
+    hospitalInfo.emergencyContactNo ? '24/7 Emergency care' : null,
+    hospitalInfo.noOfAmbulances > 0 ? 'Ambulance' : null,
+  ].filter(Boolean);
+
+  const formatTime = (time) => {
+    if (!time) return '';
+    const [h, m] = time.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'pm' : 'am';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${m}${ampm}`;
   };
 
-  const adminData = {
-    name: join([adminForm.firstName, adminForm.lastName], ' '),
-    designation: 'Business Owner',
-    role: 'Super Admin',
-    email: adminForm.emailId,
-    contact: adminForm.phone,
-    mfaStatus: 'Done'
+  const servicesDisplay = {
+    medicalSpecialties: join(servicesInfo.medicalSpecialties, ', ') || '—',
+    hospitalServices: join(servicesInfo.hospitalServices, ', ') || '—',
+    hospitalFacilities: join(hospitalFacilities, ', ') || '—',
+    accreditations: join(servicesInfo.accreditations, ', ') || '—',
+    operatingHours: (servicesInfo.operatingHours || []).map(h => {
+      const day = h.dayOfWeek.charAt(0) + h.dayOfWeek.slice(1).toLowerCase();
+      const slots = h.is24Hours ? '24 hrs' : h.timeRanges.map(r => `${formatTime(r.startTime)}-${formatTime(r.endTime)}`).join(', ');
+      return `${day}(${slots})`;
+    }).join(' | ') || '—'
   };
 
-  const getDoc = (type) => (hospitalStore.documents || []).find(d => d.type === type);
-  const getDocVal = (type) => getDoc(type)?.no || '—';
-  const getDocUrl = (type) => getDoc(type)?.url || null;
-  const isDocVerified = (type) => !!getDoc(type); // Mock verification status based on existence
+  const adminDisplay = {
+    name: adminInfo.fullName || join([adminForm.firstName, adminForm.lastName], ' '),
+    designation: 'Business Owner', // Mock as not in response
+    role: join(adminInfo.roles, ', ') || 'Super Admin',
+    email: adminInfo.emailId || adminForm.emailId,
+    contact: adminInfo.phone || adminForm.phone,
+    mfaStatus: adminInfo.mfaEnabled ? 'Done' : 'Pending'
+  };
 
   // --- Render ---
+
+  if (reviewLoading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[400px]">
+        <UniversalLoader size={48} />
+      </div>
+    );
+  }
 
   const Page1 = () => (
     <div className="max-w-[700px] mx-auto flex flex-col gap-4 pb-10">
@@ -157,9 +222,9 @@ const Hos_5 = () => {
 
       {/* Image Banner */}
       <div className='relative' >
-        <img className='h-[140px] w-full object-cover rounded-xl ' src="/images/hospital.png" alt="" />
+        <img className='h-[140px] w-full object-cover rounded-xl ' src={hospitalInfo.profileImage || "/images/hospital.png"} alt="" />
         <div className='absolute  w-12 h-12 right-1/2 bottom-5 border-[2px] border-[#2372EC] rounded-md translate-x-1/2'>
-          <img src="/images/hospital_logo.png" className='w-full rounded-md h-full object-cover' alt="" />
+          <img src={hospitalInfo.profileLogo || "/images/hospital_logo.png"} className='w-full rounded-md h-full object-cover' alt="" />
         </div>
         <div className='bg-white h-5'></div>
       </div>
@@ -168,18 +233,18 @@ const Hos_5 = () => {
       <SectionBox title="Hospital Information">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
           <div className='flex flex-col'>
-            <DetailRow label="Hospital Name" value={hospitalData.name} />
-            <DetailRow label="Hospital Type" value={hospitalData.type} />
-            <DetailRow label="Speciality" value={hospitalData.speciality} />
-            <DetailRow label="Profile URL" value={hospitalData.profileUrl} />
-            <DetailRow label="Address" value={hospitalData.address} alignItems="items-start" />
+            <DetailRow label="Hospital Name" value={hospitalDisplay.name} />
+            <DetailRow label="Hospital Type" value={hospitalDisplay.type} />
+            <DetailRow label="Speciality" value={hospitalDisplay.speciality} />
+            <DetailRow label="Profile URL" value={hospitalDisplay.profileUrl} />
+            <DetailRow label="Address" value={hospitalDisplay.address} alignItems="items-start" />
           </div>
           <div className='flex flex-col'>
-            <DetailRow label="Hospital Email" value={hospitalData.email} type="done" />
-            <DetailRow label="Hospital Contact" value={hospitalData.contact} type="done" />
-            <DetailRow label="Rohini ID" value={hospitalData.rohiniId} />
-            <DetailRow label="Website" value={hospitalData.website} />
-            <DetailRow label="Upchar ID" value={hospitalData.upcharId} />
+            <DetailRow label="Hospital Email" value={hospitalDisplay.email} type="done" />
+            <DetailRow label="Hospital Contact" value={hospitalDisplay.contact} type="done" />
+            <DetailRow label="Rohini ID" value={hospitalDisplay.rohiniId} />
+            <DetailRow label="Website" value={hospitalDisplay.website} />
+            <DetailRow label="Upchar ID" value={hospitalDisplay.upcharId} />
           </div>
         </div>
       </SectionBox>
@@ -187,13 +252,13 @@ const Hos_5 = () => {
       {/* Services & Facilities */}
       <SectionBox title="Services & Facilities">
         <div className='flex flex-col'>
-          <DetailRow label="Medical Specialties" value={servicesData.medicalSpecialties} />
-          <DetailRow label="Hospital Services" value={servicesData.hospitalServices} />
-          <DetailRow label="Hospital Facilities" value={servicesData.hospitalFacilities} />
-          <DetailRow label="Accreditations" value={servicesData.accreditations || 'NABH - National Accreditation Board for Hospitals & Healthcare Providers'} />
+          <DetailRow label="Medical Specialties" value={servicesDisplay.medicalSpecialties} />
+          <DetailRow label="Hospital Services" value={servicesDisplay.hospitalServices} />
+          <DetailRow label="Hospital Facilities" value={servicesDisplay.hospitalFacilities} />
+          <DetailRow label="Accreditations" value={servicesDisplay.accreditations} />
           <DetailRow label="Operating Hours" value={
             <div className='flex flex-col gap-1'>
-              {(hospitalStore.operatingHours || ['Sunday(09:0am-06:00pm)', 'Monday(09:0am-06:00pm)']).join(' | ')}
+              {servicesDisplay.operatingHours}
             </div>
           } alignItems='items-start' />
         </div>
@@ -203,64 +268,41 @@ const Hos_5 = () => {
       <SectionBox title="Primary Admin Account Details">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1">
           <div className='flex flex-col'>
-            <DetailRow label="User Name" value={adminData.name} />
-            <DetailRow label="User Designation" value={adminData.designation} />
-            <DetailRow label="User Role" value={adminData.role} />
+            <DetailRow label="User Name" value={adminDisplay.name} />
+            <DetailRow label="User Designation" value={adminDisplay.designation} />
+            <DetailRow label="User Role" value={adminDisplay.role} />
           </div>
           <div className='flex flex-col'>
-            <DetailRow label="User Email" value={adminData.email} type="done" />
-            <DetailRow label="User Contact" value={adminData.contact} type="done" />
-            <DetailRow label="MFA Status" value={<span className='text-green-600'>Done</span>} type="" />
+            <DetailRow label="User Email" value={adminDisplay.email} type="done" />
+            <DetailRow label="User Contact" value={adminDisplay.contact} type="done" />
+            <DetailRow label="MFA Status" value={<span className='text-green-600'>{adminDisplay.mfaStatus}</span>} type="" />
           </div>
         </div>
       </SectionBox>
 
-      {/* Verified Documents & Status */}
       <SectionBox title="Verified Documents & Status">
         <div className='flex flex-col'>
-          <DetailRow
-            label="GSTIN"
-            value={getDocVal('GST')}
-            fileName="GSTIN.pdf"
-            file={getDocUrl('GST')}
-            verified={isDocVerified('GST')}
-          />
-          <DetailRow
-            label="Registration Number"
-            value={getDocVal('State Health Reg No')}
-            fileName="SHRN.pdf"
-            file={getDocUrl('State Health Reg No')}
-            verified={isDocVerified('State Health Reg No')}
-          />
-          <DetailRow
-            label="Rohini ID"
-            value={getDocVal('Rohini ID')}
-            fileName="Rohini.pdf"
-            file={getDocUrl('Rohini ID')}
-            verified={isDocVerified('Rohini ID')}
-          />
-          <DetailRow
-            label="Pan Card Number"
-            value={getDocVal('Pan Card')}
-            fileName="Pancard.pdf"
-            file={getDocUrl('Pan Card')}
-            verified={isDocVerified('Pan Card')}
-          />
-          <DetailRow
-            label="NABH Accreditation"
-            value={getDocVal('NABH')}
-            fileName="NABH.pdf"
-            file={getDocUrl('NABH')}
-            verified={isDocVerified('NABH')}
-          />
-          {/* CIN Logic: Dummy data for verification view */}
-          <DetailRow
-            label="CIN"
-            value="L17110MH1973PLC019786"
-            fileName="CIN_Document.pdf"
-            file="#"
-            verified={true}
-          />
+          {[
+            { label: 'GSTN', type: 'GST_PROOF', fileName: 'GSTIN.pdf' },
+            { label: 'Registration Number', type: 'STATE_HEALTH_REG_PROOF', fileName: 'SHRN.pdf' },
+            { label: 'Rohini ID', type: 'ROHINI_ID', fileName: 'Rohini.pdf' },
+            { label: 'Pan Card Number', type: 'PAN_CARD', fileName: 'Pancard.pdf' },
+            { label: 'NABH Accreditation', type: 'NABH_ACCREDIATION_PROOF', fileName: 'NABH.pdf' },
+            { label: 'CIN', type: 'CIN_PROOF', fileName: 'CIN.pdf' },
+          ].map((item, idx) => {
+            const doc = documentsInfo.find(d => d.docType === item.type);
+            return (
+              <DetailRow
+                key={idx}
+                label={item.label}
+                value={doc?.docNo || 'Not Attached'}
+                valueClass={!doc?.docNo ? 'text-secondary-grey300' : ''}
+                fileName={item.fileName}
+                file={doc?.docUrl}
+                verified={doc?.isVerified}
+              />
+            );
+          })}
         </div>
       </SectionBox>
 

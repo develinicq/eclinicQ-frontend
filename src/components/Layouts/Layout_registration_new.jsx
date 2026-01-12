@@ -1,11 +1,13 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { createHospital } from '../../services/hospitalService';
+import { createHospital, activateHospital } from '../../services/hospitalService';
 import useHospitalRegistrationStore from '../../store/useHospitalRegistrationStore';
 import { useRegistration } from "../../SuperAdmin/context/RegistrationContext";
 import SidebarSteps from "../../SuperAdmin/components/RegistrationSidebar/SidebarSteps";
 import RegistrationFooter from "../RegistrationFooter";
 import RegistrationFlow from "../RegistrationFlow";
 import React, { useRef, useState } from "react";
+import useToastStore from "../../store/useToastStore";
+import useHospitalStep1Store from "../../store/useHospitalStep1Store";
 import Step1 from '../../SuperAdmin/pages/Dashboard/Doctor_registration/Step1';
 import Step2 from '../../SuperAdmin/pages/Dashboard/Doctor_registration/Step2';
 import Step5 from '../../SuperAdmin/pages/Dashboard/Doctor_registration/Step5';
@@ -435,77 +437,111 @@ const Layout_registration_new = () => {
       }
       // Handle Step 5 for hospital (Review & Create)
       else if (currentStep === 5) {
-        // Only for hospital registration (isDoctor === 'no')
+        // Step 5 (Hos_6) for Non-Doctor Owner
         if (formData.isDoctor === 'no') {
-          const currentSubStep = formData.hosStep5SubStep || 1;
-          if (currentSubStep === 1) {
-            // Move to sub-step 2 (Terms and Agreement)
-            updateFormData({ hosStep5SubStep: 2 });
-          } else if (currentSubStep === 2) {
-            // Check if terms are accepted before moving to next step
-            if (formData.hosTermsAccepted && formData.hosPrivacyAccepted) {
-              setFooterLoading(true);
-              try {
-                // Prefer store payload to capture Hos_3 values
-                const ok = await store.submit();
-                // Bypass validation: Always proceed
-                if (!ok) {
-                  console.warn('Submission failed but ignored (Hospital Step 5)');
-                }
-                nextStep();
-              } catch (err) {
-                console.warn('Submission error ignored (Hospital Step 5)', err);
-                nextStep();
-              } finally {
-                setFooterLoading(false);
-              }
-            } else {
-              // Show alert that terms must be accepted
-              alert('Please accept the Terms & Conditions and Data Privacy Agreement to continue.');
+          setFooterLoading(true);
+          try {
+            const hid = useHospitalRegistrationStore.getState().hospitalId ||
+              useHospitalStep1Store.getState().hospitalId ||
+              formData.hospitalId;
+
+            if (!hid) {
+              useToastStore.getState().addToast({
+                title: 'Activation Error',
+                message: 'Hospital ID not found. Please review previous steps.',
+                type: 'error'
+              });
+              setFooterLoading(false);
+              return;
             }
+
+            const res = await activateHospital(hid);
+            if (res?.success) {
+              useToastStore.getState().addToast({
+                title: 'Success',
+                message: res.message || 'Hospital account activated successfully!',
+                type: 'success'
+              });
+              nextStep();
+            } else {
+              throw new Error(res?.message || 'Activation failed');
+            }
+          } catch (err) {
+            useToastStore.getState().addToast({
+              title: 'Activation Error',
+              message: err?.response?.data?.message || err.message || 'Failed to activate hospital',
+              type: 'error'
+            });
+          } finally {
+            setFooterLoading(false);
           }
         } else {
-          // This only applies when user is a doctor (isDoctor === 'yes')
+          // User is a doctor, move to sub-steps logic handled in Step 5 (Hos_5)
           const currentSubStep = formData.hosStep5SubStep || 1;
           if (currentSubStep === 1) {
-            // Move to sub-step 2 (Terms and Agreement)
             updateFormData({ hosStep5SubStep: 2 });
           } else if (currentSubStep === 2) {
-            // Check if terms are accepted before moving to next step
             if (formData.hosTermsAccepted && formData.hosPrivacyAccepted) {
               nextStep();
             } else {
-              // Show alert that terms must be accepted
               alert('Please accept the Terms & Conditions and Data Privacy Agreement to continue.');
             }
           }
         }
       } else if (currentStep === 6) {
-        // Final success screen for non-doctor owners: go straight to Hospitals dashboard
+        // Final screen for non-doctor owners is Step 6 (already navigated to profile)
         if (String(formData.isDoctor || 'no') === 'no') {
           navigate('/hospitals');
           return;
         }
-        // On Step 6 (Hos_6), if user is a doctor, first post doctor details, then proceed
+
+        // On Step 6 (Hos_6) for Doctor-Owners
         setFooterLoading(true);
         try {
-          if (formData.isDoctor === 'yes') {
-            const ok = await useHospitalDoctorDetailsStore.getState().submit();
-            if (!ok) {
-              console.warn("Hospital doctor details submission failed (ignoring)");
-            }
+          // 1. Submit Doctor Details
+          const doctorOk = await useHospitalDoctorDetailsStore.getState().submit();
+          if (!doctorOk) {
+            console.warn("Hospital doctor details submission failed");
           }
-          // Only submit hospital here when isDoctor is 'yes'.
-          let hosOk = true;
-          if (formData.isDoctor === 'yes') {
-            hosOk = await store.submit();
-            if (!hosOk) {
-              console.warn("Hospital creation failed (ignoring)");
-            }
+
+          // 2. Submit Hospital (Step 1-4 data)
+          const hosOk = await store.submit();
+          if (!hosOk) {
+            throw new Error('Failed to save hospital details');
           }
-          nextStep();
+
+          // 3. Finally Activate
+          const hid = useHospitalRegistrationStore.getState().hospitalId ||
+            useHospitalStep1Store.getState().hospitalId ||
+            formData.hospitalId;
+
+          if (!hid) {
+            useToastStore.getState().addToast({
+              title: 'Activation Error',
+              message: 'Hospital ID not found. Please review previous steps.',
+              type: 'error'
+            });
+            setFooterLoading(false);
+            return;
+          }
+
+          const res = await activateHospital(hid);
+          if (res?.success) {
+            useToastStore.getState().addToast({
+              title: 'Success',
+              message: res.message || 'Hospital account activated successfully!',
+              type: 'success'
+            });
+            nextStep();
+          } else {
+            throw new Error(res?.message || 'Activation failed');
+          }
         } catch (err) {
-          alert(err?.message || 'Submission failed');
+          useToastStore.getState().addToast({
+            title: 'Activation Error',
+            message: err?.response?.data?.message || err.message || 'Failed to activate hospital',
+            type: 'error'
+          });
         } finally {
           setFooterLoading(false);
         }

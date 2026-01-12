@@ -9,10 +9,15 @@ import { getPatientColumns } from './columns'
 import { getPatientsForSuperAdmin } from '../../../services/patientService'
 import UniversalLoader from '../../../components/UniversalLoader'
 
+import useSuperAdminListStore from '../../../store/useSuperAdminListStore'
+
 const Patients = () => {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [patientsRaw, setPatientsRaw] = useState([])
+  const {
+    patientsRaw,
+    patientsLoading: loading,
+    patientsError: error,
+    fetchPatients
+  } = useSuperAdminListStore();
 
   const [selected, setSelected] = useState('all')
   const [addOpen, setAddOpen] = useState(false)
@@ -25,25 +30,8 @@ const Patients = () => {
   const pageSize = 10;
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const resp = await getPatientsForSuperAdmin()
-        if (resp && resp.success && resp.data && Array.isArray(resp.data.patients)) {
-          setPatientsRaw(resp.data.patients)
-        } else {
-          setPatientsRaw([])
-        }
-      } catch (e) {
-        console.error("Error fetching patients:", e)
-        setError('Failed to load patients')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+    fetchPatients();
+  }, [fetchPatients])
 
   // Start Mapping Data
   const patientsMapped = useMemo(() => {
