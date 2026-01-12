@@ -13,15 +13,18 @@ const useHospitalStep1Store = create((set, get) => ({
     phone: '',
     gender: '',
     city: '',
-  // MFA always enabled per requirements
-  mfa: { emailId: true, phone: true },
+    // MFA always enabled per requirements
+    mfa: { emailId: true, phone: true },
     profilePhotoKey: '',
     isAlsoDoctor: false,
-  role: 'HOSPITAL_ADMIN',
+    role: 'HOSPITAL_ADMIN',
   },
-  setField: (field, value) => set(state => ({
-    form: { ...state.form, [field]: value }
-  })),
+  adminId: '',
+  hospitalId: '',
+  setField: (field, value) => set(state => {
+    if (field in state) return { [field]: value };
+    return { form: { ...state.form, [field]: value } };
+  }),
   setMfa: (mfaField, value) => set(state => ({
     form: { ...state.form, mfa: { ...state.form.mfa, [mfaField]: value } }
   })),
@@ -39,7 +42,7 @@ const useHospitalStep1Store = create((set, get) => ({
       mfa: { emailId: true, phone: true },
       profilePhotoKey: '',
       isAlsoDoctor: false,
-  role: 'HOSPITAL_ADMIN',
+      role: 'HOSPITAL_ADMIN',
     }
   }),
   submit: async () => {
@@ -52,7 +55,7 @@ const useHospitalStep1Store = create((set, get) => ({
         lastName: form.lastName,
         emailId: form.emailId,
         phone: form.phone,
-  gender: String(form.gender || '').toLowerCase(),
+        gender: String(form.gender || '').toLowerCase(),
         mfa: {
           emailId: true,
           phone: true,
@@ -70,15 +73,20 @@ const useHospitalStep1Store = create((set, get) => ({
         payload.profilePhotoKey = form.profilePhotoKey;
       }
 
-  const res = await axios.post('/auth/register', payload);
+      const res = await axios.post('/auth/register', payload);
       const data = res?.data || {};
 
-      // Extract the created admin/user id (varies by backend)
       const adminId = data?.data?.adminId || data?.adminId || data?.data?.userId || data?.userId || '';
-      if (adminId) {
+      const hospitalId = data?.data?.hospitalId || data?.hospitalId || '';
+
+      // Persist in this store's state
+      set({ adminId: String(adminId), hospitalId: String(hospitalId) });
+
+      if (adminId || hospitalId) {
         try {
           const { setField } = useHospitalRegistrationStore.getState();
-          setField('adminId', String(adminId));
+          if (adminId) setField('adminId', String(adminId));
+          if (hospitalId) setField('hospitalId', String(hospitalId));
         } catch (_) {
           // no-op
         }
@@ -96,7 +104,7 @@ const useHospitalStep1Store = create((set, get) => ({
             try {
               const setFieldHosDoc = (await import('./useHospitalDoctorDetailsStore')).default.getState().setField;
               setFieldHosDoc('userId', String(doctorId));
-            } catch (_) {}
+            } catch (_) { }
           }
         } catch (_) {
           // no-op

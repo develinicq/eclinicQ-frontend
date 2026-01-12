@@ -1,14 +1,15 @@
 import { create } from 'zustand';
 import axiosInstance from '../lib/axios';
+import useToastStore from './useToastStore';
 
 const DEFAULT_SCHEDULE = [
   { day: 'Sunday', available: false, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
-  { day: 'Monday', available: true, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
-  { day: 'Tuesday', available: true, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
-  { day: 'Wednesday', available: true, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
-  { day: 'Thursday', available: true, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
-  { day: 'Friday', available: true, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
-  { day: 'Saturday', available: true, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
+  { day: 'Monday', available: false, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
+  { day: 'Tuesday', available: false, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
+  { day: 'Wednesday', available: false, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
+  { day: 'Thursday', available: false, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
+  { day: 'Friday', available: false, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
+  { day: 'Saturday', available: false, is24Hours: false, sessions: [{ startTime: '09:00', endTime: '18:00' }] },
 ];
 
 const initialState = {
@@ -35,7 +36,8 @@ const initialState = {
   establishmentYear: '',
   noOfBeds: '',
   accreditation: [],
-  adminId: '',
+  adminId: '', // Keep for now as it might be used elsewhere, but not for reg
+  hospitalId: '',
   documents: [],
   schedule: JSON.parse(JSON.stringify(DEFAULT_SCHEDULE)), // Deep copy for initial state
   loading: false,
@@ -81,10 +83,7 @@ const useHospitalRegistrationStore = create((set, get) => ({
     set({ loading: true, error: null, success: false });
     try {
       const state = get();
-      // Ensure adminId from step 1 is present
-      if (!state.adminId || String(state.adminId).trim() === '') {
-        throw new Error('Missing adminId. Please complete Step 1 (Owner Account Creation) first.');
-      }
+      // adminId removal: backend doesn't require it for registration anymore
 
       // Build address object as required by backend
       const addressObj = {
@@ -158,7 +157,6 @@ const useHospitalRegistrationStore = create((set, get) => ({
         city: state.city || '',
         state: state.state || '',
         pincode: String(state.pincode || ''),
-        website: state.website || '',
         url: state.url || '',
         logo: state.logo || '',
         image: state.image || '',
@@ -169,20 +167,114 @@ const useHospitalRegistrationStore = create((set, get) => ({
         accreditation: toStringArray(state.accreditation),
         establishmentYear,
         noOfBeds,
-        adminId: String(state.adminId || ''),
-        documents: sanitizeDocuments(state.documents),
         operatingHours: opHours,
+        adminId: state.adminId || '',
       };
 
-      const res = await axiosInstance.post('/hospitals/create', body);
+      const res = await axiosInstance.post('/hospitals/onboarding/register-hospital', body);
       const httpOk = !!res && res.status >= 200 && res.status < 300;
       const data = res?.data || {};
       const apiOk = data.ok === true || data.success === true || /created|success/i.test(String(data.message || ''));
       if (!httpOk || !apiOk) throw new Error(data?.message || 'Failed to submit');
+
+      // Extract hospitalId from response robustly
+      const hospitalId = data.hospital?._id || data.data?._id || data._id || data.id;
+      if (hospitalId) {
+        set({ hospitalId });
+      }
+
+      // Success Toast
+      useToastStore.getState().addToast({
+        title: 'Success',
+        message: 'Hospital details saved successfully',
+        type: 'success'
+      });
+
       set({ loading: false, success: true });
       return true;
     } catch (error) {
-      const msg = error?.response?.data?.message || error.message || 'Failed to submit';
+      // Extract detailed error messages if available (e.g. from a validation errors array)
+      const apiErrors = error?.response?.data?.errors;
+      let msg = error?.response?.data?.message || error.message || 'Failed to submit';
+
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        msg = apiErrors.map(e => e.message || e.msg || e).join(', ');
+      }
+
+      // Error Toast
+      useToastStore.getState().addToast({
+        title: 'Registration Error',
+        message: msg,
+        type: 'error',
+        duration: 5000
+      });
+
+      set({ loading: false, error: msg, success: false });
+      return false;
+    }
+  },
+
+  submitDocuments: async () => {
+    const state = get();
+    if (!state.hospitalId) {
+      useToastStore.getState().addToast({
+        title: 'Error',
+        message: 'Missing Hospital ID. Please complete the previous step first.',
+        type: 'error'
+      });
+      return false;
+    }
+
+    set({ loading: true, error: null, success: false });
+    try {
+      const sanitizeDocuments = (docs) => {
+        if (!Array.isArray(docs)) return [];
+        const out = [];
+        for (const d of docs) {
+          const url = String((d && d.url) || '').trim();
+          const type = String((d && d.type) || '').trim();
+          const noVal = (d && d.no) != null ? String(d.no).trim() : '';
+          if (!url || !type || !noVal) continue;
+          const docOut = { type, url, no: noVal };
+          out.push(docOut);
+        }
+        return out;
+      };
+
+      const body = {
+        hospitalId: state.hospitalId,
+        documents: sanitizeDocuments(state.documents)
+      };
+
+      const res = await axiosInstance.post('/hospitals/onboarding/save-documents', body);
+      const httpOk = !!res && res.status >= 200 && res.status < 300;
+      const data = res?.data || {};
+      const apiOk = data.ok === true || data.success === true || /success/i.test(String(data.message || ''));
+
+      if (!httpOk || !apiOk) throw new Error(data?.message || 'Failed to save documents');
+
+      useToastStore.getState().addToast({
+        title: 'Success',
+        message: 'Documents stored successfully',
+        type: 'success'
+      });
+
+      set({ loading: false, success: true });
+      return true;
+    } catch (error) {
+      const apiErrors = error?.response?.data?.errors;
+      let msg = error?.response?.data?.message || error.message || 'Failed to save documents';
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        msg = apiErrors.map(e => e.message || e.msg || e).join(', ');
+      }
+
+      useToastStore.getState().addToast({
+        title: 'Documents Error',
+        message: msg,
+        type: 'error',
+        duration: 5000
+      });
+
       set({ loading: false, error: msg, success: false });
       return false;
     }

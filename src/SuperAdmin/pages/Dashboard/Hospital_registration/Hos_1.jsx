@@ -10,6 +10,8 @@ import InputWithMeta from '../../../../components/GeneralDrawer/InputWithMeta';
 import CustomUpload from '../../../../components/CustomUpload';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ChevronDown } from 'lucide-react';
+import axios from '../../../../lib/axios';
+import useToastStore from '../../../../store/useToastStore';
 
 const upload = '/upload_blue.png';
 
@@ -119,37 +121,77 @@ const Hos_1 = forwardRef((props, ref) => {
       }
       setLoading(true);
       try {
-        // await submit();
+        // Build payload per API spec
+        const payload = {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          emailId: form.emailId,
+          phone: form.phone,
+          gender: (form.gender || '').toUpperCase(), // API expects 'MALE' | 'FEMALE' | 'OTHER'
+          city: form.city,
+          profilePhotoKey: form.isAlsoDoctor ? form.profilePhotoKey : undefined,
+          isAlsoDoctor: !!form.isAlsoDoctor,
+        };
 
-        // Mock success logic
-        const adminId = 'dummy_admin_id_' + Date.now();
+        // Remove undefined keys to keep payload clean
+        Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+
+        const res = await axios.post('/hospitals/onboarding/register-admin', payload);
+
+        const success = res?.data?.success ?? true; // default true if API doesn't return explicit flag
+        if (!success) {
+          throw new Error(res?.data?.message || 'Registration failed');
+        }
+
+        // Optional: extract ids/tokens if provided
+        const adminId = res?.data?.data?.adminId || res?.data?.adminId || res?.data?.id || res?.data?._id;
+        const hospitalId = res?.data?.data?.hospitalId || res?.data?.hospitalId;
 
         // Update Hospital Registration Store
         const useHospitalRegistrationStore = (await import('../../../../store/useHospitalRegistrationStore')).default;
-        useHospitalRegistrationStore.getState().setField('adminId', adminId);
+        if (adminId) useHospitalRegistrationStore.getState().setField('adminId', adminId);
+        if (hospitalId) useHospitalRegistrationStore.getState().setField('hospitalId', hospitalId);
 
-        // Update Auth Store
-        const useAuthStore = (await import('../../../../store/useAuthStore')).default;
-        useAuthStore.getState().setToken('dummy_token');
-
-        if (form.isAlsoDoctor) {
-          const doctorId = 'dummy_doctor_id_' + Date.now();
-
-          // Update Doctor Registration Store
-          const useDoctorRegistrationStore = (await import('../../../../store/useDoctorRegistrationStore')).default;
-          useDoctorRegistrationStore.getState().setField('userId', doctorId);
-
-          // Update Hospital Doctor Details Store
-          const useHospitalDoctorDetailsStore = (await import('../../../../store/useHospitalDoctorDetailsStore')).default;
-          useHospitalDoctorDetailsStore.getState().setField('userId', doctorId);
+        // If backend returns auth token, store it in SuperAdmin auth store
+        const token = res?.data?.data?.token || res?.data?.token;
+        if (token) {
+          const useSuperAdminAuthStore = (await import('../../../../store/useSuperAdminAuthStore')).default;
+          useSuperAdminAuthStore.getState().setToken(token);
         }
 
+        // If also doctor and backend returns doctorId, propagate
+        if (form.isAlsoDoctor) {
+          const doctorId = res?.data?.data?.doctorId || res?.data?.doctorId;
+          if (doctorId) {
+            const useDoctorRegistrationStore = (await import('../../../../store/useDoctorRegistrationStore')).default;
+            useDoctorRegistrationStore.getState().setField('userId', doctorId);
+
+            const useHospitalDoctorDetailsStore = (await import('../../../../store/useHospitalDoctorDetailsStore')).default;
+            useHospitalDoctorDetailsStore.getState().setField('userId', doctorId);
+          }
+        }
+
+        // Toast success
+        useToastStore.getState().addToast({
+          title: 'Success',
+          message: 'Hospital admin registered successfully',
+          type: 'success',
+          duration: 3000,
+        });
+
         setLoading(false);
-        return true;
+        return true; // allow moving to next step only on success
       } catch (err) {
         const msg = err?.response?.data?.message || err.message || 'Submission failed';
         setLoading(false);
-        alert(msg);
+        // Toast error
+        useToastStore.getState().addToast({
+          title: 'Error',
+          message: msg,
+          type: 'error',
+          duration: 3500,
+        });
+        // block next step
         return false;
       }
     }

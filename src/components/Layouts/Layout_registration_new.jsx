@@ -25,6 +25,9 @@ const Layout_registration_new = () => {
   const step3Ref = useRef();
   const step5Ref = useRef(); // Added ref for Step 5
   const hos1Ref = useRef();
+  const hos2Ref = useRef();
+  const hos3Ref = useRef();
+  const hos4Ref = useRef();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -261,14 +264,19 @@ const Layout_registration_new = () => {
         nextStep();
       }
     } else if (registrationType === 'hospital') {
-      // Step 1: trigger form submit via ref, only move if valid
+      // Step 1: trigger form submit via ref, only move if valid and API success
       if (currentStep === 1 && hos1Ref.current && hos1Ref.current.submit) {
-        await hos1Ref.current.submit();
-        // Check if user is a doctor to determine next step
-        if (formData.isDoctor === 'yes') {
-          nextStep();
-        } else {
-          nextStep();
+        setFooterLoading(true);
+        try {
+          const success = await hos1Ref.current.submit();
+          if (success) {
+            // Proceed based on isDoctor selection
+            nextStep();
+          }
+        } catch (error) {
+          console.error('Hospital Step 1 submission error', error);
+        } finally {
+          setFooterLoading(false);
         }
         return;
       }
@@ -290,15 +298,49 @@ const Layout_registration_new = () => {
           // When user is not a doctor, Step 2 is Hospital Details (Hos_3) with sub-steps
           const currentSubStep = formData.hosStep3SubStep || 1;
           if (currentSubStep === 1) {
-            // Move to sub-step 2 (Services & Facilities)
-            updateFormData({ hosStep3SubStep: 2 });
+            // Validate SubStep 1 before moving to SubStep 2
+            if (hos3Ref.current?.validateSubStep1) {
+              if (hos3Ref.current.validateSubStep1()) {
+                updateFormData({ hosStep3SubStep: 2 });
+              }
+            } else {
+              updateFormData({ hosStep3SubStep: 2 });
+            }
           } else if (currentSubStep === 2) {
-            // Move to next main step (Step 3)
-            nextStep();
+            // Call API via ref before moving to next main step
+            if (hos3Ref.current && hos3Ref.current.submit) {
+              setFooterLoading(true);
+              try {
+                const success = await hos3Ref.current.submit();
+                if (success) {
+                  nextStep();
+                }
+              } catch (error) {
+                console.error("Hos_3 submission error", error);
+              } finally {
+                setFooterLoading(false);
+              }
+            } else {
+              nextStep();
+            }
           }
         } else {
-          // When user is a doctor, Step 2 is Doctor Registration (Hos_2) - no sub-steps, just move to next step
-          nextStep();
+          // When user is a doctor, Step 2 is Doctor Registration (Hos_2)
+          if (hos2Ref.current && hos2Ref.current.submit) {
+            setFooterLoading(true);
+            try {
+              const success = await hos2Ref.current.submit();
+              if (success) {
+                nextStep();
+              }
+            } catch (error) {
+              console.error('Hospital Step 2 submission error', error);
+            } finally {
+              setFooterLoading(false);
+            }
+          } else {
+            console.warn('Hos_2 Ref or submit missing');
+          }
         }
       }
       // Handle Step 3 for hospital (Hospital Details or Documents Verification)
@@ -306,16 +348,50 @@ const Layout_registration_new = () => {
         // Check if user is a doctor to determine if this is Hospital Details or Documents Verification
         if (formData.isDoctor === 'no') {
           // When user is not a doctor, Step 3 is Documents Verification (Hos_4) - no sub-steps
-          nextStep();
+          if (hos4Ref.current && hos4Ref.current.submit) {
+            setFooterLoading(true);
+            try {
+              const success = await hos4Ref.current.submit();
+              if (success) {
+                nextStep();
+              }
+            } catch (error) {
+              console.error("Hos_4 submission error", error);
+            } finally {
+              setFooterLoading(false);
+            }
+          } else {
+            nextStep();
+          }
         } else {
           // When user is a doctor, Step 3 is Hospital Details (Hos_3) with sub-steps
           const currentSubStep = formData.hosStep3SubStep || 1;
           if (currentSubStep === 1) {
-            // Move to sub-step 2 (Services & Facilities)
-            updateFormData({ hosStep3SubStep: 2 });
+            // Validate SubStep 1 before moving to SubStep 2
+            if (hos3Ref.current?.validateSubStep1) {
+              if (hos3Ref.current.validateSubStep1()) {
+                updateFormData({ hosStep3SubStep: 2 });
+              }
+            } else {
+              updateFormData({ hosStep3SubStep: 2 });
+            }
           } else if (currentSubStep === 2) {
-            // Move to next main step (Step 4)
-            nextStep();
+            // Call API via ref before moving to next main step
+            if (hos3Ref.current && hos3Ref.current.submit) {
+              setFooterLoading(true);
+              try {
+                const success = await hos3Ref.current.submit();
+                if (success) {
+                  nextStep();
+                }
+              } catch (error) {
+                console.error("Hos_3 submission error", error);
+              } finally {
+                setFooterLoading(false);
+              }
+            } else {
+              nextStep();
+            }
           }
         }
       }
@@ -339,8 +415,22 @@ const Layout_registration_new = () => {
             }
           }
         } else {
-          // When user is a doctor, Step 4 is Documents Verification - no sub-steps, just move to next step
-          nextStep();
+          // When user is a doctor, Step 4 is Documents Verification - no sub-steps
+          if (hos4Ref.current && hos4Ref.current.submit) {
+            setFooterLoading(true);
+            try {
+              const success = await hos4Ref.current.submit();
+              if (success) {
+                nextStep();
+              }
+            } catch (error) {
+              console.error("Hos_4 submission error", error);
+            } finally {
+              setFooterLoading(false);
+            }
+          } else {
+            nextStep();
+          }
         }
       }
       // Handle Step 5 for hospital (Review & Create)
@@ -684,7 +774,11 @@ const Layout_registration_new = () => {
                           currentStep === 3 ? step3Ref :
                             null
                     ) : (
-                      currentStep === 1 ? hos1Ref : null
+                      currentStep === 1 ? hos1Ref :
+                        currentStep === 2 ? (formData.isDoctor === 'no' ? hos3Ref : hos2Ref) :
+                          currentStep === 3 ? (formData.isDoctor === 'no' ? hos4Ref : hos3Ref) :
+                            currentStep === 4 ? (formData.isDoctor === 'no' ? null : hos4Ref) :
+                              null
                     )
                   } type={registrationType} />
                 </div>

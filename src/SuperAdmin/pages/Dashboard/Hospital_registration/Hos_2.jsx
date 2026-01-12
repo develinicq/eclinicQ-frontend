@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   FormFieldRow,
   RegistrationHeader
@@ -9,13 +9,17 @@ import { ChevronDown } from 'lucide-react';
 import useHospitalDoctorDetailsStore from '../../../../store/useHospitalDoctorDetailsStore';
 import useDoctorRegistrationStore from '../../../../store/useDoctorRegistrationStore';
 import CustomUpload from '../Doctor_registration/CustomUpload';
+import axios from '../../../../lib/axios';
+import useToastStore from '../../../../store/useToastStore';
+import useHospitalRegistrationStore from '../../../../store/useHospitalRegistrationStore';
 
-const Hos_2 = () => {
+const Hos_2 = forwardRef((props, ref) => {
   // Use dedicated hospital doctor details store
   const drStore = useHospitalDoctorDetailsStore();
   const { setField } = drStore;
   // Minimal local state to control PG conditional fields
   const [hasPG, setHasPG] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Dropdown open states
   const [councilOpen, setCouncilOpen] = useState(false);
@@ -196,6 +200,122 @@ const Hos_2 = () => {
       [name]: validateField(name, value)
     }));
   };
+
+  // Submit API call: update admin's doctor details
+  useImperativeHandle(ref, () => ({
+    async submit() {
+      // Basic validation (ensure required doctor fields exist)
+      const required = [
+        drStore.medicalCouncilName,
+        drStore.medicalCouncilRegYear,
+        drStore.medicalCouncilRegNo,
+        drStore.medicalDegreeType,
+        drStore.medicalDegreeUniversityName,
+        drStore.medicalDegreeYearOfCompletion,
+        drStore.specialization,
+        drStore.experienceYears,
+      ];
+      if (required.some((v) => !v || (typeof v === 'object' && !v.name && !v.value))) {
+        useToastStore.getState().addToast({
+          title: 'Error',
+          message: 'Please complete required doctor details before continuing.',
+          type: 'error',
+          duration: 3500,
+        });
+        return false;
+      }
+
+      setLoading(true);
+      try {
+        // userId for payload is adminId from Hos_1 response
+        const { adminId } = useHospitalRegistrationStore.getState();
+        const userId = adminId || drStore.userId;
+        if (!userId) throw new Error('Missing adminId (userId). Complete Step 1 first.');
+
+        // Build specialization array: primary + additionalPractices
+        const primarySpec = drStore.specialization;
+        const specialization = [];
+        if (primarySpec) {
+          specialization.push({
+            name: typeof primarySpec === 'object' ? (primarySpec.name || primarySpec.value) : primarySpec,
+            expYears: String(drStore.experienceYears || ''),
+          });
+        }
+        if (Array.isArray(drStore.additionalPractices)) {
+          drStore.additionalPractices.forEach((p) => {
+            if (p?.specialization) {
+              specialization.push({
+                name: typeof p.specialization === 'object' ? (p.specialization.name || p.specialization.value) : p.specialization,
+                expYears: String(p.experienceYears || ''),
+              });
+            }
+          });
+        }
+
+        // Documents mapping
+        const mrnProof = (drStore.documents || []).find((d) => d.no === 1)?.url;
+        const gradProof = (drStore.documents || []).find((d) => d.no === 2)?.url;
+        const pgProof = (drStore.documents || []).find((d) => d.no === 3)?.url;
+
+        // Education array: Graduation + optional PG
+        const education = [];
+        if (drStore.medicalDegreeUniversityName || drStore.medicalDegreeType || drStore.medicalDegreeYearOfCompletion) {
+          education.push({
+            instituteName: drStore.medicalDegreeUniversityName,
+            graduationType: 'GRADUATE',
+            degree: drStore.medicalDegreeType,
+            completionYear: Number(drStore.medicalDegreeYearOfCompletion),
+            proofDocumentUrl: gradProof,
+          });
+        }
+        if (drStore.pgMedicalDegreeUniversityName || drStore.pgMedicalDegreeType || drStore.pgMedicalDegreeYearOfCompletion) {
+          education.push({
+            instituteName: drStore.pgMedicalDegreeUniversityName,
+            graduationType: 'POST_GRADUATE',
+            degree: drStore.pgMedicalDegreeType,
+            completionYear: Number(drStore.pgMedicalDegreeYearOfCompletion),
+            proofDocumentUrl: pgProof,
+          });
+        }
+
+        const payload = {
+          userId,
+          specialization,
+          medicalCouncilName: drStore.medicalCouncilName,
+          medicalCouncilRegYear: drStore.medicalCouncilRegYear,
+          medicalCouncilRegNo: drStore.medicalCouncilRegNo,
+          medicalCouncilProof: mrnProof,
+          education,
+        };
+
+        // Clean undefined values
+        Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+
+        const res = await axios.post('/hospitals/onboarding/update-admin-doctor-details', payload);
+        const success = res?.data?.success ?? true;
+        if (!success) throw new Error(res?.data?.message || 'Update failed');
+
+        useToastStore.getState().addToast({
+          title: 'Success',
+          message: 'Doctor details updated successfully (Step 2).',
+          type: 'success',
+          duration: 3000,
+        });
+        setLoading(false);
+        return true;
+      } catch (err) {
+        const msg = err?.response?.data?.message || err.message || 'Submission failed';
+        useToastStore.getState().addToast({
+          title: 'Error',
+          message: msg,
+          type: 'error',
+          duration: 3500,
+        });
+        setLoading(false);
+        return false;
+      }
+    }
+  }));
 
   return (
     <div className="flex flex-col h-full bg-white rounded-md shadow-sm overflow-hidden">
@@ -526,6 +646,6 @@ const Hos_2 = () => {
       </div>
     </div>
   );
-};
+});
 
 export default Hos_2;

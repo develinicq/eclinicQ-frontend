@@ -48,9 +48,9 @@ const RegistrationFlow = React.forwardRef(({ type }, ref) => {
           case 1:
             return <Hos_1 ref={ref} />;
           case 2:
-            return <Hos_3 />; // Hospital Details
+            return <Hos_3 ref={ref} />; // Hospital Details
           case 3:
-            return <Hos_4 />; // Documents Verification
+            return <Hos_4 ref={ref} />; // Documents Verification
           case 4:
             return <Hos_5 />; // Review & Create
           case 5:
@@ -65,11 +65,11 @@ const RegistrationFlow = React.forwardRef(({ type }, ref) => {
           case 1:
             return <Hos_1 ref={ref} />;
           case 2:
-            return <Hos_2 />;
+            return <Hos_2 ref={ref} />;
           case 3:
-            return <Hos_3 />;
+            return <Hos_3 ref={ref} />;
           case 4:
-            return <Hos_4 />;
+            return <Hos_4 ref={ref} />;
           case 5:
             return <Hos_5 />;
           case 6:

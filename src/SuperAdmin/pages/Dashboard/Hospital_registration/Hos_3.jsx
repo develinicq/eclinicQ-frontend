@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   FormFieldRow,
   MapLocation,
@@ -14,14 +14,30 @@ import useHospitalStep1Store from '../../../../store/useHospitalStep1Store';
 // Import context for sub-step management
 import { useRegistration } from '../../../../SuperAdmin/context/RegistrationContext';
 import { Checkbox } from '../../../../components/ui/checkbox'; // Added UI Checkbox import
+import useToastStore from '../../../../store/useToastStore';
 import TimeInput from '../../../../components/FormItems/TimeInput';
 
-const Hos_3 = () => {
+function Hos3Inner(props, ref) {
   const store = useHospitalRegistrationStore();
   const { formData } = useRegistration(); // Get global formData for sub-step
 
   // Destructure sub-step from formData, default to 1
   const currentSubStep = formData.hosStep3SubStep || 1;
+  // Helper for direct value updates (e.g. from dropdowns)
+  const updateField = (name, value) => {
+    // Determine if it's an address field
+    const addressFields = ['blockNo', 'street', 'landmark'];
+    if (addressFields.includes(name)) {
+      setAddressField(name, value);
+    } else {
+      setField(name, value);
+    }
+
+    setFormErrors((prev) => ({
+      ...prev,
+      [name]: validateField(name, value)
+    }));
+  }
 
   const {
     setField,
@@ -35,15 +51,18 @@ const Hos_3 = () => {
     accreditation
   } = store;
 
-  // We might need adminId from Step 1
-  const setAdminId = useHospitalRegistrationStore(s => s.setField);
+  // Sync adminId and hospitalId from Step 1
   const step1AdminId = useHospitalStep1Store(s => s.adminId || s.response?.adminId);
+  const step1HospitalId = useHospitalStep1Store(s => s.hospitalId || s.response?.hospitalId);
 
   useEffect(() => {
-    if (step1AdminId) {
-      setAdminId('adminId', step1AdminId);
+    if (step1AdminId && step1AdminId !== store.adminId) {
+      setField('adminId', step1AdminId);
     }
-  }, [step1AdminId, setAdminId]);
+    if (step1HospitalId && step1HospitalId !== store.hospitalId) {
+      setField('hospitalId', step1HospitalId);
+    }
+  }, [step1AdminId, step1HospitalId, setField, store.adminId, store.hospitalId]);
 
   const [openDropdowns, setOpenDropdowns] = useState({});
   const [formErrors, setFormErrors] = useState({});
@@ -76,16 +95,6 @@ const Hos_3 = () => {
         return '';
       default: return '';
     }
-  };
-
-  const handleChange = (field, value) => {
-    setField(field, value);
-    setFormErrors(prev => ({ ...prev, [field]: validateField(field, value) }));
-  };
-
-  const handleAddressChange = (field, value) => {
-    setAddressField(field, value);
-    setFormErrors(prev => ({ ...prev, [field]: validateField(field, value) }));
   };
 
   const hospitalTypeOptions = [
@@ -188,7 +197,7 @@ const Hos_3 = () => {
 
 
   // Page 1: Hospital Details
-  const Page1 = () => (
+  const renderPage1 = () => (
     <div className="max-w-[700px] mx-auto space-y-5">
       {/* Hospital Info */}
       <div className="space-y-4">
@@ -200,7 +209,7 @@ const Hos_3 = () => {
               label="Hospital Name"
               requiredDot
               value={name}
-              onChange={(v) => handleChange('name', v)}
+              onChange={(v) => updateField('name', v)}
               placeholder="Hospital Name"
               meta="Visible to Patient"
             />
@@ -219,7 +228,7 @@ const Hos_3 = () => {
               onRequestClose={() => closeDropdown('type')}
               dropdownItems={hospitalTypeOptions}
               onSelectItem={(item) => {
-                handleChange('type', item.value);
+                updateField('type', item.value);
                 closeDropdown('type');
               }}
               meta="Visible to Patient"
@@ -234,7 +243,7 @@ const Hos_3 = () => {
               label="Hospital Contact Email"
               requiredDot
               value={emailId}
-              onChange={(v) => handleChange('emailId', v)}
+              onChange={(v) => updateField('emailId', v)}
               placeholder="Enter Work Email"
               meta="Visible to Patient"
             />
@@ -245,8 +254,8 @@ const Hos_3 = () => {
               label="Hospital Contact Number"
               requiredDot
               value={phone}
-              onChange={(v) => handleChange('phone', v)}
-              placeholder="Enter Work Email"
+              onChange={(v) => updateField('phone', v)}
+              placeholder="Enter Contact Number"
               meta="Visible to Patient"
             />
             {formErrors.phone && <span className="text-red-500 text-xs">{formErrors.phone}</span>}
@@ -266,7 +275,7 @@ const Hos_3 = () => {
               onRequestClose={() => closeDropdown('year')}
               dropdownItems={yearOptions}
               onSelectItem={(item) => {
-                handleChange('establishmentYear', item.value);
+                updateField('establishmentYear', item.value);
                 closeDropdown('year');
               }}
             />
@@ -275,7 +284,7 @@ const Hos_3 = () => {
             <InputWithMeta
               label="Website"
               value={website}
-              onChange={(v) => handleChange('website', v)}
+              onChange={(v) => updateField('website', v)}
               placeholder="Paste Website Link"
             />
           </div>
@@ -283,7 +292,7 @@ const Hos_3 = () => {
             <InputWithMeta
               label="Number of Beds"
               value={noOfBeds}
-              onChange={(v) => handleChange('noOfBeds', v)}
+              onChange={(v) => updateField('noOfBeds', v)}
               placeholder="Enter Beds Count"
             />
             {formErrors.noOfBeds && <span className="text-red-500 text-xs">{formErrors.noOfBeds}</span>}
@@ -312,8 +321,8 @@ const Hos_3 = () => {
             <MapLocation
               heightClass="h-full"
               onChange={({ lat, lng }) => {
-                handleChange('latitude', lat);
-                handleChange('longitude', lng);
+                updateField('latitude', lat);
+                updateField('longitude', lng);
               }}
             />
           </div>
@@ -325,7 +334,7 @@ const Hos_3 = () => {
               label="Block no./Shop no./House no."
               requiredDot
               value={address?.blockNo || ''}
-              onChange={(v) => handleAddressChange('blockNo', v)}
+              onChange={(v) => updateField('blockNo', v)}
               placeholder="Enter Block Number/ Shop Number/ House Number"
             />
             {formErrors.blockNo && <span className="text-red-500 text-xs">{formErrors.blockNo}</span>}
@@ -336,7 +345,7 @@ const Hos_3 = () => {
               requiredDot
               infoIcon
               value={address?.street || ''}
-              onChange={(v) => handleAddressChange('street', v)}
+              onChange={(v) => updateField('street', v)}
               placeholder="Enter Road/Area/Street"
             />
             {formErrors.street && <span className="text-red-500 text-xs">{formErrors.street}</span>}
@@ -349,7 +358,7 @@ const Hos_3 = () => {
               label="Landmark"
               requiredDot
               value={address?.landmark || ''}
-              onChange={(v) => handleAddressChange('landmark', v)}
+              onChange={(v) => updateField('landmark', v)}
               placeholder="Enter landmark"
             />
             {formErrors.landmark && <span className="text-red-500 text-xs">{formErrors.landmark}</span>}
@@ -360,7 +369,7 @@ const Hos_3 = () => {
               requiredDot
               infoIcon
               value={pincode}
-              onChange={(v) => handleChange('pincode', v)}
+              onChange={(v) => updateField('pincode', v)}
               placeholder="Enter Pincode"
             />
             {formErrors.pincode && <span className="text-red-500 text-xs">{formErrors.pincode}</span>}
@@ -382,7 +391,7 @@ const Hos_3 = () => {
               onRequestClose={() => closeDropdown('city')}
               dropdownItems={cityOptions}
               onSelectItem={(item) => {
-                handleChange('city', item.value);
+                updateField('city', item.value);
                 closeDropdown('city');
               }}
             />
@@ -402,7 +411,7 @@ const Hos_3 = () => {
               onRequestClose={() => closeDropdown('state')}
               dropdownItems={stateOptions}
               onSelectItem={(item) => {
-                handleChange('state', item.value);
+                updateField('state', item.value);
                 closeDropdown('state');
               }}
             />
@@ -426,7 +435,7 @@ const Hos_3 = () => {
               inputRightMeta=".eclinicq.com"
               placeholder="Enter Hospital User Name"
               value={url}
-              onChange={(val) => handleChange('url', val)}
+              onChange={(val) => updateField('url', val)}
             />
           </div>
           <div className="w-full">
@@ -436,7 +445,7 @@ const Hos_3 = () => {
               infoIcon
               uploadContent="Upload File"
               meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
-              onUpload={(key, name) => handleChange('logo', key)}
+              onUpload={(key, name) => updateField('logo', key)}
               uploadedKey={logo}
             />
           </div>
@@ -449,7 +458,7 @@ const Hos_3 = () => {
               compulsory={true}
               uploadContent="Upload File"
               meta="Support Size upto 2MB in .png, .jpg, .svg, .webp"
-              onUpload={(key, name) => handleChange('image', key)}
+              onUpload={(key, name) => updateField('image', key)}
               uploadedKey={image}
             />
           </div>
@@ -460,12 +469,56 @@ const Hos_3 = () => {
     </div>
   );
 
+  // Expose submit to parent footer: use store.submit (already builds API payload)
+  useImperativeHandle(ref, () => ({
+    validateSubStep1() {
+      const missing = [];
+      if (!name) missing.push('Hospital Name');
+      if (!type) missing.push('Hospital Type');
+      if (!emailId) missing.push('Email');
+      if (!phone) missing.push('Contact Number');
+      if (!city) missing.push('City');
+      if (!state) missing.push('State');
+      if (!pincode) missing.push('Pincode');
+      if (!address?.blockNo) missing.push('Block Number');
+      if (!address?.street) missing.push('Street');
+      if (!image) missing.push('Hospital Image');
+
+      if (missing.length > 0) {
+        useToastStore.getState().addToast({
+          title: 'Required Fields',
+          message: `Please fill: ${missing.join(', ')}`,
+          type: 'warning'
+        });
+        return false;
+      }
+      return true;
+    },
+    async submit() {
+      // Full validation on final submit
+      if (!this.validateSubStep1()) return false;
+
+      const missingStep2 = [];
+      if (!medicalSpecialties || medicalSpecialties.length === 0) missingStep2.push('Medical Specialties');
+      if (!hospitalServices || hospitalServices.length === 0) missingStep2.push('Hospital Services');
+
+      if (missingStep2.length > 0) {
+        useToastStore.getState().addToast({
+          title: 'Required Services',
+          message: `Please select: ${missingStep2.join(', ')}`,
+          type: 'warning'
+        });
+        return false;
+      }
+
+      const ok = await store.submit();
+      return !!ok;
+    }
+  }));
+
   // Page 2: Services & Facilities
-  const Page2 = () => (
+  const renderPage2 = () => (
     <div className="max-w-[700px] mx-auto space-y-6">
-
-
-
       {/* Medical Specialties */}
       <div className="space-y-2">
         <SectionHeading
@@ -564,32 +617,32 @@ const Hos_3 = () => {
                         {sessions.map((session, sIdx) => (
                           <div key={sIdx} className="flex flex-wrap items-center justify-between">
                             <div className='flex items-center gap-3'>
-                               <span className="text-sm whitespace-nowrap text-gray-500 ">Availability Time:</span>
-                            <TimeInput
-                              value={session.startTime}
-                              onChange={(e) => {
-                                const newSessions = [...sessions];
-                                newSessions[sIdx] = { ...newSessions[sIdx], startTime: e.target.value };
-                                handleUpdate({ sessions: newSessions });
-                              }}
-                              className=""
-                            />
-                            <span className="text-sm text-secondary-grey300">-</span>
-                            <TimeInput
-                              value={session.endTime}
-                              onChange={(e) => {
-                                const newSessions = [...sessions];
-                                newSessions[sIdx] = { ...newSessions[sIdx], endTime: e.target.value };
-                                handleUpdate({ sessions: newSessions });
-                              }}
-                              className="w-[160px]"
-                            />
+                              <span className="text-sm whitespace-nowrap text-gray-500 ">Availability Time:</span>
+                              <TimeInput
+                                value={session.startTime}
+                                onChange={(e) => {
+                                  const newSessions = [...sessions];
+                                  newSessions[sIdx] = { ...newSessions[sIdx], startTime: e.target.value };
+                                  handleUpdate({ sessions: newSessions });
+                                }}
+                                className="w-[160px]"
+                              />
+                              <span className="text-sm text-secondary-grey300">-</span>
+                              <TimeInput
+                                value={session.endTime}
+                                onChange={(e) => {
+                                  const newSessions = [...sessions];
+                                  newSessions[sIdx] = { ...newSessions[sIdx], endTime: e.target.value };
+                                  handleUpdate({ sessions: newSessions });
+                                }}
+                                className="w-[160px]"
+                              />
 
                             </div>
-                           
+
                             <div className="flex items-center gap-2 ml-2">
                               {/* Delete Button (only if > 1 session) */}
-                              {sessions.length > 1 && sIdx !== sessions.length - 1  && (
+                              {sessions.length > 1 && sIdx !== sessions.length - 1 && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -661,10 +714,10 @@ const Hos_3 = () => {
       </RegistrationHeader>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {currentSubStep === 1 ? <Page1 /> : <Page2 />}
+        {currentSubStep === 1 ? renderPage1() : renderPage2()}
       </div>
     </div>
   );
-};
+}
 
-export default Hos_3;
+export default forwardRef(Hos3Inner);
