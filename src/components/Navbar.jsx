@@ -3,17 +3,18 @@ import { User, LogOut, ChevronRight } from 'lucide-react'
 
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { bell, stethoscopeBlue, hospitalicon, patientunselect, appointement,chevdown } from '../../public/index.js'
+import { bell, stethoscopeBlue, hospitalicon, patientunselect, appointement, chevdown } from '../../public/index.js'
 import NotificationDrawer from './NotificationDrawer.jsx'
 import AddPatientDrawer from './PatientList/AddPatientDrawer.jsx'
 import BookAppointmentDrawer from './Appointment/BookAppointmentDrawer.jsx'
 import InviteStaffDrawer from '../DoctorModule/Pages/Settings/Drawers/InviteStaffDrawer.jsx'
 import AvatarCircle from './AvatarCircle.jsx'
 import useAuthStore from '../store/useAuthStore'
+import useSuperAdminAuthStore from '../store/useSuperAdminAuthStore';
 import { getDoctorMe } from '../services/authService'
 
 const Partition = () => {
-  return ( 
+  return (
     <div className='w-[8.5px] h-[20px] flex gap-[10px] items-center justify-center'>
       <div className='w-[0.5px] h-full bg-[#B8B8B8]'>
       </div>
@@ -122,6 +123,9 @@ const Navbar = () => {
   const profileRef = useRef(null);
   const navigate = useNavigate();
   const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
+  const { user, fetchProfile } = useSuperAdminAuthStore();
+
+  const saName = user ? `${user.firstName} ${user.lastName}` : 'Super Admin';
 
   // module switcher state derived from pathname (hospital/doctor)
   const [activeModule, setActiveModule] = useState('hospital');
@@ -167,6 +171,12 @@ const Navbar = () => {
     }
   }, [doctorDetails, doctorLoading, fetchDoctorDetails]);
 
+  useEffect(() => {
+    if (!user) {
+      fetchProfile();
+    }
+  }, [user, fetchProfile]);
+
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
@@ -179,7 +189,7 @@ const Navbar = () => {
     <>
       <div className='w-full h-12 border-b-[0.5px]  border-secondary-grey100/50 flex items-center px-4 justify-between'>
         <div>
-          <span className='text-sm text=[#424242]'>Super Admin</span>
+          <span className='text-sm text=[#424242]'>{saName}</span>
         </div>
         <div className='flex gap-2 items-center'>
           <div className="relative" ref={dropdownRef}>
@@ -189,7 +199,7 @@ const Navbar = () => {
             >
               <span className='text-white text-sm font-medium'>Add New</span>
               <div className='flex border-l border-blue-400 pl-1'>
-                <img src={chevdown} alt="Dropdown"  />
+                <img src={chevdown} alt="Dropdown" />
               </div>
             </button>
             <AddNewDropdown isOpen={isDropdownOpen} onClose={closeDropdown} onAddPatient={() => setAddPatientOpen(true)} onBookAppointment={() => setBookApptOpen(true)} onInviteStaff={() => setInviteOpen(true)} />
@@ -207,23 +217,23 @@ const Navbar = () => {
           </div>
           <Partition />
           <div className='relative flex items-center gap-2' ref={profileRef}>
-            <span className='font-semibold text-base text-[#424242]'>Super Admin</span>
+            <span className='font-semibold text-base text-[#424242]'>{saName}</span>
             <button type='button' onClick={() => setShowProfile(v => !v)} className='cursor-pointer'>
-              <AvatarCircle name={'Super Admin'} size='s' color='grey' />
+              <AvatarCircle name={saName} size='s' color='grey' />
             </button>
             {showProfile && (
               <div className='absolute top-12 right-0 w-[326px] bg-white border border-gray-100 rounded-lg shadow-xl overflow-hidden z-50'>
                 <div className='p-4 flex items-center gap-3 border-b '>
                   <AvatarCircle
-                    name={'Super Admin'}
+                    name={saName}
                     size='md'
                     color='grey'
-      
+
                   ></AvatarCircle>
-                  <span className='text-secondary-grey400 font-semibold text-[16px]'>Super Admin</span>
+                  <span className='text-secondary-grey400 font-semibold text-[16px]'>{saName}</span>
                 </div>
 
-               
+
 
                 <div className='p-2 flex flex-col gap-1'>
                   <button className='w-full flex items-center h-8 justify-between  hover:bg-gray-50 transition-colors group px-2'>

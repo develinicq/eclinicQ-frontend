@@ -15,6 +15,20 @@ const useSuperAdminAuthStore = create(
             setUser: (user) => set({ user }),
             // Clear all auth data (e.g., on logout or 401)
             clearAuth: () => set({ token: null, user: null }),
+            // Fetch profile data from API
+            fetchProfile: async () => {
+                const { token } = get();
+                if (!token) return;
+                try {
+                    const axiosInstance = (await import('../lib/axios')).default;
+                    const res = await axiosInstance.get('/superAdmin/me');
+                    if (res.data?.success && res.data?.data) {
+                        set({ user: res.data.data });
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch superAdmin profile:', error);
+                }
+            },
             // Helpers
             isAuthenticated: () => Boolean(get().token),
             getAuthHeader: () => {

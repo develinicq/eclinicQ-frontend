@@ -4,12 +4,20 @@ import PasswordRequirements from '../../../components/FormItems/PasswordRequirem
 import PopupSmall from '../../../components/PopupSmall'
 import DetailPopup from '../../../components/DetailPopup'
 import { Phone, RefreshCw } from 'lucide-react'
+import useSuperAdminAuthStore from '../../../store/useSuperAdminAuthStore'
 const phone = '/phone2.png'
 const mail = '/mail.png'
 
 const Settings = () => {
-  const [mobile, setMobile] = useState('+919175367487')
-  const [email, setEmail] = useState('ketanpatni02@gmail.com')
+  const { user } = useSuperAdminAuthStore();
+  const [mobile, setMobile] = useState(user?.phone ? `+91${user.phone}` : '+919175367487')
+  const [email, setEmail] = useState(user?.emailId || 'ketanpatni02@gmail.com')
+
+  // Update effect if user data arrives after mount
+  useEffect(() => {
+    if (user?.phone) setMobile(`+91${user.phone}`);
+    if (user?.emailId) setEmail(user.emailId);
+  }, [user]);
   const [currentPwd, setCurrentPwd] = useState('')
   const [newPwd, setNewPwd] = useState('')
   const [confirmPwd, setConfirmPwd] = useState('')
