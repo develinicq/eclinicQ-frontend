@@ -3,10 +3,30 @@ import Overview_cards from '../../../components/Dashboard/Overview_cards'
 import AppointmentsChart from '../../../components/Dashboard/AppointmentsChart'
 import Button from '../../../components/Button'
 import { angelDown, calenderArrowLeft, calenderArrowRight } from '../../../../public/index.js'
+import { getPlatformOverview } from '../../../services/superAdminService'
+import UniversalLoader from '../../../components/UniversalLoader'
 
 const Dashboard = () => {
   const [activeRange, setActiveRange] = useState('Yearly')
   const ranges = ['Daily', 'Weekly', 'Monthly', 'Yearly']
+  const [loading, setLoading] = useState(true)
+  const [overviewData, setOverviewData] = useState(null)
+
+  useEffect(() => {
+    const fetchOverview = async () => {
+      try {
+        const res = await getPlatformOverview()
+        if (res.success) {
+          setOverviewData(res.data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch platform overview:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchOverview()
+  }, [])
 
   // Month dropdown state
   const months = [
@@ -56,12 +76,42 @@ const Dashboard = () => {
         {/* Platform Overview using Overview_cards */}
         <div>
           <div className='text-[20px] font-medium text-secondary-grey400 mb-3'>Platform Overview</div>
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-            <Overview_cards title='Total Active Doctors' value={120043} percent={12} periodText='from last year' variant='profit' />
-            <Overview_cards title='Total Clinics' value={20043} percent={12} periodText='from last year' variant='profit' />
-            <Overview_cards title='Total Active Hospitals' value={50000} percent={2} periodText='from last year' variant='profit' />
-            <Overview_cards title='Total Enrolled Patients' value={'1.3M'} percent={8} periodText='from last year' variant='profit' />
-          </div>
+          {loading ? (
+            <div className='flex items-center justify-center p-12 '>
+              <UniversalLoader size={30} />
+            </div>
+          ) : (
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+              <Overview_cards
+                title='Total Active Doctors'
+                value={overviewData?.totalActiveDoctors || 0}
+                percent={overviewData?.deltas?.doctors || 0}
+                periodText='from last year'
+                variant={(overviewData?.deltas?.doctors || 0) >= 0 ? 'profit' : 'loss'}
+              />
+              <Overview_cards
+                title='Total Clinics'
+                value={overviewData?.totalClinics || 0}
+                percent={overviewData?.deltas?.clinics || 0}
+                periodText='from last year'
+                variant={(overviewData?.deltas?.clinics || 0) >= 0 ? 'profit' : 'loss'}
+              />
+              <Overview_cards
+                title='Total Active Hospitals'
+                value={overviewData?.totalActiveHospitals || 0}
+                percent={overviewData?.deltas?.hospitals || 0}
+                periodText='from last year'
+                variant={(overviewData?.deltas?.hospitals || 0) >= 0 ? 'profit' : 'loss'}
+              />
+              <Overview_cards
+                title='Total Enrolled Patients'
+                value={overviewData?.totalEnrolledPatients || 0}
+                percent={overviewData?.deltas?.patients || 0}
+                periodText='from last year'
+                variant={(overviewData?.deltas?.patients || 0) >= 0 ? 'profit' : 'loss'}
+              />
+            </div>
+          )}
           {/* Controls row: tabs on the left, month/year dropdowns on the right */}
           <div className='mt-6 flex items-center justify-between'>
             <div className='flex items-center gap-2 p-[2px] rounded-sm bg-blue-primary50  h-8 overflow-hidden w-fit'>
@@ -145,8 +195,8 @@ const Dashboard = () => {
                           setMonthOpen(false);
                         }}
                         className={`w-[108px] h-8 px-2 py-1 rounded text-secondary-grey400 text-left ${selectedMonth === m
-                            ? "bg-blue-primary50 border-[0.5px] border-blue-primary150"
-                            : "hover:bg-secondary-grey50"
+                          ? "bg-blue-primary50 border-[0.5px] border-blue-primary150"
+                          : "hover:bg-secondary-grey50"
                           }`}
                         style={{
                           fontFamily: "Inter",
