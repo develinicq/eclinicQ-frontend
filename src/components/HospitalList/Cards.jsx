@@ -106,7 +106,8 @@ const Cards = ({ hospital }) => {
   };
 
   const openHospital = () => {
-    const urlId = hospital?.id || hospital?.temp || 'HO-PREVIEW';
+  // Use backend UUID (temp) for routing so details page can fetch by correct ID
+  const urlId = hospital?.temp || hospital?.id || 'HO-PREVIEW';
     navigate(`/hospital/${encodeURIComponent(urlId)}`, { state: { hospital } });
   };
 

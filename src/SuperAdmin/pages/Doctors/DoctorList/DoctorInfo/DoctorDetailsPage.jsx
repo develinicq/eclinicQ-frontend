@@ -35,7 +35,7 @@ const DoctorDetailsPage = () => {
         if (ignore) return;
         const d = resp?.data || {};
         // Map API details to UI contract
-  const mapped = {
+        const mapped = {
           id: d?.doctorCode || userId,
           userId,
           name: d?.doctorName || "", // Use API name strictly
@@ -68,9 +68,9 @@ const DoctorDetailsPage = () => {
           // ... map other fields ensuring they match UI expectations
         };
         console.log("DoctorDetailsPage: Mapped doctor object:", mapped);
-  setDoctor(mapped);
-  // Initialize selected clinic from API data if available
-  setSelectedClinicId(mapped.clinicId);
+        setDoctor(mapped);
+        // Initialize selected clinic from API data if available
+        setSelectedClinicId(mapped.clinicId);
       } catch (e) {
         if (ignore) return;
         console.error("DoctorDetailsPage: API/Logic Error:", e);
@@ -104,7 +104,7 @@ const DoctorDetailsPage = () => {
       // Not authed: allow viewing from route state if present
       const stateDoc = location.state?.doctor;
       if (stateDoc) {
-  setDoctor({
+        setDoctor({
           id: stateDoc.id || stateDoc.docId,
           userId: stateDoc.userId,
           name: stateDoc.name,
@@ -114,7 +114,7 @@ const DoctorDetailsPage = () => {
           status: stateDoc.status || 'Active',
           avatar: '',
         });
-  setSelectedClinicId(stateDoc?.workplace?.clinics?.[0]?.id);
+        setSelectedClinicId(stateDoc?.workplace?.clinics?.[0]?.id);
         setError(null);
       } else {
         setError("Not authenticated");
@@ -137,8 +137,8 @@ const DoctorDetailsPage = () => {
   return (
     <div className="flex flex-col gap-6 w-full h-full">
       <div>
-  <DoctorBanner doctor={doctor} onClinicChange={setSelectedClinicId} />
-  <PageNav doctor={doctor} selectedClinicId={selectedClinicId} />
+        <DoctorBanner doctor={doctor} onClinicChange={setSelectedClinicId} />
+        <PageNav doctor={doctor} selectedClinicId={selectedClinicId} />
       </div>
     </div>
   );

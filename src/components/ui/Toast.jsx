@@ -1,31 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, AlertCircle, XCircle, X } from 'lucide-react';
 import useToastStore from '../../store/useToastStore';
+const check = '/toast/success.png';
+const alert = '/toast/alert.png';
+const error = '/toast/error.png';
 
 const variants = {
     success: {
-        icon: CheckCircle,
-        color: 'text-green-500',
-        bgColor: 'bg-green-50',
-        borderColor: 'border-green-500',
-        progressBarColor: 'bg-green-500',
-        defaultTitle: 'Success',
+        icon: () => <img src={check} alt="" className='h-8 w-8' />,
+        titleColor: 'text-success-300',
+        progressBarColor: 'bg-success-200',
+        bgGradient: 'bg-[linear-gradient(to_right,_#F0FDF4_0%,_#FFFFFF_60%)]',
+        defaultTitle: 'Saved Successfully',
+        defaultMessage: 'Your changes have been saved successfully',
     },
     error: {
-        icon: XCircle,
-        color: 'text-red-500',
-        bgColor: 'bg-red-50',
-        borderColor: 'border-red-500',
-        progressBarColor: 'bg-red-500',
-        defaultTitle: 'Error',
+        icon: () => <img src={error} alt="" className='h-8 w-8' />,
+        titleColor: 'text-error-400',
+        progressBarColor: 'bg-error-400',
+        bgGradient: 'bg-[linear-gradient(to_right,_#FEF2F2_0%,_#FFFFFF_60%)]',
+        defaultTitle: 'Error Occurred',
+        defaultMessage: 'Connection error. Unable to connect to the server at present',
     },
     warning: {
-        icon: AlertCircle,
-        color: 'text-orange-500',
-        bgColor: 'bg-orange-50',
-        borderColor: 'border-orange-500',
-        progressBarColor: 'bg-orange-500',
-        defaultTitle: 'Warning',
+        icon: () => <img src={alert} alt="" className='h-8 w-8' />,
+        titleColor: 'text-warning2-400',
+        progressBarColor: 'bg-warning2-400',
+        bgGradient: 'bg-[linear-gradient(to_right,_#FFFBEB_0%,_#FFFFFF_60%)]',
+        defaultTitle: 'Action Required',
+        defaultMessage: 'Incomplete fields. Please fill in all required information now',
     },
 };
 
@@ -59,37 +62,26 @@ const Toast = ({ id, type = 'success', title, message, duration = 3000 }) => {
             role="alert"
         >
             {/* Main Content */}
-            <div className="flex w-full p-4">
+            <div className={`flex items-center gap-4 w-full p-4 ${variant.bgGradient}`}>
                 {/* Icon */}
-                <div className={`flex-shrink-0 ${variant.color}`}>
-                    <Icon className="h-6 w-6" />
+                <div className={`flex-shrink-0 ${variant.iconContainer || ''}`}>
+                    <Icon className="h-8 w-8" />
                 </div>
 
                 {/* Text */}
-                <div className="ml-3 w-0 flex-1 pt-0.5">
-                    <p className={`text-sm font-medium ${variant.color}`}>
+                <div className="flex-1 min-w-0">
+                    <p className={`text-[14px] font-medium ${variant.titleColor} truncate`}>
                         {title || variant.defaultTitle}
                     </p>
-                    <p className="mt-1 text-sm text-gray-500">
-                        {message}
+                    <p className="text-[12px] text-secondary-grey200 ">
+                        {message || variant.defaultMessage}
                     </p>
                 </div>
 
-                {/* Close Button */}
-                <div className="ml-4 flex flex-shrink-0">
-                    <button
-                        type="button"
-                        className="inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        onClick={handleClose}
-                    >
-                        <span className="sr-only">Close</span>
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="absolute bottom-0 left-0 h-1 w-full bg-gray-100">
+            {/* Bottom Bar (Progress) */}
+            <div className="absolute bottom-0 left-0 h-[4px] w-full bg-gray-100">
                 <div
                     className={`h-full ${variant.progressBarColor}`}
                     style={{

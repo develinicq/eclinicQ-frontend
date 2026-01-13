@@ -69,3 +69,30 @@ export function invalidateDownloadUrl(key) {
 export function clearDownloadUrlCache() {
   urlCache.clear();
 }
+// Get public URL for a storage key
+export async function getPublicUrl(key) {
+  if (!key) return '';
+  const str = String(key);
+  try {
+    const res = await axios.get('/storage/public-url', {
+      params: { key: str }
+    });
+    return res?.data?.data?.publicUrl || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+// Get private download URL for a storage key
+export async function getPrivateDownloadUrl(key) {
+  if (!key) return '';
+  const str = String(key);
+  try {
+    const res = await axios.get('/storage/download-url', {
+      params: { key: str }
+    });
+    return res?.data?.data?.downloadUrl || '';
+  } catch (e) {
+    return '';
+  }
+}

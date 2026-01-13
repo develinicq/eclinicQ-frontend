@@ -262,3 +262,26 @@ export const getDoctorClinicalDetailsForSuperAdmin = async (doctorId) => {
     throw error;
   }
 };
+
+// Get Super Admin view: professional details
+export const getDoctorProfessionalDetailsForSuperAdmin = async (doctorId) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  try {
+    const res = await axios.get(`/doctors/forSuperAdmin/doctorDetails/personalInfo/professionalDetails/${encodeURIComponent(doctorId)}`);
+    return res.data; // { success, message, data: { medicalRegistrationDetails: { ... }, practiceDetails: { ... } } }
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Update Super Admin view: professional details (send only changed fields)
+export const updateDoctorProfessionalDetailsForSuperAdmin = async (doctorId, payload) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  if (!payload || typeof payload !== 'object') throw new Error("payload is required");
+  try {
+    const res = await axios.put(`/doctors/forSuperAdmin/doctorDetails/personalInfo/professionalDetails/${encodeURIComponent(doctorId)}`, payload);
+    return res.data; // { success, message, data: { ... } }
+  } catch (error) {
+    throw error;
+  }
+};

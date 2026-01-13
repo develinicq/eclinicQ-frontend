@@ -8,6 +8,7 @@ import RadioButton from '../../GeneralDrawer/RadioButton';
 import Badge from '@/components/Badge';
 import { getDoctorDetailsByIdBySuperAdmin } from '@/services/doctorService';
 import UniversalLoader from "@/components/UniversalLoader";
+import { getPublicUrl } from '@/services/uploadsService';
 
 const star = '/star.png'
 const down = '/angel-down.svg'
@@ -20,7 +21,9 @@ const hospital = '/icons/Sidebar/MainSidebar/hospital_unselect.png'
 const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
   const { id } = useParams();
   const [doctor, setDoctor] = useState(initialDoctor);
-  const [loading, setLoading] = useState(true); // Start loading true by default if we expect to fetch
+  const [loading, setLoading] = useState(true);
+  const [profileImageUrl, setProfileImageUrl] = useState('');
+  const [imageLoading, setImageLoading] = useState(false);
 
   useEffect(() => {
     // If we have initial doctor data passed, we might show it, but user wants loader until API loads. 
@@ -72,6 +75,25 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
 
     fetchDetails();
   }, [id, initialDoctor?.userId]);
+
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      if (doctor?.profilePhoto) {
+        setImageLoading(true);
+        try {
+          const url = await getPublicUrl(doctor.profilePhoto);
+          setProfileImageUrl(url);
+        } catch (error) {
+          console.error("Failed to fetch profile image URL:", error);
+        } finally {
+          setImageLoading(false);
+        }
+      } else {
+        setProfileImageUrl('');
+      }
+    };
+    fetchProfileImage();
+  }, [doctor?.profilePhoto]);
 
 
   const isActive = (doctor?.status || '').toLowerCase() === 'active'
@@ -202,7 +224,28 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
     <div className="w-full p-4 flex  items-center gap-4 bg-white">
       {/* Profile Circle with tick using reusable AvatarCircle */}
       <div className="relative">
-        <AvatarCircle name={doctor?.name || 'Doctor'} color="blue" className="w-[90px] h-[90px] text-[2rem]" />
+        <div
+          className="w-[90px] h-[90px] rounded-full flex items-center justify-center overflow-hidden"
+          style={{
+            backgroundColor: '#F8FAFF',
+            borderColor: '#96BFFF',
+            borderStyle: 'solid',
+            borderWidth: '0.5px',
+          }}
+        >
+          {imageLoading ? (
+            <UniversalLoader size={20} />
+          ) : profileImageUrl ? (
+            <img
+              src={profileImageUrl}
+              alt={doctor?.name || 'Doctor'}
+              className="w-full h-full object-cover"
+              onLoad={() => setImageLoading(false)}
+            />
+          ) : (
+            <AvatarCircle name={doctor?.name || 'Doctor'} color="blue" className="w-full h-full text-[2rem] border-none" style={{ borderWidth: 0 }} />
+          )}
+        </div>
         <img src="/tick.png" alt="Verified" className="absolute -bottom-0 left-16 w-6 h-6" />
       </div>
 

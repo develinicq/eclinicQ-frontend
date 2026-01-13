@@ -37,7 +37,7 @@ const HospitalNav = ({ hospital }) => {
   };
 
   return (
-    <div className="w-full bg-white">
+  <div className="w-full bg-white">
       {/* Tabs - Matched to PageNav styling */}
       <div className="px-2 border-b border-secondary-grey100">
         <nav className="px-2 flex items-center gap-2 overflow-x-auto text-sm">
@@ -61,6 +61,8 @@ const HospitalNav = ({ hospital }) => {
 
       {/* Content */}
       <div className="bg-secondary-grey50 min-h-[500px]">{renderContent()}</div>
+
+  {/* Drawers are triggered from section card icons; none mounted here. */}
     </div>
   );
 };

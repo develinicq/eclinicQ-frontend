@@ -1,4 +1,4 @@
-import React, { useState , useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import {
   cap,
   add,
@@ -14,8 +14,9 @@ import { ChevronDown } from "lucide-react";
 
 
 import EditBasicInfoDrawer from "../Drawers/EditBasicInfoDrawer.jsx";
+import Badge from "@/components/Badge";
 // merged imports below
-import { getDoctorBasicInfoForSuperAdmin, getDoctorEducationalDetailsForSuperAdmin, getDoctorAwardsAndPublicationsForSuperAdmin, getDoctorExperienceDetailsForSuperAdmin } from "../../../../../../services/doctorService";
+import { getDoctorBasicInfoForSuperAdmin, getDoctorEducationalDetailsForSuperAdmin, getDoctorAwardsAndPublicationsForSuperAdmin, getDoctorExperienceDetailsForSuperAdmin, getDoctorProfessionalDetailsForSuperAdmin } from "../../../../../../services/doctorService";
 import AddEducationDrawer from "../Drawers/AddEducationDrawer.jsx";
 import AddAwardDrawer from "../Drawers/AddAwardDrawer.jsx";
 import AddPublicationDrawer from "../Drawers/AddPublicationDrawer.jsx";
@@ -29,7 +30,7 @@ const InfoField = ({ label, value, right, className: Class }) => (
   >
     <div className="col-span-4  text-secondary-grey200">{label}</div>
     <div className="col-span-8 text-secondary-grey400 flex items-center justify-between">
-      <span className="truncate">{value || "-"}</span>
+      <span className="truncate">{value || "—"}</span>
       {right}
     </div>
   </div>
@@ -267,16 +268,17 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
   });
 
   // Track individual loading flags for this page
-  const [basicLoading, setBasicLoading] = useState(false);
-  const [expLoading, setExpLoading] = useState(false);
-  const [eduLoading, setEduLoading] = useState(false);
-  const [awardsLoading, setAwardsLoading] = useState(false);
+  const [basicLoading, setBasicLoading] = useState(true);
+  const [expLoading, setExpLoading] = useState(true);
+  const [eduLoading, setEduLoading] = useState(true);
+  const [awardsLoading, setAwardsLoading] = useState(true);
+  const [profLoading, setProfLoading] = useState(true);
 
   // Bubble overall loading up
   useEffect(() => {
-    const anyLoading = basicLoading || expLoading || eduLoading || awardsLoading;
+    const anyLoading = basicLoading || expLoading || eduLoading || awardsLoading || profLoading;
     if (typeof onLoadingChange === 'function') onLoadingChange(anyLoading);
-  }, [basicLoading, expLoading, eduLoading, awardsLoading, onLoadingChange]);
+  }, [basicLoading, expLoading, eduLoading, awardsLoading, profLoading, onLoadingChange]);
 
   useEffect(() => {
     const id = doctor?.userId || doctor?.id;
@@ -320,22 +322,57 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
   // 'profile' object wrapper to match Doc_settings JSX structure
   const profile = { basic };
   const [experiences, setExperiences] = useState([]);
+  const [profDetails, setProfDetails] = useState(null);
 
   // Medical Registration Adapter
   const medicalRegistration = {
-    medicalCouncilRegistrationNumber: doctor?.mrnNumber || '',
-    registrationYear: doctor?.registrationYear || '',
-    registrationCouncil: doctor?.registrationCouncil || '',
-    proofDocumentUrl: doctor?.mrnNumberProof || ''
+    medicalCouncilRegistrationNumber: profDetails?.medicalRegistrationDetails?.medicalCouncilRegistrationNumber || doctor?.mrnNumber || '',
+    registrationNumber: profDetails?.medicalRegistrationDetails?.medicalCouncilRegistrationNumber || doctor?.mrnNumber || '',
+    registrationYear: profDetails?.medicalRegistrationDetails?.registrationYear || doctor?.registrationYear || '',
+    registrationCouncil: profDetails?.medicalRegistrationDetails?.registrationCouncil || doctor?.registrationCouncil || '',
+    proofDocumentUrl: profDetails?.medicalRegistrationDetails?.proofDocumentUrl || doctor?.mrnNumberProof || '',
+    mrnProof: profDetails?.medicalRegistrationDetails?.proofDocumentUrl || doctor?.mrnNumberProof || '',
+    mrnProofName: profDetails?.medicalRegistrationDetails?.proofDocumentUrl ? (profDetails.medicalRegistrationDetails.proofDocumentUrl.split('/').pop()) : (doctor?.mrnNumberProof ? "MRN Proof.pdf" : "")
   };
 
   // Practice Details Adapter
   const practiceDetails = {
-    workExperience: doctor?.experience || '', // 'experience' is typically a string "12 years" or number
-    medicalPracticeType: doctor?.practiceType || '', // hypothetical
-    specialties: doctor?.specialization ? [{ id: 1, specialtyName: doctor.specialization, expYears: doctor.experience }] : [],
-    practiceArea: doctor?.services || [] // hypothetical
+    workExperience: (profDetails?.practiceDetails?.workExperience !== undefined && profDetails?.practiceDetails?.workExperience !== null && profDetails?.practiceDetails?.workExperience !== "null")
+      ? String(profDetails.practiceDetails.workExperience)
+      : (doctor?.experience || ''),
+    medicalPracticeType: (profDetails?.practiceDetails?.medicalPracticeType && profDetails?.practiceDetails?.medicalPracticeType !== "null")
+      ? profDetails.practiceDetails.medicalPracticeType
+      : (doctor?.practiceType || ''),
+    specialties: profDetails?.practiceDetails?.specialties || (doctor?.specialization ? [{ id: 1, specialtyName: doctor.specialization, expYears: doctor.experience }] : []),
+    practiceArea: profDetails?.practiceDetails?.practiceArea || doctor?.services || []
   };
+
+  // Fetch Professional Details for SuperAdmin
+  useEffect(() => {
+    const id = doctor?.userId || doctor?.id;
+    if (!id) return;
+    let cancelled = false;
+    if (cache.profDetails) {
+      setProfDetails(cache.profDetails);
+      setProfLoading(false);
+      return () => { cancelled = true; };
+    }
+    (async () => {
+      try {
+        setProfLoading(true);
+        const res = await getDoctorProfessionalDetailsForSuperAdmin(id);
+        const d = res?.data || null;
+        if (!cancelled) {
+          setProfDetails(d);
+          if (typeof updateCache === 'function') updateCache({ profDetails: d });
+        }
+      } catch (err) {
+        console.error('Failed to fetch professional details for SuperAdmin:', err);
+      }
+      finally { if (!cancelled) setProfLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [doctor?.userId, doctor?.id]);
 
   // Fetch experiences for SuperAdmin
   useEffect(() => {
@@ -431,7 +468,7 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
     return () => { cancelled = true; };
   }, [doctor?.userId, doctor?.id]);
 
-  const anyLoading = basicLoading || expLoading || eduLoading || awardsLoading;
+  const anyLoading = basicLoading || expLoading || eduLoading || awardsLoading || profLoading;
 
   if (anyLoading) {
     return (
@@ -614,7 +651,7 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
                 <img src={add} alt="add" className="w-7 h-7" />
               </button>
               {showAddMenu && (
-                <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 shadow-xl rounded-md p-1 text-[13px] z-50">
+                <div className="absolute right-0 bottom-full mb-1 w-48 bg-white border border-gray-200 shadow-xl rounded-md p-1 text-[13px] z-50">
                   <button
                     className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 w-full text-left bg-white text-gray-700 hover:text-blue-600 rounded-sm"
                     onClick={() => { setShowAddMenu(false); setAwardEditMode("add"); setAwardEditData(null); setAwardOpen(true); }}
@@ -692,7 +729,7 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
                     setPubEditMode("edit");
                     setPubOpen(true);
                   }}
-                  
+
                 />
               ))}
           </div>
@@ -732,18 +769,18 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
                   label="Medical Council Registration Number"
                   value={
                     medicalRegistration?.medicalCouncilRegistrationNumber ||
-                    "-"
+                    "—"
                   }
                 />
                 <InfoField
                   label="Registration Year"
-                  value={medicalRegistration?.registrationYear || "-"}
+                  value={medicalRegistration?.registrationYear || "—"}
                 />
               </div>
               <div className="col-span-12 md:col-span-6 space-y-5">
                 <InfoField
                   label="Registration Council"
-                  value={medicalRegistration?.registrationCouncil || "-"}
+                  value={medicalRegistration?.registrationCouncil || "—"}
                 />
 
                 <div className="h-[32px]  w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm overflow-x-hidden bg-secondary-grey50">
@@ -752,7 +789,7 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
                     <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
                       {(() => {
                         const url = String(medicalRegistration?.proofDocumentUrl || "");
-                        const name = url ? (url.split("/").pop() || "MRN Proof.pdf") : "-";
+                        const name = url ? (url.split("/").pop() || "MRN Proof.pdf") : "—";
                         const max = 22;
                         if (name.length <= max) return name;
                         const keep = Math.max(4, Math.floor((max - 3) / 2));
@@ -823,13 +860,13 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
                   value={
                     practiceDetails?.workExperience
                       ? `${practiceDetails.workExperience} years`
-                      : "-"
+                      : "—"
                   }
                 />
 
                 <InfoField
                   label="Medical Practice Type"
-                  value={practiceDetails?.medicalPracticeType || "-"}
+                  value={practiceDetails?.medicalPracticeType || "—"}
                 />
 
                 {/* Specialization */}
@@ -841,7 +878,7 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
                         practiceDetails.specialties.length > 0 ? (
                         practiceDetails.specialties.map((spec, idx) => (
                           <span key={spec.id}>
-                            {spec.specialtyName} (Exp: {spec.expYears}{" "}
+                            {spec.specialtyName} (Exp: {(spec.expYears !== null && spec.expYears !== undefined) ? spec.expYears : "—"}{" "}
                             years)
                             {idx < practiceDetails.specialties.length - 1 &&
                               ", "}
@@ -928,7 +965,7 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
         open={basicOpen}
         onClose={() => setBasicOpen(false)}
         initialData={basic}
-  doctorId={doctor?.userId || doctor?.id}
+        doctorId={doctor?.userId || doctor?.id}
         onSave={async () => {
           const id = doctor?.userId || doctor?.id;
           if (!id) { setBasicOpen(false); return; }
@@ -1032,9 +1069,23 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
       <EditPracticeDetailsDrawer
         open={practiceOpen}
         onClose={() => setPracticeOpen(false)}
-        initial={practiceDetails}
-        onSave={(data) => {
-          console.log("SuperAdmin updated practice (mock):", data);
+        initial={{
+          ...practiceDetails,
+          registrationNumber: medicalRegistration?.medicalCouncilRegistrationNumber,
+          registrationCouncil: medicalRegistration?.registrationCouncil,
+          registrationYear: medicalRegistration?.registrationYear,
+          mrnProof: medicalRegistration?.proofDocumentUrl,
+          mrnProofName: medicalRegistration?.proofDocumentUrl ? medicalRegistration.proofDocumentUrl.split('/').pop() : 'MRN Proof.pdf',
+        }}
+        doctorId={doctor?.userId || doctor?.id}
+        onRefetch={(fresh) => {
+          // Refresh the cached professional details blob used by this section
+          setProfDetails({
+            medicalRegistrationDetails: fresh?.medicalRegistrationDetails || {},
+            practiceDetails: fresh?.practiceDetails || {},
+          });
+        }}
+        onSave={() => {
           setPracticeOpen(false);
         }}
       />
