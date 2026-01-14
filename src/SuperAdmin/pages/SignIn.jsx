@@ -28,6 +28,8 @@ export default function SuperAdminSignIn() {
     const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' | 'otp'
     const [otp, setOtp] = useState(new Array(6).fill(""));
     const [challengeId, setChallengeId] = useState(null);
+    const [resendTimer, setResendTimer] = useState(0);
+    const [resending, setResending] = useState(false);
     const otpInputRefs = useRef([]);
 
     const location = useLocation();
@@ -65,7 +67,20 @@ export default function SuperAdminSignIn() {
         }
     };
 
-    const handleLogin = async () => {
+    const startResendTimer = () => {
+        setResendTimer(60);
+        const interval = setInterval(() => {
+            setResendTimer(prev => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const handleLogin = async (isResend = false) => {
         // reset meta
         setIdentifierMeta("");
         setPasswordMeta("");
@@ -75,7 +90,12 @@ export default function SuperAdminSignIn() {
             if (!password.trim()) setPasswordMeta("Please enter password.");
             return;
         }
-        setSubmitting(true);
+
+        if (isResend) {
+            setResending(true);
+        } else {
+            setSubmitting(true);
+        }
         setErrorMsg("");
 
         try {
@@ -113,6 +133,7 @@ export default function SuperAdminSignIn() {
             });
         } finally {
             setSubmitting(false);
+            setResending(false);
         }
     };
 
@@ -267,7 +288,7 @@ export default function SuperAdminSignIn() {
                                     readonlyWhenIcon={false}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && canLogin)
-                                            handleLogin();
+                                            handleLogin(false);
                                     }}
                                     meta={passwordMeta}
                                     metaClassName="text-red-500"
@@ -313,7 +334,7 @@ export default function SuperAdminSignIn() {
                                     </button>
                                 ) : (
                                     <button
-                                        onClick={handleLogin}
+                                        onClick={() => handleLogin(false)}
                                         disabled={!canLogin}
                                         className={`w-full h-[32px] rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2
                                             ${!canLogin
@@ -361,7 +382,23 @@ export default function SuperAdminSignIn() {
                                         ))}
                                     </div>
                                     <div className="text-[12px] text-secondary-grey200 flex items-center gap-2">
-                                        Haven’t Received Your Code yet? <button type="button" onClick={() => { setOtp(new Array(6).fill("")); alert("OTP Resent"); }} className="text-blue-primary250 text-[14px] hover:underline">Resend</button>
+                                        Haven’t Received Your Code yet? {resending ? (
+                                            <span className="text-secondary-grey300 text-[14px]">Resending...</span>
+                                        ) : resendTimer > 0 ? (
+                                            <span className="text-secondary-grey300 text-[14px]">Resend after {resendTimer}s</span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setOtp(new Array(6).fill(""));
+                                                    handleLogin(true);
+                                                    startResendTimer();
+                                                }}
+                                                className="text-blue-primary250 text-[14px] hover:underline"
+                                            >
+                                                Resend
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -381,7 +418,7 @@ export default function SuperAdminSignIn() {
                                                     minWidth: 0
                                                 }}
                                             />
-                                            Verify OTP
+                                            Verifying...
                                         </button>
                                     ) : (
                                         <button

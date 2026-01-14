@@ -2,17 +2,11 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import TableHeader from '../../../components/TableHeader';
 import AvatarCircle from '../../../components/AvatarCircle';
-import Badge from '../../../components/Badge';
 import pending from '../../../../public/pending.png';
 import { action_calendar, action_dot, action_heart, vertical } from '../../../../public';
-import { Users, Pencil, Trash2 } from 'lucide-react';
-
-// Icons placeholders if not imported, but using Lucide for now as user didn't provide assets
-// Based on image: Calendar (Schedule?), History (RotateCcw?), More (MoreVertical)
 
 const tick = '/tick.png';
 
-// Dummy Action renderer
 const ActionCell = ({ row, onOpenLog, onSchedule }) => {
     const [isOpen, setIsOpen] = React.useState(false);
     const [position, setPosition] = React.useState({ top: 0, left: 0 });
@@ -38,7 +32,7 @@ const ActionCell = ({ row, onOpenLog, onSchedule }) => {
         e.stopPropagation();
         if (!isOpen) {
             const rect = buttonRef.current.getBoundingClientRect();
-            setPosition({ top: rect.bottom + 4, left: rect.right - 192 }); // w-48 is 192px
+            setPosition({ top: rect.bottom + 8, left: rect.right - 225 }); // Wider menu matching screenshot
         }
         setIsOpen(!isOpen);
     };
@@ -59,11 +53,11 @@ const ActionCell = ({ row, onOpenLog, onSchedule }) => {
             <button className="hover:opacity-75" onClick={(e) => { e.stopPropagation(); if (onOpenLog) onOpenLog(row); }}>
                 <img src={pending} alt="" className="w-[18px]" />
             </button>
-            <div className='h-4 border-l border-secondary-grey100/50 '></div>
+            <div className='h-4 border-r border-secondary-grey100/50 '></div>
 
             <button
                 ref={buttonRef}
-                className="hover:opacity-75"
+                className="hover:bg-secondary-grey100/50 py-2 px-1 cursor-pointer transition-colors"
                 onClick={toggleMenu}
             >
                 <img src={action_dot} alt="" className="w-[17px]" />
@@ -72,36 +66,37 @@ const ActionCell = ({ row, onOpenLog, onSchedule }) => {
             {isOpen && createPortal(
                 <div
                     ref={menuRef}
-                    style={{ top: position.top, left: position.left, position: 'fixed', zIndex: 9999 }}
-                    className="w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1.5 animate-in fade-in zoom-in-95 duration-100 transform origin-top-right text-left"
+                    style={{ top: position.top, left: position.left, position: 'fixed', zIndex: 9999, width: '225px' }}
+                    className="bg-white rounded-[10px] shadow-[0px_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-100 transform origin-top-right text-left"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    <div className="px-[18px] py-2 text-xs font-medium text-secondary-grey200 uppercase">
                         More Actions
                     </div>
                     <button
                         onClick={(e) => handleAction('Add Dependents', e)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-[18px] py-2 text-sm text-secondary-grey400 hover:bg-gray-50 flex items-center gap-3"
                     >
-                        <Users className="w-4 h-4 text-gray-400" />
+                        <img src="/superAdmin/patient_list/staff.svg" alt="" className="w-5 h-5" />
                         Add Dependents
                     </button>
                     <button
                         onClick={(e) => handleAction('Edit Profile', e)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-[18px] py-2 text-sm text-secondary-grey400 hover:bg-gray-50 flex items-center gap-3"
                     >
-                        <Pencil className="w-4 h-4 text-gray-400" />
+                        <img src="/superAdmin/patient_list/Pen.svg" alt="" className="w-5 h-5" />
                         Edit Profile
                     </button>
-                    <div className="h-px bg-gray-100 my-1"></div>
+                    <div className="mx-2 h-px bg-[#E0E7FF] my-1.5"></div>
                     <button
                         onClick={(e) => handleAction('Delete Patient', e)}
-                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        className="w-full text-left px-[18px] py-2 text-sm text-[#F04438] hover:bg-red-50 flex items-center gap-3"
                     >
-                        <Trash2 className="w-4 h-4" />
+                        <img src="/superAdmin/doctor_list_dropdown/bin.svg" alt="" className="w-5 h-5" />
                         Delete Patient
                     </button>
-                </div>,
+                </div>
+                ,
                 document.body
             )}
 
@@ -122,14 +117,14 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
             return (
                 <div className="flex items-center gap-2">
 
-                    <AvatarCircle name={row.name} size="s" color={isActive ? "blue" : "grey"} />
+                    <AvatarCircle name={row.name} size="s" color={row.isActive ? "blue" : "grey"} />
 
                     <div className='flex flex-col text-sm'>
                         <p className="font-medium text-secondary-grey400 leading-5">
                             {row.name}
                         </p>
                         <p className="text-secondary-grey300">
-                            {row.gender} | {row.dob} ({row.age})
+                            {row.gender ? (row.gender.charAt(0).toUpperCase() + row.gender.slice(1).toLowerCase()) : '-'} | {row.dob} ({row.age})
                         </p>
                     </div>
                 </div>
@@ -175,7 +170,7 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         key: 'reason',
         header: <TableHeader label="Reason for Last Visit" />,
         width: 689,
-      
+
         render: (row) => <span className="text-secondary-grey300 text-sm " title={row.reason}>{row.reason}</span>
     },
     {
