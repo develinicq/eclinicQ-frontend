@@ -771,7 +771,7 @@ const Layout_registration_new = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <div className="flex-none z-30 bg-white">
+      <div className="flex-none z-[110] bg-white">
         <Navbar />
       </div>
       <div className="flex-1 flex bg-gray-100 p-3 gap-3 overflow-hidden">

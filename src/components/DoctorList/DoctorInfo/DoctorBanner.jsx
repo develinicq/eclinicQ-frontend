@@ -276,7 +276,7 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
             </div>
 
             {isClinicOpen && (
-              <div className="absolute top-full left-0 mt-1 p-2  bg-white shadow-lg rounded-lg border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute top-full  left-0 mt-1 p-2 min-w-[300px] bg-white shadow-lg rounded-lg border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className='flex flex-col gap-1'>
                   <span className='text-secondary-grey300 px-2 font-medium text-[12px]'>SWITCH ACCOUNT</span>
 
