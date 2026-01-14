@@ -145,7 +145,7 @@ const Consultation = ({ doctor, onLoadingChange, cache = {}, updateCache, clinic
     // Only fetch consultation details API; do NOT call banner/doctor-details API here
     if (!id) return;
 
-  // Always fetch when this section activates; rely on API for fresh data
+    // Always fetch when this section activates; rely on API for fresh data
 
     let cancelled = false;
     const fetchConsultation = async () => {

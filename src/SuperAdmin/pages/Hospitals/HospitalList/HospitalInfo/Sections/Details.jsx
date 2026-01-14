@@ -8,7 +8,7 @@ import {
 } from '../../../../../../../public/index.js'
 import MapLocation from '../../../../../../components/FormItems/MapLocation'
 import InputWithMeta from '../../../../../../components/GeneralDrawer/InputWithMeta'
-import { getDownloadUrl } from '../../../../../../services/uploadsService'
+import { getDownloadUrl, getPublicUrl } from '../../../../../../services/uploadsService'
 import { ChevronDown } from 'lucide-react'
 import HospitalInfoDrawer from '../Drawers/HospitalInfoDrawer.jsx'
 import AddAwardDrawer from '../Drawers/AddAwardDrawer.jsx'
@@ -215,6 +215,7 @@ const Details = ({ hospital }) => {
   const [selectedAccreditation, setSelectedAccreditation] = useState(null)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [activeDrawerSection, setActiveDrawerSection] = useState(null)
 
   const refreshData = (options = {}) => {
     if (options.silent || options.sections) {
@@ -273,8 +274,8 @@ const Details = ({ hospital }) => {
     const run = async () => {
       try {
         const keys = profile?.photos || []
-        const urls = await Promise.all(keys.map((k) => getDownloadUrl(k)))
-        if (!ignore) setResolvedPhotos(urls.map((u) => u || ''))
+        const urls = await Promise.all(keys.map((k) => getPublicUrl(k)))
+        if (!ignore) setResolvedPhotos(urls.filter(Boolean))
       } catch {
         if (!ignore) setResolvedPhotos([])
       }
@@ -498,7 +499,11 @@ const Details = ({ hospital }) => {
         <SectionCard
           title="Hospital Info"
           Icon={pencil}
-          onIconClick={() => setOpenInfoDrawer(true)}
+          subtitle="Visible to Patient"
+          onIconClick={() => {
+            setActiveDrawerSection('info');
+            setOpenInfoDrawer(true);
+          }}
         >
           {errorInfo ? (
             <div className="text-red-600 bg-red-50 border border-red-200 p-3 rounded">{String(errorInfo)}</div>
@@ -559,9 +564,13 @@ const Details = ({ hospital }) => {
         {/* Hospital Info */}
         <HospitalInfoDrawer
           open={openInfoDrawer}
-          onClose={() => setOpenInfoDrawer(false)}
+          onClose={() => {
+            setOpenInfoDrawer(false);
+            setActiveDrawerSection(null);
+          }}
           onSave={refreshData}
           initial={{ ...profile, hospitalId: hospital?.temp || hospital?.id }}
+          initialSection={activeDrawerSection}
         />
 
         <AddAwardDrawer
@@ -593,7 +602,7 @@ const Details = ({ hospital }) => {
         </SectionCard>
 
         {/* Services & Facilities */}
-        <SectionCard title="Hospital Services & Facilities" Icon={pencil} onIconClick={() => setOpenServicesDrawer(true)}>
+        <SectionCard title="Hospital Services & Facilities" subtitle="Visible to Patient" Icon={pencil} onIconClick={() => setOpenServicesDrawer(true)}>
           <div className="flex flex-wrap gap-3">
             {(profile.services && profile.services.length > 0 ? profile.services : ['-']).map((s, i) => (
               <span key={i} className="px-1 rounded-[2px] border border-gray-100 bg-gray-50 text-sm text-secondary-grey400 hover:border-blue-primary150 hover:text-blue-primary250 cursor-pointer">{s}</span>
@@ -605,6 +614,7 @@ const Details = ({ hospital }) => {
         <SectionCard
           title="Awards, Accreditations & Publications"
           Icon={add}
+          subtitle="Visible to Patient"
           onIconClick={() => setShowAddMenu((v) => !v)}
         >
           <div className="relative">
@@ -708,7 +718,10 @@ const Details = ({ hospital }) => {
       < div className="col-span-12 xl:col-span-6 space-y-6" >
 
         {/* Address */}
-        < SectionCard title="Hospital Address" Icon={pencil} onIconClick={() => { }}>
+        < SectionCard title="Hospital Address" subtitle="Visible to Patient" Icon={pencil} onIconClick={() => {
+          setActiveDrawerSection('address');
+          setOpenInfoDrawer(true);
+        }}>
           {
             errorInfo ? (
               <div className="text-red-600 bg-red-50 border border-red-200 p-3 rounded" > {String(errorInfo)}</div>
@@ -737,7 +750,10 @@ const Details = ({ hospital }) => {
         </SectionCard >
 
         {/* Primary Admin */}
-        < SectionCard title="Primary Admin Account Details" subo="To Change Admin Details" headerRight={<></>}>
+        < SectionCard title="Primary Admin Account Details" Icon={pencil} onIconClick={() => {
+          setActiveDrawerSection('admin');
+          setOpenInfoDrawer(true);
+        }} >
           {
             errorAdmin ? (
               <div className="text-error-400 text-sm" > {String(errorAdmin)}</div>
@@ -756,7 +772,7 @@ const Details = ({ hospital }) => {
         </SectionCard >
 
         {/* Verification Documents */}
-        < SectionCard title="Verification Documents" subo="To change your Medical proof please" >
+        < SectionCard title="Verification Documents" subtitle="Visible to Patient" subo="To change your Medical proof please" >
           {loadingDocs && (
             <div className="w-full flex items-center justify-center h-28"><UniversalLoader size={24} /></div>
           )}

@@ -23,6 +23,7 @@ import AddPublicationDrawer from "../Drawers/AddPublicationDrawer.jsx";
 import EditPracticeDetailsDrawer from "../Drawers/EditPracticeDetailsDrawer.jsx";
 import ExperienceDrawerNew from "../Drawers/ExperienceDrawer.jsx";
 import UniversalLoader from "@/components/UniversalLoader";
+import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 
 const InfoField = ({ label, value, right, className: Class }) => (
   <div
@@ -783,53 +784,12 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
                   value={medicalRegistration?.registrationCouncil || "—"}
                 />
 
-                <div className="h-[32px]  w-full border-[0.5px] border-dashed border-secondary-grey200 rounded-md flex items-center justify-between px-2 text-sm overflow-x-hidden bg-secondary-grey50">
-                  <span className="flex items-center gap-3 text-secondary-grey300 flex-1 min-w-0 p-[0.5px]">
-                    <img src="/Doctor_module/settings/pdf_black.png" alt="file" className="h-6 w-6" />
-                    <span className="whitespace-normal break-words break-all overflow-hidden text-secondary-grey400">
-                      {(() => {
-                        const url = String(medicalRegistration?.proofDocumentUrl || "");
-                        const name = url ? (url.split("/").pop() || "MRN Proof.pdf") : "—";
-                        const max = 22;
-                        if (name.length <= max) return name;
-                        const keep = Math.max(4, Math.floor((max - 3) / 2));
-                        return `${name.slice(0, keep)}...${name.slice(-keep)}`;
-                      })()}
-                    </span>
-
-                    <button
-                      type="button"
-                      title="View"
-                      className="hover:text-secondary-grey400"
-                      onClick={() => onFileView?.(fileName)}
-                    >
-
-                    </button>
-                  </span>
-                  <span className="flex items-center gap-3 text-secondary-grey300 flex-shrink-0">
-                    <button
-                      type="button"
-                      title="View"
-                      className="hover:text-secondary-grey400 p-2"
-                      onClick={() => onFileView?.(fileName)}
-                    >
-                      {/* simple eye */}
-                      <img src="/Doctor_module/settings/eye.png" alt="" className="w-4 h-4" />
-                    </button>
-
-                    {medicalRegistration?.proofDocumentUrl ? (
-                      <a
-                        href={medicalRegistration.proofDocumentUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="View"
-                        className="hover:text-secondary-grey400 inline-flex items-center justify-center"
-                      >
-                        <img src="/Doctor_module/settings/eye.png" alt="view" className="w-3.5 h-3.5" />
-                      </a>
-                    ) : null}
-                  </span>
-                </div>
+                <InputWithMeta
+                  imageUpload={true}
+                  disabled={true}
+                  fileName={medicalRegistration?.mrnProofName || "MRN Proof.pdf"}
+                  onFileView={() => onFileView(medicalRegistration?.mrnProof || "")}
+                />
 
 
               </div>
@@ -842,15 +802,7 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
                   Practice Details
                 </div>
                 <span className="absolute left-0 bottom-0 h-[0.5px] w-[50px] bg-blue-primary250" />
-                {/* <button
-                  type="button"
-                  onClick={() => setPracticeOpen(true)}
-                  className="inline-flex items-center justify-center rounded hover:bg-secondary-grey50 text-secondary-grey300"
-                  title="Edit Practice Details"
-                  aria-label="Edit Practice Details"
-                >
-                  <img src={pencil} alt="edit" className="w-7" />
-                </button> */}
+
               </div>
 
               {/* Content grid MUST span full width */}

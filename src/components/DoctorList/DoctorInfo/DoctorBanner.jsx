@@ -52,25 +52,43 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
         console.log("DoctorBanner: Fetched Data:", resp);
         if (resp?.data) {
           const d = resp.data;
+          const workplace = d?.workplace || { clinics: [], hospitals: [] };
+          const clinicHospitalName = d?.clinicHospitalName || initialDoctor?.clinicHospitalName;
+
+          let foundId = null;
+          // Try to find the ID that match the name
+          const allFacilities = [...(workplace.clinics || []), ...(workplace.hospitals || [])];
+          const match = allFacilities.find(f => f.name === clinicHospitalName);
+          if (match) {
+            foundId = String(match.id || match._id);
+          }
+
           const mapped = {
             ...initialDoctor,
             ...d,
             id: d?.doctorCode || userId,
             userId: userId,
             name: d?.doctorName || initialDoctor?.name,
-            workplace: d?.workplace || { clinics: [], hospitals: [] },
+            workplace,
             designation: d?.qualification || initialDoctor?.designation,
             specialization: d?.specialization || initialDoctor?.specialization,
-            medicalPracticeType: d?.medicalPracticeType || d?.medicalPracticeType, // Map medicalPracticeType
+            medicalPracticeType: d?.medicalPracticeType,
             exp: d?.experienceOverall != null ? `${d.experienceOverall} yrs exp` : initialDoctor?.exp,
             status: d?.status || initialDoctor?.status,
             rating: d?.rating || initialDoctor?.rating,
             activePackage: d?.activePackage || initialDoctor?.activePackage,
-            clinicHospitalName: d?.clinicHospitalName || initialDoctor?.clinicHospitalName,
+            clinicHospitalName,
             noOfPatientsManaged: d?.noOfPatientsManaged,
             noOfAppointmentsBooked: d?.noOfAppointmentsBooked,
           };
+
           setDoctor(mapped);
+          if (foundId) {
+            setSelectedId(foundId);
+            if (typeof onClinicChange === 'function') {
+              onClinicChange(foundId);
+            }
+          }
         }
       } catch (error) {
         console.error("DoctorBanner: API Error", error);
@@ -105,11 +123,38 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
   const isActive = (doctor?.status || '').toLowerCase() === 'active'
 
   const [isClinicOpen, setIsClinicOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState(1);
+  const [selectedId, setSelectedId] = useState(null);
   const [openMenu, setOpenMenu] = useState(null); // Track which menu is open by name or id
   const [showActionMenu, setShowActionMenu] = useState(false);
   const clinicRef = useRef(null);
   const actionMenuRef = useRef(null);
+
+  // Auto-selection logic: Prioritize Clinic over Hospital if both are present
+  useEffect(() => {
+    if (!doctor?.workplace || selectedId !== null) return;
+
+    const clinics = doctor.workplace.clinics || [];
+    const hospitals = doctor.workplace.hospitals || [];
+
+    let priorityFacility = null;
+    if (clinics.length > 0) {
+      priorityFacility = clinics[0];
+    } else if (hospitals.length > 0) {
+      priorityFacility = hospitals[0];
+    }
+
+    if (priorityFacility) {
+      const pid = String(priorityFacility.id || priorityFacility._id);
+      setSelectedId(pid);
+      setDoctor(prev => ({
+        ...prev,
+        clinicHospitalName: priorityFacility.name
+      }));
+      if (typeof onClinicChange === 'function') {
+        onClinicChange(pid);
+      }
+    }
+  }, [doctor?.workplace, selectedId, onClinicChange]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -269,7 +314,7 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
             onClick={() => setIsClinicOpen(!isClinicOpen)}
             className={`bg-secondary-grey50 flex items-center px-[6px] py-[2px] gap-1 border hover:border-blue-primary150 rounded-sm  transition-colors hover:text-blue-primary250 relative cursor-pointer select-none ${isClinicOpen ? ' border-blue-primary150 text-blue-primary250' : 'border-transparent text-secondary-grey400'}`}
           >
-            <img src={hospital} alt="" className='h-4 w-4' />
+            <img src={selectedId && doctor?.workplace?.hospitals?.find(h => String(h.id || h._id) === String(selectedId)) ? hospital2 : clinic} alt="" className='h-4 w-4' />
             <span className=" text-sm font-normal">
               {doctor?.clinicHospitalName || '-'}
             </span>
@@ -289,14 +334,17 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
                   {/* render clinics */}
                   {(doctor?.workplace?.clinics || []).map((clinic, idx) => (
                     <FacilityCard
-                      key={clinic.id || `clinic-${idx}`}
+                      key={clinic.id || clinic._id || `clinic-${idx}`}
                       name={clinic.name || "-"}
                       location={clinic.city || clinic.location || ""}
                       variant="clinic"
-                      selected={selectedId === clinic.id}
+                      selected={String(selectedId) === String(clinic.id || clinic._id)}
                       onClick={() => {
-                        setSelectedId(clinic.id);
-                        if (typeof onClinicChange === 'function') onClinicChange(clinic.id);
+                        const cId = String(clinic.id || clinic._id);
+                        setSelectedId(cId);
+                        setDoctor(prev => ({ ...prev, clinicHospitalName: clinic.name }));
+                        if (typeof onClinicChange === 'function') onClinicChange(cId);
+                        setIsClinicOpen(false);
                       }}
                     />
                   ))}
@@ -320,14 +368,17 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
                   {/* render hospitals */}
                   {(doctor?.workplace?.hospitals || []).map((hosp, idx) => (
                     <FacilityCard
-                      key={hosp.id || `hosp-${idx}`}
+                      key={hosp.id || hosp._id || `hosp-${idx}`}
                       name={hosp.name || "-"}
                       location={hosp.city || hosp.location || ""}
                       variant="hospital"
-                      selected={selectedId === hosp.id}
+                      selected={String(selectedId) === String(hosp.id || hosp._id)}
                       onClick={() => {
-                        setSelectedId(hosp.id);
-                        if (typeof onClinicChange === 'function') onClinicChange(hosp.id);
+                        const hId = String(hosp.id || hosp._id);
+                        setSelectedId(hId);
+                        setDoctor(prev => ({ ...prev, clinicHospitalName: hosp.name }));
+                        if (typeof onClinicChange === 'function') onClinicChange(hId);
+                        setIsClinicOpen(false);
                       }}
                     />
                   ))}
