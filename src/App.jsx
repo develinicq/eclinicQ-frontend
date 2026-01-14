@@ -10,6 +10,7 @@ import DoctorDetailsPage from "./SuperAdmin/pages/Doctors/DoctorList/DoctorInfo/
 import HospitalDetailsPage from "./SuperAdmin/pages/Hospitals/HospitalList/HospitalInfo/HospitalDetailsPage";
 import { RegistrationProvider } from "./SuperAdmin/context/RegistrationContext";
 import SuperAdminSignIn from "./SuperAdmin/pages/SignIn";
+import { ProtectedAdminRoute, PublicAdminRoute } from "./SuperAdmin/components/Guard/AdminRoutes";
 import GetStarted from "./pages/GetStarted";
 import OnboardingFlow from "./DoctorModule/Pages/Login/OnboardingFlow";
 import Doctor_layout from "./DoctorModule/Components/Layout/DoctorLayout";
@@ -60,20 +61,28 @@ import TabDemo from "./pages/TabDemo";
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<SuperAdminSignIn />} />
+      <Route
+        path="/"
+        element={
+          <PublicAdminRoute>
+            <SuperAdminSignIn />
+          </PublicAdminRoute>
+        }
+      />
       {/* Demo route for Tab component */}
       <Route path="tab-demo" element={<TabDemo />} />
 
       {/* Admin panel routes */}
-      <Route element={<Layout />}>
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="doctor" element={<Doctor />} />
-        <Route path="doctor/:id" element={<DoctorDetailsPage />} />
-        <Route path="hospitals" element={<Hospitals />} />
-        <Route path="hospital/:id" element={<HospitalDetailsPage />} />
-        <Route path="patients" element={<Patients />} />
-        <Route path="settings" element={<Settings />} />
-
+      <Route element={<ProtectedAdminRoute />}>
+        <Route element={<Layout />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="doctor" element={<Doctor />} />
+          <Route path="doctor/:id" element={<DoctorDetailsPage />} />
+          <Route path="hospitals" element={<Hospitals />} />
+          <Route path="hospital/:id" element={<HospitalDetailsPage />} />
+          <Route path="patients" element={<Patients />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
       </Route>
 
       {/* Registration flow with single routes - Moved outside Layout to remove main sidebar */}

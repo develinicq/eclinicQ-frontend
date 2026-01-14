@@ -4,7 +4,7 @@ import UniversalLoader from "@/components/UniversalLoader";
 import { Checkbox } from "@/components/ui/checkbox";
 import axios from "../../lib/axios";
 import useSuperAdminAuthStore from "../../store/useSuperAdminAuthStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 
@@ -29,6 +29,23 @@ export default function SuperAdminSignIn() {
     const [otp, setOtp] = useState(new Array(6).fill(""));
     const [challengeId, setChallengeId] = useState(null);
     const otpInputRefs = useRef([]);
+
+    const location = useLocation();
+    const hasToasted = useRef(false);
+
+    // Show toast if redirected from a protected route
+    React.useEffect(() => {
+        if (location.state?.fromGuard && !hasToasted.current) {
+            addToast({
+                title: "Access Denied",
+                message: "Please login first to access this page.",
+                type: "error",
+            });
+            hasToasted.current = true;
+            // Clear state so toast doesn't re-appear on refresh/manual landing
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, addToast]);
 
     const canLogin = identifier.trim().length > 0 && password.trim().length > 0;
     const isOtpFilled = otp.every(val => val !== "");
@@ -119,7 +136,7 @@ export default function SuperAdminSignIn() {
                     if (remember) {
                         try {
                             localStorage.setItem('superAdminToken', token);
-                        } catch {}
+                        } catch { }
                     }
                     // You might want to set user details here if returned, or fetch /me
                     // setUser(res.data.data.user); 

@@ -55,6 +55,14 @@ axiosInstance.interceptors.response.use(
     if (error?.response?.status === 401) {
       try {
         useAuthStore.getState().clearAuth();
+        useSuperAdminAuthStore.getState().clearAuth();
+        localStorage.removeItem('superAdminToken');
+
+        useToastStore.getState().addToast({
+          title: "Session Expired",
+          message: "Your session has expired. Please login again.",
+          type: "error",
+        });
       } catch (e) {
         // ignore
       }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { MapPin, Building2, Calendar, Globe, MoreHorizontal } from 'lucide-react'
 import AvatarCircle from '../../AvatarCircle'
-import { getDownloadUrl } from '../../../services/uploadsService'
+import { getPublicUrl } from '../../../services/uploadsService'
 import UniversalLoader from "@/components/UniversalLoader";
 const horizontal = '/horizontal.png'
 
@@ -32,18 +32,32 @@ const HospitalBanner = ({
   console.log("HospitalBanner: received hospitalData:", hospitalData);
   const { name, status, address, type, established, website, bannerImage, logoImage, stats } = hospitalData
   const [resolvedLogo, setResolvedLogo] = useState('')
+  const [imageLoading, setImageLoading] = useState(false)
 
   useEffect(() => {
     let ignore = false
     const run = async () => {
+      if (!logoImage) {
+        setResolvedLogo('')
+        return
+      }
+      // If it's already a URL, use it
+      if (typeof logoImage === 'string' && (logoImage.startsWith('http') || logoImage.startsWith('data:') || logoImage.startsWith('/'))) {
+        setResolvedLogo(logoImage)
+        return
+      }
+
+      setImageLoading(true)
       try {
-        const l = await getDownloadUrl(logoImage)
+        const l = await getPublicUrl(logoImage)
         if (!ignore) setResolvedLogo(l || '')
       } catch {
         if (!ignore) setResolvedLogo('')
+      } finally {
+        if (!ignore) setImageLoading(false)
       }
     }
-    if (logoImage) run()
+    run()
     return () => { ignore = true }
   }, [logoImage])
 
@@ -61,13 +75,19 @@ const HospitalBanner = ({
     <div className="w-full p-4 flex items-center gap-4 bg-white relative">
       {/* Profile Circle with tick */}
       <div className="relative">
-        <div className="w-[90px] h-[90px] rounded-full overflow-hidden border border-gray-100">
-          <img
-            src={resolvedLogo || logoImage || '/images/hospital_logo.png'}
-            alt={name}
-            className="w-full h-full object-cover"
-            onError={(e) => { e.currentTarget.src = '/images/hospital_logo.png' }}
-          />
+        <div className="w-[90px] h-[90px] rounded-full overflow-hidden border border-gray-100 flex items-center justify-center bg-gray-50">
+          {imageLoading ? (
+            <UniversalLoader size={20} />
+          ) : resolvedLogo ? (
+            <img
+              src={resolvedLogo}
+              alt={name}
+              className="w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.src = '/images/hospital_logo.png' }}
+            />
+          ) : (
+            <AvatarCircle name={name || 'Hospital'} color="blue" className="w-full h-full text-[2rem] border-none" style={{ borderWidth: 0 }} />
+          )}
         </div>
         <img src="/tick.png" alt="Verified" className="absolute -bottom-0 left-16 w-6 h-6" />
       </div>

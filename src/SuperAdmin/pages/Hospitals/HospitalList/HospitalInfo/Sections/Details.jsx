@@ -94,6 +94,11 @@ const ProfileItemCard = ({
   description,
   initiallyExpanded = false,
   rightActions,
+  // Optional inline edit control
+  showEditEducation = false,
+  editEducationIcon,
+  onEditEducationClick,
+  editEducationAriaLabel = "Edit",
 }) => {
   const [expanded, setExpanded] = useState(!!initiallyExpanded);
   const MAX_CHARS = 220;
@@ -108,6 +113,7 @@ const ProfileItemCard = ({
       : '';
   return (
     <div className="flex  py-2.5 pt-1.5 border-b rounded-md bg-white">
+      {/* Icon */}
       <div className="w-[64px] mr-4 h-[64px] rounded-full border border-secondary-grey50 bg-gray-100 flex items-center justify-center text-gray-600 shrink-0">
         {typeof icon === "string" ? (
           <img src={icon} alt="" className="w-8 h-8 object-contain" />
@@ -115,6 +121,8 @@ const ProfileItemCard = ({
           icon
         )}
       </div>
+
+      {/* Content */}
       <div className="flex  flex-col gap-[2px] w-full">
         <div className="flex items-center justify-between">
           <div className="flex flex-shrink-0  items-center gap-1 text-sm text-secondary-grey400">
@@ -125,9 +133,30 @@ const ProfileItemCard = ({
               </span>
             )}
           </div>
+
+          {showEditEducation && (
+            <button
+              type="button"
+              onClick={onEditEducationClick}
+              aria-label={editEducationAriaLabel}
+              title={editEducationAriaLabel}
+              className="inline-flex items-center justify-center rounded hover:bg-secondary-grey50 text-secondary-grey300 mr-2"
+            >
+              {typeof editEducationIcon === "string" && editEducationIcon ? (
+                <img src={editEducationIcon} alt="edit" className="w-6" />
+              ) : editEducationIcon ? (
+                React.createElement(editEducationIcon, { className: "w-6" })
+              ) : (
+                <img src={pencil} alt="edit" className="w-6" />
+              )}
+            </button>
+          )}
         </div>
+
         {subtitle && <div className="text-sm text-secondary-grey400 w-4/5">{subtitle}</div>}
         {date && <div className="text-sm text-secondary-grey200">{date}</div>}
+        {location && <div className="text-sm text-secondary-grey200">{location}</div>}
+
         {linkUrl ? (
           <div className="flex items-center gap-1">
             <a
@@ -157,6 +186,8 @@ const ProfileItemCard = ({
           ) : null
         )}
       </div>
+
+      {/* Right actions – render ONLY if provided */}
       {rightActions && (
         <div className="flex items-center gap-2">{rightActions}</div>
       )}
@@ -180,6 +211,8 @@ const Details = ({ hospital }) => {
   const [openServicesDrawer, setOpenServicesDrawer] = useState(false)
   const [openAwardDrawer, setOpenAwardDrawer] = useState(false)
   const [openAccreditationDrawer, setOpenAccreditationDrawer] = useState(false)
+  const [selectedAward, setSelectedAward] = useState(null)
+  const [selectedAccreditation, setSelectedAccreditation] = useState(null)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
@@ -450,8 +483,8 @@ const Details = ({ hospital }) => {
   const otherDocs = docs.filter(d => !['GST_PROOF', 'STATE_HEALTH_REG_PROOF', 'PAN_CARD'].includes(d.docType) && !((d.docType || '').includes('CIN')))
   if (loading) {
     return (
-      <div className="w-full flex items-center justify-center py-10">
-        <UniversalLoader size={28} className="bg-white" />
+      <div className="w-full h-full flex items-center justify-center py-10">
+        <UniversalLoader size={28} />
       </div>
     )
   }
@@ -509,9 +542,13 @@ const Details = ({ hospital }) => {
               >
               </InputWithMeta>
               <div className="flex gap-4 overflow-x-auto pb-1">
-                {(resolvedPhotos && resolvedPhotos.length > 0 ? resolvedPhotos : ['/placeholder_clinic.jpg']).map((src, i) => (
-                  <img key={i} src={src} alt="hospital" className="w-[120px] h-[120px] rounded-md object-cover border border-gray-100" />
-                ))}
+                {resolvedPhotos && resolvedPhotos.length > 0 ? (
+                  resolvedPhotos.map((src, i) => (
+                    <img key={i} src={src} alt="hospital" className="w-[120px] h-[120px] rounded-md object-cover border border-gray-100" />
+                  ))
+                ) : (
+                  <div className="text-sm text-secondary-grey200 ">No Photos</div>
+                )}
               </div>
             </>
           )}
@@ -529,17 +566,21 @@ const Details = ({ hospital }) => {
 
         <AddAwardDrawer
           open={openAwardDrawer}
-          onClose={() => setOpenAwardDrawer(false)}
+          onClose={() => { setOpenAwardDrawer(false); setSelectedAward(null); }}
           onSuccess={() => refreshData({ silent: true, sections: ['awards'] })}
           hospitalId={hospital?.temp || hospital?.id}
+          mode={selectedAward ? "edit" : "add"}
+          initial={selectedAward || {}}
         />
 
-        {/* Add Accreditation */}
+        {/* Add/Edit Accreditation */}
         <AddAccreditationDrawer
           open={openAccreditationDrawer}
-          onClose={() => setOpenAccreditationDrawer(false)}
+          onClose={() => { setOpenAccreditationDrawer(false); setSelectedAccreditation(null); }}
           onSuccess={() => refreshData({ silent: true, sections: ['awards'] })}
           hospitalId={hospital?.temp || hospital?.id}
+          mode={selectedAccreditation ? "edit" : "add"}
+          initial={selectedAccreditation || {}}
         />
 
         {/* Medical Specialties */}
@@ -568,7 +609,7 @@ const Details = ({ hospital }) => {
         >
           <div className="relative">
             {showAddMenu && (
-              <div className="absolute right-0 -top-2 mt-0.5 bg-white border border-gray-200 shadow-2xl rounded-md p-1 text-[13px] z-20">
+              <div className="absolute right-0 bottom-11 mt-0.5 bg-white border border-gray-200 rounded-md p-1 text-[13px] z-20">
                 <button
                   className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 w-full text-left"
                   onClick={() => { setShowAddMenu(false); setOpenAwardDrawer(true); }}
@@ -604,6 +645,12 @@ const Details = ({ hospital }) => {
                 linkLabel="Certificate ↗"
                 linkUrl={acc.certificateUrl}
                 description={acc.description}
+                showEditEducation={true}
+                editEducationIcon={pencil}
+                onEditEducationClick={() => {
+                  setSelectedAccreditation(acc);
+                  setOpenAccreditationDrawer(true);
+                }}
               />
             ))}
 
@@ -616,6 +663,12 @@ const Details = ({ hospital }) => {
                 date={formatMonthYear(aw.issueDate)}
                 linkLabel="Certificate ↗"
                 linkUrl={aw.awardUrl}
+                showEditEducation={true}
+                editEducationIcon={pencil}
+                onEditEducationClick={() => {
+                  setSelectedAward(aw);
+                  setOpenAwardDrawer(true);
+                }}
               />
             ))}
 

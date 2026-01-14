@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { drawerCross } from "../../../public/index.js";
 
@@ -16,6 +17,7 @@ export default function GeneralDrawer({
   // New: control visibility of the primary action button in header
   showPrimaryAction = true,
   zIndex = 5000,
+  fullHeight = false,
 }) {
   const panelRef = useRef(null);
   const [mounted, setMounted] = useState(false);
@@ -72,8 +74,7 @@ export default function GeneralDrawer({
 
   if (!mounted && !closing) return null;
 
-  if (!mounted && !closing) return null;
-  return (
+  const drawerContent = (
     <div className="fixed inset-0 " style={{ zIndex }}>
       <style>{`
         @keyframes drawerIn { from { transform: translateX(100%); opacity: 0.6; } to { transform: translateX(0%); opacity: 1; } }
@@ -92,10 +93,10 @@ export default function GeneralDrawer({
         style={{ zIndex: 5001 }}
       />
 
-      {/* Drawer panel with 16px inset from edges */}
+      {/* Drawer panel */}
       <aside
         aria-hidden={!isOpen}
-        className={` absolute top-2 right-2 bottom-2 bg-white shadow-2xl border border-gray-200 rounded-xl overflow-hidden ${closing
+        className={` absolute bg-white shadow-2xl border border-gray-200 overflow-hidden ${fullHeight ? "top-0 right-0 bottom-0" : "top-2 right-2 bottom-2 rounded-xl"} ${closing
           ? "animate-[drawerOut_.22s_ease-in_forwards]"
           : "animate-[drawerIn_.25s_ease-out_forwards]"
           }`}
@@ -145,4 +146,6 @@ export default function GeneralDrawer({
       </aside>
     </div>
   );
+
+  return createPortal(drawerContent, document.body);
 }

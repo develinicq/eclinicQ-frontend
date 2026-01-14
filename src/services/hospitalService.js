@@ -21,12 +21,14 @@ export const getAllHospitalsBySuperAdmin = async () => {
   }
 };
 
-// Get hospital details by ID for Super Admin
+// Get hospital details (banner data) by ID for Super Admin
 export const getHospitalByIdBySuperAdmin = async (hospitalId) => {
   console.log("hospitalService: getHospitalByIdBySuperAdmin called with:", hospitalId);
   if (!hospitalId) throw new Error('hospitalId is required');
   try {
-    const res = await axios.get(`/hospitals/forSuperAdmin/${encodeURIComponent(hospitalId)}`);
+    const res = await axios.get(`/hospitals/forSuperAdmin/hospital-banner`, {
+      params: { hospitalId }
+    });
     return res.data;
   } catch (error) {
     throw error;
@@ -235,6 +237,30 @@ export const addHospitalPublicationForSuperAdmin = async (hospitalId, data) => {
   if (!hospitalId) throw new Error('hospitalId is required');
   try {
     const res = await axios.post('/hospitals/forSuperAdmin/publications', data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateHospitalAwardForSuperAdmin = async (hospitalId, awardId, data) => {
+  if (!hospitalId || !awardId) throw new Error('hospitalId and awardId are required');
+  try {
+    const res = await axios.put(`/hospitals/forSuperAdmin/awards/${encodeURIComponent(awardId)}`, data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateHospitalAccreditationForSuperAdmin = async (hospitalId, accreditationId, data) => {
+  if (!hospitalId || !accreditationId) throw new Error('hospitalId and accreditationId are required');
+  try {
+    const res = await axios.put(`/hospitals/forSuperAdmin/accreditations/${encodeURIComponent(accreditationId)}`, data, {
       params: { hospitalId }
     });
     return res.data;

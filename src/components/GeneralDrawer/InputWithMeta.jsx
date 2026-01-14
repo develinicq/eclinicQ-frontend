@@ -59,6 +59,7 @@ export default function InputWithMeta({
   showDivider = false,
   type = "text",
   meta,
+  dropUp = false,
 }) {
   const truncate = (str, max) => {
     if (!str) return str;
@@ -299,7 +300,8 @@ export default function InputWithMeta({
       {dropdownOpen &&
         Array.isArray(dropdownItems) &&
         dropdownItems.length > 0 && (
-          <div className="input-meta-dropdown absolute left-0 top-full mt-1 z-[10000] bg-white border border-gray-200 rounded-xl shadow-2xl w-full max-h-60 overflow-auto">
+          <div className={`input-meta-dropdown absolute left-0 z-[10000] bg-white border border-gray-200 rounded-xl shadow-2xl w-full max-h-60 overflow-auto ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'
+            }`}>
             <ul className="py-1">
               {dropdownItems.map((it, idx) => {
                 const isSelected = selectedValue === (it.value ?? it.label);

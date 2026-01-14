@@ -1,14 +1,23 @@
 import React from "react";
 import { useRegistration } from "../SuperAdmin/context/RegistrationContext";
 import useDoctorRegistrationStore from '../store/useDoctorRegistrationStore';
-import { ArrowLeft, ChevronLeft } from "lucide-react";
+import useDoctorStep1Store from '../store/useDoctorStep1Store';
+import { ArrowLeft } from "lucide-react";
 
 import UniversalLoader from "./UniversalLoader";
 
 const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next", disablePrev = false, loading = false }) => {
-  const { registrationType, formData } = useRegistration();
+  const { registrationType, formData, setCurrentStep } = useRegistration();
   const isHospital = registrationType === 'hospital';
   const hospitalOwnerAlsoDoctor = isHospital && String(formData?.isDoctor || 'no') === 'yes';
+
+  // State from stores for validation
+  const step1State = useDoctorStep1Store();
+  const regState = useDoctorRegistrationStore();
+  const { submit, loading: storeLoading, error, success } = regState;
+
+  const [localError, setLocalError] = React.useState(null);
+  const [disablePrevLocal, setDisablePrevLocal] = React.useState(false);
 
   // Final success footer:
   // - Doctor flow finishes at step 6
@@ -52,16 +61,115 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
     );
   }
 
-  const { submit, loading: storeLoading, error, success, userId, specialization } = useDoctorRegistrationStore();
-  const { setCurrentStep } = useRegistration();
-  const [localError, setLocalError] = React.useState(null);
-  const [disablePrevLocal, setDisablePrevLocal] = React.useState(false);
+  const validateStep1 = () => {
+    const { firstName, lastName, emailId, phone, gender, city, profilePhotoKey } = step1State;
+    if (!firstName?.trim() || !lastName?.trim() || !emailId?.trim() || !phone?.trim() || !gender || !city || !profilePhotoKey) return false;
+    if (!/^\S+@\S+\.\S+$/.test(emailId)) return false;
+    if (!/^\d{10}$/.test(phone)) return false;
+    return true;
+  };
 
-  // We disable the footer's direct submission logic for Step 5 because Step 5 now handles its own activation via internal buttons.
-  const isLastStep = false; // registrationType === 'doctor' ? currentStep === 5 : false;
+  const validateStep2 = () => {
+    const {
+      medicalCouncilRegNo,
+      medicalCouncilName,
+      medicalCouncilRegYear,
+      medicalDegreeType,
+      medicalDegreeUniversityName,
+      medicalDegreeYearOfCompletion,
+      specialization,
+      experienceYears,
+      documents,
+      pgMedicalDegreeType,
+      pgMedicalDegreeUniversityName,
+      pgMedicalDegreeYearOfCompletion
+    } = regState;
+
+    // Required fields
+    if (!medicalCouncilRegNo?.trim() || !medicalCouncilName || !medicalCouncilRegYear) return false;
+    if (!medicalDegreeType || !medicalDegreeUniversityName || !medicalDegreeYearOfCompletion) return false;
+
+    // Specialization
+    const specName = typeof specialization === 'object' ? (specialization?.value || specialization?.name) : specialization;
+    if (!specName || !experienceYears) return false;
+
+    // Year formats
+    if (!/^\d{4}$/.test(medicalCouncilRegYear)) return false;
+    if (!/^\d{4}$/.test(medicalDegreeYearOfCompletion)) return false;
+
+    // Experience
+    if (!/^\d+$/.test(experienceYears)) return false;
+
+    // Proofs
+    const hasProof = (no) => documents?.find(d => d.no === no)?.url;
+    if (!hasProof(1) || !hasProof(2)) return false;
+
+    // PG validation if selected
+    if (pgMedicalDegreeType !== null) {
+      if (!pgMedicalDegreeType || !pgMedicalDegreeUniversityName || !pgMedicalDegreeYearOfCompletion) return false;
+      if (!/^\d{4}$/.test(pgMedicalDegreeYearOfCompletion)) return false;
+    }
+
+    // Additional Practices validation
+    const addPractices = regState.additionalPractices || [];
+    for (const p of addPractices) {
+      const pSpec = typeof p.specialization === 'object' ? (p.specialization?.value || p.specialization?.name) : p.specialization;
+      if (!pSpec || !p.experienceYears?.toString().trim()) return false;
+      if (!/^\d+$/.test(p.experienceYears)) return false;
+    }
+
+    return true;
+  };
+
+  const validateStep3 = () => {
+    const { hasClinic, clinicData } = regState;
+    if (!hasClinic) return true; // Skipped
+
+    const {
+      name, email, phone,
+      blockNo, areaStreet, landmark, city, state, pincode,
+      proof, latitude, longitude
+    } = clinicData;
+
+    if (!name?.trim() || !email?.trim() || !phone?.trim()) return false;
+    if (!blockNo?.trim() || !areaStreet?.trim() || !landmark?.trim()) return false;
+    if (!city || !state || !pincode?.trim()) return false;
+    if (!proof) return false;
+    if (!Number(latitude) || !Number(longitude)) return false;
+
+    // RegEx checks
+    if (!/^\S+@\S+\.\S+$/.test(email)) return false;
+    if (!/^\d{10}$/.test(phone)) return false;
+    if (!/^\d{6}$/.test(pincode)) return false;
+
+    if (!/^\d{6}$/.test(pincode)) return false;
+
+    return true;
+  };
+
+  const validateStep4 = () => {
+    // Check if we are in Doctor Step 4, Substep 2
+    // Doctor Step 4 has 2 substeps. Agreement is on SubStep 2.
+    // Substep state is in formData.step4SubStep
+    if (registrationType === 'doctor' && (formData.step4SubStep === 2)) {
+      if (!formData.termsAccepted || !formData.privacyAccepted) return false;
+    }
+    return true;
+  };
+
+  let isNextDisabled = false;
+  if (registrationType === 'doctor') {
+    if (currentStep === 1) isNextDisabled = !validateStep1();
+    else if (currentStep === 2) isNextDisabled = !validateStep2();
+    else if (currentStep === 3) isNextDisabled = !validateStep3();
+    else if (currentStep === 4) isNextDisabled = !validateStep4();
+  }
+
+  const isLastStep = false; // Set to true if this is the final submission step
 
   const handleSubmit = async () => {
     setLocalError(null);
+    if (isNextDisabled) return;
 
     const ok = await submit();
     // Bypass validation: Always proceed
@@ -106,8 +214,8 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
         ) : (
           <button
             onClick={onNext}
-            disabled={loading}
-            className={`w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors ${loading ? 'cursor-wait opacity-80' : ''}`}
+            disabled={loading || isNextDisabled}
+            className={`w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors ${loading || isNextDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
           >
             {loading ? (
               <div className="flex items-center gap-2">
@@ -117,7 +225,6 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
             ) : nextLabel}
           </button>
         )}
-        {/* Error alerts are shown via window.alert in handleSubmit; no inline red text */}
         {isLastStep && success && <span className="ml-4 text-green-600">Registration successful!</span>}
       </div>
     </footer>
@@ -125,6 +232,3 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
 };
 
 export default RegistrationFooter;
-
-
-

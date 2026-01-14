@@ -187,7 +187,9 @@ const Layout_registration_new = () => {
           setFooterLoading(true);
           try {
             const success = await step2Ref.current.submit();
+            console.log("Layout: Step 2 submit returned", success);
             if (success) {
+              console.log("Layout: Calling nextStep()");
               nextStep();
             }
           } catch (error) {

@@ -4,7 +4,7 @@ import HospitalBanner from "../../../../../components/HospitalList/HospitalInfo.
 import HospitalNav from "../../../../../components/HospitalList/HospitalInfo.jsx/HospitalNav.jsx";
 import { getHospitalByIdBySuperAdmin } from "../../../../../services/hospitalService";
 import useSuperAdminAuthStore from "../../../../../store/useSuperAdminAuthStore";
-import { getDownloadUrl } from "../../../../../services/uploadsService";
+import { getDownloadUrl, getPublicUrl } from "../../../../../services/uploadsService";
 import UniversalLoader from "@/components/UniversalLoader";
 
 const HospitalDetailsPage = () => {
@@ -93,9 +93,10 @@ const HospitalDetailsPage = () => {
         const logoKey = d.logo;
         const bannerKey = d.image;
         try {
+          // Use getPublicUrl for logo (profile image) and possibly banner
           const [logoUrl, bannerUrl] = await Promise.all([
-            getDownloadUrl(logoKey),
-            getDownloadUrl(bannerKey)
+            getPublicUrl(logoKey),
+            getPublicUrl(bannerKey)
           ]);
           if (!ignore) {
             setResolvedLogo(logoUrl || "");

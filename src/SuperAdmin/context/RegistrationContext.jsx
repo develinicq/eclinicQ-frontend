@@ -23,7 +23,11 @@ export const RegistrationProvider = ({ children }) => {
   });
 
   const nextStep = () => {
-    setCurrentStep(prev => prev + 1);
+    console.log("RegistrationContext: nextStep called, current is", currentStep);
+    setCurrentStep(prev => {
+      console.log("RegistrationContext: updating step from", prev, "to", prev + 1);
+      return prev + 1;
+    });
   };
 
   const prevStep = () => {

@@ -130,7 +130,7 @@ const Step1 = forwardRef((props, ref) => {
         if (userId) {
           setDocRegField('userId', userId);
         } else {
-             console.error("No userId found in response data", res.data);
+          console.error("No userId found in response data", res.data);
         }
         setIsSubmitting(false);
         return true;
@@ -270,16 +270,21 @@ const Step1 = forwardRef((props, ref) => {
             </div>
           </FormFieldRow>
 
-          {/* Upload Profile Picture */}
-          <CustomUpload
-            label="Upload Profile Picture"
-            variant="box"
-            compulsory={true}
-            uploadContent="Upload Image"
-            onUpload={(key) => setField('profilePhotoKey', key)}
-            uploadedKey={profilePhotoKey}
-            meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
-          />
+          <div className="w-full">
+            <CustomUpload
+              label="Upload Profile Picture"
+              variant="box"
+              compulsory={true}
+              uploadContent="Upload Image"
+              onUpload={(key) => {
+                setField('profilePhotoKey', key);
+                setFormErrors(prev => ({ ...prev, profilePhotoKey: "" }));
+              }}
+              uploadedKey={profilePhotoKey}
+              meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
+            />
+            {formErrors.profilePhotoKey && <span className="text-red-500 text-xs">{formErrors.profilePhotoKey}</span>}
+          </div>
 
           <div className="pb-4"></div>
         </div>

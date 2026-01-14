@@ -5,7 +5,7 @@ import Dropdown from "@/components/GeneralDrawer/Dropdown";
 import { ChevronDown } from "lucide-react";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
-import { addHospitalAwardForSuperAdmin } from "@/services/hospitalService";
+import { addHospitalAwardForSuperAdmin, updateHospitalAwardForSuperAdmin } from "@/services/hospitalService";
 import useToastStore from "@/store/useToastStore";
 import UniversalLoader from "@/components/UniversalLoader";
 
@@ -34,7 +34,26 @@ export default function AddAwardDrawer({ open, onClose, onSuccess, hospitalId, m
 		setLoading(false);
 	}, [open]); // Only reset when opening
 
-	const canSave = Boolean(title.trim() && issuer.trim() && date && !loading);
+	const hasChanges = useMemo(() => {
+		if (mode !== "edit") return true;
+		const initialTitle = initial?.title || initial?.awardName || "";
+		const initialIssuer = initial?.issuer || initial?.issuerName || "";
+		const initialAssoc = initial?.with || initial?.associatedWith || "";
+		const initialDate = initial?.date || (initial?.issueDate ? initial.issueDate.split("T")[0] : "");
+		const initialUrl = initial?.url || initial?.awardUrl || "";
+		const initialDesc = initial?.desc || initial?.description || "";
+
+		return (
+			title.trim() !== initialTitle ||
+			issuer.trim() !== initialIssuer ||
+			assoc.trim() !== initialAssoc ||
+			date !== initialDate ||
+			url.trim() !== initialUrl ||
+			desc.trim() !== initialDesc
+		);
+	}, [mode, initial, title, issuer, assoc, date, url, desc]);
+
+	const canSave = Boolean(title.trim() && issuer.trim() && date && hasChanges && !loading);
 
 	const assocOptions = useMemo(
 		() => ["Department", "Hospital", "Clinic", "University", "Conference"],
@@ -45,33 +64,53 @@ export default function AddAwardDrawer({ open, onClose, onSuccess, hospitalId, m
 		if (!canSave || !hospitalId) return;
 		setLoading(true);
 		try {
-			const payload = {
-				awardName: title.trim(),
-				issuerName: issuer.trim(),
-				associatedWith: assoc.trim(),
-				issueDate: date,
-				awardUrl: url.trim(),
-				description: desc.trim()
-			};
-			const res = await addHospitalAwardForSuperAdmin(hospitalId, payload);
+			let res;
+			if (mode === "edit" && initial?.id) {
+				const partialPayload = {};
+				const initialTitle = initial?.title || initial?.awardName || "";
+				const initialIssuer = initial?.issuer || initial?.issuerName || "";
+				const initialAssoc = initial?.with || initial?.associatedWith || "";
+				const initialDate = initial?.date || (initial?.issueDate ? initial.issueDate.split("T")[0] : "");
+				const initialUrl = initial?.url || initial?.awardUrl || "";
+				const initialDesc = initial?.desc || initial?.description || "";
+
+				if (title.trim() !== initialTitle) partialPayload.awardName = title.trim();
+				if (issuer.trim() !== initialIssuer) partialPayload.issuerName = issuer.trim();
+				if (assoc.trim() !== initialAssoc) partialPayload.associatedWith = assoc.trim();
+				if (date !== initialDate) partialPayload.issueDate = date;
+				if (url.trim() !== initialUrl) partialPayload.awardUrl = url.trim();
+				if (desc.trim() !== initialDesc) partialPayload.description = desc.trim();
+
+				res = await updateHospitalAwardForSuperAdmin(hospitalId, initial.id, partialPayload);
+			} else {
+				const payload = {
+					awardName: title.trim(),
+					issuerName: issuer.trim(),
+					associatedWith: assoc.trim(),
+					issueDate: date,
+					awardUrl: url.trim(),
+					description: desc.trim()
+				};
+				res = await addHospitalAwardForSuperAdmin(hospitalId, payload);
+			}
+
 			if (res.success) {
 				addToast({
 					title: "Success",
-					message: "Award added successfully",
+					message: mode === "edit" ? "Award updated successfully" : "Award added successfully",
 					type: "success"
 				});
 				onSuccess?.();
 				onClose?.();
 			}
 		} catch (error) {
-			console.error("Failed to add award:", error);
+			console.error(`Failed to ${mode} award:`, error);
 			addToast({
 				title: "Error",
-				message: error?.response?.data?.message || "Failed to add award",
+				message: error?.response?.data?.message || `Failed to ${mode} award`,
 				type: "error"
 			});
 		} finally {
-			setLoading(true); // Keep it loading until onClose if successful, or reset if failed
 			setLoading(false);
 		}
 	};
@@ -96,7 +135,7 @@ export default function AddAwardDrawer({ open, onClose, onSuccess, hospitalId, m
 				<InputWithMeta label="Issuer Name" requiredDot value={issuer} onChange={setIssuer} placeholder="Enter Issuer Name" />
 				<div className="relative">
 					<InputWithMeta label="Associated With" value={assoc} onChange={setAssoc} placeholder="Select or Enter Associated" RightIcon={ChevronDown} onFieldOpen={() => setAssocOpen((o) => !o)} dropdownOpen={assocOpen} onRequestClose={() => setAssocOpen(false)} readonlyWhenIcon={false} />
-					<Dropdown open={assocOpen} onClose={() => setAssocOpen(false)} items={assocOptions.map((a) => ({ label: a, value: a }))} selectedValue={assoc} onSelect={(it) => { setAssoc(it.value); setAssocOpen(false); }} anchorClassName="w-full h-0" className="input-meta-dropdown w-full" direction="down" />
+					<Dropdown open={assocOpen} onClose={() => setAssocOpen(false)} items={assocOptions.map((a) => ({ label: a, value: a }))} selectedValue={assoc} onSelect={(it) => { setAssoc(it.value); setAssocOpen(false); }} anchorClassName="absolute bottom-0 left-0 w-full h-0" className="input-meta-dropdown w-full" direction="down" />
 				</div>
 				<div className="relative">
 					<InputWithMeta label="Issue Date" requiredDot value={date} onChange={setDate} placeholder="Select Date" RightIcon='/Doctor_module/settings/calendar.png' onIconClick={() => setShowIssueCalendar((v) => !v)} dropdownOpen={showIssueCalendar} onRequestClose={() => setShowIssueCalendar(false)} readonlyWhenIcon={true} />

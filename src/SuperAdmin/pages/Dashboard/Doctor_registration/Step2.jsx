@@ -34,6 +34,7 @@ const Step2 = forwardRef((props, ref) => {
     addPractice,
     updatePractice,
   } = useDoctorRegistrationStore();
+  const addToast = useToastStore((state) => state.addToast);
 
   const getDoc = (no) => documents?.find(d => d.no === no);
 
@@ -56,23 +57,29 @@ const Step2 = forwardRef((props, ref) => {
         if (!/^\w{4,}$/.test(value)) return "Invalid Reg. No.";
         return "";
       case "medicalCouncilName":
-        if (!value) return "Required";
-        return "";
-      case "medicalCouncilRegYear":
-        if (!value) return "Required";
-        if (!/^\d{4}$/.test(value)) return "Year must be 4 digits";
-        return "";
       case "medicalDegreeType":
       case "medicalDegreeUniversityName":
-      case "medicalDegreeYearOfCompletion":
+      case "pgMedicalDegreeType":
+      case "pgMedicalDegreeUniversityName":
         if (!value) return "Required";
         return "";
       case "experienceYears":
         if (!value) return "Required";
         if (!/^\d+$/.test(value) || Number(value) < 0) return "Invalid years";
         return "";
+      case "medicalCouncilRegYear":
+      case "medicalDegreeYearOfCompletion":
+      case "pgMedicalDegreeYearOfCompletion":
+        if (!value) return "Required";
+        if (!/^\d{4}$/.test(value)) return "Year must be 4 digits";
+        const year = parseInt(value);
+        const currentYear = new Date().getFullYear();
+        if (year > currentYear) return "Future year not allowed";
+        if (year < currentYear - 100) return "Year too old (max 100 years)";
+        return "";
       case "specialization":
-        if (!value || (typeof value === 'object' && !value.value && !value.name)) return "Required";
+        const sName = typeof value === 'object' ? (value.value || value.name) : value;
+        if (!sName || sName.trim().length === 0) return "Required";
         return "";
       default:
         return "";
@@ -100,11 +107,32 @@ const Step2 = forwardRef((props, ref) => {
       specialization,
       experienceYears
     };
+
+    // If PG is selected, add those fields
+    if (pgMedicalDegreeType !== null) {
+      fieldsToValidate.pgMedicalDegreeType = pgMedicalDegreeType;
+      fieldsToValidate.pgMedicalDegreeUniversityName = pgMedicalDegreeUniversityName;
+      fieldsToValidate.pgMedicalDegreeYearOfCompletion = pgMedicalDegreeYearOfCompletion;
+    }
+
     const newErrors = {};
     Object.entries(fieldsToValidate).forEach(([key, val]) => {
       const err = validateField(key, val);
       if (err) newErrors[key] = err;
     });
+
+    // Validate proofs
+    if (!getDoc(1)?.url) newErrors.mrnProof = "Required";
+    if (!getDoc(2)?.url) newErrors.degreeProof = "Required";
+
+    // Validate additional practices
+    (additionalPractices || []).forEach((p, idx) => {
+      const pSpec = typeof p.specialization === 'object' ? (p.specialization?.value || p.specialization?.name) : p.specialization;
+      if (!pSpec) newErrors[`additional_specialization_${idx}`] = "Required";
+      if (!p.experienceYears?.toString().trim()) newErrors[`additional_experience_${idx}`] = "Required";
+      else if (!/^\d+$/.test(p.experienceYears)) newErrors[`additional_experience_${idx}`] = "Invalid years";
+    });
+
     setFormErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -170,16 +198,29 @@ const Step2 = forwardRef((props, ref) => {
     { value: "Dermatology", label: "Dermatology" },
   ];
 
-  const addToast = useToastStore((state) => state.addToast);
+  // Helper to filter specialization options to avoid duplicates
+  const getFilteredOptions = (currentValue) => {
+    const selectedSpecs = [
+      (specialization?.value || specialization?.name || specialization),
+      ...(additionalPractices || []).map(p => (p.specialization?.value || p.specialization?.name || p.specialization))
+    ].filter(Boolean);
+
+    return specializationOptions.filter(opt => {
+      // If the option is the current one, show it
+      if (opt.value === currentValue) return true;
+      // Otherwise, show it only if it's not already selected
+      return !selectedSpecs.includes(opt.value);
+    });
+  };
 
   const handleSubmit = async () => {
     // Validate
     if (!validateAll()) return false;
-    
+
     // Check if userId is present (from Step 1)
     if (!userId) {
-       addToast({ title: 'Error', message: 'User ID is missing. Please complete Step 1 first.', type: 'error' });
-       return false; 
+      addToast({ title: 'Error', message: 'User ID is missing. Please complete Step 1 first.', type: 'error' });
+      return false;
     }
 
     // Documents validation
@@ -231,6 +272,7 @@ const Step2 = forwardRef((props, ref) => {
 
       const res = await completeDoctorProfile(payload);
       if (res.success) {
+        console.log("Step2 submission successful, returning true");
         addToast({ title: 'Success', message: 'Professional Details Saved', type: 'success' });
         return true;
       } else {
@@ -297,7 +339,7 @@ const Step2 = forwardRef((props, ref) => {
             </FormFieldRow>
 
             <FormFieldRow>
-              <div>
+              <div className="w-full">
                 <InputWithMeta
                   label="Registration Year"
                   value={medicalCouncilRegYear}
@@ -308,14 +350,20 @@ const Step2 = forwardRef((props, ref) => {
                 />
                 {formErrors.medicalCouncilRegYear && <span className="text-red-500 text-xs">{formErrors.medicalCouncilRegYear}</span>}
               </div>
-              <CustomUpload
-                label="Upload MRN Proof"
-                compulsory={true}
-                onUpload={(key, name) => setDocument({ no: 1, type: 'medical_license', url: key, fileName: name })}
-                meta="Support Size upto 5MB in .pdf, .jpg, .doc"
-                uploadedKey={getDoc(1)?.url}
-                fileName={getDoc(1)?.fileName}
-              />
+              <div className="w-full">
+                <CustomUpload
+                  label="Upload MRN Proof"
+                  compulsory={true}
+                  onUpload={(key, name) => {
+                    setDocument({ no: 1, type: 'medical_license', url: key, fileName: name });
+                    setFormErrors(prev => ({ ...prev, mrnProof: "" }));
+                  }}
+                  meta="Support Size upto 5MB in .pdf, .jpg, .doc"
+                  uploadedKey={getDoc(1)?.url}
+                  fileName={getDoc(1)?.fileName}
+                />
+                {formErrors.mrnProof && <span className="text-red-500 text-xs">{formErrors.mrnProof}</span>}
+              </div>
             </FormFieldRow>
           </div>
 
@@ -369,22 +417,30 @@ const Step2 = forwardRef((props, ref) => {
             </FormFieldRow>
 
             <FormFieldRow>
-              <InputWithMeta
-                label="Year of Completion"
-                value={medicalDegreeYearOfCompletion}
-                onChange={(val) => handleInputChange({ target: { name: 'medicalDegreeYearOfCompletion', value: val } })}
-                {...commonFieldProps}
-                requiredDot
-              />
-              {formErrors.medicalDegreeYearOfCompletion && <span className="text-red-500 text-xs">{formErrors.medicalDegreeYearOfCompletion}</span>}
-              <CustomUpload
-                label="Upload Degree Proof"
-                compulsory={true}
-                onUpload={(key, name) => setDocument({ no: 2, type: 'degree_certificate', url: key, fileName: name })}
-                meta="Support Size upto 5MB in .pdf, .jpg, .doc"
-                uploadedKey={getDoc(2)?.url}
-                fileName={getDoc(2)?.fileName}
-              />
+              <div className="w-full">
+                <InputWithMeta
+                  label="Year of Completion"
+                  value={medicalDegreeYearOfCompletion}
+                  onChange={(val) => handleInputChange({ target: { name: 'medicalDegreeYearOfCompletion', value: val } })}
+                  {...commonFieldProps}
+                  requiredDot
+                />
+                {formErrors.medicalDegreeYearOfCompletion && <span className="text-red-500 text-xs">{formErrors.medicalDegreeYearOfCompletion}</span>}
+              </div>
+              <div className="w-full">
+                <CustomUpload
+                  label="Upload Degree Proof"
+                  compulsory={true}
+                  onUpload={(key, name) => {
+                    setDocument({ no: 2, type: 'degree_certificate', url: key, fileName: name });
+                    setFormErrors(prev => ({ ...prev, degreeProof: "" }));
+                  }}
+                  meta="Support Size upto 5MB in .pdf, .jpg, .doc"
+                  uploadedKey={getDoc(2)?.url}
+                  fileName={getDoc(2)?.fileName}
+                />
+                {formErrors.degreeProof && <span className="text-red-500 text-xs">{formErrors.degreeProof}</span>}
+              </div>
             </FormFieldRow>
 
             {/* Post Graduation Radio */}
@@ -434,16 +490,18 @@ const Step2 = forwardRef((props, ref) => {
                       onRequestClose={() => closeDropdown('pgDegree')}
                       dropdownItems={pgDegreeOptions}
                       onSelectItem={(item) => {
-                        setField('pgMedicalDegreeType', item.value);
+                        handleInputChange({ target: { name: 'pgMedicalDegreeType', value: item.value } });
                         closeDropdown('pgDegree');
                       }}
                     />
+                    {formErrors.pgMedicalDegreeType && <span className="text-red-500 text-xs">{formErrors.pgMedicalDegreeType}</span>}
                     <InputWithMeta
                       label="Year of Completion"
                       requiredDot
                       value={pgMedicalDegreeYearOfCompletion}
-                      onChange={(val) => setField('pgMedicalDegreeYearOfCompletion', val)}
+                      onChange={(val) => handleInputChange({ target: { name: 'pgMedicalDegreeYearOfCompletion', value: val } })}
                     />
+                    {formErrors.pgMedicalDegreeYearOfCompletion && <span className="text-red-500 text-xs">{formErrors.pgMedicalDegreeYearOfCompletion}</span>}
                   </div>
                   <div className="space-y-4">
                     <InputWithMeta
@@ -459,10 +517,11 @@ const Step2 = forwardRef((props, ref) => {
                       onRequestClose={() => closeDropdown('pgCollege')}
                       dropdownItems={collegeOptions}
                       onSelectItem={(item) => {
-                        setField('pgMedicalDegreeUniversityName', item.value);
+                        handleInputChange({ target: { name: 'pgMedicalDegreeUniversityName', value: item.value } });
                         closeDropdown('pgCollege');
                       }}
                     />
+                    {formErrors.pgMedicalDegreeUniversityName && <span className="text-red-500 text-xs">{formErrors.pgMedicalDegreeUniversityName}</span>}
                     <CustomUpload
                       label="Upload Degree Proof"
                       compulsory={false}
@@ -497,12 +556,13 @@ const Step2 = forwardRef((props, ref) => {
                   onIconClick={() => toggleDropdown('specialization')}
                   dropdownOpen={openDropdowns['specialization']}
                   onRequestClose={() => closeDropdown('specialization')}
-                  dropdownItems={specializationOptions}
+                  dropdownItems={getFilteredOptions(typeof specialization === 'object' ? (specialization?.value || specialization?.name || '') : specialization)}
                   onSelectItem={(item) => {
                     handleInputChange({ target: { name: 'specialization', value: item } });
                     closeDropdown('specialization');
                   }}
                   {...commonFieldProps}
+                  dropUp={true}
                 />
                 {formErrors.specialization && <span className="text-red-500 text-xs">{formErrors.specialization}</span>}
               </div>
@@ -523,33 +583,47 @@ const Step2 = forwardRef((props, ref) => {
               <div className="space-y-2">
                 {additionalPractices.map((p, idx) => (
                   <FormFieldRow key={idx}>
-                    <InputWithMeta
-                      label="Primary Specialization"
-                      requiredDot
-                      value={typeof p.specialization === 'object' ? (p.specialization?.value || p.specialization?.name || '') : (p.specialization || '')}
-                      placeholder="Select Specialization"
-                      RightIcon={ChevronDown}
-                      readonlyWhenIcon={true}
-                      onIconClick={() => toggleDropdown(`add_spec_${idx}`)}
-                      dropdownOpen={openDropdowns[`add_spec_${idx}`]}
-                      onRequestClose={() => closeDropdown(`add_spec_${idx}`)}
-                      dropdownItems={specializationOptions}
-                      onSelectItem={(item) => {
-                        updatePractice(idx, { specialization: { name: item.label, value: item.value } });
-                        closeDropdown(`add_spec_${idx}`);
-                      }}
-                      compulsory
-                      required
-                    />
-                    <InputWithMeta
-                      label="Year of Experience"
-                      requiredDot
-                      value={p.experienceYears}
-                      onChange={(val) => updatePractice(idx, { experienceYears: val })}
-                      placeholder="Enter Year"
-                      compulsory
-                      required
-                    />
+                    <div className="w-full">
+                      <InputWithMeta
+                        label="Specialization"
+                        requiredDot
+                        value={typeof p.specialization === 'object' ? (p.specialization?.value || p.specialization?.name || '') : (p.specialization || '')}
+                        placeholder="Select Specialization"
+                        RightIcon={ChevronDown}
+                        readonlyWhenIcon={true}
+                        onIconClick={() => toggleDropdown(`add_spec_${idx}`)}
+                        dropdownOpen={openDropdowns[`add_spec_${idx}`]}
+                        onRequestClose={() => closeDropdown(`add_spec_${idx}`)}
+                        dropdownItems={getFilteredOptions(typeof p.specialization === 'object' ? (p.specialization?.value || p.specialization?.name || '') : (p.specialization || ''))}
+                        onSelectItem={(item) => {
+                          updatePractice(idx, { specialization: { name: item.label, value: item.value } });
+                          setFormErrors(prev => ({ ...prev, [`additional_specialization_${idx}`]: "" }));
+                          closeDropdown(`add_spec_${idx}`);
+                        }}
+                        compulsory
+                        required
+                        dropUp={true}
+                      />
+                      {formErrors[`additional_specialization_${idx}`] && <span className="text-red-500 text-xs">{formErrors[`additional_specialization_${idx}`]}</span>}
+                    </div>
+                    <div className="w-full">
+                      <InputWithMeta
+                        label="Year of Experience"
+                        requiredDot
+                        value={p.experienceYears}
+                        onChange={(val) => {
+                          updatePractice(idx, { experienceYears: val });
+                          let err = "";
+                          if (!val.trim()) err = "Required";
+                          else if (!/^\d+$/.test(val)) err = "Invalid years";
+                          setFormErrors(prev => ({ ...prev, [`additional_experience_${idx}`]: err }));
+                        }}
+                        placeholder="Enter Year"
+                        compulsory
+                        required
+                      />
+                      {formErrors[`additional_experience_${idx}`] && <span className="text-red-500 text-xs">{formErrors[`additional_experience_${idx}`]}</span>}
+                    </div>
                   </FormFieldRow>
                 ))}
               </div>
