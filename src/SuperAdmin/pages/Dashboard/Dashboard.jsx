@@ -147,7 +147,7 @@ const Dashboard = () => {
                       setIsMonthOpen(false)
                     }}
                     width="w-[170px]"
-                    maxHeight='224px'
+                   
                   />
                 )}
               </div>

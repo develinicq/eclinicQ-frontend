@@ -309,7 +309,7 @@ export default function InputWithMeta({
               onRequestClose?.();
             }}
             width="w-full"
-            maxHeight="224px"
+            
             itemRenderer={itemRenderer}
             className={dropUp ? 'bottom-full mb-1 !top-auto' : 'top-full mt-1'}
           />
