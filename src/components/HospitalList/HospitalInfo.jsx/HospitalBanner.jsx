@@ -1,9 +1,19 @@
-import React, { useEffect, useState } from 'react'
-import { MapPin, Building2, Calendar, Globe, MoreHorizontal } from 'lucide-react'
+import React, { useEffect, useState, useRef } from 'react'
+import { MapPin, Building2, Calendar, Globe } from 'lucide-react'
 import AvatarCircle from '../../AvatarCircle'
 import { getPublicUrl } from '../../../services/uploadsService'
 import UniversalLoader from "@/components/UniversalLoader";
-const horizontal = '/horizontal.png'
+
+const horizontal = '/superAdmin/Doctors/Threedots.svg'
+const star = '/star.png'
+const down = '/angel-down.svg'
+const hospital2 = '/superAdmin/Doctors/Hospital.svg'
+const clinic = '/superAdmin/Doctors/Medical Kit.svg'
+
+const calendarReschedule = '/superAdmin/doctor_list_dropdown/Calendar Reschedule.svg';
+const bin = '/superAdmin/doctor_list_dropdown/bin.svg';
+const inactiveIcon = '/superAdmin/doctor_list_dropdown/inactive.svg';
+const linkIconLocal = '/superAdmin/doctor_list_dropdown/link.svg';
 
 // Reusable Stat Card Component (Matched to InfoBox style)
 const StatCard = ({ label, value, valueClass = "text-[#2372EC]" }) => (
@@ -29,10 +39,12 @@ const HospitalBanner = ({
   },
   isLoading = false
 }) => {
-  console.log("HospitalBanner: received hospitalData:", hospitalData);
-  const { name, status, address, type, established, website, bannerImage, logoImage, stats } = hospitalData
+  const { name, status, address, type, established, website, logoImage, stats } = hospitalData
   const [resolvedLogo, setResolvedLogo] = useState('')
   const [imageLoading, setImageLoading] = useState(false)
+  const [showActionMenu, setShowActionMenu] = useState(false)
+  const actionMenuRef = useRef(null)
+  const buttonRef = useRef(null)
 
   useEffect(() => {
     let ignore = false
@@ -51,7 +63,7 @@ const HospitalBanner = ({
       try {
         const l = await getPublicUrl(logoImage)
         if (!ignore) setResolvedLogo(l || '')
-      } catch {
+      } catch (error) {
         if (!ignore) setResolvedLogo('')
       } finally {
         if (!ignore) setImageLoading(false)
@@ -61,14 +73,39 @@ const HospitalBanner = ({
     return () => { ignore = true }
   }, [logoImage])
 
+  // Click outside and scroll handlers for dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        actionMenuRef.current &&
+        !actionMenuRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        setShowActionMenu(false)
+      }
+    }
+
+    const handleScroll = () => {
+      if (showActionMenu) setShowActionMenu(false)
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', handleScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
+  }, [showActionMenu])
+
   // Determine active status for styling
   const isActive = (status || '').toLowerCase() === 'active'
 
   const statCards = [
-    { label: "No. of Patient Manages", value: stats.patientsManaged },
-    { label: "No. of Appt. Booked", value: stats.appointmentsBooked }, // Shortened label
-    { label: "Active Package", value: stats.activePackage || 'Premium', valueClass: "text-[#90BE6D] font-semibold text-sm" },
-    { label: "UpChar-Q ID", value: stats.upCharQId || '—' },
+    { label: "No. of Patient Manages", value: stats?.patientsManaged || '-' },
+    { label: "No. of Appt. Booked", value: stats?.appointmentsBooked || '-' }, // Shortened label
+    { label: "Active Package", value: stats?.activePackage || 'Premium', valueClass: "text-[#90BE6D] font-semibold text-sm" },
+    { label: "UpChar-Q ID", value: stats?.upCharQId || '—' },
   ]
 
   return (
@@ -136,9 +173,40 @@ const HospitalBanner = ({
             valueClass={card.valueClass}
           />
         ))}
-        <button className="p-2 text-gray-500 hover:text-gray-700 mr-2 ml-1 mt-2" aria-label="More options">
-          <img src={horizontal} alt="" />
-        </button>
+        <div className="relative">
+          <button
+            ref={buttonRef}
+            onClick={() => setShowActionMenu(!showActionMenu)}
+            className="p-2 text-gray-500 hover:text-gray-700 mr-2 ml-1 mt-2  hover:bg-secondary-grey50 transition-colors"
+            aria-label="More options"
+          >
+            <img src={horizontal} alt="" />
+          </button>
+          {showActionMenu && (
+            <div
+              ref={actionMenuRef}
+              className="absolute right-0 top-full mt-1 w-[245px] bg-white shadow-[0px_4px_20px_rgba(0,0,0,0.1)] rounded-[10px] border border-gray-100 z-50 py-2 animate-in fade-in zoom-in-95 duration-100"
+            >
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={calendarReschedule} alt="" className="w-5 h-5" />
+                Update Availability Timing
+              </button>
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={linkIconLocal} alt="" className="w-5 h-5" />
+                Send Magic Link
+              </button>
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={inactiveIcon} alt="" className="w-5 h-5" />
+                Mark as Inactive
+              </button>
+              <div className="mx-2 h-[0.5px] bg-[#E0E7FF] my-1.5"></div>
+              <button className="w-full text-left px-[18px] py-2 text-[#F04438] font-normal text-sm hover:bg-red-50 flex items-center gap-2">
+                <img src={bin} alt="" className="w-5 h-5" />
+                Delete Profile
+              </button>
+            </div>
+          )}
+        </div>
 
       </div>
       {isLoading && (

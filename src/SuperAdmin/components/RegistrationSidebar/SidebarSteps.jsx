@@ -25,7 +25,7 @@ const doctorSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={accountBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Account"
       />
     )
@@ -36,7 +36,7 @@ const doctorSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={stethoscopeBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Stethoscope"
       />
     )
@@ -47,7 +47,7 @@ const doctorSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={documentBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Document"
       />
     )
@@ -58,7 +58,7 @@ const doctorSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={reviewBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-8 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Review"
       />
     )
@@ -69,7 +69,7 @@ const doctorSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={packageBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Package"
       />
     )
@@ -79,7 +79,7 @@ const doctorSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={checkCircle}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Package"
       />
     )
@@ -93,7 +93,7 @@ const hospitalSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={accountBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Account"
       />
     )
@@ -104,7 +104,7 @@ const hospitalSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={stethoscopeBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Stethoscope"
       />
     )
@@ -115,7 +115,7 @@ const hospitalSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={hospitalIcon}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Hospital"
       />
     )
@@ -126,7 +126,7 @@ const hospitalSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={documentBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Document"
       />
     )
@@ -137,7 +137,7 @@ const hospitalSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={reviewBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-8 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Review"
       />
     )
@@ -148,7 +148,7 @@ const hospitalSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={packageBlue}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="Package"
       />
     )
@@ -158,7 +158,7 @@ const hospitalSteps = [
     icon: (isCompleted, isCurrent) => (
       <img
         src={checkCircle}
-        className={`w-6 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
+        className={`w-7 ${!isCompleted && !isCurrent ? 'grayscale opacity-50' : ''}`}
         alt="checkCircle"
       />
     )
@@ -229,7 +229,7 @@ export default function SidebarSteps({ currentStep }) {
         {/* Vertical connecting line */}
         <div className="absolute left-[26px] top-[26px] bottom-[26px] w-[1px] bg-[#E8E8E8]"></div>
 
-        <div className="space-y-7">
+        <div className="space-y-6">
           {steps.map((step, index) => {
             // For hospital registration when step 2 is hidden, adjust step numbers
             let adjustedStepNumber = step.id;
@@ -240,24 +240,24 @@ export default function SidebarSteps({ currentStep }) {
             const isCompleted = adjustedStepNumber < currentStep;
             const isCurrent = adjustedStepNumber === currentStep;
             const isUpcoming = adjustedStepNumber > currentStep;
-            // removed unused variable isLast
+            const isLast = index === steps.length - 1;
 
             return (
-              <div key={step.id} className="flex items-center group cursor-pointer">
+              <div key={step.id} className={`flex items-start group cursor-pointer ${isLast ? 'mt-[6px]' : ''}`}>
                 {/* Icon Circle */}
-                <div className="flex-shrink-0 relative z-10">
+                <div className="flex-shrink-0 relative z-10 w-[52px] flex justify-center">
                   <div
-                    className={`w-[52px] h-[52px] rounded-full flex items-center justify-center border-[0.5px]  transition-all duration-200
-                    ${isCompleted ? "bg-[#F2FFF3] border-[#6DDB724D]" : ""}
-                    ${isCurrent ? "bg-[#F8FAFF] border-[#E4EFFF]" : ""}
-                    ${isUpcoming ? "border-[#D6D6D680] bg-[#F9F9F9]" : ""}
+                    className={`rounded-full flex items-center justify-center transition-all duration-200
+                    ${isLast ? "w-6 h-6" : "w-[52px] h-[52px] border-[0.5px]"}
+                    ${!isLast && isCompleted ? "bg-[#F2FFF3] border-[#6DDB724D]" : ""}
+                    ${!isLast && isCurrent ? "bg-[#F8FAFF] border-[#E4EFFF]" : ""}
+                    ${!isLast && isUpcoming ? "border-[#D6D6D680] bg-[#F9F9F9]" : ""}
                   `}
                   >
 
                     {isCompleted ? (
-                      <div className="w-6 h-6 border-[1.5px] border-[#2E7D32] bg-[#6DDB72] rounded-full flex items-center justify-center">
+                      <div className="w-6 h-6 border-[1.5px] border-[#2E7D32] rounded-full flex items-center justify-center bg-[#6DDB72]">
                         <Check size={14} className="text-[#2E7D32]" />
-
                       </div>
                     ) : (
                       <div
@@ -272,47 +272,49 @@ export default function SidebarSteps({ currentStep }) {
                   </div>
                 </div>
 
-                {/* Content */}
-                <div className="ml-[9px] flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-normal text-[#626060] ">
-                        Step {adjustedStepNumber}
-                      </p>
-                      <p
-                        className={`text-sm font-medium
-                        ${isCompleted ? "text-[#424242]" : ""}
-                        ${isCurrent ? "text-[#0D47A1]" : ""}
-                        ${isUpcoming ? "text-[#424242]" : ""}
-                      `}
-                      >
-                        {step.title}
-                      </p>
-                      {isCompleted && (
-                        <p className="text-xs text-[#3EAF3F]">
-                          Completed
+                {/* Content - Hidden for last step */}
+                {!isLast && (
+                  <div className="ml-[9px] flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-normal text-[#626060] ">
+                          Step {adjustedStepNumber}
                         </p>
-                      )}
-                      {isCurrent && (
-                        <div className="mt-1">
-                          <div className="w-8 h-1.5 border-[0.5px] border-[#8E8E8E] rounded-full">
-                            <div className="w-1/2 h-full bg-[#6DDB72] rounded-full"></div>
+                        <p
+                          className={`text-sm font-medium
+                          ${isCompleted ? "text-[#424242]" : ""}
+                          ${isCurrent ? "text-[#0D47A1]" : ""}
+                          ${isUpcoming ? "text-[#424242]" : ""}
+                        `}
+                        >
+                          {step.title}
+                        </p>
+                        {isCompleted && (
+                          <p className="text-xs text-[#3EAF3F]">
+                            Completed
+                          </p>
+                        )}
+                        {isCurrent && (
+                          <div className="mt-1">
+                            <div className="w-8 h-1.5 border-[0.5px] border-[#8E8E8E] rounded-full">
+                              <div className="w-1/2 h-full bg-[#6DDB72] rounded-full"></div>
+                            </div>
                           </div>
-                        </div>
+                        )}
+                      </div>
+
+                      {/* Arrow for current step */}
+                      {isCurrent && (
+                        <img
+                          src={ChevronRight}
+                          alt="chevron-right"
+                          className="w-[20px] h-[20px]"
+                        />
+
                       )}
                     </div>
-
-                    {/* Arrow for current step */}
-                    {isCurrent && (
-                      <img
-                        src={ChevronRight}
-                        alt="chevron-right"
-                        className="w-[20px] h-[20px]"
-                      />
-
-                    )}
                   </div>
-                </div>
+                )}
               </div>
             );
           })}

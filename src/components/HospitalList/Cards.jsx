@@ -18,6 +18,11 @@ import { getPublicUrl } from "../../services/uploadsService";
 import AvatarCircle from "../AvatarCircle";
 import Badge from "../Badge";
 
+const calendarReschedule = '/superAdmin/doctor_list_dropdown/Calendar Reschedule.svg';
+const bin = '/superAdmin/doctor_list_dropdown/bin.svg';
+const inactiveIcon = '/superAdmin/doctor_list_dropdown/inactive.svg';
+const linkIconLocal = '/superAdmin/doctor_list_dropdown/link.svg';
+
 const action = '/action-icon.svg'
 const location = '/location.png'
 const mail = '/mail.png'
@@ -47,7 +52,7 @@ const Cards = ({ hospital }) => {
           setResolvedBanner(b || "");
           setResolvedLogo(l || "");
         }
-      } catch {
+      } catch (error) {
         if (!ignore) {
           setResolvedBanner("");
           setResolvedLogo("");
@@ -88,12 +93,11 @@ const Cards = ({ hospital }) => {
 
   const toggleMenu = (e) => {
     e.stopPropagation();
-    console.log("Toggle menu clicked", isOpen);
     if (!isOpen) {
       const rect = buttonRef.current.getBoundingClientRect();
       setPosition({
         bottom: window.innerHeight - rect.top + 8, // Position above the button
-        left: rect.right - 240 // Align right edge (240px width)
+        left: rect.right - 225 // Matching user's latest correction for doctor list (from 225)
       });
     }
     setIsOpen(!isOpen);
@@ -112,7 +116,6 @@ const Cards = ({ hospital }) => {
   };
 
   const isActive = (hospital?.status || '').toLowerCase() === 'active';
-  const initial = (hospital?.name?.[0] || 'H').toUpperCase();
 
   return (
     <div
@@ -225,38 +228,38 @@ const Cards = ({ hospital }) => {
                 bottom: position.bottom,
                 left: position.left,
                 zIndex: 99999,
-                width: '15rem'
+                width: '245px'
               }}
-              className="bg-white rounded-lg shadow-lg border border-gray-100 py-1.5 animate-in fade-in zoom-in-95 duration-100"
+              className="bg-white rounded-[10px] shadow-[0px_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-100"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={(e) => handleAction('Update Availability Timing', e)}
-                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2"
               >
-                <CalendarClock className="w-4 h-4 text-gray-500" />
+                <img src={calendarReschedule} alt="" className="w-5 h-5" />
                 Update Availability Timing
               </button>
               <button
                 onClick={(e) => handleAction('Send Magic Link', e)}
-                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2"
               >
-                <Link className="w-4 h-4 text-gray-500" />
+                <img src={linkIconLocal} alt="" className="w-5 h-5" />
                 Send Magic Link
               </button>
               <button
                 onClick={(e) => handleAction('Mark as Inactive', e)}
-                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2"
               >
-                <UserX className="w-4 h-4 text-gray-500" />
+                <img src={inactiveIcon} alt="" className="w-5 h-5" />
                 Mark as Inactive
               </button>
-              <div className="h-px bg-gray-100 my-1"></div>
+              <div className="border-t my-1 mx-2"></div>
               <button
                 onClick={(e) => handleAction('Delete Profile', e)}
-                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                className="w-full text-left px-[18px]  py-2 text-[#F04438] font-normal text-sm hover:bg-red-50 flex items-center gap-2"
               >
-                <Trash2 className="w-4 h-4" />
+                <img src={bin} alt="" className="w-5 h-5" />
                 Delete Profile
               </button>
             </div>,

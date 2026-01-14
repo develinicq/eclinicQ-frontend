@@ -124,10 +124,16 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   const profileRef = useRef(null);
   const navigate = useNavigate();
-  const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
-  const { user, fetchProfile } = useSuperAdminAuthStore();
+  const { doctorDetails, doctorLoading, fetchDoctorDetails, clearAuth: clearDoctorAuth } = useAuthStore();
+  const { user, fetchProfile, clearAuth: clearAdminAuth } = useSuperAdminAuthStore();
   const breadcrumbEntityName = useUIStore((s) => s.breadcrumbEntityName);
   const registration = useRegistration();
+
+  const handleLogout = () => {
+    clearAdminAuth();
+    clearDoctorAuth();
+    navigate('/');
+  };
   const location = useLocation();
 
   const saName = user ? `${user.firstName} ${user.lastName}` : 'Super Admin';
@@ -277,25 +283,27 @@ const Navbar = () => {
           ))}
         </div>
         <div className='flex gap-2 items-center'>
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={toggleDropdown}
-              className='flex items-center bg-[#2372EC] p-2 h-8 min-w-8 rounded-[4px] gap-2 hover:bg-blue-600 transition-colors'
-            >
-              <span className='text-white text-sm font-medium'>Add New</span>
-              <div className='flex border-l border-blue-400 pl-1'>
-                <img src={chevdown} alt="Dropdown" />
+          {!isRegistrationFlow && (
+            <>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={toggleDropdown}
+                  className='flex items-center bg-[#2372EC] p-2 h-8 min-w-8 rounded-[4px] gap-2 hover:bg-blue-600 transition-colors'
+                >
+                  <span className='text-white text-sm font-medium'>Add New</span>
+                  <div className='flex border-l border-blue-400 pl-1'>
+                    <img src={chevdown} alt="Dropdown" />
+                  </div>
+                </button>
+                <AddNewDropdown isOpen={isDropdownOpen} onClose={closeDropdown} onAddPatient={() => setAddPatientOpen(true)} onBookAppointment={() => setBookApptOpen(true)} onInviteStaff={() => setInviteOpen(true)} />
               </div>
-            </button>
-            <AddNewDropdown isOpen={isDropdownOpen} onClose={closeDropdown} onAddPatient={() => setAddPatientOpen(true)} onBookAppointment={() => setBookApptOpen(true)} onInviteStaff={() => setInviteOpen(true)} />
-          </div>
-          <Partition />
+              <Partition />
+            </>
+          )}
           <div className="w-7 h-7 p-1 relative">
-            {/* Notification badge */}
             <div className="absolute -top-1 -right-1 flex items-center justify-center rounded-full w-[14px] h-[14px] bg-[#F04248]">
               <span className="font-medium text-[10px] text-white">8</span>
             </div>
-            {/* Bell icon */}
             <button onClick={() => setShowNotifications(true)} style={{ background: 'none', border: 'none', padding: 0 }}>
               <img src={bell} alt="Notifications" className="w-5 h-5" />
             </button>
@@ -329,7 +337,7 @@ const Navbar = () => {
                     <ChevronRight className='w-4 h-4 text-gray-400' />
                   </button>
 
-                  <button className='w-full flex items-center h-8 justify-between px-2  hover:bg-gray-50 transition-colors group'>
+                  <button onClick={handleLogout} className='w-full flex items-center h-8 justify-between px-2  hover:bg-gray-50 transition-colors group'>
                     <div className='flex items-center gap-2'>
                       <LogOut className='w-[18px] h-[18px] text-gray-500 stroke-[1.5px]' />
                       <span className='text-secondary-grey400 text-sm font-normal'>Logout</span>

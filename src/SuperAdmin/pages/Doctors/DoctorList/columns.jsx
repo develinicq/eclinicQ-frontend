@@ -87,6 +87,12 @@ const formatLocationShort = (loc) => {
     return `${city}, ${code}`;
 };
 
+const calendarReschedule = '/superAdmin/doctor_list_dropdown/Calendar Reschedule.svg';
+const bin = '/superAdmin/doctor_list_dropdown/bin.svg';
+const inactiveIcon = '/superAdmin/doctor_list_dropdown/inactive.svg';
+const linkIconLocal = '/superAdmin/doctor_list_dropdown/link.svg';
+const outOfOffice = '/superAdmin/doctor_list_dropdown/out_of_office.svg';
+
 const ActionCell = ({ row }) => {
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = React.useState(false);
@@ -131,8 +137,8 @@ const ActionCell = ({ row }) => {
         if (!isOpen) {
             const rect = buttonRef.current.getBoundingClientRect();
             setPosition({
-                top: rect.bottom + 4,
-                left: rect.right - 224 // 224px is w-56
+                top: rect.bottom + 8,
+                left: rect.right - 225
             });
         }
         setIsOpen(!isOpen);
@@ -142,7 +148,6 @@ const ActionCell = ({ row }) => {
         e.stopPropagation();
         console.log(`Action: ${action}`, row);
         setIsOpen(false);
-        // Add specific handlers here if needed
     };
 
     return (
@@ -174,45 +179,47 @@ const ActionCell = ({ row }) => {
                         top: position.top,
                         left: position.left,
                         zIndex: 99999,
-                        width: '14rem' // w-56
+                        width: '245px' // Matching screenshot width
                     }}
-                    className="bg-white rounded-lg shadow-lg border border-gray-100 py-1.5 animate-in fade-in zoom-in-95 duration-100"
+                    className="bg-white rounded-[10px] shadow-[0px_4px_20px_rgba(0,0,0,0.1)] border border-gray-100 py-2 animate-in fade-in zoom-in-95 duration-100"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <button
                         onClick={(e) => handleAction('Update Availability Timing', e)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2"
                     >
-                        <CalendarClock className="w-4 h-4 text-gray-500" />
+                        <img src={calendarReschedule} alt="" className="w-5 h-5" />
                         Update Availability Timing
                     </button>
                     <button
                         onClick={(e) => handleAction('Set Out of Office', e)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2"
                     >
-                        <Briefcase className="w-4 h-4 text-gray-500" />
+                        <img src={outOfOffice} alt="" className="w-5 h-5" />
                         Set Out of Office
                     </button>
                     <button
                         onClick={(e) => handleAction('Send Magic Link', e)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2"
                     >
-                        <Link className="w-4 h-4 text-gray-500" />
+                        <img src={linkIconLocal} alt="" className="w-5 h-5" />
                         Send Magic Link
                     </button>
                     <button
                         onClick={(e) => handleAction('Mark as Inactive', e)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2"
                     >
-                        <UserX className="w-4 h-4 text-gray-500" />
+                        <img src={inactiveIcon} alt="" className="w-5 h-5" />
                         Mark as Inactive
                     </button>
-                    <div className="h-px bg-gray-100 my-1"></div>
+
+                    <div className="mx-2 h-[0.5px] bg-[#E0E7FF] my-1.5 line-height-0"></div>
+
                     <button
                         onClick={(e) => handleAction('Delete Profile', e)}
-                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        className="w-full text-left px-[18px] py-2 text-[#F04438] font-normal text-sm hover:bg-red-50 flex items-center gap-2"
                     >
-                        <Trash2 className="w-4 h-4" />
+                        <img src={bin} alt="" className="w-5 h-5" />
                         Delete Profile
                     </button>
                 </div>,

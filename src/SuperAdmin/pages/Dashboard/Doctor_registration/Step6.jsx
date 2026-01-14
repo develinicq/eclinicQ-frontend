@@ -1,25 +1,14 @@
 import React from 'react';
-import { CheckCircle } from 'lucide-react';
+import RegistrationSuccess from '../../../../components/RegistrationSuccess';
+import useDoctorStep1Store from '../../../../store/useDoctorStep1Store';
 
 const Step6 = () => {
+  const { firstName, lastName } = useDoctorStep1Store();
+  const doctorName = firstName && lastName ? `Dr. ${firstName} ${lastName}` : 'Doctor';
+
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="max-w-2xl mx-auto text-center p-8">
-        {/* Success Icon */}
-        <div className="mb-8">
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-12 h-12 text-green-600" />
-          </div>
-        </div>
-
-        {/* Success Message */}
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          Profile Activated Successfully!
-        </h1>
-
-
-      </div>
-
+    <div className="h-full bg-white">
+      <RegistrationSuccess name={doctorName} />
     </div>
   );
 };

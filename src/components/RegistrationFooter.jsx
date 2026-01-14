@@ -111,7 +111,7 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
     const {
       medicalCouncilRegNo, medicalCouncilName, medicalCouncilRegYear,
       medicalDegreeType, medicalDegreeUniversityName, medicalDegreeYearOfCompletion,
-      specialization, experienceYears
+      specialization, experienceYears, documents
     } = regState;
 
     if (!medicalCouncilRegNo?.trim() || !medicalCouncilName || !medicalCouncilRegYear) { setReason("Missing Council details"); return false; }
@@ -120,25 +120,63 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
     const specName = typeof specialization === 'object' ? (specialization?.value || specialization?.name) : specialization;
     if (!specName || !experienceYears) { setReason("Missing Specialization"); return false; }
 
+    // Check for required documents (MRN Proof = 1, Graduation Proof = 2)
+    const hasDoc = (no) => documents?.some(d => d.no === no && (d.url || d.tempKey));
+    if (!hasDoc(1)) { setReason("Missing MRN Proof"); return false; }
+    if (!hasDoc(2)) { setReason("Missing Graduation Proof"); return false; }
+
     return true;
   };
 
   const validateStep3 = () => {
     if (!regState.hasClinic) return true;
-    const { name, email, phone, blockNo, city, state, pincode, image } = regState.clinicData;
-    if (!name?.trim() || !email?.trim() || !phone?.trim() || !blockNo?.trim() || !city?.trim() || !state?.trim() || !pincode?.trim() || !image) {
+    const { name, email, phone, blockNo, areaStreet, landmark, city, state, pincode, proof, latitude, longitude } = regState.clinicData;
+    const { profilePhotoKey } = regState;
+
+    if (!name?.trim() || !email?.trim() || !phone?.trim() || !blockNo?.trim() || !areaStreet?.trim() || !landmark?.trim() || !city?.trim() || !state?.trim() || !pincode?.trim()) {
       setReason("Missing Clinic details");
       return false;
     }
+
+    if (!proof) {
+      setReason("Missing Establishment Proof");
+      return false;
+    }
+
+    if (!profilePhotoKey) {
+      setReason("Missing Profile Picture");
+      return false;
+    }
+
+    if (!latitude || !longitude) {
+      setReason("Missing Map Location");
+      return false;
+    }
+
     return true;
   };
 
   const validateStep4 = () => {
-    // Basic doc validation
-    if (!regState.documents || regState.documents.length === 0) {
-      setReason("Please upload required documents");
-      return false;
+    const currentSubStep = formData.step4SubStep || 1;
+
+    // Substep 1: Basic doc validation
+    if (currentSubStep === 1) {
+      if (!regState.documents || regState.documents.length === 0) {
+        setReason("Please upload required documents");
+        return false;
+      }
+      return true;
     }
+
+    // Substep 2: Terms and Agreements
+    if (currentSubStep === 2) {
+      if (!formData.termsAccepted || !formData.privacyAccepted) {
+        setReason("Please accept Terms & Privacy Policy");
+        return false;
+      }
+      return true;
+    }
+
     return true;
   };
 

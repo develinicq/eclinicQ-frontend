@@ -18,6 +18,12 @@ const clinic = '/superAdmin/Doctors/Medical Kit.svg'
 
 
 const hospital = '/icons/Sidebar/MainSidebar/hospital_unselect.png'
+const calendarReschedule = '/superAdmin/doctor_list_dropdown/Calendar Reschedule.svg';
+const bin = '/superAdmin/doctor_list_dropdown/bin.svg';
+const inactiveIcon = '/superAdmin/doctor_list_dropdown/inactive.svg';
+const linkIconLocal = '/superAdmin/doctor_list_dropdown/link.svg';
+const outOfOffice = '/superAdmin/doctor_list_dropdown/out_of_office.svg';
+
 const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
   const { id } = useParams();
   const [doctor, setDoctor] = useState(initialDoctor);
@@ -371,32 +377,32 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
         <div className="relative" ref={actionMenuRef}>
           <button
             onClick={() => setShowActionMenu(!showActionMenu)}
-            className="p-2 text-gray-500 hover:text-gray-700 mr-2 ml-1 mt-2 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-700 mr-2 ml-1 mt-2  hover:bg-gray-100 transition-colors"
             aria-label="More options"
           >
             <img src={horizontal} alt="" />
           </button>
           {showActionMenu && (
-            <div className="absolute right-0 top-full mt-1 w-56 bg-white shadow-lg rounded-lg border border-gray-100 z-50 py-2 animate-in fade-in zoom-in-95 duration-100">
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center gap-3">
-                <Calendar size={16} className="text-gray-500" />
+            <div className="absolute right-0 top-full mt-1 w-[245px] bg-white shadow-[0px_4px_20px_rgba(0,0,0,0.1)] rounded-[10px] border border-gray-100 z-50 py-2 animate-in fade-in zoom-in-95 duration-100">
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={calendarReschedule} alt="" className="w-5 h-5" />
                 Update Availability Timing
               </button>
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center gap-3">
-                <CalendarOff size={16} className="text-gray-500" />
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={outOfOffice} alt="" className="w-5 h-5" />
                 Set Out of Office
               </button>
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center gap-3">
-                <Link size={16} className="text-gray-500" />
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={linkIconLocal} alt="" className="w-5 h-5" />
                 Send Magic Link
               </button>
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center gap-3">
-                <UserX size={16} className="text-gray-500" />
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={inactiveIcon} alt="" className="w-5 h-5" />
                 Mark as Inactive
               </button>
-              <div className="h-[1px] bg-gray-100 my-1 mx-2" />
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-red-500 hover:bg-red-50 flex items-center gap-3">
-                <Trash2 size={16} />
+              <div className="mx-2 h-[0.5px] bg-[#E0E7FF] my-1.5" />
+              <button className="w-full text-left px-[18px] py-2 text-[#F04438] font-normal text-sm hover:bg-red-50 flex items-center gap-2">
+                <img src={bin} alt="" className="w-5 h-5" />
                 Delete Profile
               </button>
             </div>
