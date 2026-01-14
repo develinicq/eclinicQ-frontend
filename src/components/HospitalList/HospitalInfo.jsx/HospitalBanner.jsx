@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { MapPin, Building2, Calendar, Globe } from 'lucide-react'
 import AvatarCircle from '../../AvatarCircle'
 import { getPublicUrl } from '../../../services/uploadsService'
 import UniversalLoader from "@/components/UniversalLoader";
@@ -9,6 +8,11 @@ const star = '/star.png'
 const down = '/angel-down.svg'
 const hospital2 = '/superAdmin/Doctors/Hospital.svg'
 const clinic = '/superAdmin/Doctors/Medical Kit.svg'
+
+const locIcon = '/superAdmin/hospital_banner/location.svg'
+const specIcon = '/superAdmin/hospital_banner/speciality.svg'
+const estIcon = '/superAdmin/hospital_banner/establish.svg'
+const webIcon = '/superAdmin/hospital_banner/website.svg'
 
 const calendarReschedule = '/superAdmin/doctor_list_dropdown/Calendar Reschedule.svg';
 const bin = '/superAdmin/doctor_list_dropdown/bin.svg';
@@ -34,12 +38,13 @@ const HospitalBanner = ({
     established: "-",
     website: "-",
     bannerImage: "",
+
     logoImage: "",
     stats: {}
   },
   isLoading = false
 }) => {
-  const { name, status, address, type, established, website, logoImage, stats } = hospitalData
+  const { name, status, address, type, established, website, logoImage, experience, stats } = hospitalData
   const [resolvedLogo, setResolvedLogo] = useState('')
   const [imageLoading, setImageLoading] = useState(false)
   const [showActionMenu, setShowActionMenu] = useState(false)
@@ -144,22 +149,22 @@ const HospitalBanner = ({
 
         <div className="flex flex-col gap-1 text-sm text-secondary-grey400">
           <div className="flex gap-2 items-center">
-            <MapPin className="w-4 h-4 text-gray-400" />
+            <img src={locIcon} className="w-4 h-4" alt="" />
             <span className="line-clamp-1">{address}</span>
           </div>
           <div className="flex gap-2 items-center">
-            <Building2 className="w-4 h-4 text-gray-400" />
+            <img src={specIcon} className="w-4 h-4" alt="" />
             <span>{type}</span>
-            <span className="text-gray-300">|</span>
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <span>Est. {established}</span>
-          </div>
-          <div className="flex gap-2 items-center">
-            <Globe className="w-4 h-4 text-gray-400" />
+            <span className="text-secondary-grey150">|</span>
+            <img src={estIcon} className="w-4 h-4" alt="" />
+            <span>Establish in {established} ({experience} Years of Experience)</span>
+            <span className="text-secondary-grey150">|</span>
+            <img src={webIcon} className="w-4 h-4" alt="" />
             <a href={website} target="_blank" rel="noreferrer" className="hover:underline hover:text-blue-600 text-inherit">
               {website}
             </a>
           </div>
+
         </div>
       </div>
 

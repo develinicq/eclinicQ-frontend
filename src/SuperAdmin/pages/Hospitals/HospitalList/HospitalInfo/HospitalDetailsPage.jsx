@@ -63,12 +63,7 @@ const HospitalDetailsPage = () => {
         // New API Structure: { success: true, data: { hospitalName, hospitalCode, ... } }
         const d = resp?.data || {};
 
-        // Map flat data to component state
-        // Re-construct 'hospital' object to match what UI expects from 'hospital' state if needed, 
-        // OR just map directly to bannerData later. 
-        // The existing code expects 'hospital' state to have nested address object for some parts?
-        // Let's look at bannerData usage.
-        // It uses: hospital.name, hospital.status, hospital.address (string or object components), hospital.type, etc.
+
 
         // We will create a normalized hospital object from the new API
         const normalizedHospital = {
@@ -202,12 +197,6 @@ const HospitalDetailsPage = () => {
   }, [id, location?.state, isAuthed, setBreadcrumbName, clearBreadcrumbName]);
 
   if (loading && !hospital) {
-    // Only block if we have NO hospital data at all (not even from state)
-    // Actually, we want to try to render the skeleton/layout immediately.
-    // If we have state hospital, we use it. If not, we show loader or just render with empty/skeleton.
-    // But HospitalNav triggers API calls based on hospital ID.
-    // So we need at least an ID.
-    // If no ID is available from URL or state, we must wait or error.
     if (!id && !location?.state?.hospital) {
       return (
         <div className="flex items-center justify-center bg-white h-screen">
@@ -224,6 +213,7 @@ const HospitalDetailsPage = () => {
   const bannerData = {
     name: hospital?.name || '-',
     status: statusLabel,
+    experience: hospital?.yearsOfExperience || '-',
     address: typeof hospital?.address === 'string' ? hospital.address : [hospital?.address?.blockNo, hospital?.address?.street, hospital?.address?.landmark, hospital?.city, hospital?.state, hospital?.pincode].filter(Boolean).join(', '),
     type: hospital?.type || '-',
     established: hospital?.establishmentYear || '-',
@@ -248,7 +238,7 @@ const HospitalDetailsPage = () => {
     <div className='flex flex-col gap-6 w-full h-full'>
       <div>
         <HospitalBanner hospitalData={bannerData} isLoading={loading} />
-        {/* Pass hospital object. If loading and we have partial state, it works. If just ID, it works for Nav fetching. */}
+    
         <HospitalNav hospital={{ ...hospital, subscriptionName, specialties, documents }} />
       </div>
     </div>
