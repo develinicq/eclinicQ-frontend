@@ -130,6 +130,7 @@ const Navbar = () => {
   const registration = useRegistration();
 
   const handleLogout = () => {
+    useUIStore.getState().setIsLoggingOut(true);
     clearAdminAuth();
     clearDoctorAuth();
     navigate('/');

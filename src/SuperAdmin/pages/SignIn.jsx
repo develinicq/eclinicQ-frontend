@@ -7,6 +7,7 @@ import useSuperAdminAuthStore from "../../store/useSuperAdminAuthStore";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
+import useUIStore from "../../store/useUIStore";
 
 import useToastStore from "../../store/useToastStore";
 
@@ -37,6 +38,10 @@ export default function SuperAdminSignIn() {
 
     // Show toast if redirected from a protected route
     React.useEffect(() => {
+        // Reset the explicit logout flag so future unauthorized accesses (e.g. manual URL navigation) 
+        // will correctly show the toast.
+        useUIStore.getState().setIsLoggingOut(false);
+
         if (location.state?.fromGuard && !hasToasted.current) {
             addToast({
                 title: "Access Denied",

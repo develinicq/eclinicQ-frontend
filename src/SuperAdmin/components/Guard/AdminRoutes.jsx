@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import useSuperAdminAuthStore from "@/store/useSuperAdminAuthStore";
+import useUIStore from "@/store/useUIStore";
 
 /**
  * ProtectedAdminRoute - Only accessible to authenticated SuperAdmins.
@@ -8,9 +9,14 @@ import useSuperAdminAuthStore from "@/store/useSuperAdminAuthStore";
  */
 export const ProtectedAdminRoute = () => {
     const { token } = useSuperAdminAuthStore();
+    const { isLoggingOut } = useUIStore();
 
     if (!token) {
-        // Pass local state to the login page so it can show a toast
+        // If logging out intentionally, do NOT pass state that triggers the toast
+        if (isLoggingOut) {
+            return <Navigate to="/" replace />;
+        }
+        // Otherwise pass local state to the login page so it can show a toast
         return <Navigate to="/" replace state={{ fromGuard: true }} />;
     }
 
