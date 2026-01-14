@@ -3,11 +3,7 @@ import React, { createContext, useContext, useState } from 'react';
 const RegistrationContext = createContext();
 
 export const useRegistration = () => {
-  const context = useContext(RegistrationContext);
-  if (!context) {
-    throw new Error('useRegistration must be used within a RegistrationProvider');
-  }
-  return context;
+  return useContext(RegistrationContext);
 };
 
 export const RegistrationProvider = ({ children }) => {

@@ -4,6 +4,7 @@ import HospitalBanner from "../../../../../components/HospitalList/HospitalInfo.
 import HospitalNav from "../../../../../components/HospitalList/HospitalInfo.jsx/HospitalNav.jsx";
 import { getHospitalByIdBySuperAdmin } from "../../../../../services/hospitalService";
 import useSuperAdminAuthStore from "../../../../../store/useSuperAdminAuthStore";
+import useUIStore from "../../../../../store/useUIStore";
 import { getDownloadUrl, getPublicUrl } from "../../../../../services/uploadsService";
 import UniversalLoader from "@/components/UniversalLoader";
 
@@ -13,6 +14,9 @@ const HospitalDetailsPage = () => {
   const location = useLocation();
 
   const isAuthed = useSuperAdminAuthStore((s) => Boolean(s.token));
+  const setBreadcrumbName = useUIStore((s) => s.setBreadcrumbEntityName);
+  const clearBreadcrumbName = useUIStore((s) => s.clearBreadcrumbEntityName);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -29,6 +33,12 @@ const HospitalDetailsPage = () => {
   const [documents, setDocuments] = useState([]);
   const [resolvedLogo, setResolvedLogo] = useState("");
   const [resolvedBanner, setResolvedBanner] = useState("");
+
+  useEffect(() => {
+    if (hospital?.name) {
+      setBreadcrumbName(hospital.name);
+    }
+  }, [hospital, setBreadcrumbName]);
 
   useEffect(() => {
     let ignore = false;
@@ -85,6 +95,7 @@ const HospitalDetailsPage = () => {
         };
 
         setHospital(normalizedHospital);
+        setBreadcrumbName(normalizedHospital.name);
         setSubscriptionName(d.activePackage); // Reuse activePackage
         setSpecialties([]); // Not in sample
         setDocuments([]); // Not in sample
@@ -152,6 +163,7 @@ const HospitalDetailsPage = () => {
       const stateHospital = location?.state?.hospital;
       if (stateHospital) {
         setHospital(stateHospital);
+        setBreadcrumbName(stateHospital.name);
         setSubscriptionName(null);
         setSpecialties([]);
         setDocuments([]);
@@ -159,7 +171,7 @@ const HospitalDetailsPage = () => {
         setResolvedBanner("");
         setError(null);
       } else {
-        setHospital({
+        const dummy = {
           id: id ? decodeURIComponent(String(id)) : 'HO-DUMMY',
           name: 'Sample Hospital',
           address: { street: 'MG Road', city: 'Pune', state: 'MH', pincode: '411001' },
@@ -171,7 +183,9 @@ const HospitalDetailsPage = () => {
           status: 'Active',
           logo: '',
           image: '/hospital-sample.png',
-        });
+        };
+        setHospital(dummy);
+        setBreadcrumbName(dummy.name);
         setSubscriptionName('—');
         setSpecialties([]);
         setDocuments([]);
@@ -181,8 +195,11 @@ const HospitalDetailsPage = () => {
       }
       setLoading(false);
     }
-    return () => { ignore = true; };
-  }, [id, location?.state, isAuthed]);
+    return () => {
+      ignore = true;
+      clearBreadcrumbName();
+    };
+  }, [id, location?.state, isAuthed, setBreadcrumbName, clearBreadcrumbName]);
 
   if (loading && !hospital) {
     // Only block if we have NO hospital data at all (not even from state)

@@ -2,8 +2,8 @@
 import { User, LogOut, ChevronRight } from 'lucide-react'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { bell, stethoscopeBlue, hospitalicon, patientunselect, appointement, chevdown } from '../../public/index.js'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { bell, stethoscopeBlue, hospitalicon, patientunselect, appointement, chevdown, logo } from '../../public/index.js'
 import NotificationDrawer from './NotificationDrawer.jsx'
 import AddPatientDrawer from './PatientList/AddPatientDrawer.jsx'
 import BookAppointmentDrawer from './Appointment/BookAppointmentDrawer.jsx'
@@ -11,7 +11,9 @@ import InviteStaffDrawer from '../DoctorModule/Pages/Settings/Drawers/InviteStaf
 import AvatarCircle from './AvatarCircle.jsx'
 import useAuthStore from '../store/useAuthStore'
 import useSuperAdminAuthStore from '../store/useSuperAdminAuthStore';
+import useUIStore from '../store/useUIStore';
 import { getDoctorMe } from '../services/authService'
+import { useRegistration } from '../SuperAdmin/context/RegistrationContext.jsx'
 
 const Partition = () => {
   return (
@@ -124,8 +126,12 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
   const { user, fetchProfile } = useSuperAdminAuthStore();
+  const breadcrumbEntityName = useUIStore((s) => s.breadcrumbEntityName);
+  const registration = useRegistration();
+  const location = useLocation();
 
   const saName = user ? `${user.firstName} ${user.lastName}` : 'Super Admin';
+  const isRegistrationFlow = location.pathname.startsWith('/register');
 
   // module switcher state derived from pathname (hospital/doctor)
   const [activeModule, setActiveModule] = useState('hospital');
@@ -164,6 +170,68 @@ const Navbar = () => {
     };
   }, []);
 
+
+
+  const getBreadcrumbs = () => {
+    const path = location.pathname;
+
+    if (path.startsWith('/dashboard')) {
+      return [{ label: 'Super Admin Dashboard' }];
+    }
+    if (path === '/doctor') {
+      return [
+        { label: 'Doctor Listing', path: '/doctor' },
+        { label: 'All Doctors' }
+      ];
+    }
+    if (path.startsWith('/doctor/')) {
+      return [
+        { label: 'Doctor Listing', path: '/doctor' },
+        { label: breadcrumbEntityName ? `${breadcrumbEntityName} Profile` : 'Doctor Profile' }
+      ];
+    }
+    if (path === '/hospitals') {
+      return [
+        { label: 'Hospital Listing', path: '/hospitals' },
+        { label: 'All Hospital' }
+      ];
+    }
+    if (path.startsWith('/hospital/')) {
+      return [
+        { label: 'Hospital Listing', path: '/hospitals' },
+        { label: breadcrumbEntityName ? `${breadcrumbEntityName} Profile` : 'Hospital Profile' }
+      ];
+    }
+    if (path === '/patients') {
+      return [
+        { label: 'Patient Listing', path: '/patients' },
+        { label: 'All Patients' }
+      ];
+    }
+    if (path.startsWith('/register/doctor')) {
+      return [
+        { label: 'Doctor Onboarding' },
+        { label: registration?.currentStep ? `Step ${registration.currentStep}` : 'Step 1' }
+      ];
+    }
+    if (path.startsWith('/register/hospital')) {
+      return [
+        { label: 'Hospital Onboarding' },
+        { label: registration?.currentStep ? `Step ${registration.currentStep}` : 'Step 1' }
+      ];
+    }
+    if (path.startsWith('/register/patient')) {
+      return [{ label: 'Patient Registration' }];
+    }
+    if (path === '/settings') {
+      return [{ label: 'Settings' }];
+    }
+
+    return [{ label: saName }];
+  };
+
+  const breadcrumbs = getBreadcrumbs();
+
   // Ensure doctor context is available so the drawer can load slots
   useEffect(() => {
     if (!doctorDetails && !doctorLoading) {
@@ -187,9 +255,26 @@ const Navbar = () => {
 
   return (
     <>
-      <div className='w-full h-12 border-b-[0.5px]  border-secondary-grey100/50 flex items-center px-4 justify-between'>
-        <div>
-          <span className='text-sm text=[#424242]'>{saName}</span>
+      <div className={`w-full h-12 border-b-[0.5px] border-secondary-grey100/50 flex items-center px-4 justify-between ${isRegistrationFlow ? 'pl-2' : ''}`}>
+        <div className="flex items-center gap-2">
+          {isRegistrationFlow && (
+            <>
+              <div className="flex items-center px-1">
+                <img src={logo} alt="logo" className="w-[110px]" />
+              </div>
+              <Partition />
+            </>
+          )}
+          {breadcrumbs.map((crumb, idx) => (
+            <React.Fragment key={idx}>
+              <span className={`text-sm ${idx === breadcrumbs.length - 1 ? 'text-[#424242] font-medium' : 'text-secondary-grey200'}`}>
+                {crumb.label}
+              </span>
+              {idx < breadcrumbs.length - 1 && (
+                <ChevronRight className="w-4 h-4 text-secondary-grey200" strokeWidth={1.5} />
+              )}
+            </React.Fragment>
+          ))}
         </div>
         <div className='flex gap-2 items-center'>
           <div className="relative" ref={dropdownRef}>

@@ -29,13 +29,13 @@ const DropdownMenu = ({
                             key={val ?? idx}
                             type="button"
                             onClick={() => onSelect(m)}
-                            className={`w-full h-[32px] px-2 rounded-md text-left text-secondary-grey400 transition-all flex items-center justify-between group ${isSelected
+                            className={`w-full h-[32px] px-2 rounded-md text-left text-secondary-grey400 transition-all flex items-center justify-between group  ${isSelected
                                 ? "bg-blue-primary50 border border-blue-primary150"
                                 : " hover:bg-secondary-grey50"
                                 }`}
                             role="option"
                         >
-                            <span className="text-sm " style={{ fontFamily: "Inter" }}>
+                            <span className="text-sm " >
                                 {itemRenderer ? itemRenderer(m, { isSelected }) : label}
                             </span>
                             {isSelected && (

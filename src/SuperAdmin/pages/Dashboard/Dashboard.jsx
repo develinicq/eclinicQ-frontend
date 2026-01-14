@@ -117,12 +117,12 @@ const Dashboard = () => {
             </div>
 
 
-            <div className="flex items-center gap-3 relative" ref={monthRef}>
-              <div className="relative w-[150px]">
+            <div className="flex items-center gap-3" ref={monthRef}>
+              <div className="relative ">
                 <button
                   type="button"
                   onClick={() => setIsMonthOpen(!isMonthOpen)}
-                  className={`w-full flex items-center justify-between px-3 h-8 rounded-lg bg-white text-sm transition-colors border ${isMonthOpen ? "border-[#2372EC]/30 ring-1 ring-[#2372EC]/30" : "border-secondary-grey100"
+                  className={`w-full flex items-center gap-4 px-2 h-8 rounded-lg bg-white text-sm transition-colors border ${isMonthOpen ? "border-[#2372EC]/30 ring-1 ring-[#2372EC]/30" : "border-secondary-grey100"
                     }`}
                 >
                   <span className="text-secondary-grey400 font-medium">
@@ -146,7 +146,7 @@ const Dashboard = () => {
                       setSelectedMonth(typeof it === 'object' ? (it.value ?? it.label) : it)
                       setIsMonthOpen(false)
                     }}
-                    width="w-full"
+                    width="w-[170px]"
                     maxHeight='224px'
                   />
                 )}
