@@ -26,8 +26,34 @@ const Hos_4 = forwardRef((props, ref) => {
     documents
   } = store;
 
+  const [formErrors, setFormErrors] = useState({});
+
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'gstin':
+        if (!value) return 'GSTIN is required';
+        if (value.length !== 15) return 'GSTIN must be 15 characters';
+        return '';
+      case 'stateHealthReg':
+        if (!value) return 'Registration number is required';
+        return '';
+      case 'panCard':
+        if (!value) return 'PAN Card is required';
+        if (value.length !== 10) return 'PAN must be 10 characters';
+        return '';
+      case 'cinNumber':
+        if (hasCin === 1 && !value) return 'CIN Number is required';
+        return '';
+      default: return '';
+    }
+  };
+
   const handleInputChange = (field, value) => {
     setField(field, value);
+    setFormErrors(prev => ({
+      ...prev,
+      [field]: validateField(field, value)
+    }));
   };
 
   // Sync hospitalId from Step 1 if missing
@@ -99,6 +125,7 @@ const Hos_4 = forwardRef((props, ref) => {
                   Verify
                 </button>
               </div>
+              {formErrors.gstin && <span className="text-red-500 text-xs">{formErrors.gstin}</span>}
 
 
             </div>
@@ -138,6 +165,7 @@ const Hos_4 = forwardRef((props, ref) => {
                   value={stateHealthReg || ''}
                   onChange={(v) => handleInputChange('stateHealthReg', v)}
                 />
+                {formErrors.stateHealthReg && <span className="text-red-500 text-xs">{formErrors.stateHealthReg}</span>}
               </div>
               <div className="w-full">
                 <CustomUpload
@@ -161,6 +189,7 @@ const Hos_4 = forwardRef((props, ref) => {
                   value={panCard || ''}
                   onChange={(v) => handleInputChange('panCard', v)}
                 />
+                {formErrors.panCard && <span className="text-red-500 text-xs">{formErrors.panCard}</span>}
               </div>
               <div className="w-full">
                 <CustomUpload
@@ -227,22 +256,22 @@ const Hos_4 = forwardRef((props, ref) => {
             <div className="flex gap-4 ">
               <RadioButton
                 name="hasCin"
-                value="yes"
+                value={1}
                 label="Yes"
-                checked={hasCin === 'yes'}
-                onChange={() => setField('hasCin', 'yes')}
+                checked={hasCin === 1}
+                onChange={() => setField('hasCin', 1)}
               />
               <RadioButton
                 name="hasCin"
-                value="no"
+                value={0}
                 label="No"
-                checked={hasCin === 'no'}
-                onChange={() => setField('hasCin', 'no')}
+                checked={hasCin === 0}
+                onChange={() => setField('hasCin', 0)}
               />
             </div>
           </div>
 
-          {hasCin === 'yes' && (
+          {hasCin === 1 && (
             <div className="">
               <InputWithMeta
                 label="CIN Number"
@@ -250,6 +279,7 @@ const Hos_4 = forwardRef((props, ref) => {
                 value={cinNumber || ''}
                 onChange={(v) => handleInputChange('cinNumber', v)}
               />
+              {formErrors.cinNumber && <span className="text-red-500 text-xs">{formErrors.cinNumber}</span>}
             </div>
           )}
 

@@ -14,7 +14,7 @@ import {
   UserX,
   Trash2
 } from "lucide-react";
-import { getDownloadUrl } from "../../services/uploadsService";
+import { getPublicUrl } from "../../services/uploadsService";
 import AvatarCircle from "../AvatarCircle";
 import Badge from "../Badge";
 
@@ -40,8 +40,8 @@ const Cards = ({ hospital }) => {
     const run = async () => {
       try {
         const [b, l] = await Promise.all([
-          getDownloadUrl(hospital?.image),
-          getDownloadUrl(hospital?.logo)
+          getPublicUrl(hospital?.image),
+          getPublicUrl(hospital?.logo)
         ]);
         if (!ignore) {
           setResolvedBanner(b || "");
@@ -106,8 +106,8 @@ const Cards = ({ hospital }) => {
   };
 
   const openHospital = () => {
-  // Use backend UUID (temp) for routing so details page can fetch by correct ID
-  const urlId = hospital?.temp || hospital?.id || 'HO-PREVIEW';
+    // Use backend UUID (temp) for routing so details page can fetch by correct ID
+    const urlId = hospital?.temp || hospital?.id || 'HO-PREVIEW';
     navigate(`/hospital/${encodeURIComponent(urlId)}`, { state: { hospital } });
   };
 

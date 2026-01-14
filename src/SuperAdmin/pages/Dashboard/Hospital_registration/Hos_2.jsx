@@ -119,12 +119,18 @@ const Hos_2 = forwardRef((props, ref) => {
         if (!value) return 'Required';
         return '';
       case 'regYear':
+      case 'graduationYear':
+      case 'pgYear':
+        if (name === 'pgYear' && hasPG !== 'yes') return '';
         if (!value) return 'Required';
         if (!/^\d{4}$/.test(value)) return 'Year must be 4 digits';
+        const year = parseInt(value);
+        const currentYear = new Date().getFullYear();
+        if (year > currentYear) return "Future year not allowed";
+        if (year < currentYear - 100) return "Year too old (max 100 years)";
         return '';
       case 'graduation':
       case 'graduationCollege':
-      case 'graduationYear':
         if (!value) return 'Required';
         return '';
       case 'specialization':
@@ -132,17 +138,31 @@ const Hos_2 = forwardRef((props, ref) => {
         return '';
       case 'experience':
         if (!value) return 'Required';
-        // Allow 0
+        // Allow 0, check for negative
         if (!/^\d+$/.test(value) || Number(value) < 0) return 'Invalid years';
         return '';
       case 'pgDegree':
       case 'pgCollege':
-      case 'pgYear':
         if (hasPG === 'yes' && !value) return 'Required';
         return '';
       default:
         return '';
     }
+  };
+
+  // Helper to filter specialization options to avoid duplicates
+  const getFilteredOptions = (currentValue) => {
+    const selectedSpecs = [
+      typeof drStore.specialization === 'object' ? (drStore.specialization?.value || drStore.specialization?.name) : drStore.specialization,
+      ...(additionalPractices || []).map(p => typeof p.specialization === 'object' ? (p.specialization?.value || p.specialization?.name) : p.specialization)
+    ].filter(Boolean);
+
+    return specializationOptions.filter(opt => {
+      // If the option is the current one, show it
+      if (opt.value === currentValue) return true;
+      // Otherwise, show it only if it's not already selected
+      return !selectedSpecs.includes(opt.value);
+    });
   };
 
   const handleInputChange = (name, value) => {
@@ -567,12 +587,13 @@ const Hos_2 = forwardRef((props, ref) => {
                   onIconClick={() => setSpecOpen(!specOpen)}
                   dropdownOpen={specOpen}
                   onRequestClose={() => setSpecOpen(false)}
-                  dropdownItems={specializationOptions}
+                  dropdownItems={getFilteredOptions(typeof drStore.specialization === 'object' ? (drStore.specialization?.value || drStore.specialization?.name || '') : (drStore.specialization || ''))}
                   onSelectItem={(item) => {
                     handleInputChange('specialization', item.value);
                     setSpecOpen(false);
                   }}
                   compulsory
+                  dropUp={true}
                 />
                 {formErrors.specialization && <span className="text-red-500 text-xs">{formErrors.specialization}</span>}
               </div>
@@ -616,12 +637,13 @@ const Hos_2 = forwardRef((props, ref) => {
                           onIconClick={() => setAddSpecOpen(prev => ({ ...prev, [idx]: !prev[idx] }))}
                           dropdownOpen={addSpecOpen[idx]}
                           onRequestClose={() => setAddSpecOpen(prev => ({ ...prev, [idx]: false }))}
-                          dropdownItems={specializationOptions}
+                          dropdownItems={getFilteredOptions(typeof p.specialization === 'object' ? (p.specialization?.value || p.specialization?.name || '') : (p.specialization || ''))}
                           onSelectItem={(item) => {
                             updatePractice(idx, { specialization: { name: item.label || item.value, value: item.value } });
                             setAddSpecOpen(prev => ({ ...prev, [idx]: false }));
                           }}
                           compulsory
+                          dropUp={true}
                         />
                       </div>
                       <div className="w-full">

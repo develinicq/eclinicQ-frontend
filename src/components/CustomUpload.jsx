@@ -221,14 +221,15 @@ const CustomUpload = ({
                 infoIcon={noView}
                 requiredDot={compulsory}
             />
-            {meta && <span className="text-xs text-secondary-grey200 mb-1">{meta}</span>}
+            
 
             <div
                 onClick={triggerUpload}
-                className="cursor-pointer rounded-sm border-[0.5px] border-dashed border-blue-primary150 transition-colors text-blue-primary250 text-sm mb-1 flex items-center justify-center p-1 px-2 h-8 hover:bg-gray-50"
+                className="cursor-pointer rounded-sm border-[0.5px] border-dashed border-blue-primary150 transition-colors text-blue-primary250 text-sm mb-1 flex items-center p-1 px-2 h-8 hover:bg-gray-50"
             >
                 <span>{uploading ? 'Uploading...' : uploadContent}</span>
             </div>
+            {meta && <span className="text-xs text-secondary-grey200 mb-1">{meta}</span>}
 
             <input
                 type="file"

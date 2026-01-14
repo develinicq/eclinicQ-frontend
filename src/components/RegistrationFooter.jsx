@@ -6,70 +6,40 @@ import { ArrowLeft } from "lucide-react";
 
 import UniversalLoader from "./UniversalLoader";
 
+import useHospitalStep1Store from '../store/useHospitalStep1Store';
+import useHospitalDoctorDetailsStore from '../store/useHospitalDoctorDetailsStore';
+import useHospitalRegistrationStore from '../store/useHospitalRegistrationStore';
+
 const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next", disablePrev = false, loading = false }) => {
   const { registrationType, formData, setCurrentStep } = useRegistration();
+  const [localError, setLocalError] = React.useState(null);
+  const [disablePrevLocal, setDisablePrevLocal] = React.useState(false);
   const isHospital = registrationType === 'hospital';
   const hospitalOwnerAlsoDoctor = isHospital && String(formData?.isDoctor || 'no') === 'yes';
 
   // State from stores for validation
   const step1State = useDoctorStep1Store();
+
+  // Hospital Steps
+  const hosStep1 = useHospitalStep1Store();
+  const hosStep2 = useHospitalDoctorDetailsStore();
+  const hosStep3 = useHospitalRegistrationStore();
   const regState = useDoctorRegistrationStore();
   const { submit, loading: storeLoading, error, success } = regState;
 
-  const [localError, setLocalError] = React.useState(null);
-  const [disablePrevLocal, setDisablePrevLocal] = React.useState(false);
+  const validateHosStep1 = () => {
+    const { form } = hosStep1;
+    if (!form.firstName?.trim() || !form.lastName?.trim() || !form.emailId?.trim() || !form.phone?.trim() || !form.gender || !form.city) return false;
+    if (form.isAlsoDoctor && !form.profilePhotoKey) return false;
 
-  // Final success footer:
-  // - Doctor flow finishes at step 6
-  // - Hospital flow finishes at step 6 when isDoctor === 'no'
-  if ((registrationType === 'doctor' && currentStep === 6) || (isHospital && !hospitalOwnerAlsoDoctor && currentStep === 6)) {
-    return (
-      <footer className="flex-shrink-0 px-6 py-6 border-t border-gray-200 flex justify-between bg-white text-sm">
-        <button onClick={onCancel} className="ml-6 w-[200px] h-8 flex items-center justify-center rounded-sm border border-secondary-grey200 hover:bg-secondary-grey50 transition-colors text-secondary-grey400">
-          Close
-        </button>
+    // RegEx checks matching Hos_1.jsx
+    if (!/^\S+@\S+\.\S+$/.test(form.emailId)) return false;
+    if (!/^\d{10}$/.test(form.phone)) return false;
 
-        <div className="flex gap-5 items-center px-6">
-          <button
-            onClick={onNext}
-            className="w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-          >
-            Go to Profile →
-          </button>
-        </div>
-      </footer>
-    );
-  }
-
-  // For Step 7 (hospital success page), show different navigation
-  if (currentStep === 7 && isHospital) {
-    return (
-      <footer className="flex-shrink-0 px-6 py-6 border-t border-gray-200 flex justify-between bg-white text-sm">
-        <button onClick={onCancel} className="ml-6 w-[200px] h-8 flex items-center justify-center rounded-sm border border-secondary-grey200 hover:bg-secondary-grey50 transition-colors text-secondary-grey400">
-          Close
-        </button>
-
-        <div className="flex gap-5 items-center px-6">
-          <button
-            onClick={onNext}
-            className="w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-          >
-            Go to Profile →
-          </button>
-        </div>
-      </footer>
-    );
-  }
-
-  const validateStep1 = () => {
-    const { firstName, lastName, emailId, phone, gender, city, profilePhotoKey } = step1State;
-    if (!firstName?.trim() || !lastName?.trim() || !emailId?.trim() || !phone?.trim() || !gender || !city || !profilePhotoKey) return false;
-    if (!/^\S+@\S+\.\S+$/.test(emailId)) return false;
-    if (!/^\d{10}$/.test(phone)) return false;
     return true;
   };
 
-  const validateStep2 = () => {
+  const validateHosStep2 = () => {
     const {
       medicalCouncilRegNo,
       medicalCouncilName,
@@ -82,8 +52,9 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
       documents,
       pgMedicalDegreeType,
       pgMedicalDegreeUniversityName,
-      pgMedicalDegreeYearOfCompletion
-    } = regState;
+      pgMedicalDegreeYearOfCompletion,
+      additionalPractices
+    } = hosStep2;
 
     // Required fields
     if (!medicalCouncilRegNo?.trim() || !medicalCouncilName || !medicalCouncilRegYear) return false;
@@ -105,13 +76,13 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
     if (!hasProof(1) || !hasProof(2)) return false;
 
     // PG validation if selected
-    if (pgMedicalDegreeType !== null) {
-      if (!pgMedicalDegreeType || !pgMedicalDegreeUniversityName || !pgMedicalDegreeYearOfCompletion) return false;
+    if (pgMedicalDegreeType) { // simplified check as hosStep2 handles conditional clearing
+      if (!pgMedicalDegreeUniversityName || !pgMedicalDegreeYearOfCompletion) return false;
       if (!/^\d{4}$/.test(pgMedicalDegreeYearOfCompletion)) return false;
     }
 
     // Additional Practices validation
-    const addPractices = regState.additionalPractices || [];
+    const addPractices = additionalPractices || [];
     for (const p of addPractices) {
       const pSpec = typeof p.specialization === 'object' ? (p.specialization?.value || p.specialization?.name) : p.specialization;
       if (!pSpec || !p.experienceYears?.toString().trim()) return false;
@@ -121,39 +92,139 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
     return true;
   };
 
-  const validateStep3 = () => {
-    const { hasClinic, clinicData } = regState;
-    if (!hasClinic) return true; // Skipped
+  // Reason for disabling next button
+  let disabledReason = "";
+  const setReason = (msg) => { if (!disabledReason) disabledReason = msg; };
 
+  const validateStep1 = () => {
+    const { firstName, lastName, emailId, phone, gender, city } = step1State;
+    if (!firstName?.trim() || !lastName?.trim() || !emailId?.trim() || !phone?.trim() || !gender || !city) {
+      setReason("Please fill all required fields");
+      return false;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(emailId)) { setReason("Invalid email"); return false; }
+    if (!/^\d{10}$/.test(phone)) { setReason("Phone must be 10 digits"); return false; }
+    return true;
+  };
+
+  const validateStep2 = () => {
     const {
-      name, email, phone,
-      blockNo, areaStreet, landmark, city, state, pincode,
-      proof, latitude, longitude
-    } = clinicData;
+      medicalCouncilRegNo, medicalCouncilName, medicalCouncilRegYear,
+      medicalDegreeType, medicalDegreeUniversityName, medicalDegreeYearOfCompletion,
+      specialization, experienceYears
+    } = regState;
 
-    if (!name?.trim() || !email?.trim() || !phone?.trim()) return false;
-    if (!blockNo?.trim() || !areaStreet?.trim() || !landmark?.trim()) return false;
-    if (!city || !state || !pincode?.trim()) return false;
-    if (!proof) return false;
-    if (!Number(latitude) || !Number(longitude)) return false;
+    if (!medicalCouncilRegNo?.trim() || !medicalCouncilName || !medicalCouncilRegYear) { setReason("Missing Council details"); return false; }
+    if (!medicalDegreeType || !medicalDegreeUniversityName || !medicalDegreeYearOfCompletion) { setReason("Missing Education details"); return false; }
 
-    // RegEx checks
-    if (!/^\S+@\S+\.\S+$/.test(email)) return false;
-    if (!/^\d{10}$/.test(phone)) return false;
-    if (!/^\d{6}$/.test(pincode)) return false;
-
-    if (!/^\d{6}$/.test(pincode)) return false;
+    const specName = typeof specialization === 'object' ? (specialization?.value || specialization?.name) : specialization;
+    if (!specName || !experienceYears) { setReason("Missing Specialization"); return false; }
 
     return true;
   };
 
-  const validateStep4 = () => {
-    // Check if we are in Doctor Step 4, Substep 2
-    // Doctor Step 4 has 2 substeps. Agreement is on SubStep 2.
-    // Substep state is in formData.step4SubStep
-    if (registrationType === 'doctor' && (formData.step4SubStep === 2)) {
-      if (!formData.termsAccepted || !formData.privacyAccepted) return false;
+  const validateStep3 = () => {
+    if (!regState.hasClinic) return true;
+    const { name, email, phone, blockNo, city, state, pincode, image } = regState.clinicData;
+    if (!name?.trim() || !email?.trim() || !phone?.trim() || !blockNo?.trim() || !city?.trim() || !state?.trim() || !pincode?.trim() || !image) {
+      setReason("Missing Clinic details");
+      return false;
     }
+    return true;
+  };
+
+  const validateStep4 = () => {
+    // Basic doc validation
+    if (!regState.documents || regState.documents.length === 0) {
+      setReason("Please upload required documents");
+      return false;
+    }
+    return true;
+  };
+
+  const validateHosStep3 = () => {
+    // Determine sub-step from global formData
+    const subStep = Number(formData.hosStep3SubStep || 1);
+    const {
+      name, type, emailId, phone,
+      city, state, pincode, address,
+      image, url, website, noOfBeds, establishmentYear,
+      medicalSpecialties, hospitalServices
+    } = hosStep3;
+
+    if (subStep === 1) {
+      console.log('Hos_3 Debug: Validating Substep 1', {
+        name, type, emailId, phone, city, state, pincode,
+        addressBlock: address?.blockNo, addressStreet: address?.street,
+        image, url
+      });
+
+      const val = (v) => String(v || '').trim();
+
+      // Detailed checks
+      if (!val(name)) { setReason('Missing Hospital Name'); return false; }
+      if (!type) { setReason('Missing Hospital Type'); return false; }
+      if (!establishmentYear) { setReason('Missing Established Year'); return false; }
+      if (!val(emailId)) { setReason('Missing Email'); return false; }
+      if (!val(phone)) { setReason('Missing Phone'); return false; }
+      if (!val(city)) { setReason('Missing City'); return false; }
+      if (!val(state)) { setReason('Missing State'); return false; }
+      if (!val(pincode)) { setReason('Missing Pincode'); return false; }
+      if (!val(address?.blockNo)) { setReason('Missing Block/Shop No'); return false; }
+      if (!val(address?.street)) { setReason('Missing Street'); return false; }
+      if (!image) { setReason('Missing Hospital Image'); return false; }
+      if (!val(url)) { setReason('Missing Hospital URL'); return false; }
+
+      // Strict Regex checks
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val(emailId))) { setReason('Invalid Email Format'); return false; }
+      if (!/^\d{10}$/.test(val(phone))) { setReason('Phone must be 10 digits'); return false; }
+      if (!/^\d{6}$/.test(val(pincode))) { setReason('Pincode must be 6 digits'); return false; }
+      if (!/^(https?:\/\/)?[a-zA-Z0-9.-]+$/.test(val(url))) { setReason('Invalid URL Format'); return false; }
+
+      if (noOfBeds && (isNaN(noOfBeds) || Number(noOfBeds) < 0)) { setReason('Invalid Beds Count'); return false; }
+
+      return true;
+    } else {
+      // SubStep 2: Services
+      if (!medicalSpecialties || medicalSpecialties.length === 0) { setReason('Select at least one Specialty'); return false; }
+      if (!hospitalServices || hospitalServices.length === 0) { setReason('Select at least one Service'); return false; }
+      return true;
+    }
+  };
+
+  const validateHosStep4 = () => {
+    const {
+      gstin, stateHealthReg, panCard, hasCin, cinNumber, documents
+    } = hosStep3; // Hos_4 uses same store as Hos_3 (useHospitalRegistrationStore)
+
+    const getDoc = (type) => documents?.find(d => d.type === type)?.url;
+
+    // Required Fields & Docs
+    if (!gstin) { setReason('Missing GSTIN'); return false; }
+    if (!getDoc('GST_PROOF')) { setReason('Missing GST Proof'); return false; }
+    if (!stateHealthReg) { setReason('Missing State Registration'); return false; }
+    if (!getDoc('STATE_HEALTH_REG_PROOF')) { setReason('Missing Reg Proof'); return false; }
+    if (!panCard) { setReason('Missing PAN'); return false; }
+    if (!getDoc('PAN_CARD')) { setReason('Missing PAN Proof'); return false; }
+
+    // Conditional
+    if (hasCin === 1 && !cinNumber) { setReason('Missing CIN'); return false; }
+
+    return true;
+  };
+
+  const validateHosStep5 = () => {
+    const subStep = formData.hosStep5SubStep || 1;
+    if (subStep === 2) {
+      // Must accept both Terms and Privacy
+      if (!formData.hosTermsAccepted || !formData.hosPrivacyAccepted) { setReason('Accept Terms & Privacy'); return false; }
+    }
+    return true;
+  };
+
+  const validateHosStep6 = () => {
+    // Check if plan is selected
+    if (!formData.selectedPlan) { setReason('Select a Plan'); return false; }
     return true;
   };
 
@@ -163,6 +234,23 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
     else if (currentStep === 2) isNextDisabled = !validateStep2();
     else if (currentStep === 3) isNextDisabled = !validateStep3();
     else if (currentStep === 4) isNextDisabled = !validateStep4();
+  } else if (isHospital) {
+    if (formData.isDoctor === 'no') {
+      // Mapping for Non-Doctor Owner
+      if (currentStep === 1) isNextDisabled = !validateHosStep1();
+      else if (currentStep === 2) isNextDisabled = !validateHosStep3(); // Hos_3 (Hospital Details)
+      else if (currentStep === 3) isNextDisabled = !validateHosStep4(); // Hos_4 (Documents)
+      else if (currentStep === 4) isNextDisabled = !validateHosStep5(); // Hos_5 (Review)
+      else if (currentStep === 5) isNextDisabled = !validateHosStep6(); // Hos_6 (Payment)
+    } else {
+      // Mapping for Doctor Owner
+      if (currentStep === 1) isNextDisabled = !validateHosStep1();
+      else if (currentStep === 2) isNextDisabled = !validateHosStep2(); // Hos_2 (Doctor Details)
+      else if (currentStep === 3) isNextDisabled = !validateHosStep3(); // Hos_3 (Hospital Details)
+      else if (currentStep === 4) isNextDisabled = !validateHosStep4(); // Hos_4 (Documents)
+      else if (currentStep === 5) isNextDisabled = !validateHosStep5(); // Hos_5 (Review)
+      else if (currentStep === 6) isNextDisabled = !validateHosStep6(); // Hos_6 (Payment)
+    }
   }
 
   const isLastStep = false; // Set to true if this is the final submission step
@@ -187,7 +275,7 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
       </button>
 
       <div className="flex gap-5 items-center px-6">
-        {currentStep > 1 && (
+        {currentStep > 1 && currentStep < maxSteps && (
           <button
             onClick={onPrev}
             className=" h-8 flex gap-1 items-center justify-center rounded-sm text-secondary-grey400 hover:text-gray-900 transition-colors disabled:opacity-50"
@@ -212,18 +300,26 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
             ) : 'Preview Purchase ->'}
           </button>
         ) : (
-          <button
-            onClick={onNext}
-            disabled={loading || isNextDisabled}
-            className={`w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors ${loading || isNextDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
-          >
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <UniversalLoader size={16} color="white" style={{ width: 'auto', height: 'auto' }} />
-                <span>Saving...</span>
+          <div className="relative group">
+            <button
+              onClick={onNext}
+              disabled={loading || isNextDisabled}
+              className={`w-[200px] h-8 flex items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors ${loading || isNextDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <UniversalLoader size={16} color="white" style={{ width: 'auto', height: 'auto' }} />
+                  <span>Saving...</span>
+                </div>
+              ) : nextLabel}
+            </button>
+            {isNextDisabled && disabledReason && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap z-50 hidden group-hover:block transition-opacity opacity-0 group-hover:opacity-100">
+                {disabledReason}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
               </div>
-            ) : nextLabel}
-          </button>
+            )}
+          </div>
         )}
         {isLastStep && success && <span className="ml-4 text-green-600">Registration successful!</span>}
       </div>
