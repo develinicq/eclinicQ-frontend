@@ -285,3 +285,17 @@ export const updateDoctorProfessionalDetailsForSuperAdmin = async (doctorId, pay
     throw error;
   }
 };
+
+// Update Super Admin view: consultation details
+export const updateDoctorConsultationDetailsForSuperAdmin = async (doctorId, payload, params) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  if (!payload || typeof payload !== 'object') throw new Error("payload is required");
+  try {
+    const res = await axios.put(`/doctors/forSuperAdmin/doctorDetails/consultationDetails/${encodeURIComponent(doctorId)}`, payload, {
+      params,
+    });
+    return res.data; // { success, message, data: { ... } }
+  } catch (error) {
+    throw error;
+  }
+};

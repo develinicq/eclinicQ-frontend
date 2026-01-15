@@ -200,7 +200,7 @@ const HospitalDetailsPage = () => {
     if (!id && !location?.state?.hospital) {
       return (
         <div className="flex items-center justify-center bg-white h-screen">
-          <UniversalLoader size={32} style={{ background: 'white' }} />
+          <UniversalLoader size={32}  />
         </div>
       );
     }

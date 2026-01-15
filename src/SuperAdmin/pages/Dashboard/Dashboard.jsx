@@ -54,42 +54,36 @@ const Dashboard = () => {
         {/* Platform Overview using Overview_cards */}
         <div>
           <div className='text-[20px] font-medium text-secondary-grey400 mb-3'>Platform Overview</div>
-          {loading ? (
-            <div className='flex items-center justify-center p-12 '>
-              <UniversalLoader size={30} />
-            </div>
-          ) : (
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-              <Overview_cards
-                title='Total Active Doctors'
-                value={overviewData?.totalActiveDoctors || 0}
-                percent={overviewData?.deltas?.doctors || 0}
-                periodText='from last year'
-                variant={(overviewData?.deltas?.doctors || 0) >= 0 ? 'profit' : 'loss'}
-              />
-              <Overview_cards
-                title='Total Clinics'
-                value={overviewData?.totalClinics || 0}
-                percent={overviewData?.deltas?.clinics || 0}
-                periodText='from last year'
-                variant={(overviewData?.deltas?.clinics || 0) >= 0 ? 'profit' : 'loss'}
-              />
-              <Overview_cards
-                title='Total Active Hospitals'
-                value={overviewData?.totalActiveHospitals || 0}
-                percent={overviewData?.deltas?.hospitals || 0}
-                periodText='from last year'
-                variant={(overviewData?.deltas?.hospitals || 0) >= 0 ? 'profit' : 'loss'}
-              />
-              <Overview_cards
-                title='Total Enrolled Patients'
-                value={overviewData?.totalEnrolledPatients || 0}
-                percent={overviewData?.deltas?.patients || 0}
-                periodText='from last year'
-                variant={(overviewData?.deltas?.patients || 0) >= 0 ? 'profit' : 'loss'}
-              />
-            </div>
-          )}
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+            <Overview_cards
+              title='Total Active Doctors'
+              value={loading ? '00' : (overviewData?.totalActiveDoctors || 0)}
+              percent={loading ? 0 : (overviewData?.deltas?.doctors || 0)}
+              periodText='from last year'
+              variant={loading ? 'neutral' : (overviewData?.deltas?.doctors || 0) >= 0 ? 'profit' : 'loss'}
+            />
+            <Overview_cards
+              title='Total Clinics'
+              value={loading ? '00' : (overviewData?.totalClinics || 0)}
+              percent={loading ? 0 : (overviewData?.deltas?.clinics || 0)}
+              periodText='from last year'
+              variant={loading ? 'neutral' : (overviewData?.deltas?.clinics || 0) >= 0 ? 'profit' : 'loss'}
+            />
+            <Overview_cards
+              title='Total Active Hospitals'
+              value={loading ? '00' : (overviewData?.totalActiveHospitals || 0)}
+              percent={loading ? 0 : (overviewData?.deltas?.hospitals || 0)}
+              periodText='from last year'
+              variant={loading ? 'neutral' : (overviewData?.deltas?.hospitals || 0) >= 0 ? 'profit' : 'loss'}
+            />
+            <Overview_cards
+              title='Total Enrolled Patients'
+              value={loading ? '00' : (overviewData?.totalEnrolledPatients || 0)}
+              percent={loading ? 0 : (overviewData?.deltas?.patients || 0)}
+              periodText='from last year'
+              variant={loading ? 'neutral' : (overviewData?.deltas?.patients || 0) >= 0 ? 'profit' : 'loss'}
+            />
+          </div>
           {/* Controls row: tabs on the left, month/year dropdowns on the right */}
           <div className='mt-6 flex items-center justify-between'>
             <div className='flex items-center gap-2 p-[2px] rounded-sm bg-blue-primary50  h-8 overflow-hidden w-fit'>
@@ -147,7 +141,7 @@ const Dashboard = () => {
                       setIsMonthOpen(false)
                     }}
                     width="w-[170px]"
-                   
+
                   />
                 )}
               </div>

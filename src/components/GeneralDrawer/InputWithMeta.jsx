@@ -61,6 +61,7 @@ export default function InputWithMeta({
   type = "text",
   meta,
   dropUp = false,
+  dropdownClassName = "",
 }) {
   const truncate = (str, max) => {
     if (!str) return str;
@@ -303,15 +304,15 @@ export default function InputWithMeta({
         dropdownItems.length > 0 && (
           <DropdownMenu
             items={dropdownItems}
-            selectedItem={value || selectedValue}
+            selectedItem={selectedValue !== undefined ? selectedValue : value}
             onSelect={(it) => {
               onSelectItem?.(it);
               onRequestClose?.();
             }}
             width="w-full"
-            
+
             itemRenderer={itemRenderer}
-            className={dropUp ? 'bottom-full mb-1 !top-auto' : 'top-full mt-1'}
+            className={`${dropUp ? 'bottom-full mb-1 !top-auto' : 'top-full mt-1'} ${dropdownClassName}`}
           />
         )}
       {meta && <p className="text-[12px] text-secondary-grey200 leading-tight ">{meta}</p>}

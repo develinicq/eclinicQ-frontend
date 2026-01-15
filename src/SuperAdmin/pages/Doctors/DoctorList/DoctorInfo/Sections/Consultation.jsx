@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import Toggle from "@/components/FormItems/Toggle";
 import TimeInput from "@/components/FormItems/TimeInput";
 import { ChevronDown, Trash2 } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import EditClinicDetailsDrawer from "../Drawers/EditClinicDetailsDrawer.jsx";
-import { getDoctorConsultationDetailsForSuperAdmin } from "@/services/doctorService";
+import { getDoctorConsultationDetailsForSuperAdmin, updateDoctorConsultationDetailsForSuperAdmin } from "@/services/doctorService";
+import useToastStore from "@/store/useToastStore";
 import UniversalLoader from "@/components/UniversalLoader";
 
 // Reusable SectionCard (same as others)
@@ -92,6 +93,7 @@ const Consultation = ({ doctor, onLoadingChange, cache = {}, updateCache, clinic
   const [savingConsultation, setSavingConsultation] = useState(false);
   const [consultationLoading, setConsultationLoading] = useState(false);
   const [hasData, setHasData] = useState(true);
+  const [availabilityOpen, setAvailabilityOpen] = useState(false);
 
   // Alias for code using doctorDetails
   const doctorDetails = doctor;
@@ -139,72 +141,72 @@ const Consultation = ({ doctor, onLoadingChange, cache = {}, updateCache, clinic
     );
   }, [externalClinicId, doctorDetails?.clinicId, doctorDetails?.workplace?.clinics, doctorDetails?.associatedWorkplaces]);
 
+  // Use ref for updateCache to avoid re-triggering fetch when parent re-renders (causing new inline function)
+  const updateCacheRef = useRef(updateCache);
   useEffect(() => {
+    updateCacheRef.current = updateCache;
+  }, [updateCache]);
+
+  // Always fetch when this section activates; rely on API for fresh data
+  const fetchConsultation = React.useCallback(async () => {
     const id = doctorDetails?.userId || doctorDetails?.id;
     const clinicId = memoClinicId;
-    // Only fetch consultation details API; do NOT call banner/doctor-details API here
+
     if (!id) return;
 
-    // Always fetch when this section activates; rely on API for fresh data
-
-    let cancelled = false;
-    const fetchConsultation = async () => {
-      try {
-        setConsultationLoading(true);
-        if (!clinicId) {
-          // Without clinicId we cannot fetch consultation details; show empty state
-          setHasData(false);
-          return;
-        }
-
-        const res = await getDoctorConsultationDetailsForSuperAdmin(id, clinicId);
-        const feesData = res?.data?.consultationFees;
-        const schedData = res?.data?.scheduleDetails;
-
-        if (!feesData && !schedData) {
-          if (!cancelled) setHasData(false);
-          return;
-        }
-
-        const fees = feesData || {};
-        const sched = schedData || {};
-        const schedule = Array.isArray(sched?.schedule)
-          ? sched.schedule
-          : DEFAULT_SCHEDULE;
-
-        if (!cancelled) {
-          const payload = {
-            consultationFees: [
-              {
-                hospitalId: fees.hospitalId ?? null,
-                clinicId: fees.clinicId ?? clinicId,
-                consultationFee: fees.consultationFee ?? "",
-                followUpFee: fees.followUpFee ?? "",
-                autoApprove: Boolean(fees.autoApprove),
-                avgDurationMinutes: Number(fees.avgDurationMinutes) || 0,
-                availabilityDurationDays:
-                  Number(fees.availabilityDays) || undefined,
-              },
-            ],
-            slotTemplates: { schedule, clinicId },
-          };
-          setConsultationDetails(payload);
-          setHasData(true);
-          if (typeof updateCache === "function") updateCache(payload);
-          setConsultationDirty(false);
-        }
-      } catch (err) {
-        console.error("Failed to fetch consultation details for SuperAdmin:", err);
-        if (!cancelled) setHasData(false);
-      } finally {
-        if (!cancelled) setConsultationLoading(false);
+    try {
+      setConsultationLoading(true);
+      if (!clinicId) {
+        // Without clinicId we cannot fetch consultation details; show empty state
+        setHasData(false);
+        return;
       }
-    };
-    fetchConsultation();
-    return () => {
-      cancelled = true;
-    };
+
+      const res = await getDoctorConsultationDetailsForSuperAdmin(id, clinicId);
+      const feesData = res?.data?.consultationFees;
+      const schedData = res?.data?.scheduleDetails;
+
+      if (!feesData && !schedData) {
+        setHasData(false);
+        return;
+      }
+
+      const fees = feesData || {};
+      const sched = schedData || {};
+      const schedule = Array.isArray(sched?.schedule)
+        ? sched.schedule
+        : DEFAULT_SCHEDULE;
+
+      const payload = {
+        consultationFees: [
+          {
+            hospitalId: fees.hospitalId ?? null,
+            clinicId: fees.clinicId ?? clinicId,
+            consultationFee: fees.consultationFee ?? "",
+            followUpFee: fees.followUpFee ?? "",
+            autoApprove: Boolean(fees.autoApprove),
+            avgDurationMinutes: Number(fees.avgDurationMinutes) || 0,
+            availabilityDurationDays:
+              Number(fees.availabilityDays) || undefined,
+          },
+        ],
+        slotTemplates: { schedule, clinicId },
+      };
+      setConsultationDetails(payload);
+      setHasData(true);
+      if (typeof updateCacheRef.current === "function") updateCacheRef.current(payload);
+      setConsultationDirty(false);
+    } catch (err) {
+      console.error("Failed to fetch consultation details for SuperAdmin:", err);
+      setHasData(false);
+    } finally {
+      setConsultationLoading(false);
+    }
   }, [doctorDetails?.userId, doctorDetails?.id, memoClinicId]);
+
+  useEffect(() => {
+    fetchConsultation();
+  }, [fetchConsultation]);
 
   // Mock API for SuperAdmin view
   const putDoctorConsultationDetails = async (payload) => {
@@ -217,8 +219,8 @@ const Consultation = ({ doctor, onLoadingChange, cache = {}, updateCache, clinic
   return (
     <div className=" space-y-6 p-4 bg-secondary-grey50">
       {consultationLoading ? (
-        <div className="flex items-center justify-center h-48 bg-white rounded-lg">
-          <UniversalLoader size={28} className="bg-white" />
+        <div className="flex items-center justify-center h-48 rounded-lg">
+          <UniversalLoader size={28} className="" />
         </div>
       ) : showNoData ? (
         <div className="bg-white border border-secondary-grey100 rounded-lg p-10 text-center text-secondary-grey300">
@@ -401,12 +403,13 @@ const Consultation = ({ doctor, onLoadingChange, cache = {}, updateCache, clinic
                       ],
                     }));
                     setConsultationDirty(true);
+                    setAvailabilityOpen(false);
                   }}
                   itemRenderer={(it, { isSelected }) => (
                     <span
                       className={
                         isSelected
-                          ? 'text-blue-600 font-semibold bg-blue-50 rounded px-2 py-1'
+                          ? ''
                           : ''
                       }
                     >
@@ -416,6 +419,12 @@ const Consultation = ({ doctor, onLoadingChange, cache = {}, updateCache, clinic
                   showInput={true}
                   className="h-8 w-full text-xs"
                   RightIcon={ChevronDown}
+                  readonlyWhenIcon={true}
+                  onFieldOpen={() => setAvailabilityOpen(true)}
+                  onIconClick={() => setAvailabilityOpen(o => !o)}
+                  dropdownOpen={availabilityOpen}
+                  onRequestClose={() => setAvailabilityOpen(false)}
+                  dropdownClassName="mt-6"
                 />
               </div>
 
@@ -723,15 +732,17 @@ const Consultation = ({ doctor, onLoadingChange, cache = {}, updateCache, clinic
                 onClick={async () => {
                   try {
                     setSavingConsultation(true);
-                    const hospitalId =
-                      doctorDetails?.associatedWorkplaces?.clinic?.id ||
-                      doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id;
 
+                    // Determine if we should send clinicId or hospitalId
+                    const associatedClinicId = doctorDetails?.associatedWorkplaces?.clinic?.id || consultationDetails?.consultationFees?.[0]?.clinicId;
+                    const associatedHospitalId = doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id || consultationDetails?.consultationFees?.[0]?.hospitalId;
 
+                    // Create an object with the correct key (clinicId or hospitalId) to spread into the payload sections
+                    // Priority to clinicId if both exist (unlikely but safe), or fallback to hospitalId
+                    const locationIdObj = associatedClinicId ? { clinicId: associatedClinicId } : { hospitalId: associatedHospitalId };
 
                     // Build payload per spec
-                    const fees =
-                      consultationDetails?.consultationFees?.[0] || {};
+                    const fees = consultationDetails?.consultationFees?.[0] || {};
                     const schedule =
                       consultationDetails?.slotTemplates?.schedule?.length
                         ? consultationDetails.slotTemplates.schedule
@@ -747,54 +758,74 @@ const Consultation = ({ doctor, onLoadingChange, cache = {}, updateCache, clinic
                       Sunday: "SUNDAY",
                     };
                     const toHM = (iso) => {
+                      if (!iso) return "";
                       const d = new Date(iso);
+                      if (isNaN(d.getTime())) return iso; // Fallback if already formatted or invalid
                       const hh = String(d.getUTCHours()).padStart(2, "0");
                       const mm = String(d.getUTCMinutes()).padStart(2, "0");
                       return `${hh}:${mm}`;
                     };
+
                     const slotData = schedule
-                      .filter((x) => x.available)
-                      .map((d) => ({
-                        day: dayMap[d.day] || String(d.day).toUpperCase(),
-                        timings: (d.sessions || []).map((s) => ({
-                          startTime: toHM(s.startTime),
-                          endTime: toHM(s.endTime),
-                          maxTokens: Number(s.maxTokens) || 0,
-                        })),
-                      }));
+                      .map((d) => {
+                        // If day is not available, send empty timings to clear existing slots
+                        const sessions = d.available ? (d.sessions || []) : [];
+                        return {
+                          day: dayMap[d.day] || String(d.day).toUpperCase(),
+                          timings: sessions.map((s) => ({
+                            startTime: toHM(s.startTime),
+                            endTime: toHM(s.endTime),
+                            maxTokens: Number(s.maxTokens) || 0,
+                          })),
+                        };
+                      });
+
                     const payload = {
                       consultationFees: {
-                        hospitalId,
+                        ...locationIdObj,
                         consultationFee: String(fees.consultationFee ?? ""),
                         followUpFee: String(fees.followUpFee ?? ""),
                         autoApprove: Boolean(fees.autoApprove),
-                        avgDurationMinutes:
-                          Number(fees.avgDurationMinutes) || 0,
-                        availabilityDurationDays:
-                          Number(fees.availabilityDurationDays) || undefined,
+                        avgDurationMinutes: Number(fees.avgDurationMinutes) || 0,
+                        availabilityDurationDays: Number(fees.availabilityDurationDays) || undefined,
                       },
                       slotDetails: {
-                        hospitalId,
+                        ...locationIdObj,
                         slotData,
                       },
                     };
-                    await putDoctorConsultationDetails(payload);
+
+                    const doctorId = doctorDetails?.userId || doctorDetails?.id;
+                    // Pass locationIdObj (contains { clinicId: ... } or { hospitalId: ... }) as query params
+                    await updateDoctorConsultationDetailsForSuperAdmin(doctorId, payload, locationIdObj);
+
+                    useToastStore.getState().addToast({
+                      title: "Success",
+                      message: "Consultation details saved successfully",
+                      type: "success",
+                    });
+
+                    // Refresh data
+                    await fetchConsultation();
+
                     setConsultationDirty(false);
                   } catch (e) {
-                    alert(
-                      e?.response?.data?.message ||
-                      e.message ||
-                      "Failed to save consultation details"
-                    );
+                    console.error("Save error:", e);
+                    useToastStore.getState().addToast({
+                      title: "Error",
+                      message: e?.response?.data?.message || e.message || "Failed to save details",
+                      type: "error",
+                    });
                   } finally {
                     setSavingConsultation(false);
                   }
                 }}
-                className={`px-4 h-9 rounded text-sm font-medium ${!consultationDirty || savingConsultation
+                className={`flex items-center gap-2 px-4 h-9 rounded text-sm font-medium transition-colors ${!consultationDirty || savingConsultation
                   ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                   : "bg-blue-600 text-white hover:bg-blue-700"
                   }`}
               >
+                {savingConsultation && <UniversalLoader size={16} className="border-white" />}
                 {savingConsultation ? "Saving…" : "Save"}
               </button>
             </div>

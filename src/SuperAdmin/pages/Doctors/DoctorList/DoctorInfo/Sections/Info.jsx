@@ -474,8 +474,8 @@ const Info = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
   if (anyLoading) {
     return (
       <div className="relative min-h-[320px]">
-        <div className="absolute inset-0 flex items-center justify-center bg-white">
-          <UniversalLoader size={28} />
+        <div className="absolute inset-0 flex items-center justify-center bg-secondary-grey50 ">
+          <UniversalLoader size={28} className=" bg-secondary-grey50"/>
         </div>
       </div>
     );

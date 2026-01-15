@@ -24,6 +24,8 @@ export default function SuperAdminSignIn() {
     const [identifierMeta, setIdentifierMeta] = useState("");
     const [passwordMeta, setPasswordMeta] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [maskedEmail, setMaskedEmail] = useState("");
+    const [maskedPhone, setMaskedPhone] = useState("");
 
     // OTP State
     const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' | 'otp'
@@ -113,6 +115,11 @@ export default function SuperAdminSignIn() {
                 const challengeId = res.data.data?.data?.challengeId;
                 if (challengeId) {
                     setChallengeId(challengeId);
+
+                    const responseData = res.data.data?.data;
+                    setMaskedEmail(responseData?.maskedEmail || "");
+                    setMaskedPhone(responseData?.maskedPhone || "");
+
                     addToast({
                         title: "OTP Sent",
                         message: "OTP sent successfully to your registered mobile/email.",
@@ -164,8 +171,6 @@ export default function SuperAdminSignIn() {
                             localStorage.setItem('superAdminToken', token);
                         } catch { }
                     }
-                    // You might want to set user details here if returned, or fetch /me
-                    // setUser(res.data.data.user); 
 
                     addToast({
                         title: "Login Successful",
@@ -359,7 +364,7 @@ export default function SuperAdminSignIn() {
                         ) : (
                             <div className="flex flex-col items-center  gap-4 w-full animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div className="text-[14px] text-secondary-grey300 ">
-                                    We have sent a 6 digit OTP on <span className="font-semibold">{identifier.replace(/(\+?91)?(\d{2}).*(\d{4})/, '*******$3')}</span> and registered email Id <span className="font-semibold"> {identifier.includes('@') ? identifier.replace(/^(.{2}).*(@.*)$/, '$1*****$2') : 'ke*****@gmail.com'}</span>, please sign up if you are a new user
+                                    We have sent a 6 digit OTP on <span className="font-semibold">{maskedPhone}</span> and registered email Id <span className="font-semibold"> {maskedEmail}</span>, please sign up if you are a new user
                                 </div>
 
                                 <div className="flex flex-col items-center gap-3 w-full">

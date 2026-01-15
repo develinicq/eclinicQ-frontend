@@ -180,7 +180,7 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
   if (loading) {
     return (
       <div className="w-full h-[125px] flex items-center justify-center bg-white border rounded-lg">
-        <UniversalLoader size={30} className='bg-white' />
+        <UniversalLoader size={30}  />
       </div>
     );
   }
