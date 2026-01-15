@@ -50,6 +50,7 @@ import HFDConsultation from "./HospitalFDModule/Pages/Settings/HFDConsultation";
 import HFDStaffPermissions from "./HospitalFDModule/Pages/Settings/HFDStaffPermissions";
 import FDOnboardingFlow from "./FrontDeskModule/Pages/Login/OnboardingFlow";
 import HOnboardingFlow from "./HospitalModule/Pages/Login/OnboardingFlow";
+import HospitalSignIn from "./HospitalModule/Pages/Login/SignIn";
 // Deprecated individual sign-in wrappers replaced by unified route
 // import FDSignIn from "./FrontDeskModule/Pages/Login/SignIn";
 import HFDOnboardingFlow from "./HospitalFDModule/Pages/Login/OnboardingFlow";
@@ -114,6 +115,8 @@ function App() {
       <Route path="onboarding" element={<OnboardingFlow />} />
       {/* Unified sign-in for doctor / hospital / fd / hfd */}
       <Route path="signin" element={<UnifiedSignIn />} />
+  {/* Dedicated Hospital sign-in (no API) */}
+  <Route path="hospital/signin" element={<HospitalSignIn />} />
       {/* Back-compat redirects */}
       <Route
         path="fd/signin"
