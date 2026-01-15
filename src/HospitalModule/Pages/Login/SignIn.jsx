@@ -8,9 +8,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 // import useUIStore from "../../store/useUIStore"; // Adjusted path below
-import useUIStore from "../../../store/useUIStore";
-import useToastStore from "../../../store/useToastStore";
-import useHospitalAuthStore from "../../../store/useHospitalAuthStore";
+import useUIStore from "@/store/useUIStore";
+import useToastStore from "@/store/useToastStore";
+import useHospitalAuthStore from "@/store/useHospitalAuthStore";
 
 import RadioButton from "@/components/GeneralDrawer/RadioButton";
 

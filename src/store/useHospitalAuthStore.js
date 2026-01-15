@@ -75,6 +75,27 @@ const useHospitalAuthStore = create(
                 }
             },
 
+            fetchMe: async () => {
+                set({ loading: true });
+                try {
+                    const axiosInstance = (await import('../lib/axios')).default;
+                    const res = await axiosInstance.get('/hospitals/admin/me');
+
+                    if (res.data?.success) {
+                        set({
+                            user: res.data.data,
+                            loading: false
+                        });
+                        return res.data;
+                    }
+                    throw new Error(res.data?.message || 'Failed to fetch profile');
+                } catch (error) {
+                    set({ loading: false });
+                    console.error('Fetch profile error:', error);
+                    throw error;
+                }
+            },
+
             isAuthenticated: () => Boolean(get().token),
             getAuthHeader: () => {
                 const t = get().token;

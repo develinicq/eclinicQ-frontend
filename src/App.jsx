@@ -11,6 +11,7 @@ import HospitalDetailsPage from "./SuperAdmin/pages/Hospitals/HospitalList/Hospi
 import { RegistrationProvider } from "./SuperAdmin/context/RegistrationContext";
 import SuperAdminSignIn from "./SuperAdmin/pages/SignIn";
 import { ProtectedAdminRoute, PublicAdminRoute } from "./SuperAdmin/components/Guard/AdminRoutes";
+import { ProtectedHospitalRoute, ProtectedDoctorRoute, PublicHospitalRoute } from "./HospitalModule/Components/Guard/HospitalRoutes";
 import GetStarted from "./pages/GetStarted";
 import OnboardingFlow from "./DoctorModule/Pages/Login/OnboardingFlow";
 import Doctor_layout from "./DoctorModule/Components/Layout/DoctorLayout";
@@ -115,8 +116,15 @@ function App() {
       <Route path="onboarding" element={<OnboardingFlow />} />
       {/* Unified sign-in for doctor / hospital / fd / hfd */}
       <Route path="signin" element={<UnifiedSignIn />} />
-  {/* Dedicated Hospital sign-in (no API) */}
-  <Route path="hospital/signin" element={<HospitalSignIn />} />
+      {/* Dedicated Hospital sign-in (no API) */}
+      <Route
+        path="hospital/signin"
+        element={
+          <PublicHospitalRoute>
+            <HospitalSignIn />
+          </PublicHospitalRoute>
+        }
+      />
       {/* Back-compat redirects */}
       <Route
         path="fd/signin"
@@ -133,19 +141,21 @@ function App() {
       <Route path="hfd/onboarding" element={<HFDOnboardingFlow />} />
 
       {/* Doctor Portal */}
-      <Route path="doc" element={<Doctor_layout />}>
-        <Route index element={<DocDashboard />} />
-        <Route path="queue" element={<Queue />} />
-        <Route path="calendar" element={<DocCalendar />} />
-        <Route path="patients" element={<DocPatients />} />
-        <Route path="patients/:id" element={<PatientDetails />} />
-        {/* Settings subroutes */}
-        <Route path="settings/account" element={<Doc_settings />} />
-        <Route path="settings/consultation" element={<Doc_settings />} />
-        <Route path="settings/clinics" element={<Doc_settings />} />
-        <Route path="settings/staff-permissions" element={<Doc_settings />} />
-        <Route path="settings/security" element={<Doc_settings />} />
-        <Route path="settings/rx-template" element={<Doc_settings />} />
+      <Route element={<ProtectedDoctorRoute />}>
+        <Route path="doc" element={<Doctor_layout />}>
+          <Route index element={<DocDashboard />} />
+          <Route path="queue" element={<Queue />} />
+          <Route path="calendar" element={<DocCalendar />} />
+          <Route path="patients" element={<DocPatients />} />
+          <Route path="patients/:id" element={<PatientDetails />} />
+          {/* Settings subroutes */}
+          <Route path="settings/account" element={<Doc_settings />} />
+          <Route path="settings/consultation" element={<Doc_settings />} />
+          <Route path="settings/clinics" element={<Doc_settings />} />
+          <Route path="settings/staff-permissions" element={<Doc_settings />} />
+          <Route path="settings/security" element={<Doc_settings />} />
+          <Route path="settings/rx-template" element={<Doc_settings />} />
+        </Route>
       </Route>
 
       {/* FrontDesk Portal (copy of Doctor Portal) */}
@@ -165,27 +175,29 @@ function App() {
       </Route>
 
       {/* Hospital Portal (copy of Doctor Portal) */}
-      <Route path="hospital" element={<HospitalLayout />}>
-        <Route index element={<HDashboard />} />
-        <Route path="queue" element={<HQueue />} />
-        <Route path="patients" element={<HPatients />} />
-        <Route path="calendar" element={<HCalendar />} />
-        <Route path="doctors" element={<HDoctors />} />
-        <Route path="doctor/:id" element={<HDoctorDetailsPage />} />
-        <Route path="patients/:id" element={<HPatientDetails />} />
-        <Route path="settings/account" element={<HSettings />} />
-        <Route path="settings/timing" element={<HSettings />} />
-        <Route path="settings/surgeries" element={<HSettings />} />
-        <Route
-          path="settings/staff-permissions"
-          element={<HSettings />}
-        />
-        <Route path="settings/security" element={<HSettings />} />
-        <Route path="settings/rx-template" element={<HRxTemplate />} />
-        <Route
-          path="settings/subscriptions-billing"
-          element={<HSubscriptions />}
-        />
+      <Route element={<ProtectedHospitalRoute />}>
+        <Route path="hospital" element={<HospitalLayout />}>
+          <Route index element={<HDashboard />} />
+          <Route path="queue" element={<HQueue />} />
+          <Route path="patients" element={<HPatients />} />
+          <Route path="calendar" element={<HCalendar />} />
+          <Route path="doctors" element={<HDoctors />} />
+          <Route path="doctor/:id" element={<HDoctorDetailsPage />} />
+          <Route path="patients/:id" element={<HPatientDetails />} />
+          <Route path="settings/account" element={<HSettings />} />
+          <Route path="settings/timing" element={<HSettings />} />
+          <Route path="settings/surgeries" element={<HSettings />} />
+          <Route
+            path="settings/staff-permissions"
+            element={<HSettings />}
+          />
+          <Route path="settings/security" element={<HSettings />} />
+          <Route path="settings/rx-template" element={<HRxTemplate />} />
+          <Route
+            path="settings/subscriptions-billing"
+            element={<HSubscriptions />}
+          />
+        </Route>
       </Route>
 
       {/* Hospital FrontDesk Portal (copy of FD) */}
