@@ -11,6 +11,7 @@ import {
   vertical,
 } from "../../../../public/index.js";
 import AvatarCircle from "../../../components/AvatarCircle.jsx";
+import UniversalLoader from "../../../components/UniversalLoader";
 import { getPatientColumns } from "./columns";
 
 
@@ -68,9 +69,7 @@ export default function Patient() {
     ? []
     : patients && patients.length > 0
       ? patients
-      : error
-        ? demoPatients
-        : demoPatients; // Fallback to demo for now if store empty
+      : [];
 
   const counts = useMemo(
     () => ({ all: displayPatients.length, online: 0, walkin: 0 }),
@@ -94,6 +93,29 @@ export default function Patient() {
     []
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-secondary-grey50">
+        <UniversalLoader size={32} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-secondary-grey50 p-6">
+        <div className="text-red-600 font-medium mb-2">Failed to load patients</div>
+        <div className="text-sm text-red-500 mb-4">{error}</div>
+        <button
+          onClick={() => fetchPatients()}
+          className="px-6 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors shadow-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="px-3">
@@ -107,30 +129,18 @@ export default function Patient() {
           />
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="flex items-center gap-3">
-              <div
-                className="h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"
-                aria-hidden="true"
-              />
-              <div className="text-sm text-gray-600">Loading patients...</div>
-            </div>
-          </div>
-        ) : (
-          <div className="h-[calc(100vh-140px)] overflow-hidden border border-gray-200 rounded-lg shadow-sm bg-white">
-            <SampleTable
-              columns={columns}
-              data={pageRows}
-              page={page}
-              pageSize={pageSize}
-              total={total}
-              onPageChange={setPage}
-              stickyLeftWidth={260}
-              stickyRightWidth={160}
-            />
-          </div>
-        )}
+        <div className="h-[calc(100vh-140px)] overflow-hidden border border-gray-200 rounded-lg shadow-sm bg-white">
+          <SampleTable
+            columns={columns}
+            data={pageRows}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            stickyLeftWidth={260}
+            stickyRightWidth={160}
+          />
+        </div>
 
         <AddPatientDrawer
           open={addOpen}

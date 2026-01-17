@@ -48,8 +48,23 @@ axiosInstance.interceptors.request.use(
         try { return localStorage.getItem('superAdminToken'); } catch { return null; }
       })();
 
-      // Priority: SuperAdmin > Hospital > Doctor > Generic > LocalStorage
-      const token = saToken || hToken || dToken || genericToken || lsToken;
+      // Priority logic based on current route/path to support multi-role users
+      const path = typeof window !== 'undefined' ? window.location.pathname : '';
+      let token = null;
+
+      if (path.startsWith('/doc')) {
+        token = dToken || saToken || hToken || genericToken || lsToken;
+      } else if (path.startsWith('/hospital')) {
+        token = hToken || saToken || dToken || genericToken || lsToken;
+      } else if (path.startsWith('/hfd')) {
+        token = hToken || saToken || dToken || genericToken || lsToken;
+      } else if (path.startsWith('/fd')) {
+        token = genericToken || saToken || hToken || dToken || lsToken;
+      } else {
+        // Default priority for SuperAdmin or other paths
+        token = saToken || hToken || dToken || genericToken || lsToken;
+      }
+
       if (token) {
         config.headers = config.headers || {};
         const rawToken = String(token).trim();
