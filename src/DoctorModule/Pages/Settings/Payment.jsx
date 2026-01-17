@@ -1029,7 +1029,7 @@ export default function Payment() {
           </div>
           {/* Right Column */}
           <div className="space-y-4">
-            {/* Recommended Methods */}
+            
             <div className="bg-card rounded-xl border border-border p-4">
               <h3 className="text-sm font-medium text-muted-foreground mb-2">
                 Recommended Method
