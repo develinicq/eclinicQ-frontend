@@ -720,12 +720,12 @@ export default function Payment() {
                   <img src="/logo.png" alt="logo" className="w-[128px] h-auto" />
                 </div>
         <div className="flex items-center gap-1 text-xs md:text-sm text-muted-foreground">
-          <span className="flex items-center gap-1 bg-[#F2FFF3] text-[#3BA73C] p-1 rounded-lg">
+          <span className="flex items-center gap-1 bg-success-100 text-success-300 p-1 rounded-lg">
             <span>⏱</span> 15:00
           </span>
           <span className="flex items-center font-semibold gap-1">
             Safe & Secure
-            <Shield className="w-4 h-4 bg-[#F2FFF3] text-[#3BA73C]" />
+            <Shield className="w-4 h-4 bg-success-100 text-success-300" />
           </span>
         </div>
       </header>
@@ -735,7 +735,7 @@ export default function Payment() {
           {/* Left Column*/}
           <div className="space-y-4 md:space-y-4">
             {/* Plan Card */}
-            <div className="bg-card rounded-xl border border-[#0E4395] p-4 md:p-6">
+            <div className="bg-card rounded-xl border border-blue-primary400 p-4 md:p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center bg-primary/10">
@@ -746,12 +746,12 @@ export default function Payment() {
                     <p className="text-xs md:text-sm text-muted-foreground">
                       Plan Subscription
                     </p>
-                    <h2 className="text-lg md:text-xl font-semibold text-primary">
+                    <h2 className="text-lg md:text-xl font-semibold text-blue-primary250">
                       Upchar-Q Pro
                     </h2>
                   </div>
                 </div>
-                <span className="inline-flex items-center text-green-500 bg-green-100 px-2 py-0.5 rounded-md border border-green-400 text-xs font-medium">
+                <span className="inline-flex items-center text-success-400 bg-success-100 px-2 py-0.5 rounded-md border border-success-300">
                   <svg
                     className="w-4 h-4 mr-1"
                     fill="none"
@@ -781,13 +781,13 @@ export default function Payment() {
               <div className="flex flex-wrap gap-4 md:gap-8 text-sm text-muted-foreground mb-4 md:mb-0">
                 <div>
                   <p className="text-xs text-muted-foreground">Due Date</p>
-                  <p className="font-medium text-gray-400">02/12/2025</p>
+                  <p className="font-medium text-secondary-grey200">02/12/2025</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">
                     Invoice Number
                   </p>
-                  <p className="font-medium text-gray-400">INV-2025-02</p>
+                  <p className="font-medium text-secondary-grey200">INV-2025-02</p>
                 </div>
               </div>
               {/* Billing Cycle */}
@@ -811,14 +811,14 @@ export default function Payment() {
                     <span
                    className="
     w-4 h-4 rounded-full
-    border-2 border-gray-400      
+    border-2 border-secondary-grey200      
     flex items-center justify-center
-    peer-checked:border-[#2372EC] 
-    peer-checked:bg-[#2372EC]
+    peer-checked:border-blue-primary250
+    peer-checked:bg-blue-primary250
     peer-checked:before:content-['']
     peer-checked:before:w-2
     peer-checked:before:h-2
-    peer-checked:before:bg-white
+    peer-checked:before:bg-card
     peer-checked:before:rounded-full
   "
                     />
@@ -839,21 +839,21 @@ export default function Payment() {
                     <span
                               className="
     w-4 h-4 rounded-full
-    border-2 border-gray-400      
+    border-2 border-secondary-grey200      
     flex items-center justify-center
-    peer-checked:border-[#2372EC] 
-    peer-checked:bg-[#2372EC]
+    peer-checked:border-blue-primary250 
+    peer-checked:bg-blue-primary250
     peer-checked:before:content-['']
     peer-checked:before:w-2
     peer-checked:before:h-2
-    peer-checked:before:bg-white
+    peer-checked:before:bg-card
     peer-checked:before:rounded-full
   "
                     />
                     <span className="text-sm text-muted-foreground">
                       Half-Yearly
                     </span>
-                 <span className="text-xs bg-[#F2FFF3] p-1 text-[#3BA73C]">
+                 <span className="text-xs bg-success-100 p-1 text-success-300">
                       Get 1 Months Free
                     </span>
                   </label>
@@ -869,14 +869,14 @@ export default function Payment() {
                     <span
                           className="
     w-4 h-4 rounded-full
-    border-2 border-gray-400      
+    border-2 border-secondary-grey200      
     flex items-center justify-center
-    peer-checked:border-[#2372EC] 
-    peer-checked:bg-[#2372EC]
+    peer-checked:border-blue-primary250 
+    peer-checked:bg-blue-primary250
     peer-checked:before:content-['']
     peer-checked:before:w-2
     peer-checked:before:h-2
-    peer-checked:before:bg-white
+    peer-checked:before:bg-card
     peer-checked:before:rounded-full
   "
                     />
@@ -884,7 +884,7 @@ export default function Payment() {
                     <span className="text-sm text-muted-foreground">
                       Yearly
                     </span>
-                    <span className="text-xs bg-[#F2FFF3] p-1 text-[#3BA73C]">
+                    <span className="text-xs bg-success-100 p-1 text-success-300">
                       Get 2 Months Free
                     </span>
                   </label>
@@ -968,13 +968,13 @@ export default function Payment() {
                     <span className="text-muted-foreground">
                       Prorated Credit for 1 Month
                     </span>
-                    <span className="text-[#3BA73C]">-₹2,549</span>
+                    <span className="text-success-300">-₹2,549</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">
                       6-Month Bonus (1 Month Free)
                     </span>
-                    <span className="text-[#3BA73C]">-₹249</span>
+                    <span className="text-success-300">-₹249</span>
                   </div>
                 </div>
                 <div className="border-t border-border pt-3 space-y-2">
@@ -990,17 +990,17 @@ export default function Payment() {
                   </div>
                 </div>
                 <div className="border-t border-border pt-3">
-                  <div className="flex justify-between bg-[#F2F7FF] p-2 rounded-md">
+                  <div className="flex justify-between bg-blue-primary100 p-2 rounded-md">
                     <span className="font-medium text-foreground">
                       Total Amount
                     </span>
-                    <span className="text-xl font-bold text-[#2372EC]">
+                    <span className="text-xl font-bold text-blue-primary250">
                       ₹17,570
                     </span>
                   </div>
                 </div>
-                <div className="bg-[#F2FFF3]  rounded-lg p-3 text-center">
-                  <span className="text-sm  text-[#3BA73C] font-medium">
+                <div className="bg-success-100  rounded-lg p-3 text-center">
+                  <span className="text-sm  text-success-300 font-medium">
                     🎉 Get 1 Month Free! You save ₹2,713
                   </span>
                 </div>
@@ -1009,7 +1009,7 @@ export default function Payment() {
                     type="checkbox"
                     checked={agreedToTerms}
                     onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-[#2372EC]"
+                    className="mt-0.5 w-4 h-4 accent-blue-primary250"
                   />
                   <p className="text-xs text-muted-foreground">
                     I agree to the{" "}
@@ -1063,14 +1063,14 @@ export default function Payment() {
                     <span
                               className="
     w-4 h-4 rounded-full
-    border-2 border-gray-400      
+    border-2 border-secondary-grey200      
     flex items-center justify-center
-    peer-checked:border-[#2372EC] 
-    peer-checked:bg-[#2372EC]
+    peer-checked:border-blue-primary250 
+    peer-checked:bg-blue-primary250
     peer-checked:before:content-['']
     peer-checked:before:w-2
     peer-checked:before:h-2
-    peer-checked:before:bg-white
+    peer-checked:before:bg-card
     peer-checked:before:rounded-full
   "
                     />
@@ -1087,7 +1087,7 @@ export default function Payment() {
       onChange={(e) => setUpiId(e.target.value)}
       placeholder="Enter UPI ID"
       className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-    /><button className="mt-3 flex items-center gap-2 px-4 py-2 bg-[#2372EC] text-white rounded-md">
+    /><button className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-primary250 text-monochrom-white rounded-md">
       <Send className="w-4 h-4" /> Send Payment Request
     </button>
   </div>
@@ -1120,14 +1120,14 @@ export default function Payment() {
                     <span
                                className="
     w-4 h-4 rounded-full
-    border-2 border-gray-400      
+    border-2 border-secondary-grey200      
     flex items-center justify-center
-    peer-checked:border-[#2372EC] 
-    peer-checked:bg-[#2372EC]
+    peer-checked:border-blue-primary250 
+    peer-checked:bg-blue-primary250
     peer-checked:before:content-['']
     peer-checked:before:w-2
     peer-checked:before:h-2
-    peer-checked:before:bg-white
+    peer-checked:before:bg-card
     peer-checked:before:rounded-full
   "
                     />
@@ -1145,7 +1145,7 @@ export default function Payment() {
                     placeholder="Enter UPI ID"
                     className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                   />
-                  <button className="mt-3 flex items-center gap-2 px-4 py-2 bg-[#2372EC] text-white rounded-md">
+                  <button className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-primary250 text-monochrom-white rounded-md">
                     <Send className="w-4 h-4" /> Send Payment Request
                   </button>
                 </div>
@@ -1181,14 +1181,14 @@ export default function Payment() {
                     <span
                                className="
     w-4 h-4 rounded-full
-    border-2 border-gray-400      
+    border-2 border-secondary-grey200      
     flex items-center justify-center
-    peer-checked:border-[#2372EC] 
-    peer-checked:bg-[#2372EC]
+    peer-checked:border-blue-primary250 
+    peer-checked:bg-blue-primary250
     peer-checked:before:content-['']
     peer-checked:before:w-2
     peer-checked:before:h-2
-    peer-checked:before:bg-white
+    peer-checked:before:bg-card
     peer-checked:before:rounded-full
   "
                     />
@@ -1206,7 +1206,7 @@ export default function Payment() {
       placeholder="Enter UPI ID"
       className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
     />
-    <button className="mt-3 flex items-center gap-2 px-4 py-2 bg-[#2372EC] text-white rounded-md">
+    <button className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-primary250 text-monochrom-white rounded-md">
       <Send className="w-4 h-4" /> Send Payment Request
     </button>
   </div>
@@ -1238,14 +1238,14 @@ export default function Payment() {
                     <span
                                className="
     w-4 h-4 rounded-full
-    border-2 border-gray-400      
+    border-2 border-secondary-grey200      
     flex items-center justify-center
-    peer-checked:border-[#2372EC] 
-    peer-checked:bg-[#2372EC]
+    peer-checked:border-blue-primary250 
+    peer-checked:bg-blue-primary250
     peer-checked:before:content-['']
     peer-checked:before:w-2
     peer-checked:before:h-2
-    peer-checked:before:bg-white
+    peer-checked:before:bg-card
     peer-checked:before:rounded-full
   "
                     />
@@ -1263,7 +1263,7 @@ export default function Payment() {
       placeholder="Enter UPI ID"
       className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
     />
-    <button className="mt-3 flex items-center gap-2 px-4 py-2 bg-[#2372EC] text-white rounded-md">
+    <button className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-primary250 text-monochrom-white rounded-md">
       <Send className="w-4 h-4" /> Send Payment Request
     </button>
   </div>
@@ -1306,7 +1306,7 @@ export default function Payment() {
                   </button>
                 </div>
               </label>
-              <button className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors">
+              <button className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors text-blue-primary250">
                 <svg
                   width="24"
                   height="24"
@@ -1324,7 +1324,7 @@ export default function Payment() {
                   />
                 </svg>
                 Add credit or debit cards
-                <Plus className="w-4 h-4 ml-auto text-muted-foreground" />
+                <Plus className="w-4 h-4 ml-auto text-blue-primary250" />
               </button>
             </div>
             {/*UPI App */}
@@ -1360,14 +1360,14 @@ export default function Payment() {
                     <span
                                className="
     w-4 h-4 rounded-full
-    border-2 border-gray-400      
+    border-2 border-secondary-grey200      
     flex items-center justify-center
-    peer-checked:border-[#2372EC] 
-    peer-checked:bg-[#2372EC]
+    peer-checked:border-blue-primary250 
+    peer-checked:bg-blue-primary250
     peer-checked:before:content-['']
     peer-checked:before:w-2
     peer-checked:before:h-2
-    peer-checked:before:bg-white
+    peer-checked:before:bg-card
     peer-checked:before:rounded-full
   "
                     />
@@ -1385,20 +1385,20 @@ export default function Payment() {
       placeholder="Enter UPI ID"
       className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
     />
-    <button className="mt-3 flex items-center gap-2 px-4 py-2 bg-[#2372EC] text-white rounded-md">
+    <button className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-primary250 text-monochrom-white rounded-md">
       <Send className="w-4 h-4" /> Send Payment Request
     </button>
   </div>
 )}
 
-              <button className="flex items-center w-full gap-2 mt-3 text-sm text-[#2372EC] hover:underline border p-1 border-[#96BFFF] border-dotted rounded-md">
+              <button className="flex items-center w-full gap-2 mt-3 text-sm text-blue-primary250 hover:underline border p-1 border-blue-primary150 border-dotted rounded-md">
                 <img
                   src="/upi.png"
                   alt="upi"
                   className="w-8 h-8 object-contain"
                 />
                 Add New UPI ID
-                <Plus className="w-4 h-4 ml-auto text-[#2372EC]" />
+                <Plus className="w-4 h-4 ml-auto text-blue-primary250" />
               </button>
             </div>
           </div>

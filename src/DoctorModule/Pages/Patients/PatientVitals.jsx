@@ -376,17 +376,17 @@ const biometrics = [
 function SectionHeader({ title, actionLabel, hideActions = false }) {
   return (
     <div className="flex items-center justify-between">
-      <div className="text-sm font-semibold text-gray-800">{title}</div>
+      <div className="text-sm font-semibold text-secondary-grey900">{title}</div>
       {!hideActions && (
         <div className="flex items-center gap-2 text-sm">
           <button className="text-blue-600 hover:underline flex items-center gap-1">
             + {actionLabel}
           </button>
           <button
-            className="p-1.5 rounded hover:bg-gray-100"
+            className="p-1.5 rounded hover:bg-secondary-grey100"
             aria-label="Columns"
           >
-            <ChevronDown className="h-4 w-4 text-gray-600" />
+            <ChevronDown className="h-4 w-4 text-secondary-grey200" />
           </button>
         </div>
       )}
@@ -467,13 +467,13 @@ const VitalsTable = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case "worse":
-        return "text-red-500";
+        return "text-error-400";
       case "improved":
         return "text-green-500";
       case "stable":
-        return "text-gray-500";
+        return "text-secondary-grey300";
       default:
-        return "text-gray-500";
+        return "text-secondary-grey300";
     }
   };
 
@@ -489,20 +489,20 @@ const VitalsTable = () => {
   };
 
   return (
-    <div className="w-full overflow-x-auto border-t-[0.5px] border-t-[#D6D6D6]">
+    <div className="w-full overflow-x-auto border-t-[0.5px] border-t border-border">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="h-8 min-h-8 max-h-8 border-b-[0.5px] border-b-[#D6D6D6]">
-            <th className="text-left text-sm w-[180px] max-w-[180px] h-8 px-1 font-inter font-medium leading-[120%] tracking-normal align-middle text-[#424242]">
+          <tr className="h-8 min-h-8 max-h-8 border-b-[0.5px] border-b border-border">
+            <th className="text-left text-sm w-[180px] max-w-[180px] h-8 px-1 font-inter font-medium leading-[120%] tracking-normal align-middle text-secondary-grey900">
               Name <span className="text-gray-400">⋄</span>
             </th>
-            <th className="text-left text-sm max-w-[300px] h-8 px-1 font-inter font-medium leading-[120%] tracking-normal align-middle text-[#424242]">
+            <th className="text-left text-sm max-w-[300px] h-8 px-1 font-inter font-medium leading-[120%] tracking-normal align-middle text-secondary-grey900">
               Last 3 Recorded Values <span className="text-gray-400">⋄</span>
             </th>
-            <th className="text-left text-sm w-[180px] max-w-[180px] h-8 px-1 font-inter font-medium leading-[120%] tracking-normal align-middle text-[#424242]">
+            <th className="text-left text-sm w-[180px] max-w-[180px] h-8 px-1 font-inter font-medium leading-[120%] tracking-normal align-middle text-secondary-grey900">
               Status
             </th>
-            <th className="text-left text-sm w-[180px] max-w-[180px] h-8 px-1 font-inter font-medium leading-[120%] tracking-normal align-middle text-[#424242]">
+            <th className="text-left text-sm w-[180px] max-w-[180px] h-8 px-1 font-inter font-medium leading-[120%] tracking-normal align-middle text-secondary-grey900">
               Normal Range
             </th>
           </tr>
@@ -511,13 +511,13 @@ const VitalsTable = () => {
           {tableVitals.map((vital, idx) => (
             <tr
               key={idx}
-              className="h-[54px] min-h-[54px] max-h-[54px] border-t-[0.5px] border-t-[#D6D6D6]"
+              className="h-[54px] min-h-[54px] max-h-[54px] border-t-[0.5px] border-t border-border"
             >
               <td className="w-[180px] max-w-[180px] h-[54px] py-2 px-1">
-                <div className="font-inter font-medium text-sm leading-[120%] tracking-normal align-middle text-[#424242]">
+                <div className="font-inter font-medium text-sm leading-[120%] tracking-normal align-middle text-secondary-grey900">
                   {vital.name}
                 </div>
-                <div className="font-inter font-normal text-xs leading-[120%] tracking-normal align-middle text-[#8E8E8E]">
+                <div className="font-inter font-normal text-xs leading-[120%] tracking-normal align-middle text-secondary-grey300">
                   {vital.unit}
                 </div>
               </td>
@@ -529,22 +529,22 @@ const VitalsTable = () => {
                         <span
                           className={`${
                             vidx < 2 && vital.status === "worse"
-                              ? "inline-flex items-center h-4 rounded text-red-600 text-xs font-medium"
+                              ? "inline-flex items-center h-4 rounded text-error-400 text-xs font-medium"
                               : vidx < 2 && vital.status === "improved"
-                              ? "inline-flex items-center h-4 rounded text-green-600 text-xs font-medium"
-                              : "inline-flex items-center h-4 rounded text-gray-800 text-xs font-medium"
+                              ? "inline-flex items-center h-4 rounded text-success-400 text-xs font-medium"
+                              : "inline-flex items-center h-4 rounded text-secondary-grey900 text-xs font-medium"
                           }`}
                         >
                           {value.reading}
                         </span>
                         {value.trend === "up" && (
-                          <ArrowUp className="w-3 h-3 text-red-600" />
+                          <ArrowUp className="w-3 h-3 text-error-400" />
                         )}
                         {value.trend === "down" && (
-                          <ArrowDown className="w-3 h-3 text-green-600" />
+                          <ArrowDown className="w-3 h-3 text-success-400" />
                         )}
                       </div>
-                      <div className="font-inter font-normal text-xs leading-[120%] tracking-normal align-middle text-[#8E8E8E] mt-1">
+                      <div className="font-inter font-normal text-xs leading-[120%] tracking-normal align-middle text-secondary-grey300 mt-1">
                         {value.date}
                       </div>
                     </div>
@@ -557,10 +557,10 @@ const VitalsTable = () => {
                     vital.status
                   )} ${
                     vital.status === "worse"
-                      ? "bg-[#FFF8F8]"
+                      ? "bg-error-50"
                       : vital.status === "improved"
-                      ? "bg-[#F2FFF3]"
-                      : "bg-[#F9F9F9]"
+                      ? "bg-success-50"
+                      : "bg-secondary-grey50"
                   } flex items-center`}
                 >
                   {vital.status.charAt(0).toUpperCase() + vital.status.slice(1)}
@@ -569,12 +569,12 @@ const VitalsTable = () => {
               </td>
               <td className="w-[180px] max-w-[180px] h-[54px] py-2 px-1">
                 <div className="flex items-center justify-between">
-                  <div className="inline-flex items-center gap-1 min-w-[18px] w-[100px] h-[18px] px-1 py-[2px] rounded text-xs font-normal text-gray-600 bg-[#F9F9F9]">
+                  <div className="inline-flex items-center gap-1 min-w-[18px] w-[100px] h-[18px] px-1 py-[2px] rounded text-xs font-normal text-secondary-grey200 bg-secondary-grey50">
                     {vital.normalRange}
                   </div>
                   <img
                     src="/Eye.svg"
-                    className="w-5 h-5 text-gray-400 cursor-pointer hover:text-gray-600"
+                    className="w-5 h-5 text-gray-400 cursor-pointer hover:text-secondary-grey200"
                   />
                 </div>
               </td>
@@ -588,14 +588,14 @@ const VitalsTable = () => {
 
 function BiometricsTable() {
   return (
-    <div className="mt-2 border-t-[1px] border-gray-200">
+    <div className="mt-2 border-t-[1px] border-border">
       <table className="min-w-full table-fixed text-sm text-left text-gray-700">
         <colgroup>
           <col className="w-[220px]" />
           <col className="w-[580px]" />
           <col className="w-[64px]" />
         </colgroup>
-        <thead className="text-[12px] uppercase font-medium text-gray-500 border-b">
+        <thead className="text-[12px] uppercase font-medium text-secondary-grey300 border-b">
           <tr className="h-8">
             <th>Name</th>
             <th className="">Last 5 Recorded Values</th>
@@ -604,11 +604,11 @@ function BiometricsTable() {
         </thead>
         <tbody>
           {biometrics.map((b, i) => (
-            <tr key={i} className="border-b border-gray-200">
+            <tr key={i} className="border-b border-border">
               <td className="py-2">
                 <div className="flex flex-col justify-center">
-                  <span className="font-medium text-gray-800">{b.name}</span>
-                  <span className="text-xs text-gray-500">{b.unit}</span>
+                  <span className="font-medium text-secondary-grey900">{b.name}</span>
+                  <span className="text-xs text-secondary-grey300">{b.unit}</span>
                 </div>
               </td>
               <td className="py-2">
@@ -618,15 +618,15 @@ function BiometricsTable() {
                       <span
                         className={`text-sm ${
                           /↑/.test(t.value)
-                            ? "text-red-600"
+                            ? "text-error-400"
                             : /↓/.test(t.value)
-                            ? "text-green-600"
-                            : "text-gray-800"
+                            ? "text-success-400"
+                            : "text-secondary-grey900"
                         }`}
                       >
                         {t.value}
                       </span>
-                      <span className="text-[11px] text-gray-500">
+                      <span className="text-[11px] text-secondary-grey300">
                         {t.date}
                       </span>
                     </div>
@@ -634,7 +634,7 @@ function BiometricsTable() {
                 </div>
               </td>
               <td className="py-2 pr-2">
-                <div className="flex items-center justify-end gap-2 text-gray-600">
+                <div className="flex items-center justify-end gap-2 text-secondary-grey200">
                   <button className="" aria-label="View">
                     <img
                       src="/Eye.svg"
@@ -664,7 +664,7 @@ export default function PatientVitals({ embedded = false, onAdd }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div>
-                <div className="text-sm font-semibold text-gray-800">
+                <div className="text-sm font-semibold text-secondary-grey900">
                   Vitals
                 </div>
               </div>
@@ -676,8 +676,8 @@ export default function PatientVitals({ embedded = false, onAdd }) {
                   onClick={() => setViewMode("table")}
                   className={`p-1 rounded ${
                     viewMode === "table"
-                      ? "text-[#2372EC] bg-blue-50 border-[1.5px] border-[#96BFFF]"
-                      : "text-gray-500"
+                      ? "text-blue-primary250 bg-blue-50 border-[1.5px] border-[#96BFFF]"
+                      : "text-secondary-grey300"
                   }`}
                   aria-label="list view"
                 >
@@ -687,8 +687,8 @@ export default function PatientVitals({ embedded = false, onAdd }) {
                   onClick={() => setViewMode("chart")}
                   className={`p-1 rounded ${
                     viewMode === "chart"
-                      ? "text-[#2372EC] bg-blue-50 border-[1.5px] border-[#96BFFF]"
-                      : "text-gray-500"
+                      ? "text-blue-primary250 bg-blue-50 border-[1.5px] border-[#96BFFF]"
+                      : "text-secondary-grey300"
                   }`}
                   aria-label="chart view"
                 >
@@ -704,7 +704,7 @@ export default function PatientVitals({ embedded = false, onAdd }) {
                 className="inline-flex items-center gap-1
                   h-4 px-2
                   rounded
-                  text-[#2372EC]
+                  text-blue-primary250
                   text-[14px]
                   opacity-100
                   focus:outline-none font-inter font-normal text-sm leading-[1.2] tracking-normal align-middle"
@@ -732,17 +732,17 @@ export default function PatientVitals({ embedded = false, onAdd }) {
                         onClick={() => setSelected(v.name)}
                         className={`w-full text-left px-3 py-3 flex items-center gap-3 ${
                           selected === v.name
-                            ? "bg-[#F8FAFF] text-blue-600  border-l-[3px] border-[#96bfff]"
+                            ? "bg-blue-primary50 text-blue-600  border-l-[3px] border-[#96bfff]"
                             : ""
                         }`}
                       >
                         <div className="flex-1">
                           <div className="font-medium text-sm">{v.name}</div>
-                          <div className="text-[12px] text-gray-500">
+                          <div className="text-[12px] text-secondary-grey300">
                             {v.unit}
                           </div>
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-secondary-grey300">
                           {v.trend[0]?.value}
                         </div>
                       </button>
@@ -750,7 +750,7 @@ export default function PatientVitals({ embedded = false, onAdd }) {
                   </div>
                 </div>
                 {/* graphs part */}
-                <div className="flex flex-col w-full bg-[#F8FAFF] rounded p-4">
+                <div className="flex flex-col w-full bg-blue-primary50 rounded p-4">
                   <div className="flex items-center justify-between">
                     {(() => {
                       const selectedVital = vitals.find(
@@ -759,7 +759,7 @@ export default function PatientVitals({ embedded = false, onAdd }) {
                       if (!selectedVital) return null;
 
                       return (
-                        <div className="flex items-center gap-4 text-xs text-gray-600">
+                        <div className="flex items-center gap-4 text-xs text-secondary-grey200">
                           {selectedVital.chartType === "double" ? (
                             <>
                               <div className="flex items-center gap-2">
@@ -805,7 +805,7 @@ export default function PatientVitals({ embedded = false, onAdd }) {
                           )}
 
                           
-                          <div className="ml-2 p-1 rounded-lg border border-gray-300 bg-gray-50 text-gray-600">
+                          <div className="ml-2 p-1 rounded-lg border border-border bg-secondary-grey50 text-secondary-grey200">
                             Normal Range: {selectedVital.normal}
                           </div>
                         </div>
@@ -813,13 +813,13 @@ export default function PatientVitals({ embedded = false, onAdd }) {
                     })()}
 
                     <div className="flex items-center gap-2">
-                      <div className="flex bg-white items-center border border-gray-300 rounded-md px-1.5 py-1 text-xs text-gray-700 cursor-pointer hover:bg-gray-50">
+                      <div className="flex bg-white items-center border border-border rounded-md px-1.5 py-1 text-xs text-gray-700 cursor-pointer hover:bg-secondary-grey50">
                         <span className="border-r pr-1">1 Month</span>
-                        <ChevronDown className="ml-2 h-4 w-4 text-gray-500" />
+                        <ChevronDown className="ml-2 h-4 w-4 text-secondary-grey300" />
                       </div>
 
-                      <button className="hover:bg-gray-50">
-                        <Eye className="h-5 w-5 text-gray-500" />
+                      <button className="hover:bg-secondary-grey50">
+                        <Eye className="h-5 w-5 text-secondary-grey300" />
                       </button>
                     </div>
                   </div>
@@ -857,7 +857,7 @@ export default function PatientVitals({ embedded = false, onAdd }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-white px-4 py-3 rounded-md border border-gray-200">
+      <div className="bg-white px-4 py-3 rounded-md border border-border">
         <div className="flex items-center gap-6 text-sm h-10">
           <NavLink
             to={`/doc/patients/${encodeURIComponent(id || "")}`}
@@ -865,7 +865,7 @@ export default function PatientVitals({ embedded = false, onAdd }) {
               `h-10 ${
                 isActive
                   ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
+                  : "text-secondary-grey200 hover:text-secondary-grey900"
               }`
             }
           >
@@ -877,7 +877,7 @@ export default function PatientVitals({ embedded = false, onAdd }) {
               `h-10 ${
                 isActive
                   ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
+                  : "text-secondary-grey200 hover:text-secondary-grey900"
               }`
             }
           >

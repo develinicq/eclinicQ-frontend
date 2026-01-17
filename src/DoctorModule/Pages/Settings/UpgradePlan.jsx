@@ -324,7 +324,7 @@ export default function UpgradePlan() {
           <span className="text-muted-foreground mx-1 md:mx-2 hidden sm:inline">
             |
           </span>
-          <a href="/doc/settings/billing" className="text-xs md:text-sm text-muted-foreground hidden sm:inline hover:text-black">
+          <a href="/doc/settings/billing" className="text-xs md:text-sm text-muted-foreground hidden sm:inline hover:text-foreground">
             Billing & Subscription
           </a>
           <span className="text-muted-foreground mx-1 hidden md:inline">›</span>
@@ -344,7 +344,7 @@ export default function UpgradePlan() {
 
 
   
-  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] min-w-[12px] h-[12px] rounded-full flex items-center justify-center font-medium">
+  <span className="absolute -top-1 -right-1 bg-error-400 text-monochrom-white text-[9px] min-w-[12px] h-[12px] rounded-full flex items-center justify-center font-medium">
     3
   </span>
 </div>
@@ -387,13 +387,13 @@ export default function UpgradePlan() {
                   className={`relative rounded-xl border-2 cursor-pointer transition-all ${
                     isSelected
                       
-                        ? "border-[#0E4395] bg-[#2372EC] text-primary-foreground"
-                        : "border-[#0E4395] bg-card"
+                        ? "border-blue-primary400 bg-blue-primary250 text-primary-foreground"
+                        : "border-blue-primary400 bg-card"
                       
                   }`}
                 >
                   {plan.current && !isSelected && (
-                    <div className="absolute -top-0 left-4 pt-2  text-xs bg-white">
+                    <div className="absolute -top-0 left-4 pt-2  text-xs bg-monochrom-white">
                       Current Active Plan
                     </div>
                   )}
@@ -427,8 +427,8 @@ export default function UpgradePlan() {
                       <span
                         className={`text-xl md:text-2xl font-bold ${
                           isSelected
-                            ? "text-white"
-                            : "text-[#2372EC]"
+                            ? "text-monochrom-white"
+                            : "text-blue-primary250"
                         }`}
                       >
                         {plan.price}
@@ -436,8 +436,8 @@ export default function UpgradePlan() {
                       <span
                         className={`text-md ${
                            isSelected
-                             ? "text-white"
-                            : "text-[#2372EC]"
+                             ? "text-monochrom-white"
+                            : "text-blue-primary250"
                         }`}
                       >
                         {plan.period}
@@ -456,12 +456,12 @@ export default function UpgradePlan() {
                     
                     {isSelected ? (
                       <div
-                        className={`w-full py-2 rounded-lg text-center text-sm font-medium border bg-white text-[#2372EC]`}
+                        className={`w-full py-2 rounded-lg text-center text-sm font-medium border bg-monochrom-white text-blue-primary250`}
                       >
                         ✓ Selected
                       </div>
                     ) : (
-                      <button className="w-full py-2 rounded-lg bg-[#2372EC] text-white hover:opacity-90">
+                      <button className="w-full py-2 rounded-lg bg-blue-primary250 text-monochrom-white hover:opacity-90">
                         Choose
                       </button>
                     )}
@@ -471,8 +471,8 @@ export default function UpgradePlan() {
                       <p
                         className={`text-sm font-medium mb-2 ${
                            isSelected
-                            ? "text-white"
-                            : "text-[#8E8E8E]"
+                            ? "text-monochrom-white"
+                            : "text-secondary-grey200"
                         }`}
                       >
                         Access To:
@@ -483,7 +483,7 @@ export default function UpgradePlan() {
                             <span
                               className={`w-4 h-4 rounded-full flex items-center justify-center text-xs ${
                                 isSelected
-                                  ? "bg-white text-[#2372EC] font-semibold"
+                                  ? "bg-monochrom-white text-blue-primary250 font-semibold"
                                   : "bg-primary/10 text-primary"
                               }`}
                             >
@@ -493,7 +493,7 @@ export default function UpgradePlan() {
                               className={
                                 isSelected
                                   ? "text-primary-foreground/90"
-                                  : "text-[#626060]"
+                                  : "text-secondary-grey300"
                               }
                             >
                               {feature}
@@ -517,7 +517,7 @@ export default function UpgradePlan() {
       <footer className="h-12 md:h-14 bg-card border-t border-border flex items-center justify-between px-4 md:px-6">
         <button
           onClick={() => navigate("/doc/settings/billing")}
-          className="px-3 py-2 border border-black rounded-lg"
+          className="px-3 py-2 border border-border rounded-lg"
         >
           Cancel
         </button>
@@ -529,7 +529,7 @@ export default function UpgradePlan() {
     },
   })
 }
-          className="px-3 py-2 rounded-lg bg-[#2372EC] text-white"
+          className="px-3 py-2 rounded-lg bg-blue-primary250 text-monochrom-white"
         >
           Preview Purchase →
         </button>
