@@ -16,6 +16,7 @@ export default function GeneralDrawer({
   // New: control visibility of the primary action button in header
   showPrimaryAction = true,
   zIndex = 5000,
+  download
 }) {
   const panelRef = useRef(null);
   const [mounted, setMounted] = useState(false);
