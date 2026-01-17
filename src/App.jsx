@@ -55,6 +55,8 @@ import HFDOnboardingFlow from "./HospitalFDModule/Pages/Login/OnboardingFlow";
 // import HFDFSignIn from "./HospitalFDModule/Pages/Login/SignIn";
 import UnifiedSignIn from "./pages/UnifiedSignIn";
 import TabDemo from "./pages/TabDemo";
+import UpgradePlan from "./DoctorModule/Pages/Settings/UpgradePlan";
+import Payment from "./DoctorModule/Pages/Settings/Payment";
 // DocSignIn route intentionally not wired per requirement
 
 function App() {
@@ -133,8 +135,14 @@ function App() {
         <Route path="settings/clinics" element={<Doc_settings />} />
         <Route path="settings/staff-permissions" element={<Doc_settings />} />
         <Route path="settings/security" element={<Doc_settings />} />
+        <Route path="settings/billing" element={<Doc_settings />} />
+       
         <Route path="settings/rx-template" element={<Doc_settings />} />
       </Route>
+
+      {/* billing */}
+       <Route path="billing/upgrade-plan" element={<UpgradePlan/>} />
+       <Route path="billing/payment" element={<Payment/>} />
 
       {/* FrontDesk Portal (copy of Doctor Portal) */}
       <Route path="fd" element={<FDLayout />}>
