@@ -1,12 +1,14 @@
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import Header from '../../../components/DoctorList/Header'
 import AddPatientDrawer from '../../../components/PatientList/AddPatientDrawer'
 import AppointmentLogDrawer from '../../../components/PatientList/AppointmentLogDrawer'
 import ScheduleAppointmentDrawer from '../../../components/PatientList/ScheduleAppointmentDrawer'
 import SampleTable from '../../../pages/SampleTable'
 import { getPatientColumns } from './columns'
-import patientData from './data.json'
 import PatientDetailsDrawer from './PatientDetailsDrawer'
+import { getPatientsForHospital } from '../../../services/patientService'
+import useHospitalAuthStore from '../../../store/useHospitalAuthStore'
+import UniversalLoader from '../../../components/UniversalLoader'
 
 const Patients = () => {
   const [selected, setSelected] = useState('all')
@@ -17,15 +19,35 @@ const Patients = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedPatientForSchedule, setSelectedPatientForSchedule] = useState(null);
   const [selectedPatientDetails, setSelectedPatientDetails] = useState(null);
+  const { hospitalId } = useHospitalAuthStore();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
   const pageSize = 10;
 
-  // Filter logic (placeholder)
+  useEffect(() => {
+    const fetchPatients = async () => {
+      if (!hospitalId) return;
+      setLoading(true);
+      try {
+        const res = await getPatientsForHospital(hospitalId);
+        if (res.success) {
+          setData(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch patients", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPatients();
+  }, [hospitalId]);
+
+  // Filter logic
   const patientsFiltered = useMemo(() => {
-    // Basic filtering simulation
-    if (selected === 'active') return patientData.filter(p => p.status === 'Active');
-    if (selected === 'inactive') return patientData.filter(p => p.status === 'Inactive');
-    return patientData;
-  }, [selected]);
+    if (selected === 'active') return data.filter(p => p.status === 'Active'); // Note: API might not return 'status' yet, adjust if needed
+    if (selected === 'inactive') return data.filter(p => p.status === 'Inactive');
+    return data;
+  }, [selected, data]);
 
   const pagedData = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -33,11 +55,11 @@ const Patients = () => {
   }, [patientsFiltered, page, pageSize]);
 
   const counts = useMemo(() => ({
-    all: patientData.length,
-    active: patientData.filter(p => p.status === 'Active').length,
-    inactive: patientData.filter(p => p.status === 'Inactive').length,
+    all: data.length,
+    active: data.filter(p => p.status === 'Active').length,
+    inactive: data.filter(p => p.status === 'Inactive').length,
     draft: 0
-  }), [])
+  }), [data])
 
   const handleOpenLog = useCallback((row) => {
     setLogDrawerOpen(true);
@@ -48,7 +70,17 @@ const Patients = () => {
     setScheduleOpen(true);
   }, []);
 
+
+
   const columns = useMemo(() => getPatientColumns(handleOpenLog, handleOpenSchedule), [handleOpenLog, handleOpenSchedule]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-secondary-grey50">
+        <UniversalLoader size={32} />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full bg-secondary-grey50 overflow-hidden">
@@ -79,6 +111,7 @@ const Patients = () => {
             setDetailsOpen(true);
           }}
           hideSeparators={false} // Show dividers
+          loading={loading}
         />
       </div>
 

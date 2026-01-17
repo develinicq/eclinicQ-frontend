@@ -19,11 +19,9 @@ export default function HNavbar() {
     if (path.includes('doctor')) setActiveModule('doctor');
     else setActiveModule('hospital');
 
-    // Fetch hospital admin profile if not already fetched
-    if (!user) {
-      fetchMe();
-    }
-  }, [user, fetchMe]);
+    // Always fetch fresh hospital admin profile data
+    fetchMe();
+  }, [fetchMe]);
 
   useEffect(() => {
     const fetchImage = async () => {

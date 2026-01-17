@@ -53,6 +53,12 @@ import InviteStaffDrawer from "./Drawers/InviteStaffDrawer.jsx";
 import RoleDrawerShared from "./Drawers/RoleDrawer.jsx";
 import EditPracticeDetailsDrawer from "./Drawers/EditPracticeDetailsDrawer.jsx";
 import SecurityTab from "./Tabs/SecurityTab.jsx";
+import useHospitalAuthStore from "../../../store/useHospitalAuthStore";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  getDoctorConsultationDetails,
+  putDoctorConsultationDetails,
+} from "../../../services/doctorConsultationService";
 
 // Global drawer animation keyframes (used by all drawers in this page)
 const DrawerKeyframes = () => (
@@ -918,15 +924,13 @@ const StaffTab = () => {
   );
 };
 
-import { useLocation, useNavigate } from "react-router-dom";
-import {
-  getDoctorConsultationDetails,
-  putDoctorConsultationDetails,
-} from "../../../services/doctorConsultationService";
-
 const Doc_settings = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Hospital Auth Store for role check
+  const { roleNames: hospitalRoles } = useHospitalAuthStore();
+  const isDualRole = hospitalRoles?.includes("HOSPITAL_ADMIN") && hospitalRoles?.includes("DOCTOR");
 
 
   // Grab global profile + actions from Zustand
@@ -977,13 +981,17 @@ const Doc_settings = () => {
   const { clinic, fetchClinicInfo, updateClinicInfo } = useClinicStore();
 
   // Tabs under Settings (as per screenshot)
-  const tabs = [
+  const allTabs = [
     { key: "personal", label: "Personal Info" },
     { key: "consultation", label: "Consultation Details" },
     { key: "clinical", label: "Clinical Details" },
     { key: "staff", label: "Staff Permissions" },
     { key: "security", label: "Security Settings" },
   ];
+
+  const tabs = isDualRole
+    ? allTabs.filter(t => ["personal", "consultation"].includes(t.key))
+    : allTabs;
 
   const pathTab = useMemo(() => {
     const p = location.pathname;
@@ -1485,7 +1493,7 @@ const Doc_settings = () => {
                     />
 
                     <InputWithMeta
-                   
+
                       imageUpload={true}
                       fileName={(() => {
                         const url = String(medicalRegistration?.proofDocumentUrl || "");

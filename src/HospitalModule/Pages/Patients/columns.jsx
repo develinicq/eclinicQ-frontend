@@ -128,8 +128,8 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
                         <p className="font-medium text-secondary-grey400 leading-5">
                             {row.name}
                         </p>
-                        <p className="text-secondary-grey300">
-                            {row.gender} | {row.dob} ({row.age})
+                        <p className="text-secondary-grey300 uppercase">
+                            {row.genderInitial || row.gender} | {row.dob ? new Date(row.dob).toLocaleDateString() : '—'} ({row.age}Y)
                         </p>
                     </div>
                 </div>
@@ -140,13 +140,13 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         key: 'id',
         header: <TableHeader label="Patient ID" />,
         width: 140,
-        render: (row) => <span className="text-secondary-grey300 text-sm">{row.id}</span>
+        render: (row) => <span className="text-secondary-grey300 text-sm">{row.patientCode}</span>
     },
     {
         key: 'contact',
         header: <TableHeader label="Contact Number" />,
         width: 160,
-        render: (row) => <span className="text-secondary-grey300 text-sm">{row.contact}</span>
+        render: (row) => <span className="text-secondary-grey300 text-sm">{row.contactNumber}</span>
     },
     {
         key: 'email',
@@ -161,7 +161,7 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         width: 160,
         render: (row) => (
             <div className='h-[22px] px-[6px] flex bg-secondary-grey50 rounded-sm w-fit'>
-                <span className="text-secondary-grey400">{row.location}</span>
+                <span className="text-secondary-grey400">{row.location || '—'}</span>
             </div>
         )
     },
@@ -169,14 +169,14 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         key: 'lastVisit',
         header: <TableHeader label="Last Visit Date & Time" />,
         width: 200,
-        render: (row) => <span className="text-secondary-grey300 text-sm">{row.lastVisit}</span>
+        render: (row) => <span className="text-secondary-grey300 text-sm">{row.lastVisitDate ? `${new Date(row.lastVisitDate).toLocaleDateString()} ${row.lastVisitTime || ''}` : '—'}</span>
     },
     {
         key: 'reason',
         header: <TableHeader label="Reason for Last Visit" />,
         width: 689,
 
-        render: (row) => <span className="text-secondary-grey300 text-sm " title={row.reason}>{row.reason}</span>
+        render: (row) => <span className="text-secondary-grey300 text-sm " title={row.reasonForLastVisit}>{row.reasonForLastVisit || '—'}</span>
     },
     {
         key: 'actions',

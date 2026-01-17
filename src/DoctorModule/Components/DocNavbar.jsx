@@ -11,7 +11,8 @@ import {
   whiteLogout,
   searchIcon,
 } from "../../../public/index.js";
-import useAuthStore from "../../store/useAuthStore";
+// import useAuthStore from "../../store/useAuthStore";
+import useDoctorAuthStore from "@/store/useDoctorAuthStore";
 import useHospitalAuthStore from "@/store/useHospitalAuthStore";
 import useSuperAdminAuthStore from "@/store/useSuperAdminAuthStore";
 import useUIStore from "@/store/useUIStore";
@@ -95,21 +96,33 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
   const navigate = useNavigate();
   const searchRef = useRef(null);
 
+  // Use new doctor auth store
   const {
-    doctorDetails,
-    doctorLoading,
-    doctorError,
-    fetchDoctorDetails,
-    _doctorFetchPromise,
-  } = useAuthStore();
+    user: singleDoctorUser,
+    loading: singleDoctorLoading,
+    // We don't have error or promise exposed directly in the simple store yet, but user object is enough
+  } = useDoctorAuthStore();
+
+  // Fallback legacy logic if needed (optional) or just rely on hospital/doctor store
+
+  // Hospital Store
   const { roleNames: hospitalRoles, user: storeHospitalUser } = useHospitalAuthStore();
+
   const [copied, setCopied] = useState(false);
   const [internalHospitalPhoto, setInternalHospitalPhoto] = useState("");
+  const [doctorProfilePhoto, setDoctorProfilePhoto] = useState("");
 
   const effectiveHospitalData = hospitalAdminData || storeHospitalUser;
-  const isDualRole =
-    (hospitalRoles?.includes("HOSPITAL_ADMIN") && hospitalRoles?.includes("DOCTOR")) ||
-    (effectiveHospitalData?.isDoctor);
+
+  // Distinguish scenarios
+  const isDualRole = (hospitalRoles?.includes("HOSPITAL_ADMIN") && hospitalRoles?.includes("DOCTOR")) || (effectiveHospitalData?.isDoctor);
+
+  // ALWAYS use doctor data from useDoctorAuthStore in doctor module
+  // Even for dual-role users, doctor module should show doctor details from /doctors/me
+  const doctorDetails = singleDoctorUser;
+  const doctorLoading = singleDoctorLoading;
+  const doctorError = ""; // Simplified for now
+
 
   const effectiveHospitalPhoto = hospitalAdminPhoto || internalHospitalPhoto;
 
@@ -122,6 +135,17 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
     };
     fetchHospitalImage();
   }, [effectiveHospitalData?.profilePhoto, hospitalAdminPhoto]);
+
+  // Fetch doctor profile photo
+  useEffect(() => {
+    const fetchDoctorImage = async () => {
+      if (doctorDetails?.profilePhoto) {
+        const url = await getPublicUrl(doctorDetails.profilePhoto);
+        setDoctorProfilePhoto(url);
+      }
+    };
+    fetchDoctorImage();
+  }, [doctorDetails?.profilePhoto]);
   const currentPath = window.location.pathname.toLowerCase();
   const activeModule = currentPath.startsWith('/hospital') ? 'hospital' : 'doctor';
 
@@ -196,13 +220,24 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
     };
   }, []);
 
-  // Ensure doctor details are loaded for dual-role users or pure doctor logins
+  // Ensure doctor details are loaded - fetch when in doctor module for doctors or dual-role users
   useEffect(() => {
-    const shouldFetch = (!hospitalAdminData && !doctorDetails) || (isDualRole && !doctorDetails);
-    if (shouldFetch && !doctorLoading && !_doctorFetchPromise) {
-      fetchDoctorDetails?.(getDoctorMe);
+    const { isAuthenticated, fetchMe, user } = useDoctorAuthStore.getState();
+    const { token: hToken, roleNames: hRoles } = useHospitalAuthStore.getState();
+
+    // Check if user should have access to doctor data:
+    // 1. Single doctor: authenticated in doctor store
+    // 2. Dual-role: authenticated in hospital store with DOCTOR role
+    const isSingleDoctor = isAuthenticated();
+    const isDualRoleDoctor = hToken && hRoles?.includes("DOCTOR");
+
+    // Only fetch doctor data if we're in the doctor module AND user has doctor access AND data not cached
+    const shouldFetchDoctorData = activeModule === 'doctor' && (isSingleDoctor || isDualRoleDoctor) && !user;
+
+    if (shouldFetchDoctorData) {
+      fetchMe();
     }
-  }, [doctorDetails, doctorLoading, fetchDoctorDetails, _doctorFetchPromise, hospitalAdminData, isDualRole]);
+  }, [activeModule]);
 
   const handleCopyProfileLink = async () => {
     try {
@@ -220,7 +255,7 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
 
   const handleLogout = () => {
     useUIStore.getState().setIsLoggingOut(true);
-    useAuthStore.getState().clearAuth();
+    useDoctorAuthStore.getState().clearAuth();
     useHospitalAuthStore.getState().clearAuth();
     useSuperAdminAuthStore.getState().clearAuth();
 
@@ -264,17 +299,48 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
   };
   const titledName = doctorLoading ? "" : getDoctorNameWithTitle(doctorDetails);
 
-  // Use hospital data if available for dual-role users or if explicitly passed
-  const useHospitalProfile = isDualRole || !!hospitalAdminData;
+  // Context-aware data selection based on active module
+  // In hospital module: show hospital admin data
+  // In doctor module: show doctor data (even for dual-role users)
+  const isInHospitalModule = activeModule === 'hospital';
 
-  const finalDisplayName = useHospitalProfile ? getDoctorDisplayName(effectiveHospitalData) : displayName;
-  const finalTitledName = useHospitalProfile ? (effectiveHospitalData?.name || "") : titledName;
-  const finalAvatar = useHospitalProfile ? effectiveHospitalPhoto : "";
-  const finalEmail = useHospitalProfile ? effectiveHospitalData?.emailId : doctorDetails?.emailId;
-  const finalPhone = useHospitalProfile ? effectiveHospitalData?.phone : doctorDetails?.contactNumber;
-  const finalCode = useHospitalProfile ? effectiveHospitalData?.adminCode : (doctorDetails?.doctorCode || doctorDetails?.userId);
-  const finalDesignation = useHospitalProfile ? (effectiveHospitalData?.isDoctor ? "Hospital Admin (Doctor)" : "Hospital Admin") : (doctorDetails?.designation || doctorDetails?.specializations?.[0]);
-  const finalLoading = useHospitalProfile ? !effectiveHospitalData : doctorLoading;
+  const formatHospitalEducation = (edu) => {
+    if (!Array.isArray(edu)) return "";
+    const sorted = [...edu].sort((a, b) => {
+      if (a.graduationType === 'UG') return -1;
+      if (b.graduationType === 'UG') return 1;
+      return 0;
+    });
+    return sorted.map(e => e.degree).join(", ");
+  };
+
+  const finalDisplayName = isInHospitalModule && effectiveHospitalData
+    ? getDoctorDisplayName(effectiveHospitalData)
+    : displayName;
+  const finalTitledName = isInHospitalModule && effectiveHospitalData
+    ? (effectiveHospitalData?.name || "")
+    : titledName;
+  const finalAvatar = isInHospitalModule && effectiveHospitalData
+    ? effectiveHospitalPhoto
+    : doctorProfilePhoto; // Show doctor profile photo in doctor module
+  const finalEmail = isInHospitalModule && effectiveHospitalData
+    ? effectiveHospitalData?.emailId
+    : doctorDetails?.emailId;
+  const finalPhone = isInHospitalModule && effectiveHospitalData
+    ? effectiveHospitalData?.phone
+    : doctorDetails?.contactNumber;
+  const finalCode = isInHospitalModule && effectiveHospitalData
+    ? (effectiveHospitalData?.adminCode || effectiveHospitalData?.doctorCode)
+    : (doctorDetails?.doctorCode || doctorDetails?.userId);
+  const finalDesignation = isInHospitalModule && effectiveHospitalData
+    ? (effectiveHospitalData?.medicalPracticeType || (effectiveHospitalData?.isDoctor ? "General Physician" : "Hospital Admin"))
+    : (doctorDetails?.designation || doctorDetails?.specializations?.[0]);
+  const finalEducation = isInHospitalModule && effectiveHospitalData
+    ? formatHospitalEducation(effectiveHospitalData?.education)
+    : (doctorDetails?.education?.join(" - ") || "—");
+  const finalLoading = isInHospitalModule
+    ? !effectiveHospitalData
+    : doctorLoading;
 
   return (
     <div className="w-full h-12 border-b-[0.5px] border-secondary-grey100/50 flex items-center py-2 px-4 gap-3">
@@ -480,7 +546,7 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
                     <div className="text-[14px] leading-[19px] text-secondary-grey300">
                       {finalLoading
                         ? ""
-                        : hospitalAdminData ? (hospitalAdminData.isDoctor ? "Verified Doctor Admin" : "") : (doctorDetails?.education.join(" - ") || "—")}
+                        : finalEducation || "—"}
                     </div>
                   </div>
                 </div>
@@ -513,9 +579,10 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
                   <div className="font-medium">Profile load failed.</div>
                   <div className="text-red-500">{doctorError}</div>
                   <button
-                    onClick={() =>
-                      fetchDoctorDetails?.(getDoctorMe, { force: true })
-                    }
+                    onClick={() => {
+                      // Retry fetch logic if needed
+                      if (isSingleDoctor) useDoctorAuthStore.getState().fetchMe();
+                    }}
                     className="h-8 px-3 rounded bg-red-50 border border-red-300 text-red-700 text-xs hover:bg-red-100"
                   >
                     Retry

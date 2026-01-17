@@ -22,15 +22,9 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     try {
-      // Prefer Super Admin token, fallback to general auth store, then hospital store, then localStorage
+      // Token Priority: SuperAdmin → Hospital → Doctor → Legacy
       const saToken = (() => {
         try { return useSuperAdminAuthStore.getState().token; } catch { return null; }
-      })();
-      const genericToken = (() => {
-        try { return useAuthStore.getState().token; } catch { return null; }
-      })();
-      const lsToken = (() => {
-        try { return localStorage.getItem('superAdminToken'); } catch { return null; }
       })();
 
       let hToken = null;
@@ -40,7 +34,22 @@ axiosInstance.interceptors.request.use(
         hToken = store.getState().token;
       } catch (e) { /* ignore */ }
 
-      const token = saToken || hToken || genericToken || lsToken;
+      let dToken = null;
+      try {
+        // Dynamic import for doctor auth store
+        const store = (await import('../store/useDoctorAuthStore')).default;
+        dToken = store.getState().token;
+      } catch (e) { /* ignore */ }
+
+      const genericToken = (() => {
+        try { return useAuthStore.getState().token; } catch { return null; }
+      })();
+      const lsToken = (() => {
+        try { return localStorage.getItem('superAdminToken'); } catch { return null; }
+      })();
+
+      // Priority: SuperAdmin > Hospital > Doctor > Generic > LocalStorage
+      const token = saToken || hToken || dToken || genericToken || lsToken;
       if (token) {
         config.headers = config.headers || {};
         const rawToken = String(token).trim();
@@ -67,6 +76,9 @@ axiosInstance.interceptors.response.use(
 
         // Dynamic import for hospital auth store to clear it too
         import('../store/useHospitalAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
+
+        // Dynamic import for doctor auth store to clear it too
+        import('../store/useDoctorAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
 
         // Note: useToastStore might need to be imported or accessed similarly
         // For now, keeping the 401 logic minimal to avoid breaking more things

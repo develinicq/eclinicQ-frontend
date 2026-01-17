@@ -129,6 +129,7 @@ export default function SampleTable({
   stickyRightWidth = 120,
   onRowClick,
   hideSeparators = false,
+  loading = false,
 }) {
   // For backward compatibility, if a consumer passes `header` as plain string
   // and also sets `icon: false`, we respect it by wrapping on the fly.
@@ -177,8 +178,12 @@ export default function SampleTable({
           background-color: #F9F9F9;
         }
       `}</style>
-      {/* Scroll Area: flex-1 to take available space */}
-      <div className="flex-1 no-scrollbar overflow-auto">
+      <div className="flex-1 no-scrollbar overflow-auto relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center">
+            <span className="text-secondary-grey400 font-medium">Loading...</span>
+          </div>
+        )}
         <table
           className={`w-full border-collapse text-sm table-fixed`}
           style={{ minWidth }}

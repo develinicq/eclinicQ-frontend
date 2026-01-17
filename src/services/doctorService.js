@@ -23,6 +23,17 @@ export const getDoctorDetailsByIdBySuperAdmin = async (userId) => {
   }
 };
 
+// Get all doctors for Hospital Admin
+export const getDoctorsForHospital = async (hospitalId) => {
+  if (!hospitalId) throw new Error("hospitalId is required");
+  try {
+    const res = await axios.get(`/doctors/for-hospital-admin/${hospitalId}/doctors-list`);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Get patient overview and demographics for a doctor view
 export const getPatientOverviewForDoctor = async (patientId) => {
   if (!patientId) throw new Error('patientId is required');

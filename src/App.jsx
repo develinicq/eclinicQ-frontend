@@ -11,7 +11,7 @@ import HospitalDetailsPage from "./SuperAdmin/pages/Hospitals/HospitalList/Hospi
 import { RegistrationProvider } from "./SuperAdmin/context/RegistrationContext";
 import SuperAdminSignIn from "./SuperAdmin/pages/SignIn";
 import { ProtectedAdminRoute, PublicAdminRoute } from "./SuperAdmin/components/Guard/AdminRoutes";
-import { ProtectedHospitalRoute, ProtectedDoctorRoute, PublicHospitalRoute } from "./HospitalModule/Components/Guard/HospitalRoutes";
+import { ProtectedHospitalRoute, ProtectedDoctorRoute, PublicHospitalRoute, PublicDoctorRoute } from "./HospitalModule/Components/Guard/HospitalRoutes";
 import GetStarted from "./pages/GetStarted";
 import OnboardingFlow from "./DoctorModule/Pages/Login/OnboardingFlow";
 import Doctor_layout from "./DoctorModule/Components/Layout/DoctorLayout";
@@ -59,6 +59,8 @@ import HFDOnboardingFlow from "./HospitalFDModule/Pages/Login/OnboardingFlow";
 import UnifiedSignIn from "./pages/UnifiedSignIn";
 import TabDemo from "./pages/TabDemo";
 // DocSignIn route intentionally not wired per requirement
+import DocSignIn from "./DoctorModule/Pages/Login/SignIn";
+
 
 function App() {
   return (
@@ -134,6 +136,17 @@ function App() {
         path="hfd/signin"
         element={<Navigate to="/signin?variant=hfd" replace />}
       />
+
+      {/* New Doctor Sign-In Route */}
+      <Route
+        path="doc/signin"
+        element={
+          <PublicDoctorRoute>
+            <DocSignIn />
+          </PublicDoctorRoute>
+        }
+      />
+
       {/* Keep existing onboarding routes */}
       <Route path="fd/onboarding" element={<FDOnboardingFlow />} />
       <Route path="hospital/onboarding" element={<HOnboardingFlow />} />

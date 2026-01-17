@@ -19,3 +19,13 @@ export const getPatientDetailsForSuperAdmin = async (patientId) => {
         throw error;
     }
 };
+
+// Get all patients for Hospital Admin
+export const getPatientsForHospital = async (hospitalId) => {
+    try {
+        const res = await axios.get(`/patients/for-hospital-admin/${hospitalId}/patients-list`);
+        return res.data;
+    } catch (error) {
+        throw error;
+    }
+};

@@ -1,28 +1,25 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-const useHospitalAuthStore = create(
+const useDoctorAuthStore = create(
     persist(
         (set, get) => ({
             token: null,
             user: null,
             roleNames: [],
             challengeId: null,
-            hospitalId: null,
             loading: false,
 
             setToken: (token) => set({ token }),
             setUser: (user) => set({ user }),
             setRoleNames: (roleNames) => set({ roleNames }),
             setChallengeId: (challengeId) => set({ challengeId }),
-            setHospitalId: (hospitalId) => set({ hospitalId }),
 
             clearAuth: () => set({
                 token: null,
                 user: null,
                 roleNames: [],
-                challengeId: null,
-                hospitalId: null
+                challengeId: null
             }),
 
             login: async (payload) => {
@@ -50,7 +47,7 @@ const useHospitalAuthStore = create(
                     throw new Error(res.data?.message || 'Login failed');
                 } catch (error) {
                     set({ loading: false });
-                    console.error('Hospital login error:', error);
+                    console.error('Doctor login error:', error);
                     throw error;
                 }
             },
@@ -82,12 +79,11 @@ const useHospitalAuthStore = create(
                 set({ loading: true });
                 try {
                     const axiosInstance = (await import('../lib/axios')).default;
-                    const res = await axiosInstance.get('/hospitals/admin/me');
+                    const res = await axiosInstance.get('/doctors/me');
 
                     if (res.data?.success) {
                         set({
                             user: res.data.data,
-                            hospitalId: res.data.data.hospitalId,
                             loading: false
                         });
                         return res.data;
@@ -96,6 +92,13 @@ const useHospitalAuthStore = create(
                 } catch (error) {
                     set({ loading: false });
                     console.error('Fetch profile error:', error);
+
+                    // Clear auth on 401 (invalid/expired token)
+                    if (error.response?.status === 401) {
+                        console.log('Token invalid/expired. Clearing doctor auth.');
+                        get().clearAuth();
+                    }
+
                     throw error;
                 }
             },
@@ -107,16 +110,15 @@ const useHospitalAuthStore = create(
             },
         }),
         {
-            name: 'hospital-auth-store',
+            name: 'doctor-auth-store',
             version: 1,
             partialize: (state) => ({
                 token: state.token,
                 user: state.user,
-                roleNames: state.roleNames,
-                hospitalId: state.hospitalId
+                roleNames: state.roleNames
             }),
         }
     )
 );
 
-export default useHospitalAuthStore;
+export default useDoctorAuthStore;
