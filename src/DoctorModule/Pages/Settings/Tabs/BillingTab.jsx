@@ -314,7 +314,7 @@ const SortIcon = () => (
 };
 
 const navigate=useNavigate()
-  return (<>
+  return (<div className="no-scrollbar">
     <div className=" space-y-6 p-4">
       {/* Current Subscription */}
       <div className="border border-blue-primary400 p-6 bg-monochrom-white rounded-lg">
@@ -527,7 +527,7 @@ const navigate=useNavigate()
             : undefined
         }
       />
-    </>
+    </div>
   );
 }
 

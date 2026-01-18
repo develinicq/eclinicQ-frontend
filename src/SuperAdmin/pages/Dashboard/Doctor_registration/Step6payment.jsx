@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Check, Info, Minus, Plus } from "lucide-react";
-
+import { useNavigate, useLocation } from "react-router-dom";
+import { Check, Minus, Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import StepSidebar from "../../../components/RegistrationSidebar/SidebarSteps";
 
 const steps = [
@@ -11,9 +11,6 @@ const steps = [
   { number: 4, title: "Review & Create", status: "completed" },
   { number: 5, title: "Package & Payment", status: "current" },
 ];
-
-
-
 const plans = [
   {
     id: "trial",
@@ -806,33 +803,44 @@ const plans = [
   },
 ];
 
-export default function Step6() {
+export default function Step6Payment() {
   const navigate = useNavigate();
-  const [selectedPlan, setSelectedPlan] = useState("trial");
-  const [billingCycle, setBillingCycle] = useState("monthly");
-  const [doctors, setDoctors] = useState(1);
-  const [staff, setStaff] = useState(1);
+  const location = useLocation();
+  const state = location.state || {};
 
-  const selectedPlanData = plans.find((p) => p.id === selectedPlan);
+  const selectedPlanId = state?.plan || "plus";
+const availablePlans = plans.filter(plan => !plan.isTrial);
+const [selectedPlan, setSelectedPlan] = useState(selectedPlanId);
 
-  const handleContinue = () => {
-    if (selectedPlan === "trial") {
-      navigate("/success");
-    } else {
-      navigate("/step6/test/payment", {
-        state: {
-          plan: selectedPlan,
-          billingCycle,
-          doctors,
-          staff
-        }
-      });
-    }
+const selectedPlanData = availablePlans.find(
+  plan => plan.id === selectedPlan
+);
+const [isPlanOpen, setIsPlanOpen] = useState(false);
+
+
+
+  const [billingCycle, setBillingCycle] = useState(state.billingCycle || "monthly");
+  const [doctors, setDoctors] = useState(state.doctors || 1);
+  const [staff, setStaff] = useState(state.staff || 1);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const basePrice = Number(
+  selectedPlanData.price.replace(/[₹,]/g, "")
+);
+
+  const months = billingCycle === "monthly" ? 1 : billingCycle === "halfYearly" ? 6 : 12;
+  const freeMonths = billingCycle === "halfYearly" ? 1 : billingCycle === "yearly" ? 2 : 0;
+  const baseTotal = basePrice * months;
+  const bonus = basePrice * freeMonths;
+  const subtotal = baseTotal - bonus;
+  const taxes = Math.round(subtotal * 0.18);
+  const total = subtotal + taxes;
+  const savings = bonus + Math.round(bonus * 0.18);
+  const handleConfirm = () => {
+    navigate("/success");
   };
-
   return (
-    <div className="h-screen bg-background flex flex-col no-scrollbar ">
-     <header className="h-10 md:h-12 bg-card border-b border-border flex items-center justify-between px-4 md:px-6">
+    <div className="h-screen bg-background flex flex-col no-scrollbar">
+        <header className="h-12 md:h-12 bg-card border-b border-border flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2 overflow-hidden">
          <div className="px-4 py-3">
                   <svg width="127" height="30" viewBox="0 0 127 30" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -899,253 +907,401 @@ export default function Step6() {
           </div>
         </div>
       </header>
-      
       <div className="flex flex-1 overflow-hidden">
         <StepSidebar steps={steps} currentStep={6} />
-        
-     <main className="flex-1 overflow-hidden p-4">
-  <div className="max-w-7xl mx-auto flex flex-col h-full">
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-5xl mx-auto">
             {/* Header */}
-            <div className="text-center mb-1">
-              <h1 className="text-2xl font-bold text-secondary-grey400 mb-1">
+            <div className="text-center mb-2">
+              <h1 className="text-2xl font-bold text-secondary-grey400 mb-2">
                 Package & Payment
               </h1>
               <p className="text-sm text-secondary-grey300">
                 Select the suitable package and make the payment to activate the account.
               </p>
               {/* Progress bar */}
-              <div className="flex items-center justify-center gap-2 mt-3">
+              <div className="flex items-center justify-center gap-1 mt-4">
                 <div className="w-24 h-1 bg-blue-primary250 rounded-full" />
-                <div className="w-24 h-1 bg-secondary-grey100 rounded-full" />
+                <div className="w-24 h-1 bg-blue-primary250 rounded-full" />
               </div>
-              <p className="text-xs text-secondary-grey200 mt-1">1 of 2</p>
+              <p className="text-xs text-secondary-grey200 mt-1">2 of 2</p>
             </div>
-
-            {/* Billing Tabs */}
-            <div className="flex items-center justify-center gap-4 mb-3 bg-blue-primary50 mx-auto px-2 rounded">
-              <button
-                onClick={() => setBillingCycle("monthly")}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${billingCycle === "monthly" ? "bg-blue-primary250 text-monochrom-white" : "bg-card border border-border text-secondary-grey300 hover:bg-muted"}`}
-              >
-                Billed Monthly
-              </button>
-              <button
-                onClick={() => setBillingCycle("halfYearly")}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${billingCycle === "halfYearly" ? "bg-blue-primary250 text-monochrom-white" : "bg-card border border-border text-secondary-grey300 hover:bg-muted"}`}
-              >
-                Billed Half-Yearly
-              </button>
-              <button
-                onClick={() => setBillingCycle("yearly")}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${billingCycle === "yearly" ? "bg-blue-primary250 text-monochrom-white" : "bg-card border border-border text-secondary-grey300 hover:bg-muted"}`}
-              >
-                Billed Annually
-              </button>
-              <span className="text-xs text-blue-primary250 flex items-center">
-                <svg width="31" height="25" viewBox="0 0 31 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M27.2261 17.5707C23.7206 18.4446 19.535 18.6106 16.4543 16.4036C14.4856 14.9931 13.4401 12.141 14.1759 9.82602C14.8708 7.63968 16.4935 5.7187 18.9251 5.77725C20.1926 5.80777 21.2854 6.3909 21.5161 7.72568C21.8686 9.7649 19.8343 11.8752 18.2169 12.7622C13.1692 15.5305 6.02848 15.3764 1.21995 12.1632" stroke="#2372EC" stroke-linecap="round"/>
-<path d="M3.33871 15.9293C2.75053 15.1074 1.46612 13.19 1.03389 12.0957" stroke="#2372EC" stroke-linecap="round"/>
-<path d="M1.03402 12.0958C2.036 11.9636 4.31355 11.5911 5.40788 11.1589" stroke="#2372EC" stroke-linecap="round"/>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column - Package Details */}
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="40" height="40" rx="8" fill="#2372EC"/>
+<path d="M29 15.5L25 17.5M25 17.5C25 17.5 24.6953 17.6524 24.5 17.75C22.7426 18.6287 20 20 20 20M25 17.5V21M25 17.5L15.5 12.5M20 20L11 15.5M20 20V29.5M23.5777 11.382L25.5777 12.4315C27.7294 13.5607 28.8052 14.1252 29.4026 15.1397C30 16.1543 30 17.4167 30 19.9415V20.0585C30 22.5833 30 23.8458 29.4026 24.8603C28.8052 25.8748 27.7294 26.4393 25.5777 27.5685L23.5777 28.618C21.8221 29.5393 20.9443 30 20 30C19.0557 30 18.1779 29.5393 16.4223 28.618L14.4223 27.5685C12.2706 26.4393 11.1948 25.8748 10.5974 24.8603C10 23.8458 10 22.5833 10 20.0585V19.9415C10 17.4167 10 16.1543 10.5974 15.1397C11.1948 14.1252 12.2706 13.5607 14.4223 12.4315L16.4223 11.382C18.1779 10.4607 19.0557 10 20 10C20.9443 10 21.8221 10.4607 23.5777 11.382Z" stroke="white" stroke-linecap="round"/>
 </svg>
-Get 2 Months Free😍 
-              </span>
-            </div>
+                  <h2 className="font-semibold text-secondary-grey400">Package Details</h2>
+                </div>
+                {/* Package Selected */}
+                  <div className="mb-6 relative">
+                    
+<p className="text-sm mb-2 text-secondary-grey300">Package Selected</p>
+  
 
-            {/* Plans Grid */}
-            <div className="flex-1 overflow-y-auto no-scrollbar ">
-            <div className="grid grid-cols-2 max-w-3xl mx-auto gap-6 pb-2">
-              {plans.map((plan) => {
-                const isSelected = selectedPlan === plan.id;
-                const isTrial = plan.id === "trial";
-
-                return (
-                  <div
-                    key={plan.id}
-                    onClick={() => setSelectedPlan(plan.id)}
-                    className={`relative rounded-lg border cursor-pointer transition-all border-blue-primary400 p-4 ${isSelected ? " bg-blue-primary250 text-monochrom-white" : "bg-card hover:border-blue-primary150"}`}
-                  >
-                    {/* Plan Icon & Name & Price */}
-                    <div className="flex items-center gap-2 mb-3">
-                      {plan.icon && (
-                        <div className="w-12 h-12">{plan.icon}</div>
-                      )}
-                     
-                     <div className="flex flex-col">
-                       <h3 className={`text-sm font-semibold ${isSelected ? "text-monochrom-white" : "text-secondary-grey300"}`}>
-                        {plan.name}
-                      </h3>
-                        {isTrial ? (
-                        <p className={`text-xl font-bold ${isSelected ? "text-monochrom-white" : "text-blue-primary250"}`}>
-                          {plan.price}
-                        </p>
-                      ) : (
-                        <div className="flex items-baseline gap-1">
-                          <span className={`text-xl font-bold ${isSelected ? "text-monochrom-white" : "text-blue-primary250"}`}>
-                            {plan.price}
-                          </span>
-                          <span className={`text-xl font-bold ${isSelected ? "text-monochrom-white/80" : "text-blue-primary250"}`}>
-                            {plan.period}
-                          </span>
-                          <span className={`text-xs ${isSelected ? "text-monochrom-white/60" : "text-secondary-grey200"}`}>
-                            {plan.taxNote}
-                          </span>
-                        </div>
-                      )}
-                     </div>
-                    </div>
-
-                  
-
-                    {/* Select Button */}
-                    {isSelected ? (
-                      <button className="w-full py-2 bg-monochrom-white text-blue-primary250 rounded-md text-sm font-medium flex items-center justify-center gap-2">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M6.02087 7.97994C5.82561 7.78468 5.50903 7.78468 5.31376 7.97994C5.1185 8.1752 5.1185 8.49179 5.31376 8.68705L5.66732 8.3335L6.02087 7.97994ZM7.00065 9.66683L6.6471 10.0204C6.84236 10.2156 7.15894 10.2156 7.3542 10.0204L7.00065 9.66683ZM10.6875 6.68705C10.8828 6.49179 10.8828 6.1752 10.6875 5.97994C10.4923 5.78468 10.1757 5.78468 9.98043 5.97994L10.334 6.3335L10.6875 6.68705ZM14.6673 8.00016H14.1673C14.1673 11.4059 11.4064 14.1668 8.00065 14.1668V14.6668V15.1668C11.9587 15.1668 15.1673 11.9582 15.1673 8.00016H14.6673ZM8.00065 14.6668V14.1668C4.59489 14.1668 1.83398 11.4059 1.83398 8.00016H1.33398H0.833984C0.833984 11.9582 4.04261 15.1668 8.00065 15.1668V14.6668ZM1.33398 8.00016H1.83398C1.83398 4.59441 4.59489 1.8335 8.00065 1.8335V1.3335V0.833496C4.04261 0.833496 0.833984 4.04212 0.833984 8.00016H1.33398ZM8.00065 1.3335V1.8335C11.4064 1.8335 14.1673 4.59441 14.1673 8.00016H14.6673H15.1673C15.1673 4.04212 11.9587 0.833496 8.00065 0.833496V1.3335ZM5.66732 8.3335L5.31376 8.68705L6.6471 10.0204L7.00065 9.66683L7.3542 9.31328L6.02087 7.97994L5.66732 8.3335ZM7.00065 9.66683L7.3542 10.0204L10.6875 6.68705L10.334 6.3335L9.98043 5.97994L6.6471 9.31328L7.00065 9.66683Z" fill="#2372EC"/>
-</svg>
-
-                        Selected
-                      </button>
-                    ) : (
-                      <button className="w-full py-2 bg-blue-primary250 text-monochrom-white rounded-md text-sm font-medium">
-                        Choose
-                      </button>
-                    )}
-
-                    {/* Features */}
-                    <div className="mt-4">
-                      <p className={`text-xs mb-2 ${isSelected ? "text-monochrom-white/80" : "text-secondary-grey200"}`}>
-                        Access To:
-                      </p>
-                      <ul className="space-y-2">
-                        {plan.features.slice(0, 8).map((feature, idx) => (
-                          <li key={idx} className="flex items-center gap-2 justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                              <span
-                              className={`w-4 h-4 rounded-full flex items-center justify-center text-xs ${
-                                isSelected
-                                  ? " "
-                                  : ""
-                              }`}
-                            >
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M7.99967 14.6666C11.6816 14.6666 14.6663 11.6819 14.6663 7.99998C14.6663 4.31808 11.6816 1.33331 7.99967 1.33331C4.31778 1.33331 1.33301 4.31808 1.33301 7.99998C1.33301 11.6819 4.31778 14.6666 7.99967 14.6666Z" fill="#F2F7FF"/>
-<path d="M5.66634 8.33331L6.99967 9.66665L10.333 6.33331" fill="#F2F7FF"/>
-<path d="M6.01989 7.97976C5.82463 7.7845 5.50805 7.7845 5.31279 7.97976C5.11753 8.17502 5.11753 8.4916 5.31279 8.68687L5.66634 8.33331L6.01989 7.97976ZM6.99967 9.66665L6.64612 10.0202C6.84138 10.2155 7.15797 10.2155 7.35323 10.0202L6.99967 9.66665ZM10.6866 6.68687C10.8818 6.4916 10.8818 6.17502 10.6866 5.97976C10.4913 5.7845 10.1747 5.7845 9.97945 5.97976L10.333 6.33331L10.6866 6.68687ZM14.6663 7.99998H14.1663C14.1663 11.4057 11.4054 14.1666 7.99967 14.1666V14.6666V15.1666C11.9577 15.1666 15.1663 11.958 15.1663 7.99998H14.6663ZM7.99967 14.6666V14.1666C4.59392 14.1666 1.83301 11.4057 1.83301 7.99998H1.33301H0.833008C0.833008 11.958 4.04163 15.1666 7.99967 15.1666V14.6666ZM1.33301 7.99998H1.83301C1.83301 4.59422 4.59392 1.83331 7.99967 1.83331V1.33331V0.833313C4.04163 0.833313 0.833008 4.04194 0.833008 7.99998H1.33301ZM7.99967 1.33331V1.83331C11.4054 1.83331 14.1663 4.59422 14.1663 7.99998H14.6663H15.1663C15.1663 4.04194 11.9577 0.833313 7.99967 0.833313V1.33331ZM5.66634 8.33331L5.31279 8.68687L6.64612 10.0202L6.99967 9.66665L7.35323 9.31309L6.01989 7.97976L5.66634 8.33331ZM6.99967 9.66665L7.35323 10.0202L10.6866 6.68687L10.333 6.33331L9.97945 5.97976L6.64612 9.31309L6.99967 9.66665Z" fill="#2372EC"/>
-</svg>
-
-                            </span>
-                            <span
-                              className={
-                                isSelected
-                                  ? "text-monochrom-white"
-                                  : "text-secondary-grey300"
-                              }
-                            >
-                              {feature}
-                            </span>
-                          </div>
-                          {idx === 0 && (
-  <svg
-    width="15"
-    height="15"
-    viewBox="0 0 15 15"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={isSelected ? "stroke-monochrom-white" : "stroke-secondary-grey300"}
+  {/* Selected Plan */}
+  <div
+    onClick={() => setIsPlanOpen(!isPlanOpen)}
+    className="w-full p-3 border border-border rounded-lg bg-monochrom-white flex items-center justify-between cursor-pointer"
   >
-    <path
-      d="M7.16667 10.5V6.5M7.16667 4.83333V4.5M13.8333 7.16667C13.8333 10.8486 10.8486 13.8333 7.16667 13.8333C3.48477 13.8333 0.5 10.8486 0.5 7.16667C0.5 3.48477 3.48477 0.5 7.16667 0.5C10.8486 0.5 13.8333 3.48477 13.8333 7.16667Z"
-      strokeWidth="1.2"
-      strokeLinecap="round"
-    />
-  </svg>
-)}
+    <div className="flex items-center gap-3">
+      {selectedPlanData.icon}
+      <div>
+        <p className="text-sm font-medium text-secondary-grey400">
+          {selectedPlanData.name}
+        </p>
+      
 
-                          </li>
-                        ))}
-                      </ul>
+      </div>
+    </div>
+    <svg width="10" height="10" viewBox="0 0 10 10"  className={`transition-transform ${isPlanOpen ? "rotate-180" : ""}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M7.91732 3.75L5.00065 6.25L2.08398 3.75" stroke="#626060" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+  </div>
+
+  {/* Dropdown */}
+  {isPlanOpen && (
+    <div className="absolute z-20 mt-1 w-full bg-monochrom-white border border-border rounded-lg shadow-lg">
+      {availablePlans.map(plan => (
+        <div
+          key={plan.id}
+          onClick={() => {
+            setSelectedPlan(plan.id);
+            setIsPlanOpen(false);
+          }}
+          className={`flex items-center gap-3 p-2 cursor-pointer hover:bg-muted ${
+            plan.id === selectedPlan ? "bg-blue-primary50" : ""
+          }`}
+        >
+          {plan.icon}
+          <div className="flex-1">
+            <p className="text-sm font-medium text-secondary-grey400">
+              {plan.name}
+            </p>
+            <p className="text-xs text-secondary-grey300">
+              {plan.price}{plan.period || ""} {plan.taxNote || ""}
+            </p>
+          </div>
+
+          {plan.id === selectedPlan && (
+            <Check className="w-4 h-4 text-blue-primary250" />
+          )}
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+                {/* Billing Cycle */}
+              <div className="mb-4 md:mb-6">
+                <p className="text-sm font-medium text-secondary-grey300 mb-3">
+                  Billing Cycle
+                </p>
+                <div className="flex flex-wrap gap-3 md:gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="billing"
+                      checked={billingCycle === "monthly"}
+                      onChange={() => setBillingCycle("monthly")}
+                      className="sr-only peer"
+                    />
+
+                    <span
+                   className="
+    w-4 h-4 rounded-full
+    border-2 border-secondary-grey200      
+    flex items-center justify-center
+    peer-checked:border-blue-primary250
+    peer-checked:bg-blue-primary250
+    peer-checked:before:content-['']
+    peer-checked:before:w-2
+    peer-checked:before:h-2
+    peer-checked:before:bg-card
+    peer-checked:before:rounded-full
+  "
+                    />
+
+                    <span className="text-sm text-secondary-grey300">
+                      Monthly
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="billing"
+                      checked={billingCycle === "halfYearly"}
+                      onChange={() => setBillingCycle("halfYearly")}
+                      className="sr-only peer"
+                    />
+
+                    <span
+                              className="
+    w-4 h-4 rounded-full
+    border-2 border-secondary-grey200      
+    flex items-center justify-center
+    peer-checked:border-blue-primary250 
+    peer-checked:bg-blue-primary250
+    peer-checked:before:content-['']
+    peer-checked:before:w-2
+    peer-checked:before:h-2
+    peer-checked:before:bg-card
+    peer-checked:before:rounded-full
+  "
+                    />
+                    <span className="text-sm text-secondary-grey300">
+                      Half-Yearly
+                    </span>
+                 <span className="text-xs bg-success-100 p-1 text-success-300">
+                      Get 1 Months Free
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="billing"
+                      checked={billingCycle === "yearly"}
+                      onChange={() => setBillingCycle("yearly")}
+                      className="sr-only peer"
+                    />
+
+                    <span
+                          className="
+    w-4 h-4 rounded-full
+    border-2 border-secondary-grey200      
+    flex items-center justify-center
+    peer-checked:border-blue-primary250 
+    peer-checked:bg-blue-primary250
+    peer-checked:before:content-['']
+    peer-checked:before:w-2
+    peer-checked:before:h-2
+    peer-checked:before:bg-card
+    peer-checked:before:rounded-full
+  "
+                    />
+
+                    <span className="text-sm text-secondary-grey300">
+                      Yearly
+                    </span>
+                    <span className="text-xs bg-success-100 p-1 text-success-300">
+                      Get 2 Months Free
+                    </span>
+                  </label>
+                </div>
+              </div>
+                {/* Doctor/Staff Count */}
+                <div className="flex gap-6 py-4 mb-4">
+                  <div>
+                    <p className="text-sm text-secondary-grey300 mb-2">Number of Doctors (Max 2)</p>
+                    <div className="flex items-center gap-1 text-secondary-grey300">
+                      <button
+                        onClick={() => setDoctors(Math.max(1, doctors - 1))}
+                        className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-12 h-8 flex items-center justify-center border border-border rounded text-sm font-medium">
+                        {doctors}
+                      </span>
+                      <button
+                        onClick={() => setDoctors(Math.min(2, doctors + 1))}
+                        className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            </div>
+                  <div className="border-l border-border pl-6">
+                    <p className="text-sm text-secondary-grey300 mb-2">Number of Staffs (Max 4)</p>
+                    <div className="flex items-center gap-1 text-secondary-grey300">
+                      <button
+                        onClick={() => setStaff(Math.max(1, staff - 1))}
+                        className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-12 h-8 flex items-center justify-center border border-border rounded text-sm font-medium">
+                        {staff}
+                      </span>
+                      <button
+                        onClick={() => setStaff(Math.min(4, staff + 1))}
+                        className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {/* Access To */}
+                <div className="pt-4 border-t border-border">
+                  <p className="text-sm text-secondary-grey200 mb-3">Access To:</p>
+                 <ul className="space-y-2">
+  {selectedPlanData.features.map((feature, idx) => (
+    <li key={idx} className="flex items-center gap-2 text-sm text-secondary-grey300">
+      <div className="w-4 h-4 rounded-full bg-success-100 flex items-center justify-center">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M7.16667 13.8333C10.8486 13.8333 13.8333 10.8486 13.8333 7.16667C13.8333 3.48477 10.8486 0.5 7.16667 0.5C3.48477 0.5 0.5 3.48477 0.5 7.16667C0.5 10.8486 3.48477 13.8333 7.16667 13.8333Z" fill="#F2F7FF"/>
+<path d="M4.83333 7.5L6.16667 8.83333L9.5 5.5" fill="#F2F7FF"/>
+<path d="M5.18689 7.14645C4.99162 6.95118 4.67504 6.95118 4.47978 7.14645C4.28452 7.34171 4.28452 7.65829 4.47978 7.85355L4.83333 7.5L5.18689 7.14645ZM6.16667 8.83333L5.81311 9.18689C6.00838 9.38215 6.32496 9.38215 6.52022 9.18689L6.16667 8.83333ZM9.85355 5.85355C10.0488 5.65829 10.0488 5.34171 9.85355 5.14645C9.65829 4.95118 9.34171 4.95118 9.14645 5.14645L9.5 5.5L9.85355 5.85355ZM13.8333 7.16667H13.3333C13.3333 10.5724 10.5724 13.3333 7.16667 13.3333V13.8333V14.3333C11.1247 14.3333 14.3333 11.1247 14.3333 7.16667H13.8333ZM7.16667 13.8333V13.3333C3.76091 13.3333 1 10.5724 1 7.16667H0.5H0C0 11.1247 3.20863 14.3333 7.16667 14.3333V13.8333ZM0.5 7.16667H1C1 3.76091 3.76091 1 7.16667 1V0.5V0C3.20863 0 0 3.20863 0 7.16667H0.5ZM7.16667 0.5V1C10.5724 1 13.3333 3.76091 13.3333 7.16667H13.8333H14.3333C14.3333 3.20863 11.1247 0 7.16667 0V0.5ZM4.83333 7.5L4.47978 7.85355L5.81311 9.18689L6.16667 8.83333L6.52022 8.47978L5.18689 7.14645L4.83333 7.5ZM6.16667 8.83333L6.52022 9.18689L9.85355 5.85355L9.5 5.5L9.14645 5.14645L5.81311 8.47978L6.16667 8.83333Z" fill="#2372EC"/>
+</svg>
 
-            {/* Doctor/Staff Counter */}
-            <div className="flex flex-wrap gap-8 border-t border-border pt-1 pr-4">
-              <div>
-                <p className="text-sm text-secondary-grey300 mb-1 mt-1">Number of Doctors</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setDoctors(Math.max(1, doctors - 1))}
-                    className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted text-secondary-grey300"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-16 h-8 flex items-center justify-center border border-border rounded text-sm font-medium text-secondary-grey400">
-                    {doctors}
-                  </span>
-                  <button
-                    onClick={() => setDoctors(Math.min(2, doctors + 1))}
-                    className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted text-secondary-grey300"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+      </div>
+      {feature}
+    </li>
+  ))}
+</ul>
+
                 </div>
               </div>
-              <div>
-                <p className="text-sm text-secondary-grey300 mb-1 mt-1">Number of Staffs</p>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setStaff(Math.max(1, staff - 1))}
-                    className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted text-secondary-grey300"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-16 h-8 flex items-center justify-center border border-border rounded text-sm font-medium text-secondary-grey400">
-                    {staff}
-                  </span>
-                  <button
-                    onClick={() => setStaff(Math.min(4, staff + 1))}
-                    className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted text-secondary-grey300"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              
-              {/* Estimate Invoice */}
-              <div className="ml-auto text-right flex flex-col gap-[1px]">
-                <p className="text-sm text-secondary-grey300">
-                  Estimate invoice <span className="text-secondary-grey200">({selectedPlanData?.name || "Upchar-Q Free"})</span>
-                </p>
-                <p className="text-xs text-secondary-grey200">(60 Days Free)</p>
-                <p className="text-2xl font-bold text-blue-primary250">
-                  {selectedPlanData.id==="trial"?`₹00/Month`:`₹${selectedPlanData.price}/Month`}
-                </p>
-              </div>
-            </div>
+              {/* Right Column - Payment Summary */}
+              <div className="space-y-4">
+                <div className="bg-card rounded-xl border border-border p-6">
+                  <div className="flex items-center gap-2 mb-6">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="40" height="40" rx="8" fill="#2372EC"/>
+<path d="M25.4142 18.4142C26 17.8284 26 16.8856 26 15C26 13.1144 26 12.1716 25.4142 11.5858M25.4142 18.4142C24.8284 19 23.8856 19 22 19H18C16.1144 19 15.1716 19 14.5858 18.4142M25.4142 18.4142C25.4142 18.4142 25.4142 18.4142 25.4142 18.4142ZM25.4142 11.5858C24.8284 11 23.8856 11 22 11L18 11C16.1144 11 15.1716 11 14.5858 11.5858M25.4142 11.5858C25.4142 11.5858 25.4142 11.5858 25.4142 11.5858ZM14.5858 11.5858C14 12.1716 14 13.1144 14 15C14 16.8856 14 17.8284 14.5858 18.4142M14.5858 11.5858C14.5858 11.5858 14.5858 11.5858 14.5858 11.5858ZM14.5858 18.4142C14.5858 18.4142 14.5858 18.4142 14.5858 18.4142ZM26 14C24.3431 14 23 12.6569 23 11M26 16C24.3431 16 23 17.3431 23 19M14 14C15.6569 14 17 12.6569 17 11M14 16C15.6569 16 17 17.3431 17 19M13 28.3884H15.2599C16.2708 28.3884 17.2925 28.4937 18.2763 28.6964C20.0166 29.0549 21.8488 29.0983 23.6069 28.8138C24.4738 28.6734 25.326 28.4589 26.0975 28.0865C26.7939 27.7504 27.6469 27.2766 28.2199 26.7459C28.7921 26.216 29.388 25.3487 29.8109 24.6707C30.1736 24.0894 29.9982 23.3762 29.4245 22.943C28.7873 22.4619 27.8417 22.462 27.2046 22.9433L25.3974 24.3084C24.697 24.8375 23.932 25.3245 23.0206 25.4699C22.911 25.4874 22.7962 25.5033 22.6764 25.5172M22.6764 25.5172C22.6403 25.5214 22.6038 25.5254 22.5668 25.5292M22.6764 25.5172C22.8222 25.486 22.9669 25.396 23.1028 25.2775C23.746 24.7161 23.7866 23.77 23.2285 23.1431C23.0991 22.9977 22.9475 22.8764 22.7791 22.7759C19.9817 21.1074 15.6294 22.3782 13 24.2429M22.6764 25.5172C22.6399 25.525 22.6033 25.5292 22.5668 25.5292M22.5668 25.5292C22.0434 25.5829 21.4312 25.5968 20.7518 25.5326M21 15C21 15.5523 20.5523 16 20 16C19.4477 16 19 15.5523 19 15C19 14.4477 19.4477 14 20 14C20.5523 14 21 14.4477 21 15ZM11.5 30C10.6716 30 10 29.3284 10 28.5V23.5C10 22.6716 10.6716 22 11.5 22C12.3284 22 13 22.6716 13 23.5V28.5C13 29.3284 12.3284 30 11.5 30Z" stroke="white" stroke-linecap="round"/>
+</svg>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between border-t border-border pt-2 pr-3">
-              <button className="px-6 py-2 border border-border rounded-md text-sm font-medium text-secondary-grey400 hover:bg-muted">
-                Cancel
-              </button>
-              <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 text-sm text-secondary-grey300">
-                  ← Previous
-                </button>
-                <button
-                  onClick={handleContinue}
-                  className="px-6 py-2 bg-blue-primary250 text-monochrom-white rounded-md text-sm font-medium hover:bg-blue-primary300 flex items-center gap-2"
-                >
-                  Confirm Purchase →
-                </button>
+                    <h2 className="font-semibold text-secondary-grey400">Payment Summary</h2>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-secondary-grey300">
+  {selectedPlanData.name} (Base)
+</span>
+                      <span className="text-secondary-grey400 font-medium">₹{basePrice.toLocaleString()}/mo</span>
+                    </div>
+                    {billingCycle !== "monthly" && (
+                      <>
+                        <div className="border-t border-border pt-3 space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-secondary-grey300">Base x {months}months</span>
+                            <span className="text-secondary-grey400">₹{baseTotal.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-secondary-grey300">{months}-Month Bonus ({freeMonths} Month Free)</span>
+                            <span className="text-success-300">-₹{bonus.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className="border-t border-border pt-3 space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-secondary-grey300">
+                          {billingCycle === "monthly" ? "Subtotal" : `Subtotal (For ${months} months)`}
+                        </span>
+                        <span className="text-secondary-grey400">₹{subtotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-secondary-grey300">Taxes</span>
+                        <span className="text-secondary-grey400">₹{taxes.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-border pt-3">
+                      <div className="flex justify-between items-center bg-blue-primary100 p-4 rounded-lg">
+                        <span className="font-medium text-secondary-grey400">Total Amount</span>
+                        <span className="text-xl font-bold text-blue-primary250">₹{total.toLocaleString()}</span>
+                      </div>
+                    </div>
+                     
+                    {freeMonths > 0 && (
+                      <div className="text-center bg-success-100 pt-2">
+                        <span className="text-sm text-success-300 font-medium">
+                          🎉 Get {freeMonths} Month Free! You save ₹{savings.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                   <div className="flex items-start gap-3 pt-3">
+  <Checkbox
+    id="terms"
+    checked={agreedToTerms}
+    onCheckedChange={setAgreedToTerms}
+  />
+
+  <label
+    htmlFor="terms"
+    className="text-xs text-secondary-grey300 leading-relaxed cursor-pointer"
+  >
+    I agree to the{" "}
+    <span className="text-secondary-grey400 underline">
+      Terms and Conditions
+    </span>{" "}
+    and{" "}
+    <span className="text-secondary-grey400 underline">
+      Privacy Policy
+    </span>
+    . I understand that this subscription will automatically renew unless
+    cancelled.
+  </label>
+</div>
+
+                  </div>
+                </div>
+                {/* Billing Info Card */}
+                <div className="bg-card rounded-xl border border-border p-4">
+                  {billingCycle === "monthly" ? (
+                    <>
+                      <p className="text-sm font-medium text-secondary-grey400 mb-1">Monthly Billing:</p>
+                      <p className="text-sm text-secondary-grey300">
+                        You will be charged ₹{total.toLocaleString()} every month. You can cancel anytime from your account settings.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-secondary-grey200 mb-1">
+                        {billingCycle === "halfYearly" ? "Half Yearly" : "Yearly"} Billing:
+                      </p>
+                      <p className="text-sm text-secondary-grey300 mb-1">
+                        One-time payment of ₹{total.toLocaleString()} for {months} months.
+                      </p>
+                      <p className="text-sm text-success-300">
+                        🎉 Get {freeMonths} Month Free! You will save ₹{savings.toLocaleString()}
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
+           <div className="flex items-center justify-between border-t border-border bg-card px-6 py-2 mt-2 rounded-b-xl">
+    <button className="px-8 py-2.5 border border-border rounded-lg text-sm font-medium text-secondary-grey400 hover:bg-muted">
+      Cancel
+    </button>
+
+    <div className="flex items-center gap-4">
+      <button
+        onClick={() => navigate("/step6/test")}
+        className="flex items-center gap-2 text-sm text-secondary-grey300 hover:text-secondary-grey400"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M13.3327 8H2.66602M2.66602 8L6.66602 4M2.66602 8L6.66602 12" stroke="#626060" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+ Previous
+      </button>
+
+      <button
+        onClick={handleConfirm}
+        disabled={!agreedToTerms}
+        className={`px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 ${
+          agreedToTerms
+            ? "bg-blue-primary250 text-monochrom-white hover:bg-blue-primary300"
+            : "bg-secondary-grey100 text-secondary-grey200 cursor-not-allowed"
+        }`}
+      >
+        Confirm Purchase <svg width="12" height="9" viewBox="0 0 12 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0.5 4.5H11.1667M11.1667 4.5L7.16667 0.5M11.1667 4.5L7.16667 8.5"  stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+      </button>
+    </div>
+  </div>
+
         </main>
       </div>
+  
     </div>
   );
 }

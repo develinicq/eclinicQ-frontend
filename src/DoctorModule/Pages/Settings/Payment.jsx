@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Check, Plus, Minus, Shield, Send } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+
 const BasicSVG = (
   <svg
     width="48"
@@ -713,7 +715,7 @@ export default function Payment() {
 
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background no-scrollbar">
       {/* Header */}
       <header className="h-14 bg-card border-b border-border flex items-center justify-between px-4 md:px-6">
     <div className="px-4 py-3">
@@ -1042,12 +1044,12 @@ export default function Payment() {
                   </span>
                 </div>
                 <div className="flex items-start gap-2 pt-2">
-                  <input
-                    type="checkbox"
-                    checked={agreedToTerms}
-                    onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="mt-0.5 w-5  h-5 accent-blue-primary250"
-                  />
+                 <Checkbox
+  id="terms"
+  checked={agreedToTerms}
+  onCheckedChange={setAgreedToTerms}
+/>
+
                   <p className="text-xs text-secondary-grey300">
                     I agree to the{" "}
                     <span className="text-primary underline cursor-pointer">

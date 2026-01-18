@@ -57,6 +57,11 @@ import UnifiedSignIn from "./pages/UnifiedSignIn";
 import TabDemo from "./pages/TabDemo";
 import UpgradePlan from "./DoctorModule/Pages/Settings/UpgradePlan";
 import Payment from "./DoctorModule/Pages/Settings/Payment";
+
+import Step6 from "./SuperAdmin/pages/Dashboard/Doctor_registration/Step6";
+import Step6Payment from "./SuperAdmin/pages/Dashboard/Doctor_registration/Step6payment";
+import Step7 from "./SuperAdmin/pages/Dashboard/Doctor_registration/Step7";
+
 // DocSignIn route intentionally not wired per requirement
 
 function App() {
@@ -199,6 +204,33 @@ function App() {
           element={<HFDStaffPermissions />}
         />
       </Route>
+
+
+      {/* testing and building */}
+      <Route
+  path="step6/test"
+  element={
+    <RegistrationProvider>
+      <Step6 />
+    </RegistrationProvider>
+  }
+/>
+   <Route
+  path="step6/test/payment"
+  element={
+    <RegistrationProvider>
+      <Step6Payment/>
+    </RegistrationProvider>
+  }
+/>
+         <Route
+  path="/success"
+  element={
+    <RegistrationProvider>
+      <Step7/>
+    </RegistrationProvider>
+  }
+/>
     </Routes>
   );
 }
