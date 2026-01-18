@@ -4,7 +4,7 @@ import {
     putDoctorConsultationDetails,
 } from "../../services/doctorConsultationService";
 
-const DEFAULT_SCHEDULE = [
+export const DEFAULT_SCHEDULE = [
     { day: "Monday", available: true, sessions: [] },
     { day: "Tuesday", available: false, sessions: [] },
     { day: "Wednesday", available: false, sessions: [] },
@@ -14,7 +14,7 @@ const DEFAULT_SCHEDULE = [
     { day: "Sunday", available: false, sessions: [] },
 ];
 
-const DEFAULT_CONSULTATION_DETAILS = {
+export const DEFAULT_CONSULTATION_DETAILS = {
     consultationFees: [
         {
             consultationFee: "",
@@ -87,14 +87,18 @@ const useConsultationStore = create((set, get) => ({
     },
 
     updateConsultationDetails: async (payload) => {
+        console.log("[useConsultationStore] updateConsultationDetails called with payload:", payload);
         set({ saving: true, saveError: null });
         try {
             const response = await putDoctorConsultationDetails(payload);
+            console.log("[useConsultationStore] updateConsultationDetails success response:", response);
             if (response.success) {
                 set({ saving: false, isDirty: false });
                 return response;
             }
+            throw new Error(response.message || "Update failed");
         } catch (error) {
+            console.error("[useConsultationStore] updateConsultationDetails ERROR:", error);
             const message = error.response?.data?.message || error.message || "Failed to update consultation details";
             set({
                 saveError: message,

@@ -1,369 +1,488 @@
-import React from "react";
-import SectionCard from "../components/SectionCard";
-import InfoField from "../components/InfoField";
-import TimeInput from "../../../../components/FormItems/TimeInput";
-import Toggle from "../../../../components/FormItems/Toggle";
+import React, { useEffect, useState } from "react";
+import { Trash2, ChevronDown } from "lucide-react";
 import { Checkbox } from "../../../../components/ui/checkbox";
-import { Trash2 } from "lucide-react";
+import Toggle from "../../../../components/FormItems/Toggle";
+import TimeInput from "../../../../components/FormItems/TimeInput";
+import InputWithMeta from "../../../../components/GeneralDrawer/InputWithMeta";
+import useConsultationStore, { DEFAULT_SCHEDULE } from "../../../../store/settings/useConsultationStore";
+import useAuthStore from "../../../../store/useAuthStore";
+import useClinicStore from "../../../../store/settings/useClinicStore";
+import useToastStore from "../../../../store/useToastStore";
+import { pencil } from "../../../../../public/index.js";
+import UniversalLoader from "../../../../components/UniversalLoader";
 
-const DEFAULT_SCHEDULE = [
-    { day: "Monday", available: true, sessions: [] },
-    { day: "Tuesday", available: false, sessions: [] },
-    { day: "Wednesday", available: false, sessions: [] },
-    { day: "Thursday", available: false, sessions: [] },
-    { day: "Friday", available: false, sessions: [] },
-    { day: "Saturday", available: false, sessions: [] },
-    { day: "Sunday", available: false, sessions: [] },
-];
+const SectionCard = ({ title, subtitle, headerRight, children }) => (
+    <div className="px-4 py-3 flex flex-col gap-3 bg-white rounded-lg ">
+        <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+                <div className="flex items-center gap-1 text-sm">
+                    <div className="font-medium text-[14px] text-gray-900">{title}</div>
+                    {subtitle && (
+                        <div className="px-1 border border-secondary-grey50 bg-secondary-grey50 rounded-sm text-[12px] text-gray-500">
+                            {subtitle}
+                        </div>
+                    )}
+                </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+                {headerRight}
+            </div>
+        </div>
+        <div>{children}</div>
+    </div>
+);
 
-const DEFAULT_CONSULTATION_DETAILS = {
-    consultationFees: [
-        {
-            consultationFee: "",
-            followUpFee: "",
-            autoApprove: false,
-            avgDurationMinutes: 0,
-            availabilityDurationDays: undefined,
-        },
-    ],
-    slotTemplates: {
-        schedule: DEFAULT_SCHEDULE.map((d) => ({ ...d })),
-    },
+// Display helper: UTC ISO -> IST HH:MM
+const toHM = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const utcMs = d.getTime();
+    const istMs = utcMs + (330 * 60 * 1000); // 5.5h
+    const istDate = new Date(istMs);
+    const hh = String(istDate.getUTCHours()).padStart(2, "0");
+    const mm = String(istDate.getUTCMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
 };
 
-const ConsultationTab = ({
-    consultationDetails = DEFAULT_CONSULTATION_DETAILS,
-    consultationLoading,
-    setConsultationDetails,
-    setConsultationDirty,
-    handleSaveConsultation,
-    savingConsultation,
-    consultationDirty,
-}) => {
-    if (consultationLoading) {
-        return <div className="p-4 text-sm text-gray-400">Loading consultation details...</div>;
-    }
+// Input helper: IST HH:MM -> UTC ISO
+const toUTC = (hm) => {
+    if (!hm) return "";
+    const [h, m] = hm.split(":").map(Number);
+    let mins = h * 60 + m - 330;
+    if (mins < 0) mins += 1440;
+    mins %= 1440;
+    const uh = Math.floor(mins / 60);
+    const um = mins % 60;
+    return `1970-01-01T${String(uh).padStart(2, "0")}:${String(um).padStart(2, "0")}:00.000Z`;
+};
 
-    const fees = consultationDetails?.consultationFees?.[0] || {};
-    const setFees = (k, v) => {
-        setConsultationDetails((prev) => ({
-            ...prev,
-            consultationFees: [{ ...(prev.consultationFees?.[0] || {}), [k]: v }],
-        }));
-        setConsultationDirty(true);
+// Payload helper: UTC ISO -> UTC HH:MM
+const toRawUTC_HM = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const hh = String(d.getUTCHours()).padStart(2, "0");
+    const mm = String(d.getUTCMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+};
+
+const ConsultationTab = () => {
+    const {
+        consultationDetails,
+        loading,
+        saving,
+        fetchConsultationDetails,
+        updateConsultationDetails,
+        setConsultationDetails,
+        isDirty,
+        setDirty
+    } = useConsultationStore();
+
+    const { doctorDetails, user } = useAuthStore();
+    const { clinic } = useClinicStore();
+    const { addToast } = useToastStore();
+
+    useEffect(() => {
+        console.log("[ConsultationTab] useEffect triggered", { doctorDetails, user, clinic });
+
+        const resolveParams = () => {
+            // Priority 1: doctorDetails (most specific)
+            const dClinicId =
+                doctorDetails?.clinicId ||
+                doctorDetails?.clinic?.id ||
+                doctorDetails?.currentClinicId ||
+                doctorDetails?.currentClinic?.id ||
+                doctorDetails?.primaryClinic?.id ||
+                doctorDetails?.associatedWorkplaces?.clinic?.id ||
+                doctorDetails?.associatedWorkplaces?.clinics?.[0]?.id;
+
+            const dHospitalId =
+                doctorDetails?.hospitalId ||
+                doctorDetails?.hospital?.id ||
+                doctorDetails?.currentHospitalId ||
+                doctorDetails?.currentHospital?.id ||
+                doctorDetails?.primaryHospital?.id ||
+                doctorDetails?.associatedWorkplaces?.hospital?.id ||
+                doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id;
+
+            // Priority 2: user object (session info)
+            const uClinicId = user?.clinicId || user?.clinic?.id || user?.currentClinicId || user?.currentClinic?.id;
+            const uHospitalId = user?.hospitalId || user?.hospital?.id || user?.currentHospitalId || user?.currentHospital?.id;
+
+            // Priority 3: clinic store (if currently viewed clinic)
+            const cId = clinic?.id || clinic?.clinicId;
+
+            const finalClinicId = dClinicId || uClinicId || cId;
+            const finalHospitalId = dHospitalId || uHospitalId;
+
+            console.log("[ConsultationTab] ID Resolution Search:", {
+                fromDoctor: { dClinicId, dHospitalId },
+                fromUser: { uClinicId, uHospitalId },
+                fromClinicStore: cId
+            });
+
+            if (finalClinicId) return { clinicId: finalClinicId };
+            if (finalHospitalId) return { hospitalId: finalHospitalId };
+            return null;
+        };
+
+        const params = resolveParams();
+        console.log("[ConsultationTab] Final params for fetch:", params);
+
+        if (params) {
+            fetchConsultationDetails(params);
+        } else {
+            console.warn("[ConsultationTab] No clinicId or hospitalId could be resolved.");
+        }
+    }, [doctorDetails, user, clinic, fetchConsultationDetails]);
+
+    const handleFeeChange = (field, value) => {
+        let fees = [...consultationDetails.consultationFees];
+        if (fees.length === 0) {
+            fees = [{
+                consultationFee: "",
+                followUpFee: "",
+                autoApprove: false,
+                avgDurationMinutes: 0,
+                availabilityDurationDays: undefined,
+            }];
+        }
+
+        // Deep clone the object to ensure Zustand/React detects change
+        fees[0] = { ...fees[0], [field]: value };
+
+        console.log(`[ConsultationTab] handleFeeChange: ${field} =`, value);
+        setConsultationDetails({ ...consultationDetails, consultationFees: fees });
     };
-    const setSched = (idx, dayObj) => {
-        const arr = [...(consultationDetails.slotTemplates?.schedule || [])];
-        arr[idx] = dayObj;
-        setConsultationDetails((prev) => ({
-            ...prev,
-            slotTemplates: { ...prev.slotTemplates, schedule: arr },
-        }));
-        setConsultationDirty(true);
+
+    const handleScheduleChange = (dayName, updates) => {
+        const schedule = [...consultationDetails.slotTemplates.schedule];
+        const dayIndex = schedule.findIndex(d => d.day.toUpperCase() === dayName.toUpperCase());
+        if (dayIndex > -1) {
+            schedule[dayIndex] = { ...schedule[dayIndex], ...updates };
+            console.log(`[ConsultationTab] handleScheduleChange for ${dayName}:`, updates);
+            setConsultationDetails({
+                ...consultationDetails,
+                slotTemplates: { ...consultationDetails.slotTemplates, schedule }
+            });
+        }
     };
+
+    const handleSave = async () => {
+        console.log("[ConsultationTab] handleSave initiated");
+        const resolveIds = () => {
+            // Priority 1: doctorDetails (most specific)
+            const dClinicId =
+                doctorDetails?.clinicId ||
+                doctorDetails?.clinic?.id ||
+                doctorDetails?.currentClinicId ||
+                doctorDetails?.currentClinic?.id ||
+                doctorDetails?.primaryClinic?.id ||
+                doctorDetails?.associatedWorkplaces?.clinic?.id ||
+                doctorDetails?.associatedWorkplaces?.clinics?.[0]?.id;
+
+            const dHospitalId =
+                doctorDetails?.hospitalId ||
+                doctorDetails?.hospital?.id ||
+                doctorDetails?.currentHospitalId ||
+                doctorDetails?.currentHospital?.id ||
+                doctorDetails?.primaryHospital?.id ||
+                doctorDetails?.associatedWorkplaces?.hospital?.id ||
+                doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id;
+
+            // Priority 2: user object (session info)
+            const uClinicId = user?.clinicId || user?.clinic?.id || user?.currentClinicId || user?.currentClinic?.id;
+            const uHospitalId = user?.hospitalId || user?.hospital?.id || user?.currentHospitalId || user?.currentHospital?.id;
+
+            // Priority 3: clinic store (if currently viewed clinic)
+            const cId = clinic?.id || clinic?.clinicId;
+
+            const finalClinicId = dClinicId || uClinicId || cId;
+            const finalHospitalId = dHospitalId || uHospitalId;
+
+            return { clinicId: finalClinicId || null, hospitalId: finalHospitalId || null };
+        };
+
+        const { clinicId, hospitalId } = resolveIds();
+        console.log("[ConsultationTab] handleSave resolved IDs:", { clinicId, hospitalId });
+
+        if (!clinicId && !hospitalId) {
+            console.error("[ConsultationTab] FAILED: No clinicId or hospitalId resolved!");
+            addToast({
+                title: "Error",
+                message: "Internal Error: Could not resolve clinic or hospital ID. Please refresh and try again.",
+                type: "error",
+            });
+            return;
+        }
+
+        const fees = consultationDetails.consultationFees[0] || {};
+        const schedule = consultationDetails.slotTemplates.schedule;
+
+        const dayMap = {
+            Monday: "MONDAY",
+            Tuesday: "TUESDAY",
+            Wednesday: "WEDNESDAY",
+            Thursday: "THURSDAY",
+            Friday: "FRIDAY",
+            Saturday: "SATURDAY",
+            Sunday: "SUNDAY",
+        };
+
+        const slotData = schedule
+            .map((d) => {
+                // If day is not available, send empty timings to clear existing slots
+                const sessions = d.available ? (d.sessions || []) : [];
+                return {
+                    day: dayMap[d.day] || String(d.day).toUpperCase(),
+                    timings: sessions.map((s) => ({
+                        startTime: toRawUTC_HM(s.startTime),
+                        endTime: toRawUTC_HM(s.endTime),
+                        maxTokens: Number(s.maxTokens) || 0,
+                    })),
+                };
+            });
+
+        const payload = {
+            consultationFees: {
+                ...(hospitalId ? { hospitalId } : {}),
+                ...(clinicId ? { clinicId } : {}),
+                consultationFee: String(fees.consultationFee ?? ""),
+                followUpFee: String(fees.followUpFee ?? ""),
+                autoApprove: Boolean(fees.autoApprove),
+                avgDurationMinutes: Number(fees.avgDurationMinutes) || 0,
+                availabilityDurationDays: Number(fees.availabilityDurationDays || fees.availabilityDays) || 0,
+            },
+            slotDetails: {
+                ...(hospitalId ? { hospitalId } : {}),
+                ...(clinicId ? { clinicId } : {}),
+                slotData,
+            },
+        };
+
+        console.log("[ConsultationTab] handleSave Payload:", payload);
+
+        try {
+            console.log("[ConsultationTab] Calling updateConsultationDetails store action...");
+            const res = await updateConsultationDetails(payload);
+            console.log("[ConsultationTab] updateConsultationDetails success:", res);
+            addToast({
+                title: "Success",
+                message: "Consultation details updated successfully",
+                type: "success",
+            });
+        } catch (error) {
+            console.error("[ConsultationTab] handleSave ERROR:", error);
+            addToast({
+                title: "Error",
+                message: error.response?.data?.message || error.message || "Failed to update consultation details",
+                type: "error",
+            });
+        }
+    };
+
+    const curFees = consultationDetails.consultationFees[0] || {};
+
+    console.log("[ConsultationTab] Render state:", { isDirty, saving, loading });
 
     return (
-        <div className="p-4 no-scrollbar pb-24">
-            {/* Fees / Duration */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-                <SectionCard title="Consultation Fees">
-                    <div className="grid grid-cols-2 gap-4">
-                        <label className="block">
-                            <span className="text-xs text-secondary-grey300 font-medium">
-                                Consultation Fee
-                            </span>
-                            <div className="relative mt-1">
+        <div className="space-y-6 p-4">
+            {/* Universal Fetch Loader */}
+            {loading && !consultationDetails.consultationFees[0]?.consultationFee ? (
+                <div className="flex items-center justify-center h-48 rounded-lg">
+                    <UniversalLoader size={28} className="" />
+                </div>
+            ) : (
+                <>
+                    <SectionCard title="In-Clinic Consultations Fees" subtitle="Visible to Patient">
+                        <div className="flex items-center gap-6">
+                            <label className="text-[14px] text-secondary-grey300 whitespace-nowrap">
+                                First Time Consultation Fees:
+                            </label>
+                            <div className="flex h-8 flex-1 border-[0.5px] border-secondary-grey200 rounded-md ">
                                 <input
-                                    type="text"
-                                    placeholder="500"
-                                    className="w-full h-9 pl-6 pr-2 rounded-md border border-secondary-grey100 text-sm outline-none focus:border-blue-primary200 transition"
-                                    value={fees.consultationFee || ""}
-                                    onChange={(e) => setFees("consultationFee", e.target.value)}
+                                    className="flex-1 text-sm px-2 rounded-l bg-white focus:outline-none"
+                                    placeholder="Value"
+                                    value={curFees.consultationFee || ""}
+                                    onChange={(e) => handleFeeChange("consultationFee", e.target.value)}
                                 />
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                                    ₹
-                                </span>
-                            </div>
-                        </label>
-                        <label className="block">
-                            <span className="text-xs text-gray-500 font-medium">
-                                Follow-up Fee
-                            </span>
-                            <div className="relative mt-1">
-                                <input
-                                    type="text"
-                                    placeholder="300"
-                                    className="w-full h-9 pl-6 pr-2 rounded-md border border-gray-300 text-sm outline-none focus:border-blue-300 transition"
-                                    value={fees.followUpFee || ""}
-                                    onChange={(e) => setFees("followUpFee", e.target.value)}
-                                />
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                                    ₹
-                                </span>
-                            </div>
-                        </label>
-                        <div className="col-span-2 flex items-center justify-between border-t pt-3 mt-1">
-                            <span className="text-sm text-gray-700">Auto Approve</span>
-                            <Toggle
-                                checked={fees.autoApprove || false}
-                                onChange={(val) => setFees("autoApprove", val)}
-                            />
-                        </div>
-                    </div>
-                </SectionCard>
-
-                {/* Timings */}
-                <SectionCard title="Timing and Slot Duration">
-                    <div className="grid grid-cols-2 gap-4">
-                        <label className="block">
-                            <span className="text-xs text-gray-500 font-medium">
-                                Avg. Consult Time
-                            </span>
-                            <div className="flex items-center gap-2 mt-1">
-                                <input
-                                    type="text"
-                                    placeholder="15"
-                                    className="w-full h-9 px-3 rounded-md border border-gray-300 text-sm outline-none focus:border-blue-300"
-                                    value={fees.avgDurationMinutes || ""}
-                                    onChange={(e) => setFees("avgDurationMinutes", e.target.value)}
-                                />
-                                <span className="text-xs text-gray-400">Min</span>
-                            </div>
-                        </label>
-                        <label className="block">
-                            <span className="text-xs text-gray-500 font-medium">
-                                Availability for
-                            </span>
-                            <div className="flex items-center gap-2 mt-1">
-                                <select
-                                    className="w-full h-9 px-2 rounded-md border border-gray-300 text-sm outline-none bg-white focus:border-blue-300"
-                                    value={fees.availabilityDurationDays || ""}
-                                    onChange={(e) =>
-                                        setFees("availabilityDurationDays", e.target.value)
-                                    }
-                                >
-                                    <option value="" disabled>
-                                        Select
-                                    </option>
-                                    <option value="7">7 Days</option>
-                                    <option value="15">15 Days</option>
-                                    <option value="30">30 Days</option>
-                                    <option value="60">60 Days</option>
-                                </select>
-                            </div>
-                        </label>
-                    </div>
-                    <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100 text-xs text-blue-700 leading-relaxed">
-                        Changing these settings will reflect on your main availability
-                        calendar for patients.
-                    </div>
-                </SectionCard>
-            </div>
-
-            <div className="mt-5">
-                <SectionCard title="Schedule & Availability">
-                    <div className="mt-2 text-sm text-gray-500">
-                        Set your daily availability. Uncheck days you are off. Add multiple
-                        slots (e.g. Morning, Evening).
-                    </div>
-
-                    {/* Days grid */}
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 items-start">
-                        {(
-                            consultationDetails?.slotTemplates?.schedule?.length
-                                ? consultationDetails.slotTemplates.schedule
-                                : DEFAULT_SCHEDULE
-                        ).map((d, i) => (
-                            <div
-                                key={d.day}
-                                className={`p-3 rounded-lg border transition-colors ${d.available
-                                    ? "bg-white border-gray-200 shadow-sm"
-                                    : "bg-gray-50 border-gray-100 opacity-60"
-                                    }`}
-                            >
-                                <div className="flex items-center justify-between mb-3 border-b-2 bg-[#F9FAFB] border-[#F2F4F7] p-2 rounded-t-lg">
-                                    <span
-                                        className={`font-semibold text-[15px] ${d.available ? "text-gray-800" : "text-gray-400"
-                                            }`}
-                                    >
-                                        {d.day}
-                                    </span>
-                                    <Toggle
-                                        checked={d.available}
-                                        onChange={(val) => setSched(i, { ...d, available: val })}
-                                    />
+                                <div className="px-2 flex items-center text-sm border-l-[0.5px] border-secondary-grey100 rounded-r bg-secondary-grey50 text-secondary-grey300">
+                                    Rupees
                                 </div>
+                            </div>
 
-                                {d.available && (
-                                    <div className="space-y-3">
-                                        {/* If no sessions, show placeholder or empty state */}
-                                        {(!d.sessions || d.sessions.length === 0) && (
-                                            <div className="text-xs text-gray-400 italic pl-1">
-                                                No sessions added
-                                            </div>
-                                        )}
+                            <div className="text-secondary-grey100 text-md w-1">|</div>
+                            <label className="text-[14px] text-secondary-grey300 whitespace-nowrap">
+                                Follow-up Consultation Fees:
+                            </label>
+                            <div className="flex h-8 flex-1 border-[0.5px] border-secondary-grey200 rounded-md ">
+                                <input
+                                    className="flex-1 text-sm px-2 rounded-l bg-white focus:outline-none"
+                                    placeholder="Value"
+                                    value={curFees.followUpFee || ""}
+                                    onChange={(e) => handleFeeChange("followUpFee", e.target.value)}
+                                />
+                                <div className="px-2 flex items-center text-sm border-l-[0.5px] border-secondary-grey100 rounded-r bg-secondary-grey50 text-secondary-grey300">
+                                    Rupees
+                                </div>
+                            </div>
+                        </div>
+                    </SectionCard>
 
-                                        {/* Render existing sessions */}
-                                        {d.sessions?.map((sess, sIdx) => (
-                                            <div
-                                                key={sIdx}
-                                                className="flex items-center gap-2 bg-gray-50 p-2 rounded border border-gray-100 relative group"
-                                            >
-                                                <div className="flex-1 grid grid-cols-2 gap-2">
-                                                    <label className="block">
-                                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">
-                                                            Start
-                                                        </span>
-                                                        <TimeInput
-                                                            value={sess.startTime} // "HH:mm"
-                                                            onChange={(val) => {
-                                                                const newSess = [...(d.sessions || [])];
-                                                                newSess[sIdx] = { ...sess, startTime: val };
-                                                                setSched(i, { ...d, sessions: newSess });
-                                                            }}
-                                                            disabled={!d.available}
-                                                            className="h-8 text-sm"
-                                                        />
-                                                    </label>
-                                                    <label className="block">
-                                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">
-                                                            End
-                                                        </span>
-                                                        <TimeInput
-                                                            value={sess.endTime}
-                                                            onChange={(val) => {
-                                                                const newSess = [...(d.sessions || [])];
-                                                                newSess[sIdx] = { ...sess, endTime: val };
-                                                                setSched(i, { ...d, sessions: newSess });
-                                                            }}
-                                                            disabled={!d.available}
-                                                            className="h-8 text-sm"
-                                                        />
-                                                    </label>
-                                                </div>
-                                                {d.sessions.length > 1 && (
+                    <SectionCard
+                        title="Set your consultation hours"
+                        headerRight={
+                            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <Checkbox
+                                    checked={Boolean(curFees.autoApprove)}
+                                    onCheckedChange={(v) => handleFeeChange("autoApprove", v)}
+                                />
+                                <span className="text-sm text-secondary-grey300">Auto Approve Requested Appointment</span>
+                            </label>
+                        }
+                    >
+                        <div className="flex gap-4 ">
+                            <div>
+                                <InputWithMeta label="Average Consultation Min per Patient" requiredDot showInput={false} />
+                                <div className="flex flex-1 h-8 w-[300px] border-[0.5px] border-secondary-grey200 rounded-md">
+                                    <input
+                                        className="flex-1 text-sm px-2 rounded-l bg-white focus:outline-none"
+                                        placeholder="Value"
+                                        value={curFees.avgDurationMinutes || ""}
+                                        onChange={(e) => handleFeeChange("avgDurationMinutes", e.target.value)}
+                                    />
+                                    <div className="px-2 flex items-center text-sm border-l-[0.5px] border-secondary-grey100 rounded-r bg-secondary-grey50 text-secondary-grey300">
+                                        Mins
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-secondary-grey100 text-xl px-2 opacity-50 mt-4">|</div>
+                            <div>
+                                <InputWithMeta
+                                    label="Set Availability Duration"
+                                    requiredDot
+                                    infoIcon
+                                    value={curFees.availabilityDurationDays ? `${curFees.availabilityDurationDays} Days` : ''}
+                                    placeholder="Select Duration"
+                                    dropdownItems={[
+                                        { label: '2 Days', value: 2 },
+                                        { label: '7 Days', value: 7 },
+                                        { label: '14 Days', value: 14 },
+                                        { label: '21 Days', value: 21 },
+                                        { label: '28 Days', value: 28 },
+                                    ]}
+                                    selectedValue={curFees.availabilityDurationDays}
+                                    onSelectItem={(it) => handleFeeChange("availabilityDurationDays", it.value)}
+                                    showInput={true}
+                                    className="h-8 w-full text-xs"
+                                    RightIcon={ChevronDown}
+                                />
+                            </div>
+                        </div>
+
+
+                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 items-start">
+                            {consultationDetails.slotTemplates.schedule.map((d) => (
+                                <div key={d.day} className="bg-white border border-secondary-grey100 rounded-lg p-3 ">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-medium text-gray-900">{d.day}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-secondary-grey300">Available</span>
+                                            <Toggle
+                                                checked={Boolean(d.available)}
+                                                onChange={(v) => {
+                                                    const checked = typeof v === "boolean" ? v : v?.target?.checked;
+                                                    handleScheduleChange(d.day, { available: checked });
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="border-t border-gray-200 mb-3" />
+                                    <div className={`space-y-3 ${!d.available ? "opacity-60 pointer-events-none" : ""}`}>
+                                        {(d.sessions?.length > 0 ? d.sessions : [{ sessionNumber: 1, startTime: "1970-01-01T09:00:00.000Z", endTime: "1970-01-01T17:00:00.000Z", maxTokens: null }]).map((s, idx) => (
+                                            <div key={s.id || idx} className="flex items-center gap-4 bg-blue-primary50 p-2 rounded-lg">
+                                                <span className="text-sm text-secondary-grey300 whitespace-nowrap">Session {s.sessionNumber || idx + 1}:</span>
+                                                <TimeInput
+                                                    value={toHM(s.startTime)}
+                                                    onChange={(e) => {
+                                                        const sessions = [...d.sessions];
+                                                        sessions[idx] = { ...sessions[idx], startTime: toUTC(e.target.value) };
+                                                        handleScheduleChange(d.day, { sessions });
+                                                    }}
+                                                />
+                                                <span className="text-sm text-secondary-grey300">-</span>
+                                                <TimeInput
+                                                    value={toHM(s.endTime)}
+                                                    onChange={(e) => {
+                                                        const sessions = [...d.sessions];
+                                                        sessions[idx] = { ...sessions[idx], endTime: toUTC(e.target.value) };
+                                                        handleScheduleChange(d.day, { sessions });
+                                                    }}
+                                                />
+                                                <div className="text-sm text-secondary-grey300 whitespace-nowrap h-5 w-[8px] opacity-50">|</div>
+                                                <span className="text-sm text-secondary-grey300 whitespace-nowrap">Token:</span>
+                                                <input
+                                                    className="h-8 w-16 text-sm border border-secondary-grey200 rounded px-2 bg-white text-secondary-grey400 focus:outline-none"
+                                                    placeholder="Val"
+                                                    value={s.maxTokens ?? ""}
+                                                    onChange={(e) => {
+                                                        const sessions = [...d.sessions];
+                                                        sessions[idx] = { ...sessions[idx], maxTokens: e.target.value === "" ? null : Number(e.target.value) };
+                                                        handleScheduleChange(d.day, { sessions });
+                                                    }}
+                                                />
+                                                {d.sessions?.length > 1 && (
                                                     <button
                                                         onClick={() => {
-                                                            const newSess = d.sessions.filter(
-                                                                (_, x) => x !== sIdx
-                                                            );
-                                                            setSched(i, { ...d, sessions: newSess });
+                                                            const sessions = d.sessions.filter((_, i) => i !== idx);
+                                                            handleScheduleChange(d.day, { sessions });
                                                         }}
-                                                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        title="Remove Slot"
+                                                        className="text-gray-400 hover:text-red-600"
                                                     >
-                                                        <Trash2 size={14} />
+                                                        <Trash2 size={16} />
                                                     </button>
                                                 )}
                                             </div>
                                         ))}
-
-                                        {/* Footer actions for this day */}
-                                        <div className="mt-4 flex items-center justify-between">
-                                            <button
-                                                className={`text-sm font-normal text-blue-primary250 hover:text-blue-700 flex items-center gap-1 ${(!d.sessions || d.sessions.length < 6)
-                                                    ? ""
-                                                    : "opacity-50 cursor-not-allowed"
-                                                    }`}
-                                                disabled={!d.available || (d.sessions && d.sessions.length >= 6)}
-                                                onClick={() => {
-                                                    const currentSessions = d.sessions || [];
-                                                    if (currentSessions.length >= 6) return;
-
-                                                    let newSessionsToAdd = [];
-                                                    if (currentSessions.length === 0) {
-                                                        newSessionsToAdd = [
-                                                            { startTime: "09:00", endTime: "13:00" },
-                                                            { startTime: "17:00", endTime: "21:00" }
-                                                        ]
-                                                    } else {
-                                                        newSessionsToAdd = [{ startTime: "09:00", endTime: "13:00" }]
-                                                    }
-
-                                                    const newSess = [
-                                                        ...currentSessions,
-                                                        ...newSessionsToAdd
-                                                    ];
-                                                    setSched(i, { ...d, sessions: newSess });
-                                                }}
-                                            >
-                                                + Add More (Max 6 Slots)
-                                            </button>
-
-                                            {/* Apply to all logic */}
-                                            <label className="inline-flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none hover:text-gray-800">
-                                                <Checkbox
-                                                    checked={false} // stateless trigger
-                                                    onCheckedChange={(checked) => {
-                                                        if (checked) {
-                                                            const confirm = window.confirm(
-                                                                `Copy ${d.day}'s schedule to all other days?`
-                                                            );
-                                                            if (confirm) {
-                                                                // apply d.sessions to all other days
-                                                                const masterSessions = d.sessions || [];
-                                                                const newSchedule =
-                                                                    consultationDetails.slotTemplates.schedule.map(
-                                                                        (dayItem) => ({
-                                                                            ...dayItem,
-                                                                            available: true,
-                                                                            sessions: masterSessions.map((ms) => ({
-                                                                                ...ms,
-                                                                            })),
-                                                                        })
-                                                                    );
-                                                                setConsultationDetails((prev) => ({
-                                                                    ...prev,
-                                                                    slotTemplates: {
-                                                                        ...prev.slotTemplates,
-                                                                        schedule: newSchedule,
-                                                                    },
-                                                                }));
-                                                                setConsultationDirty(true);
-                                                            }
-                                                        }
-                                                    }}
-                                                    disabled={!d.available}
-                                                    className="w-4 h-4"
-                                                />
-                                                <span>Apply to All Days</span>
-                                            </label>
-                                        </div>
+                                        <button
+                                            className="text-sm text-blue-primary250 hover:text-blue-700 font-normal"
+                                            onClick={() => {
+                                                const sessions = [...(d.sessions || [])];
+                                                if (sessions.length >= 6) return alert("Max 6 sessions");
+                                                sessions.push({
+                                                    sessionNumber: sessions.length + 1,
+                                                    startTime: "1970-01-01T09:00:00.000Z",
+                                                    endTime: "1970-01-01T17:00:00.000Z",
+                                                    maxTokens: null
+                                                });
+                                                handleScheduleChange(d.day, { sessions });
+                                            }}
+                                        >
+                                            + Add More
+                                        </button>
                                     </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </SectionCard>
-            </div>
+                                </div>
+                            ))}
+                        </div>
+                    </SectionCard>
 
-            {/* Sticky footer for saving */}
-            <div className="fixed bottom-0 left-[260px] right-0 p-4 bg-white border-t border-gray-200 flex items-center justify-between z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Checkbox checked disabled />
-                    <span>I agree to the terms and declaration.</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        className="px-6 py-2 rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 text-sm font-medium transition"
-                        onClick={() => {
-                            // reset logic could go here if prop provided, or just do nothing
-                        }}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSaveConsultation}
-                        disabled={savingConsultation || !consultationDirty}
-                        className={`px-6 py-2 rounded-md text-white text-sm font-medium shadow-sm transition-all ${savingConsultation || !consultationDirty
-                            ? "bg-blue-300 cursor-not-allowed"
-                            : "bg-blue-600 hover:bg-blue-700 hover:shadow-md"
-                            }`}
-                    >
-                        {savingConsultation ? "Saving..." : "Save Changes"}
-                    </button>
-                </div>
-            </div>
+                    <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+                        <div className="px-4 py-3 flex items-center justify-between gap-3">
+                            <label className="flex items-center gap-2 text-[12px] text-gray-600">
+                                <input type="checkbox" defaultChecked className="h-4 w-4" />
+                                By saving, you agree to our Terms and Privacy Policy.
+                            </label>
+                            <button
+                                disabled={!isDirty || saving}
+                                onClick={handleSave}
+                                className={`inline-flex items-center justify-center px-4 h-9 rounded text-sm font-medium transition-all ${!isDirty || saving ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow"}`}
+                            >
+                                {saving && <UniversalLoader size={16} className="border-white mr-2" />}
+                                {saving ? "Saving Details..." : "Save Changes"}
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };
