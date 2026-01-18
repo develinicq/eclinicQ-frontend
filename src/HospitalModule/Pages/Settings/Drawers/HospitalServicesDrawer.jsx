@@ -17,22 +17,26 @@ export default function HospitalServicesDrawer({ open, onClose, selectedItems = 
     const { hospitalId } = useHospitalAuthStore();
     const addToast = useToastStore(state => state.addToast);
 
-    const [selected, setSelected] = useState([]);
-    const [customServices, setCustomServices] = useState([]);
+    const [selected, setSelected] = useState(selectedItems || []);
+    // Initialize custom services: items in selected but not in default
+    const [customServices, setCustomServices] = useState(() => {
+        const initial = selectedItems || [];
+        const unknownItems = initial.filter(s => !defaultServices.includes(s));
+        return Array.from(new Set(unknownItems));
+    });
+
     const [isAddingString, setIsAddingString] = useState(false);
     const [newItemValue, setNewItemValue] = useState("");
     const [loading, setLoading] = useState(false);
 
     const inputRef = useRef(null);
 
+    // Sync only if props change
     useEffect(() => {
-        if (open) {
-            setSelected(selectedItems || []);
-            const unknownItems = (selectedItems || []).filter(s => !defaultServices.includes(s));
-            setCustomServices(prev => Array.from(new Set([...prev, ...unknownItems])));
-            setIsAddingString(false); setNewItemValue("");
-        }
-    }, [open, selectedItems]);
+        setSelected(selectedItems || []);
+        const unknownItems = (selectedItems || []).filter(s => !defaultServices.includes(s));
+        setCustomServices(prev => Array.from(new Set([...prev, ...unknownItems])));
+    }, [selectedItems]);
 
     useEffect(() => { if (isAddingString && inputRef.current) inputRef.current.focus(); }, [isAddingString]);
 

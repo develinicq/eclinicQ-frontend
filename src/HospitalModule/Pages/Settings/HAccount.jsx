@@ -257,7 +257,7 @@ export default function HAccount({ profile: initialProfile }) {
         setLoading(false);
         return;
       }
-      setLoading(true);
+      if (!settingsData) setLoading(true);
       setError(null);
       try {
         const res = await getHospitalAccountSettings(hospitalId);
