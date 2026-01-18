@@ -89,7 +89,7 @@ export default function Step7() {
 
         {/* Main Content */}
         <main className="flex-1 relative overflow-hidden">
-          {/* Gradient Background */}
+          
           <div
             className="absolute inset-0"
             style={{
@@ -99,12 +99,12 @@ export default function Step7() {
           />
 
           <div className="relative h-full flex flex-col items-center justify-center">
-            {/* Success Illustration */}
+            
             
             <img src="/success.png" alt="Success Illustration" width="200" height="200" />
             
 
-            {/* Success Message */}
+            
             <h1 className="text-2xl font-bold text-secondary-grey400 mb-10">
               Milind Profile Activated Successfully
             </h1>
