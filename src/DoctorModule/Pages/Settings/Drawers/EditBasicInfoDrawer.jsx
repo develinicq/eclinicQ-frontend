@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { updateDoctorBasicInfo } from "@/services/settings/doctorSettingService";
+import useToastStore from "@/store/useToastStore";
+import UniversalLoader from "@/components/UniversalLoader";
 import GeneralDrawer from "@/components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import Dropdown from "@/components/GeneralDrawer/Dropdown";
@@ -26,6 +29,7 @@ export default function EditBasicInfoDrawer({ open, onClose, onSave, initialData
   const [website, setWebsite] = useState(initialData.website || "");
   const [headline, setHeadline] = useState(initialData.headline || "");
   const [about, setAbout] = useState(initialData.about || "");
+  const [saving, setSaving] = useState(false);
 
   // Re-hydrate form state whenever drawer opens or initialData updates
   useEffect(() => {
@@ -42,7 +46,7 @@ export default function EditBasicInfoDrawer({ open, onClose, onSave, initialData
     setEmail(initialData.email || "");
     setGender(normGender);
     setCity(initialData.city || "");
-  setCityOpen(false);
+    setCityOpen(false);
     setLanguages(Array.isArray(initialData.languages) ? initialData.languages : []);
     setWebsite(initialData.website || "");
     setHeadline(initialData.headline || "");
@@ -92,20 +96,64 @@ export default function EditBasicInfoDrawer({ open, onClose, onSave, initialData
 
   const save = () => {
     if (!canSave()) return;
-    const data = {
-      firstName,
-      lastName,
-      mobile,
-      email,
-      gender,
-      city,
-      languages,
-      website,
-      headline,
-      about,
+    const { addToast } = useToastStore.getState();
+    setSaving(true);
+
+    // Build partial payload with only changed fields
+    const norm = (v) => (v ?? "");
+    const payload = {};
+    const pushIfChanged = (key, newVal, oldVal) => {
+      if (norm(newVal) !== norm(oldVal)) payload[key] = newVal;
     };
-    onSave?.(data);
-    onClose?.();
+
+    pushIfChanged("firstName", firstName, initialData.firstName);
+    pushIfChanged("lastName", lastName, initialData.lastName);
+
+    // normalize gender to uppercase if changed
+    if (norm(gender) !== norm(initialData.gender)) {
+      const apiGender = typeof gender === "string" ? gender.toUpperCase() : gender;
+      payload["gender"] = apiGender;
+    }
+
+    pushIfChanged("city", city, initialData.city);
+
+    // languages array comparison
+    const arrEq = (a = [], b = []) => {
+      if (!Array.isArray(a) || !Array.isArray(b)) return false;
+      if (a.length !== b.length) return true;
+      const as = [...a].sort();
+      const bs = [...b].sort();
+      for (let i = 0; i < as.length; i++) {
+        if (as[i] !== bs[i]) return true;
+      }
+      return false;
+    };
+
+    if (arrEq(languages, Array.isArray(initialData.languages) ? initialData.languages : [])) {
+      payload["languages"] = languages;
+    }
+
+    pushIfChanged("website", website, initialData.website);
+    pushIfChanged("headline", headline, initialData.headline);
+    pushIfChanged("about", about, initialData.about);
+
+    if (Object.keys(payload).length === 0) {
+      addToast({ title: "No changes", message: "Nothing to update.", type: "warning" });
+      setSaving(false);
+      return;
+    }
+
+    updateDoctorBasicInfo(payload)
+      .then((res) => {
+        addToast({ title: "Updated", message: res?.message || "Basic info updated successfully", type: "success" });
+        onSave?.(payload);
+        onClose?.();
+      })
+      .catch((err) => {
+        const msg = err?.message || "Failed to update basic info";
+        addToast({ title: "Update failed", message: msg, type: "error" });
+      })
+      .finally(() => setSaving(false));
   };
 
   return (
@@ -113,9 +161,14 @@ export default function EditBasicInfoDrawer({ open, onClose, onSave, initialData
       isOpen={open}
       onClose={onClose}
       title="Edit Basic Info"
-      primaryActionLabel="Update"
+      primaryActionLabel={saving ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} style={{ width: 'auto', height: 'auto' }} />
+          <span>Updating...</span>
+        </div>
+      ) : "Update"}
       onPrimaryAction={save}
-  primaryActionDisabled={!canSave() || !isDirty}
+      primaryActionDisabled={saving || !canSave() || !isDirty}
       width={600}
     >
       <div className="flex flex-col gap-3.5">
@@ -203,7 +256,7 @@ export default function EditBasicInfoDrawer({ open, onClose, onSave, initialData
           <InputWithMeta label="Website" value={website} onChange={setWebsite} placeholder="Paste Website Link" />
         </div>
 
-        
+
 
 
         {/* Profile Headline with counter */}
@@ -223,8 +276,8 @@ export default function EditBasicInfoDrawer({ open, onClose, onSave, initialData
           </div>
         </div>
 
-  {/* About Us using shared component */}
-  <RichTextBox label="About Us" value={about} onChange={setAbout} />
+        {/* About Us using shared component */}
+        <RichTextBox label="About Us" value={about} onChange={setAbout} />
       </div>
     </GeneralDrawer>
   );

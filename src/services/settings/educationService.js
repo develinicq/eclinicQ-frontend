@@ -26,10 +26,10 @@ export const createEducation = async (payload) => {
 };
 
 // PUT update education entry
-export const updateEducation = async (id, payload) => {
+export const updateEducation = async (payload) => {
   try {
     const res = await axios.put(
-      `/doctors/my-account/personal-info/educational-details/${id}`,
+      "/doctors/my-account/personal-info/educational-details",
       payload
     );
     return res.data;

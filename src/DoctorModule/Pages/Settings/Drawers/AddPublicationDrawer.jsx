@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import GeneralDrawer from "@/components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import calendarWhite from "/Doctor_module/sidebar/calendar_white.png";
+import { addPublication, updatePublication } from "@/services/settings/awardsPublicationsService";
+import useToastStore from "@/store/useToastStore";
+import UniversalLoader from "@/components/UniversalLoader";
 
 /**
  * AddPublicationDrawer — Add/Edit Publication form
@@ -23,10 +26,11 @@ export default function AddPublicationDrawer({ open, onClose, onSave, mode = "ad
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
   const [showCalendar, setShowCalendar] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-  console.log("[AddPublicationDrawer] initializing with initial:", initial);
+    console.log("[AddPublicationDrawer] initializing with initial:", initial);
     setTitle(initial?.title || "");
     setPublisher(initial?.publisher || "");
     setDate(initial?.date || (initial?.publicationDate ? initial.publicationDate.split("T")[0] : ""));
@@ -37,10 +41,59 @@ export default function AddPublicationDrawer({ open, onClose, onSave, mode = "ad
 
   const canSave = Boolean(title && publisher && date);
 
-  const save = () => {
+  const isDirty = useMemo(() => {
+    const norm = (v) => (v ?? "");
+    return (
+      norm(title) !== norm(initial?.title) ||
+      norm(publisher) !== norm(initial?.publisher) ||
+      norm(date) !== (initial?.publicationDate ? initial.publicationDate.split("T")[0] : "") ||
+      norm(url) !== norm(initial?.publicationUrl) ||
+      norm(desc) !== norm(initial?.description)
+    );
+  }, [title, publisher, date, url, desc, initial]);
+
+  const save = async () => {
     if (!canSave) return;
-    onSave?.({ title, publisher, date, url, desc });
-    onClose?.();
+    const { addToast } = useToastStore.getState();
+    const payload = {
+      title,
+      publisher,
+      publicationDate: date,
+      publicationUrl: url,
+      description: desc,
+    };
+
+    try {
+      setSaving(true);
+      if (mode === "edit" && initial?.id) {
+        // Build diff
+        const diff = {};
+        const pushIf = (k, n, o) => { if ((n ?? "") !== (o ?? "")) diff[k] = n; };
+        pushIf("title", payload.title, initial.title);
+        pushIf("publisher", payload.publisher, initial.publisher);
+        pushIf("publicationDate", payload.publicationDate, initial.publicationDate ? initial.publicationDate.split("T")[0] : "");
+        pushIf("publicationUrl", payload.publicationUrl, initial.publicationUrl);
+        pushIf("description", payload.description, initial.description);
+
+        if (Object.keys(diff).length === 0) {
+          onClose?.();
+          return;
+        }
+
+        const res = await updatePublication({ id: initial.id, ...diff });
+        addToast({ title: "Updated", message: res?.message || "Publication updated", type: "success" });
+        onSave?.(res?.data || { ...initial, ...diff });
+      } else {
+        const res = await addPublication(payload);
+        addToast({ title: "Added", message: res?.message || "Publication added", type: "success" });
+        onSave?.(res?.data || payload);
+      }
+      onClose?.();
+    } catch (e) {
+      addToast({ title: "Error", message: e?.message || "Failed to save publication", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -48,9 +101,14 @@ export default function AddPublicationDrawer({ open, onClose, onSave, mode = "ad
       isOpen={open}
       onClose={onClose}
       title={mode === "edit" ? "Edit Publication" : "Add Publication"}
-      primaryActionLabel="Save"
+      primaryActionLabel={saving ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} style={{ width: 'auto', height: 'auto' }} />
+          <span>{mode === 'edit' ? 'Updating...' : 'Saving...'}</span>
+        </div>
+      ) : (mode === 'edit' ? "Update" : "Save")}
       onPrimaryAction={save}
-      primaryActionDisabled={!canSave}
+      primaryActionDisabled={saving || !canSave || (mode === 'edit' && !isDirty)}
       width={600}
     >
       <div className="flex flex-col gap-4">

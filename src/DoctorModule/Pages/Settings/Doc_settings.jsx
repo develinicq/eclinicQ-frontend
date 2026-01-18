@@ -1355,7 +1355,7 @@ const Doc_settings = () => {
                         field: ed.fieldOfStudy || "",
                         start: ed.startYear?.toString() || "",
                         end: ed.completionYear?.toString() || "",
-
+                        proof: ed.proofDocumentUrl || "",
                       });
                       setEduEditMode("edit");
                       setEduOpen(true);
@@ -2412,39 +2412,8 @@ const Doc_settings = () => {
           headline: profile.basic?.headline,
           about: profile.basic?.about,
         }}
-        onSave={async (data) => {
-          try {
-            const payload = {};
-            if (data.firstName) payload.firstName = data.firstName;
-            if (data.lastName) payload.lastName = data.lastName;
-            if (data.gender) payload.gender = data.gender.toLowerCase();
-            if (data.city) payload.city = data.city;
-            if (
-              data.website &&
-              data.website.trim() !== "" &&
-              data.website.trim() !== "-" &&
-              (data.website.startsWith("http://") ||
-                data.website.startsWith("https://"))
-            ) {
-              payload.website = data.website;
-            }
-            if (data.headline) payload.headline = data.headline;
-            if (data.about) payload.about = data.about;
-            if (data.languages && data.languages.length > 0)
-              payload.languages = data.languages;
-
-            const result = await updateBasicInfo(payload);
-            if (result) {
-              await fetchBasicInfo();
-              setBasicOpen(false);
-            } else {
-              console.error("Update failed: no result returned");
-              alert("Failed to update basic info. Please check the console for details.");
-            }
-          } catch (err) {
-            console.error("Error updating basic info:", err);
-            alert(`Failed to update: ${err.message || "Unknown error"}`);
-          }
+        onSave={async () => {
+          await fetchBasicInfo();
         }}
       />
 
@@ -2458,38 +2427,8 @@ const Doc_settings = () => {
         }}
         initial={eduEditData}
         mode={eduEditMode}
-        onSave={async (ed) => {
-          try {
-            // Map drawer fields to API fields
-            const payload = {
-              instituteName: ed.school,
-              graduationType: ed.gradType,
-              degree: ed.degree,
-              fieldOfStudy: ed.field || null,
-              startYear: parseInt(ed.start) || null,
-              completionYear: parseInt(ed.end) || null,
-              proofDocumentUrl: ed.proof || null,
-            };
-
-            if (eduEditMode === "edit" && eduEditData?.id) {
-              console.log(
-                "Updating education with ID:",
-                eduEditData.id,
-                "Payload:",
-                payload
-              );
-              await updateEducation(eduEditData.id, payload);
-            } else {
-              console.log("Adding new education. Payload:", payload);
-              await addEducation(payload);
-            }
-            await fetchEducation(); // Refresh data
-            setEduOpen(false);
-            setEduEditData(null);
-            setEduEditMode("add");
-          } catch (err) {
-            console.error("Failed to save education:", err);
-          }
+        onSave={async () => {
+          await fetchEducation();
         }}
       />
 
@@ -2503,34 +2442,8 @@ const Doc_settings = () => {
         }}
         initial={expEditData}
         mode={expEditMode}
-        onSave={async (ex) => {
-          try {
-            // Normalize payload from either old inline drawer shape or new ExperienceDrawerNew
-            const payload = {
-              jobTitle: ex.jobTitle ?? ex.role,
-              employmentType: ex.employmentType ?? ex.type,
-              hospitalOrClinicName: ex.hospitalOrClinicName ?? ex.org,
-              startDate: ex.startDate ?? ex.start,
-              endDate:
-                (ex.isCurrentlyWorking ?? ex.current)
-                  ? null
-                  : (ex.endDate ?? ex.end ?? null),
-              isCurrentlyWorking: ex.isCurrentlyWorking ?? ex.current ?? false,
-              description: ex.description ?? ex.desc ?? null,
-            };
-
-            if (expEditMode === "edit" && expEditData?.id) {
-              await updateExperience({ id: expEditData.id, ...payload });
-            } else {
-              await addExperience(payload);
-            }
-            await fetchExperiences(); // Refresh data
-            setExpOpen(false);
-            setExpEditData(null);
-            setExpEditMode("add");
-          } catch (err) {
-            console.error("Failed to save experience:", err);
-          }
+        onSave={async () => {
+          await fetchExperiences();
         }}
       />
 
@@ -2544,29 +2457,8 @@ const Doc_settings = () => {
         }}
         initial={awardEditData}
         mode={awardEditMode}
-        onSave={async (aw) => {
-          try {
-            const payload = {
-              awardName: aw.title,
-              issuerName: aw.issuer,
-              associatedWith: aw.with || null,
-              issueDate: aw.date,
-              awardUrl: aw.url || null,
-              description: aw.desc || null,
-            };
-
-            if (awardEditMode === "edit" && awardEditData?.id) {
-              await updateAward({ id: awardEditData.id, ...payload });
-            } else {
-              await addAward(payload);
-            }
-            await fetchAwardsAndPublications(); // Refresh data
-            setAwardOpen(false);
-            setAwardEditData(null);
-            setAwardEditMode("add");
-          } catch (err) {
-            console.error("Failed to save award:", err);
-          }
+        onSave={async () => {
+          await fetchAwardsAndPublications();
         }}
       />
 
@@ -2580,28 +2472,8 @@ const Doc_settings = () => {
         }}
         mode={pubEditMode}
         initial={pubEditData || {}}
-        onSave={async (pub) => {
-          try {
-            const payload = {
-              title: pub.title,
-              publisher: pub.publisher,
-              publicationDate: pub.date,
-              publicationUrl: pub.url || null,
-              description: pub.desc || null,
-            };
-
-            if (pubEditMode === "edit" && pubEditData?.id) {
-              await updatePublication({ id: pubEditData.id, ...payload });
-            } else {
-              await addPublication(payload);
-            }
-            await fetchAwardsAndPublications();
-            setPubOpen(false);
-            setPubEditData(null);
-            setPubEditMode("add");
-          } catch (err) {
-            console.error("Failed to save publication:", err);
-          }
+        onSave={async () => {
+          await fetchAwardsAndPublications();
         }}
       />
 
@@ -2611,32 +2483,8 @@ const Doc_settings = () => {
         open={practiceOpen}
         onClose={() => setPracticeOpen(false)}
         initial={practiceDetails}
-        onSave={async (data) => {
-          try {
-            const payload = {};
-            if (data.workExperience)
-              payload.workExperience = parseInt(data.workExperience);
-            if (data.medicalPracticeType)
-              payload.medicalPracticeType = data.medicalPracticeType;
-            if (Array.isArray(data.practiceArea) && data.practiceArea.length > 0)
-              payload.practiceArea = data.practiceArea;
-            if (Array.isArray(data.specialties)) {
-              // Map to API expected shape: [{ specialtyName, expYears }]
-              payload.specialties = data.specialties
-                .filter((s) => s.specialtyName)
-                .map((s) => ({
-                  specialtyName: s.specialtyName,
-                  expYears: s.expYears ? parseInt(s.expYears) : 0,
-                }));
-            }
-
-            await updatePracticeDetails(payload);
-            await fetchProfessionalDetails(); // Refresh data
-            setPracticeOpen(false);
-          } catch (err) {
-            console.error("Error updating practice details:", err);
-            alert("Failed to update practice details");
-          }
+        onSave={async () => {
+          await fetchProfessionalDetails();
         }}
       />
 
