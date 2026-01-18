@@ -294,3 +294,176 @@ export const getHospitalAccountSettings = async (hospitalId) => {
     throw error;
   }
 };
+
+// --- Hospital Admin Update Functions ---
+
+export const updateHospitalInfoAndAddressForAdmin = async (hospitalId, data) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.post('/hospitals/for-admin/account-details', data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateHospitalAdminDetailsForAdmin = async (hospitalId, data) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.put('/hospitals/for-admin/adminDetails', data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateHospitalSpecialtiesForAdmin = async (hospitalId, specialties) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    // Determine expected payload structure. Assuming simple array of strings or list wrapper
+    const res = await axios.put('/hospitals/for-admin/specialties', { specialties }, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateHospitalServicesForAdmin = async (hospitalId, services) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.put('/hospitals/for-admin/services', { services }, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const addHospitalAwardForAdmin = async (hospitalId, data) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.post('/hospitals/for-admin/awards', data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateHospitalAwardForAdmin = async (hospitalId, awardId, data) => {
+  if (!hospitalId || !awardId) throw new Error('hospitalId and awardId are required');
+  try {
+    const res = await axios.put(`/hospitals/for-admin/awards/${encodeURIComponent(awardId)}`, data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteHospitalAwardForAdmin = async (hospitalId, awardId) => {
+  if (!hospitalId || !awardId) throw new Error('hospitalId and awardId are required');
+  try {
+    const res = await axios.delete(`/hospitals/for-admin/awards/${encodeURIComponent(awardId)}`, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const addHospitalAccreditationForAdmin = async (hospitalId, data) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.post('/hospitals/for-admin/accreditations', data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateHospitalAccreditationForAdmin = async (hospitalId, accreditationId, data) => {
+  if (!hospitalId || !accreditationId) throw new Error('hospitalId and accreditationId are required');
+  try {
+    const res = await axios.put(`/hospitals/for-admin/accreditations/${encodeURIComponent(accreditationId)}`, data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteHospitalAccreditationForAdmin = async (hospitalId, accreditationId) => {
+  if (!hospitalId || !accreditationId) throw new Error('hospitalId and accreditationId are required');
+  try {
+    const res = await axios.delete(`/hospitals/for-admin/accreditations/${encodeURIComponent(accreditationId)}`, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+export const getHospitalSurgeriesForAdmin = async (hospitalId) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.get('/hospitals/for-admin/surgeries', {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+export const addHospitalSurgeryForAdmin = async (hospitalId, data) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.post('/hospitals/for-admin/surgeries', data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateHospitalSurgeryForAdmin = async (hospitalId, surgeryId, data) => {
+  if (!hospitalId || !surgeryId) throw new Error('hospitalId and surgeryId are required');
+  try {
+    const res = await axios.put(`/hospitals/for-admin/surgeries/${encodeURIComponent(surgeryId)}`, data, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteHospitalSurgeryForAdmin = async (hospitalId, surgeryId) => {
+  if (!hospitalId || !surgeryId) throw new Error('hospitalId and surgeryId are required');
+  try {
+    const res = await axios.delete(`/hospitals/for-admin/surgeries/${encodeURIComponent(surgeryId)}`, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};

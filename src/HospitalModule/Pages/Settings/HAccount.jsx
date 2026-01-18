@@ -1,5 +1,5 @@
 // HAccount.jsx
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Phone,
   Mail,
@@ -248,6 +248,7 @@ export default function HAccount({ profile: initialProfile }) {
   const [settingsData, setSettingsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     let ignore = false;
@@ -273,7 +274,7 @@ export default function HAccount({ profile: initialProfile }) {
     };
     fetchSettings();
     return () => { ignore = true; };
-  }, [hospitalId]);
+  }, [hospitalId, refreshTrigger]);
   const [resolvedPhotos, setResolvedPhotos] = useState([]);
 
   useEffect(() => {
@@ -300,23 +301,7 @@ export default function HAccount({ profile: initialProfile }) {
     loadPhotos();
   }, [settingsData]);
 
-  if (loading) {
-    return (
-      <div className="w-full h-80 flex items-center justify-center">
-        <UniversalLoader size={40} />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="w-full p-6 text-center text-error-500 bg-error-50 border border-error-100 rounded-lg">
-        {error}
-      </div>
-    )
-  }
-
-  // Use fetched data or fallback
+  // Move data destructuring and hooks BEFORE any conditional returns
   const data = settingsData || {};
   const hInfo = data.hospitalInfo || {};
   const hAddr = data.hospitalAddress || {};
@@ -333,8 +318,58 @@ export default function HAccount({ profile: initialProfile }) {
   const gst = data.gstDetails || {};
   const cin = data.cinDetails || {};
   const shr = data.stateHealthRegistration || {};
-  // Pan is not in the example response explicitly as an object but inferred from context or potentially missing. 
-  // Checking otherDocuments array if needed, but for now assuming direct mapping or placeholders.
+
+  const profileForDrawers = useMemo(() => ({
+    hospitalName: hInfo.name,
+    type: hInfo.type || "Multi-Speciality",
+    phone: hInfo.mobile,
+    email: hInfo.emailId,
+    estDate: hInfo.establishmentDate,
+    website: hInfo.website,
+    emergencyPhone: hInfo.emergencyContactNo,
+    beds: hInfo.noOfBeds,
+    icuBeds: hInfo.noOfIcuBeds,
+    ambulances: hInfo.noOfAmbulances,
+    ambulancePhone: hInfo.ambulanceContactNo,
+    bloodBank: hInfo.hasBloodBank,
+    bloodBankPhone: hInfo.bloodBankContactNo,
+    about: hInfo.about,
+    address: {
+      block: hAddr.blockNo,
+      road: hAddr.street,
+      landmark: hAddr.landmark,
+      pincode: hAddr.pincode
+    },
+    city: hAddr.city,
+    state: hAddr.state,
+    latitude: hAddr.latitude,
+    longitude: hAddr.longitude,
+    photos: [photos.coverImage, photos.logo].filter(Boolean),
+    admin: {
+      firstName: admin.firstName,
+      lastName: admin.lastName,
+      mobileNumber: admin.mobile,
+      email: admin.emailId,
+      gender: admin.gender,
+      city: admin.city
+    }
+  }), [hInfo, hAddr, photos, admin]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-80 flex items-center justify-center">
+        <UniversalLoader size={40} />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="w-full p-6 text-center text-error-500 bg-error-50 border border-error-100 rounded-lg">
+        {error}
+      </div>
+    )
+  }
 
   // Helpers
   const formatMonthYear = (dateStr) => {
@@ -361,33 +396,6 @@ export default function HAccount({ profile: initialProfile }) {
       Verified
     </span>
   )
-
-  const profileForDrawers = {
-    hospitalName: hInfo.name,
-    type: hInfo.type,
-    phone: hInfo.mobile,
-    email: hInfo.emailId,
-    estDate: hInfo.establishmentDate,
-    website: hInfo.website,
-    emergencyPhone: hInfo.emergencyContactNo,
-    beds: hInfo.noOfBeds,
-    icuBeds: hInfo.noOfIcuBeds,
-    ambulances: hInfo.noOfAmbulances,
-    ambulancePhone: hInfo.ambulanceContactNo,
-    bloodBank: hInfo.hasBloodBank,
-    bloodBankPhone: hInfo.bloodBankContactNo,
-    about: hInfo.about,
-    address: {
-      block: hAddr.blockNo,
-      road: hAddr.street,
-      landmark: hAddr.landmark,
-      pincode: hAddr.pincode
-    },
-    city: hAddr.city,
-    state: hAddr.state,
-    photos: [photos.coverImage, photos.logo].filter(Boolean),
-    // ... other mappings for drawers
-  }
 
 
   return (
@@ -700,36 +708,33 @@ export default function HAccount({ profile: initialProfile }) {
         open={hospitalInfoOpen}
         onClose={() => setHospitalInfoOpen(false)}
         initial={profileForDrawers}
-        onSave={(updatedData) => {
-          console.log("Updated Hospital Info:", updatedData);
-          // Here you would typically call an API to update the profile
-        }}
+        onSave={() => setRefreshTrigger(prev => prev + 1)}
       />
       <MedicalSpecialtiesDrawer
         open={specialtiesOpen}
         onClose={() => setSpecialtiesOpen(false)}
         selectedItems={specialties.map(s => s.name || s) || []}
-        onSave={(items) => console.log('Updated Specialties:', items)}
+        onSave={() => setRefreshTrigger(prev => prev + 1)}
       />
       <HospitalServicesDrawer
         open={servicesOpen}
         onClose={() => setServicesOpen(false)}
         selectedItems={services || []}
-        onSave={(items) => console.log('Updated Services:', items)}
+        onSave={() => setRefreshTrigger(prev => prev + 1)}
       />
       <AddAwardDrawer
         open={awardOpen}
         onClose={() => setAwardOpen(false)}
         mode={awardEditMode}
         initial={awardEditData || {}}
-        onSave={(data) => console.log("Saved Award:", data)}
+        onSuccess={() => setRefreshTrigger(prev => prev + 1)}
       />
       <AccreditationDrawer
         open={accreditationOpen}
         onClose={() => setAccreditationOpen(false)}
         mode={accreditationEditMode}
         initial={accreditationEditData || {}}
-        onSave={(data) => console.log("Saved Accreditation:", data)}
+        onSuccess={() => setRefreshTrigger(prev => prev + 1)}
       />
     </>
   )

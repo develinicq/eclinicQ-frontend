@@ -1,23 +1,48 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ChevronsUpDown } from 'lucide-react'
 import { pencil } from '../../../../public/index.js'
 import { Checkbox } from '../../../components/ui/checkbox'
 import AddSurgeryDrawer from './Drawers/AddSurgeryDrawer'
+import useHospitalAuthStore from '../../../store/useHospitalAuthStore'
+import { getHospitalSurgeriesForAdmin, deleteHospitalSurgeryForAdmin } from '../../../services/hospitalService'
+import UniversalLoader from '../../../components/UniversalLoader'
+import useToastStore from '../../../store/useToastStore'
 
 export default function HSurgeries() {
-  // Local UI-only state for surgeries list
-  const [surgeries, setSurgeries] = useState([
-    { id: 1, name: 'Appendectomy', description: 'Surgical removal of the appendix, usually performed to treat appendicitis.' },
-    { id: 2, name: 'Hernia Repair Surgery', description: 'Correction of hernias in the abdomen or groin using open or laparoscopic techniques.' },
-    { id: 3, name: 'Cholecystectomy', description: 'Surgical removal of the gallbladder, commonly performed to treat gallstones.' },
-    { id: 4, name: 'Knee Arthroscopy', description: 'Minimally invasive surgery on the knee joint using an arthroscope to diagnose or treat issues.' },
-    { id: 5, name: 'Coronary Bypass Surgery', description: 'Surgical procedure to restore normal blood flow to an obstructed coronary artery.' },
-    { id: 6, name: 'Cataract Surgery', description: 'Procedure to remove the cloudy lens of the eye and replace it with an artificial one.' },
-    { id: 7, name: 'Hip Replacement Surgery', description: 'Surgical procedure to replace a damaged hip joint with a prosthetic implant.' },
-    { id: 8, name: 'Rhinoplasty', description: 'Surgical procedure to reshape the nose for aesthetic or functional improvement.' },
-  ])
-  const [selected, setSelected] = useState(() => new Set())
+  const { hospitalId } = useHospitalAuthStore()
+  const addToast = useToastStore(state => state.addToast)
+
+  const [surgeries, setSurgeries] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  // Drawer states
   const [isAddDrawerOpen, setAddDrawerOpen] = useState(false)
+  const [drawerMode, setDrawerMode] = useState('add') // 'add' | 'edit'
+  const [drawerData, setDrawerData] = useState(null)
+
+  const [selected, setSelected] = useState(() => new Set())
+
+  useEffect(() => {
+    let ignore = false
+    const fetchSurgeries = async () => {
+      if (!hospitalId) { setLoading(false); return }
+      setLoading(true)
+      try {
+        const res = await getHospitalSurgeriesForAdmin(hospitalId)
+        if (!ignore && res?.success) {
+          setSurgeries(res.data || [])
+        }
+      } catch (e) {
+        if (!ignore) setError(e?.response?.data?.message || "Failed to load surgeries")
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }
+    fetchSurgeries()
+    return () => { ignore = true }
+  }, [hospitalId, refreshTrigger])
 
   const allSelected = surgeries.length > 0 && selected.size === surgeries.length
 
@@ -27,17 +52,39 @@ export default function HSurgeries() {
 
   const toggleOne = (id) => setSelected((sel) => { const n = new Set(sel); n.has(id) ? n.delete(id) : n.add(id); return n })
 
-  const onDelete = (id) => setSurgeries((list) => list.filter((x) => x.id !== id))
-
-  const handleAddSurgery = (newSurgery) => {
-    setSurgeries([...surgeries, { id: Date.now(), ...newSurgery }])
+  const onDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this surgery?")) return
+    try {
+      const res = await deleteHospitalSurgeryForAdmin(hospitalId, id)
+      if (res.success) {
+        addToast({ title: "Success", message: "Surgery deleted", type: "success" })
+        setRefreshTrigger(prev => prev + 1)
+      }
+    } catch (e) {
+      addToast({ title: "Error", message: "Failed to delete surgery", type: "error" })
+    }
   }
+
+  const handleEdit = (surgery) => {
+    setDrawerData(surgery)
+    setDrawerMode('edit')
+    setAddDrawerOpen(true)
+  }
+
+  const handleAddNew = () => {
+    setDrawerData(null)
+    setDrawerMode('add')
+    setAddDrawerOpen(true)
+  }
+
+  if (loading) return <div className="flex justify-center p-10"><UniversalLoader size={30} /></div>
+  if (error) return <div className="text-red-500 p-4 bg-red-50 rounded border border-red-100">{error}</div>
 
   return (
     <div className="">
       {/* Header bar with action link to avoid overlap */}
       <div className="flex items-center justify-end px-4 mb-2">
-        <button type="button" onClick={() => setAddDrawerOpen(true)} className="text-blue-primary250 text-sm hover:underline">+ New Surgery</button>
+        <button type="button" onClick={handleAddNew} className="text-blue-primary250 text-sm hover:underline">+ New Surgery</button>
       </div>
       <div className="overflow-x-auto border border-secondary-grey100 rounded-lg">
         <table className="min-w-full table-fixed text-sm text-left ">
@@ -85,7 +132,7 @@ export default function HSurgeries() {
                 <td className="px-4   text-secondary-grey300 align-center ">{s.description}</td>
                 <td className="px-2  align-center pr-5">
                   <div className="flex items-center justify-end gap-3">
-                    <button className="p-1 rounded hover:bg-gray-100 transition-colors" aria-label="Edit" title="Edit">
+                    <button className="p-1 rounded hover:bg-gray-100 transition-colors" aria-label="Edit" title="Edit" onClick={() => handleEdit(s)}>
                       <img src={pencil} alt="Edit" className="w-7" />
                     </button>
                     <div className="h-5 w-[1px] bg-gray-200" aria-hidden="true" />
@@ -108,7 +155,9 @@ export default function HSurgeries() {
       <AddSurgeryDrawer
         open={isAddDrawerOpen}
         onClose={() => setAddDrawerOpen(false)}
-        onSave={handleAddSurgery}
+        onSave={() => setRefreshTrigger(prev => prev + 1)}
+        mode={drawerMode}
+        initial={drawerData || {}}
       />
     </div>
   )
