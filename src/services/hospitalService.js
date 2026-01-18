@@ -268,3 +268,29 @@ export const updateHospitalAccreditationForSuperAdmin = async (hospitalId, accre
     throw error;
   }
 };
+
+// Get timings for Hospital Admin (Settings)
+export const getHospitalTimingsForAdmin = async (hospitalId) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.get(`/hospitals/for-admin/timings-schedule`, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get account details for Hospital Admin
+export const getHospitalAccountSettings = async (hospitalId) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.get(`/hospitals/for-admin/account-details`, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
