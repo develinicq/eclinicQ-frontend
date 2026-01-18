@@ -909,7 +909,8 @@ const [isPlanOpen, setIsPlanOpen] = useState(false);
       </header>
       <div className="flex flex-1 overflow-hidden">
         <StepSidebar steps={steps} currentStep={6} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
           <div className="max-w-5xl mx-auto">
             {/* Header */}
             <div className="text-center mb-2">
@@ -948,7 +949,7 @@ const [isPlanOpen, setIsPlanOpen] = useState(false);
     className="w-full p-3 border border-border rounded-lg bg-monochrom-white flex items-center justify-between cursor-pointer"
   >
     <div className="flex items-center gap-3">
-      {selectedPlanData.icon}
+      
       <div>
         <p className="text-sm font-medium text-secondary-grey400">
           {selectedPlanData.name}
@@ -977,7 +978,7 @@ const [isPlanOpen, setIsPlanOpen] = useState(false);
             plan.id === selectedPlan ? "bg-blue-primary50" : ""
           }`}
         >
-          {plan.icon}
+          
           <div className="flex-1">
             <p className="text-sm font-medium text-secondary-grey400">
               {plan.name}
@@ -1000,7 +1001,7 @@ const [isPlanOpen, setIsPlanOpen] = useState(false);
                 <p className="text-sm font-medium text-secondary-grey300 mb-3">
                   Billing Cycle
                 </p>
-                <div className="flex flex-wrap gap-3 md:gap-4">
+                <div className="flex flex-col gap-3 md:gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -1092,49 +1093,92 @@ const [isPlanOpen, setIsPlanOpen] = useState(false);
                   </label>
                 </div>
               </div>
-                {/* Doctor/Staff Count */}
-                <div className="flex gap-6 py-4 mb-4">
-                  <div>
-                    <p className="text-sm text-secondary-grey300 mb-2">Number of Doctors (Max 2)</p>
-                    <div className="flex items-center gap-1 text-secondary-grey300">
-                      <button
-                        onClick={() => setDoctors(Math.max(1, doctors - 1))}
-                        className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="w-12 h-8 flex items-center justify-center border border-border rounded text-sm font-medium">
-                        {doctors}
-                      </span>
-                      <button
-                        onClick={() => setDoctors(Math.min(2, doctors + 1))}
-                        className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="border-l border-border pl-6">
-                    <p className="text-sm text-secondary-grey300 mb-2">Number of Staffs (Max 4)</p>
-                    <div className="flex items-center gap-1 text-secondary-grey300">
-                      <button
-                        onClick={() => setStaff(Math.max(1, staff - 1))}
-                        className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="w-12 h-8 flex items-center justify-center border border-border rounded text-sm font-medium">
-                        {staff}
-                      </span>
-                      <button
-                        onClick={() => setStaff(Math.min(4, staff + 1))}
-                        className="w-8 h-8 rounded border border-border flex items-center justify-center hover:bg-muted"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                
+               {/* Doctor/Staff Count */}
+<div className="flex gap-6 py-4 mb-4">
+  {/* Doctors */}
+  <div>
+    <p className="text-sm text-secondary-grey300 mb-2">
+      Number of Doctors (Max 2)
+    </p>
+
+    <div className="flex items-center gap-2">
+      {/* Minus */}
+      <button
+        disabled={doctors === 1}
+        onClick={() => setDoctors(doctors - 1)}
+        className={`w-8 h-8 rounded border flex items-center justify-center
+          ${
+            doctors === 1
+              ? "border-secondary-grey100 text-secondary-grey150 cursor-not-allowed"
+              : "border-border text-secondary-grey300 hover:bg-muted"
+          }`}
+      >
+        <Minus className="w-4 h-4" />
+      </button>
+
+      <span className="w-12 h-8 flex items-center justify-center border border-border rounded text-sm font-medium text-secondary-grey400">
+        {doctors}
+      </span>
+
+      {/* Plus */}
+      <button
+        disabled={doctors === 2}
+        onClick={() => setDoctors(doctors + 1)}
+        className={`w-8 h-8 rounded border flex items-center justify-center
+          ${
+            doctors === 2
+              ? "border-secondary-grey100 text-secondary-grey150 cursor-not-allowed"
+              : "border-border text-secondary-grey300 hover:bg-muted"
+          }`}
+      >
+        <Plus className="w-4 h-4" />
+      </button>
+    </div>
+  </div>
+
+  {/* Staff */}
+  <div className="border-l border-border pl-6">
+    <p className="text-sm text-secondary-grey300 mb-2">
+      Number of Staffs (Max 4)
+    </p>
+
+    <div className="flex items-center gap-2">
+      {/* Minus */}
+      <button
+        disabled={staff === 1}
+        onClick={() => setStaff(staff - 1)}
+        className={`w-8 h-8 rounded border flex items-center justify-center
+          ${
+            staff === 1
+              ? "border-secondary-grey100 text-secondary-grey150 cursor-not-allowed"
+              : "border-border text-secondary-grey300 hover:bg-muted"
+          }`}
+      >
+        <Minus className="w-4 h-4" />
+      </button>
+
+      <span className="w-12 h-8 flex items-center justify-center border border-border rounded text-sm font-medium text-secondary-grey400">
+        {staff}
+      </span>
+
+      {/* Plus */}
+      <button
+        disabled={staff === 4}
+        onClick={() => setStaff(staff + 1)}
+        className={`w-8 h-8 rounded border flex items-center justify-center
+          ${
+            staff === 4
+              ? "border-secondary-grey100 text-secondary-grey150 cursor-not-allowed"
+              : "border-border text-secondary-grey300 hover:bg-muted"
+          }`}
+      >
+        <Plus className="w-4 h-4" />
+      </button>
+    </div>
+  </div>
+</div>
+
                 {/* Access To */}
                 <div className="pt-4 border-t border-border">
                   <p className="text-sm text-secondary-grey200 mb-3">Access To:</p>
@@ -1214,7 +1258,7 @@ const [isPlanOpen, setIsPlanOpen] = useState(false);
                         </span>
                       </div>
                     )}
-                   <div className="flex items-start gap-3 pt-3">
+                   <div className="flex items-center justify-center gap-3 pt-3">
   <Checkbox
     id="terms"
     checked={agreedToTerms}
@@ -1223,7 +1267,7 @@ const [isPlanOpen, setIsPlanOpen] = useState(false);
 
   <label
     htmlFor="terms"
-    className="text-xs text-secondary-grey300 leading-relaxed cursor-pointer"
+    className="text-sm text-secondary-grey300 leading-relaxed cursor-pointer"
   >
     I agree to the{" "}
     <span className="text-secondary-grey400 underline">
@@ -1265,6 +1309,7 @@ const [isPlanOpen, setIsPlanOpen] = useState(false);
                 </div>
               </div>
             </div>
+          </div>
           </div>
            <div className="flex items-center justify-between border-t border-border bg-card px-6 py-2 mt-2 rounded-b-xl">
     <button className="px-8 py-2.5 border border-border rounded-lg text-sm font-medium text-secondary-grey400 hover:bg-muted">
