@@ -13,7 +13,31 @@ import Toggle from '../../../components/FormItems/Toggle';
 import BookAppointmentDrawer from '../../../components/Appointment/BookAppointmentDrawer';
 import useAuthStore from '../../../store/useAuthStore';
 import useFrontDeskAuthStore from '../../../store/useFrontDeskAuthStore';
+import axiosInstance from '../../../lib/axios';
+import { format } from 'date-fns'; // Assuming date-fns is available, or use native styling if not.
+// Actually, I'll use native Date for now to avoid dependency assumption if not sure, but project likely has it.
+// Checking imports... date-fns is commonly used. Let's stick to native strictly if unsure, or simple helpers.
+// The user has QueueDatePicker which likely passes a Date object.
 
+const getIconForTime = (hour) => {
+	if (hour < 12) return Sunrise;
+	if (hour < 17) return Sun;
+	if (hour < 20) return Sunset;
+	return Moon;
+};
+
+const getLabelForTime = (hour) => {
+	if (hour < 12) return 'Morning';
+	if (hour < 17) return 'Afternoon';
+	if (hour < 20) return 'Evening';
+	return 'Night';
+};
+
+const formatSlotTime = (isoString) => {
+	if (!isoString) return '';
+	const date = new Date(isoString);
+	return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+};
 
 
 const formatTime = (seconds) => {
@@ -35,70 +59,7 @@ const appt = '/fd/appt.svg'
 const CalendarMinimalistic = '/fd/Calendar Minimalistic.svg'
 const ClockCircle = '/fd/Clock Circle.svg'
 
-// PreScreening drawer (same UI)
-const DUMMY_REQUESTS = [
-	{ id: 101, name: 'Alok Verma', gender: 'M', age: '39Y', dob: '12/05/1985', date: 'Mon, 12 June 2024', time: 'Morning, 10:00 am - 12:30 pm', secondary: 'Ask to Reschedule', doctorName: 'Dr. Arvind Mehta', doctorSpecialty: 'General Physician' },
-	{ id: 102, name: 'Bhavna Mehta', gender: 'F', age: '44Y', dob: '08/09/1980', date: 'Tuesday, 13 June 2024', time: 'Afternoon, 1:00 pm - 3:30 pm', secondary: 'Ask to Reschedule', doctorName: 'Dr. Sneha Deshmukh', doctorSpecialty: 'Pediatrician' },
-	{ id: 103, name: 'Chirag Modi', gender: 'M', age: '33Y', dob: '23/11/1990', date: 'Wednesday, 14 June 2024', time: 'Evening, 5:00 pm - 6:30 pm', secondary: 'Ask to Reschedule', doctorName: 'Dr. Arvind Mehta', doctorSpecialty: 'General Physician' },
-	{ id: 104, name: 'Deepa Malhotra', gender: 'F', age: '48Y', dob: '14/07/1976', date: 'Thursday, 15 June 2024', time: 'Morning, 9:00 am - 11:00 am', secondary: 'Ask to Reschedule', doctorName: 'Dr. Sneha Deshmukh', doctorSpecialty: 'Pediatrician' },
-	{ id: 105, name: 'Eshan Mehra', gender: 'M', age: '36Y', dob: '05/02/1988', date: 'Friday, 16 June 2024', time: 'Morning, 10:00 am - 12:30 pm', secondary: 'Ask to Reschedule', doctorName: 'Dr. Arvind Mehta', doctorSpecialty: 'General Physician' }
-];
-
-const DUMMY_ACTIVE_PATIENT = {
-	patientName: 'Priya Mehta',
-	token: 2,
-	gender: 'F',
-	age: '08/09/1992 (31Y)',
-	reasonForVisit: 'Annual Checkup'
-};
-
-const DUMMY_PATIENTS = [
-	{ token: 1, patientName: 'Rahul Sharma', gender: 'M', dob: '12/05/1985', age: '39Y', appointmentType: 'Review Visit', expectedTime: '10:30 AM', bookingType: 'Online', reason: 'Fever & Weakness', status: 'Checked-In' },
-	{ token: 2, patientName: 'Priya Mehta', gender: 'F', dob: '08/09/1992', age: '31Y', appointmentType: 'Follow-up Consultation', expectedTime: '11:00 AM', bookingType: 'Online', reason: 'Annual Checkup', status: 'Checked-In' },
-	{ token: 3, patientName: 'Arjun Verma', gender: 'M', dob: '23/11/1987', age: '36Y', appointmentType: 'New Consultation', expectedTime: '11:45 AM', bookingType: 'Online', reason: 'Back Pain', status: 'Waiting' },
-	{ token: 4, patientName: 'Sneha Deshpande', gender: 'F', dob: '14/07/1998', age: '25Y', appointmentType: 'New Consultation', expectedTime: '12:30 PM', bookingType: 'Walk-In', reason: 'Skin Allergy', status: 'Waiting' },
-	{ token: 5, patientName: 'Kunal Joshi', gender: 'M', dob: '05/02/1990', age: '34Y', appointmentType: 'Second Opinion', expectedTime: '1:30 PM', bookingType: 'Walk-In', reason: 'High BP', status: 'Waiting' },
-	{ token: 6, patientName: 'Neha Iyer', gender: 'F', dob: '30/10/1995', age: '28Y', appointmentType: 'New Consultation', expectedTime: '2:00 PM', bookingType: 'Online', reason: 'Migraine', status: 'Waiting' },
-	{ token: 7, patientName: 'Vikas Gupta', gender: 'M', dob: '19/04/1983', age: '41Y', appointmentType: 'Second Opinion', expectedTime: '2:30 PM', bookingType: 'Walk-In', reason: 'Diabetes Checkup', status: 'Waiting' },
-	{ token: 8, patientName: 'Radhika Nair', gender: 'F', dob: '06/01/1991', age: '33Y', appointmentType: 'Review Visit', expectedTime: '3:15 PM', bookingType: 'Online', reason: 'Pregnancy Consultation', status: 'Waiting' },
-	{ token: 9, patientName: 'Ankit Saxena', gender: 'M', dob: '11/06/1989', age: '35Y', appointmentType: 'Review Visit', expectedTime: '4:15 PM', bookingType: 'Online', reason: 'Heartburn & Acidity', status: 'Waiting' },
-	{ token: 10, patientName: 'Pooja Kulkarni', gender: 'F', dob: '15/08/1993', age: '30Y', appointmentType: 'Second Opinion', expectedTime: '4:45 PM', bookingType: 'Online', reason: 'Thyroid Checkup', status: 'Waiting' },
-	{ token: 11, patientName: 'Manish Choudhary', gender: 'M', dob: '02/12/1986', age: '37Y', appointmentType: 'Follow-up Consultation', expectedTime: '5:45 PM', bookingType: 'Walk-In', reason: 'Anxiety & Stress', status: 'Waiting' },
-	{ token: 12, patientName: 'Kavita Rao', gender: 'F', dob: '20/03/1980', age: '44Y', appointmentType: 'New Consultation', expectedTime: '6:15 PM', bookingType: 'Walk-In', reason: 'Menopause Symptoms', status: 'Waiting' },
-	{ token: 13, patientName: 'Rohan Agarwal', gender: 'M', dob: '07/05/1994', age: '30Y', appointmentType: 'Follow-up Consultation', expectedTime: '10:15 AM', bookingType: 'Online', reason: 'Asthma', status: 'Waiting' },
-	{ token: 14, patientName: 'Deepika Singh', gender: 'F', dob: '09/11/1997', age: '26Y', appointmentType: 'Review Visit', expectedTime: '11:00 AM', bookingType: 'Walk-In', reason: 'PCOD Treatment', status: 'Waiting' },
-	{ token: 15, patientName: 'Anirudh Patel', gender: 'M', dob: '16/07/1982', age: '42Y', appointmentType: 'Review Visit', expectedTime: '12:15 PM', bookingType: 'Online', reason: 'Knee Pain', status: 'Waiting' },
-	{ token: 16, patientName: 'Swati Mishra', gender: 'F', dob: '03/09/1990', age: '33Y', appointmentType: 'Second Opinion', expectedTime: '12:45 PM', bookingType: 'Online', reason: 'Eye Checkup', status: 'Waiting' },
-	{ token: 17, patientName: 'Vikram Singh', gender: 'M', dob: '22/01/1988', age: '36Y', appointmentType: 'New Consultation', expectedTime: '1:00 PM', bookingType: 'Walk-In', reason: 'Stomach Ache', status: 'Waiting' },
-	{ token: 18, patientName: 'Priti Kapoor', gender: 'F', dob: '14/11/1995', age: '28Y', appointmentType: 'Review Visit', expectedTime: '1:45 PM', bookingType: 'Online', reason: 'Skin Rash', status: 'Waiting' },
-	{ token: 19, patientName: 'Amit Shah', gender: 'M', dob: '05/06/1984', age: '40Y', appointmentType: 'Follow-up Consultation', expectedTime: '2:15 PM', bookingType: 'Walk-In', reason: 'Fever', status: 'Waiting' },
-	{ token: 20, patientName: 'Nisha Gupta', gender: 'F', dob: '19/08/1991', age: '32Y', appointmentType: 'New Consultation', expectedTime: '2:45 PM', bookingType: 'Online', reason: 'Headache', status: 'Waiting' },
-	{ token: 21, patientName: 'Suresh Kumar', gender: 'M', dob: '11/02/1979', age: '45Y', appointmentType: 'Second Opinion', expectedTime: '3:30 PM', bookingType: 'Walk-In', reason: 'Joint Pain', status: 'Waiting' },
-	{ token: 22, patientName: 'Meera Reddy', gender: 'F', dob: '25/12/1993', age: '30Y', appointmentType: 'Review Visit', expectedTime: '4:00 PM', bookingType: 'Online', reason: 'Cough & Cold', status: 'Waiting' },
-	{ token: 23, patientName: 'Rajesh Malhotra', gender: 'M', dob: '08/04/1981', age: '43Y', appointmentType: 'Follow-up Consultation', expectedTime: '4:30 PM', bookingType: 'Walk-In', reason: 'Diabetes Follow-up', status: 'Waiting' },
-	{ token: 24, patientName: 'Simran Kaur', gender: 'F', dob: '17/09/1996', age: '27Y', appointmentType: 'New Consultation', expectedTime: '5:00 PM', bookingType: 'Online', reason: 'Allergy', status: 'Waiting' },
-	{ token: 25, patientName: 'Varun Dhawan', gender: 'M', dob: '30/03/1992', age: '32Y', appointmentType: 'Review Visit', expectedTime: '5:30 PM', bookingType: 'Walk-In', reason: 'Injury', status: 'Waiting' },
-	{ token: 26, patientName: 'Pooja Hegde', gender: 'F', dob: '12/10/1994', age: '29Y', appointmentType: 'Second Opinion', expectedTime: '6:00 PM', bookingType: 'Online', reason: 'Throat Pain', status: 'Waiting' },
-	{ token: 27, patientName: 'Aditya Roy', gender: 'M', dob: '01/01/1986', age: '38Y', appointmentType: 'Follow-up Consultation', expectedTime: '6:30 PM', bookingType: 'Walk-In', reason: 'Back Pain', status: 'Waiting' },
-	{ token: 28, patientName: 'Kiara Advani', gender: 'F', dob: '31/07/1992', age: '31Y', appointmentType: 'New Consultation', expectedTime: '7:00 PM', bookingType: 'Online', reason: 'Vitamin Deficiency', status: 'Waiting' },
-	{ token: 29, patientName: 'Sidharth Malhotra', gender: 'M', dob: '16/01/1985', age: '39Y', appointmentType: 'Review Visit', expectedTime: '7:30 PM', bookingType: 'Walk-In', reason: 'Fitness Checkup', status: 'Waiting' },
-	{ token: 30, patientName: 'Alia Bhatt', gender: 'F', dob: '15/03/1993', age: '31Y', appointmentType: 'Follow-up Consultation', expectedTime: '8:00 PM', bookingType: 'Online', reason: 'Routine Checkup', status: 'Waiting' }
-];
-
-const DUMMY_ENGAGED_DATA = [
-	{ token: 1, patientName: 'Rahul Sharma', gender: 'M', dob: '12/05/1985', age: '39Y', appointmentType: 'New', startTime: '11:00 AM', endTime: '11:08 AM', bookingType: 'Online', reason: 'Annual Checkup' }
-];
-
-const DUMMY_NO_SHOW_DATA = [
-	{ isHeader: true, label: "Within Grace Period" },
-	{ token: 11, patientName: 'Manish Choudhary', gender: 'M', dob: '02/12/1986', age: '37Y', appointmentType: 'Follow-up Consultation', expectedTime: '5:45 PM', bookingType: 'Online', reason: 'Anxiety & Stress', isGrace: true },
-	{ isHeader: true, label: "Outside Grace Period" },
-	{ token: 5, patientName: 'Kunal Joshi', gender: 'M', dob: '05/02/1990', age: '34Y', appointmentType: 'Follow-up Consultation', expectedTime: '1:30 PM', bookingType: 'Online', reason: 'Anxiety & Stress', isGrace: false },
-];
-
-const DUMMY_ADMITTED_DATA = [
-	{ token: 1, patientName: 'Rahul Sharma', gender: 'M', dob: '12/05/1985', age: '39Y', appointmentType: 'New', startTime: '11:00 AM', endTime: '11:08 AM', bookingType: 'Online', reason: 'Annual Checkup' }
-];
+// Removed DUMMY_REQUESTS, DUMMY_ACTIVE_PATIENT, DUMMY_PATIENTS, etc.
 
 
 const filters = ['In Waiting', 'Engaged', 'Checked-In', 'No show', 'Admitted'];
@@ -110,9 +71,52 @@ export default function FDQueue() {
 	const doctorId = user?.id;
 	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Fix: Define dropdownPosition
 
-	// Fetch FD profile on mount
+	// Helper: Calculate Age
+	const calculateAge = (dob) => {
+		if (!dob) return '';
+		const birthDate = new Date(dob);
+		const today = new Date();
+		let age = today.getFullYear() - birthDate.getFullYear();
+		const m = today.getMonth() - birthDate.getMonth();
+		if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+			age--;
+		}
+		return age >= 0 ? `${age}Y` : '';
+	};
+
+	const fetchPendingAppointments = async () => {
+		try {
+			const payload = {
+				clinicId: "02e3163c-c481-4831-984b-eac5d0b4fbe2"
+			};
+			const res = await axiosInstance.post('/appointments/pending-appointments-clinic', payload);
+			if (res.data?.success) {
+				const data = res.data.data || [];
+				const mapped = data.map(item => {
+					const p = item.patientDetails || {};
+					const s = item.schedule || {};
+					return {
+						id: item.id,
+						name: `${p.firstName} ${p.lastName}`.trim(),
+						gender: p.gender ? (p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O') : '',
+						dob: p.dob ? new Date(p.dob).toLocaleDateString() : '',
+						age: calculateAge(p.dob),
+						date: s.date ? new Date(s.date).toLocaleDateString() : '',
+						time: s.startTime && s.endTime ? `${formatSlotTime(s.startTime.includes("1970") ? s.startTime : s.startTime)} - ${formatSlotTime(s.endTime.includes("1970") ? s.endTime : s.endTime)}` : '',
+						raw: item
+					};
+				});
+				setAppointmentRequests(mapped);
+			}
+		} catch (error) {
+			console.error("Failed to fetch pending appointments", error);
+		}
+	};
+
+	// Fetch FD profile and Pending Appointments on mount
 	useEffect(() => {
 		useFrontDeskAuthStore.getState().fetchMe();
+		fetchPendingAppointments();
 	}, []);
 
 	// Dummy Stubs to prevent crash
@@ -166,58 +170,195 @@ export default function FDQueue() {
 	// Removed backend Start/End/Pause API calls
 	// Removed syncing effects with getSlotEtaStatus
 
-	// Dummy Time Slots
-	const timeSlots = [
-		{ key: 'morning', label: 'Morning', time: '10:00am-12:00pm', Icon: Sunrise, slotId: 'dummy-slot-1' },
-		{ key: 'afternoon', label: 'Afternoon', time: '2:00pm-4:00pm', Icon: Sun, slotId: 'dummy-slot-2' },
-		{ key: 'evening', label: 'Evening', time: '6:00pm-8:00pm', Icon: Sunset, slotId: 'dummy-slot-3' },
-		{ key: 'night', label: 'Night', time: '8:30pm-10:30pm', Icon: Moon, slotId: 'dummy-slot-4' }
-	];
+	// Replaced Dummy Time Slots with State
+	const [timeSlots, setTimeSlots] = useState([]);
+	const [slotValue, setSlotValue] = useState('');
+	const [selectedSlotId, setSelectedSlotId] = useState('');
 
-	const [slotValue, setSlotValue] = useState('morning');
-	const [selectedSlotId, setSelectedSlotId] = useState('dummy-slot-1');
+	const fetchSlots = async () => {
+		try {
+			// Fix: Use local date string instead of UTC
+			const year = currentDate.getFullYear();
+			const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+			const day = String(currentDate.getDate()).padStart(2, '0');
+			const formattedDate = `${year}-${month}-${day}`;
+			const payload = {
+				doctorId: "eb993b63-ec73-401b-a24c-bf59f6df3b57",
+				clinicId: "02e3163c-c481-4831-984b-eac5d0b4fbe2",
+				date: formattedDate
+			};
 
-	// Auto-select first slot
-	useEffect(() => {
-		if (!slotValue) {
-			setSlotValue('morning');
-			setSelectedSlotId('dummy-slot-1');
+			const res = await axiosInstance.post('/slots/patient/find-slots', payload);
+			if (res.data?.success) {
+				const apiSlots = res.data.data || [];
+				// Sort by startTime
+				apiSlots.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+				const mappedSlots = apiSlots.map(slot => {
+					const startRaw = new Date(slot.startTime);
+					const endRaw = new Date(slot.endTime);
+					const hour = startRaw.getUTCHours(); // Assuming UTC from 1970-01-01T...Z or handle local conversion if needed. 
+					// The user sample is "1970-01-01T03:30:00.000Z". 3:30 UTC is 9:00 AM IST. 
+					// Let's assume we format effectively.
+					// If backend sends 1970 date with Z, we should probably display it in local time or specific timezone? 
+					// Usually this implies time-of-day. Let's use `toLocaleTimeString`.
+
+					// Actually, if it is just time of day, we should rely on the time values.
+
+					return {
+						key: slot.id, // using ID as key
+						label: getLabelForTime(startRaw.getHours()), // Use local time hours for label logic
+						time: `${formatSlotTime(slot.startTime)} - ${formatSlotTime(slot.endTime)}`, // formatting function
+						Icon: getIconForTime(startRaw.getHours()),
+						slotId: slot.id,
+						raw: slot
+					};
+				});
+
+				setTimeSlots(mappedSlots);
+
+				// Auto-select first slot if none selected or list changed significantly? 
+				// Stick to first slot rule for now as per previous logic.
+				if (mappedSlots.length > 0) {
+					// Check if current selection is still valid? 
+					// For simplicity, always select first if switching dates usually implies new slots.
+					// But user said "when landed on page call... and when changed the date re cll it".
+					// Keep it simple: Select first available slot.
+					setSlotValue(mappedSlots[0].key);
+					setSelectedSlotId(mappedSlots[0].slotId);
+				} else {
+					setSlotValue('');
+					setSelectedSlotId('');
+				}
+			}
+		} catch (error) {
+			console.error("Failed to fetch slots", error);
 		}
-	}, []);
+	};
 
-	// Map Dummy Data directly to Queue Data based on activeFilter
 	useEffect(() => {
-		if (sessionStarted) {
-			// If session started, Active Patient + Engaged List
-			// For this dummy implementation, 'Engaged' tab shows DUMMY_ENGAGED_DATA
-			if (activeFilter === 'Engaged') setQueueData(DUMMY_ENGAGED_DATA);
-			else if (activeFilter === 'Checked-In') setQueueData(DUMMY_PATIENTS.filter(p => p.status === 'Checked-In'));
-			else if (activeFilter === 'No show') setQueueData(DUMMY_NO_SHOW_DATA);
-			else if (activeFilter === 'Admitted') setQueueData(DUMMY_ADMITTED_DATA);
-			else setQueueData(DUMMY_PATIENTS);
+		fetchSlots();
+	}, [currentDate]);
+
+	// Auto-select first slot logic removed/merged into fetch
+	// useEffect(() => {
+	// 	if (!slotValue) {
+	// 		setSlotValue('morning');
+	// 		setSelectedSlotId('dummy-slot-1');
+	// 	}
+	// }, []);
+
+	// Appointments State
+	const [appointmentsData, setAppointmentsData] = useState({
+		checkedIn: [],
+		inWaiting: [],
+		engaged: [],
+		noShow: [],
+		admitted: [],
+		all: []
+	});
+	const [appointmentCounts, setAppointmentCounts] = useState({
+		checkedIn: 0,
+		inWaiting: 0,
+		engaged: 0,
+		noShow: 0,
+		admitted: 0,
+		all: 0
+	});
+
+	const mapAppointmentToRow = (appt) => {
+		// Map API response to table column structure
+		const p = appt.patientDetails || {};
+
+		return {
+			token: appt.tokenNo,
+			patientName: p.name || `${p.firstName} ${p.lastName}`.trim(),
+			gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
+			dob: p.dob ? new Date(p.dob).toLocaleDateString() : '',
+			age: p.age ? `${p.age}Y` : calculateAge(p.dob),
+			appointmentType: appt.appointmentType === 'NEW' ? 'New Consultation' : 'Follow-up Consultation', // map types
+			expectedTime: appt.expectedTime ? formatSlotTime(appt.expectedTime) : '',
+			startTime: appt.startTime ? formatSlotTime(appt.startTime) : '',
+			endTime: appt.endTime ? formatSlotTime(appt.endTime) : '',
+			bookingType: appt.bookingMode === 'WALK_IN' ? 'Walk-In' : 'Online',
+			reason: appt.reason,
+			status: appt.status,
+			id: appt.id
+		};
+	};
+
+	const fetchAppointments = async (slotId) => {
+		if (!slotId) return;
+		try {
+			const res = await axiosInstance.get(`/appointments/slot/${slotId}`);
+			if (res.data?.success) {
+				const data = res.data.data;
+				const counts = data.counts || {};
+				const appointments = data.appointments || {};
+
+				setAppointmentCounts({
+					checkedIn: counts.checkedIn || 0,
+					inWaiting: counts.inWaiting || 0,
+					engaged: counts.engaged || 0,
+					noShow: counts.noShow || 0,
+					admitted: counts.admitted || 0,
+					all: counts.all || 0
+				});
+
+				// Map all lists
+				setAppointmentsData({
+					checkedIn: (appointments.checkedIn || []).map(mapAppointmentToRow),
+					inWaiting: (appointments.inWaiting || []).map(mapAppointmentToRow),
+					engaged: (appointments.engaged || []).map(mapAppointmentToRow),
+					noShow: (appointments.noShow || []).map(mapAppointmentToRow),
+					admitted: (appointments.admitted || []).map(mapAppointmentToRow),
+					all: (appointments.all || []).map(mapAppointmentToRow)
+				});
+			}
+		} catch (error) {
+			console.error("Failed to fetch appointments", error);
+		}
+	};
+
+	useEffect(() => {
+		if (selectedSlotId) {
+			fetchAppointments(selectedSlotId);
 		} else {
-			// Session not started
-			if (activeFilter === 'Checking In') setQueueData([]);
-			else if (activeFilter === 'No show') setQueueData(DUMMY_NO_SHOW_DATA);
-			else setQueueData(DUMMY_PATIENTS);
+			// Clear if no slot
+			setAppointmentCounts({ checkedIn: 0, inWaiting: 0, engaged: 0, noShow: 0, admitted: 0, all: 0 });
+			setAppointmentsData({ checkedIn: [], inWaiting: [], engaged: [], noShow: [], admitted: [], all: [] });
 		}
-	}, [sessionStarted, activeFilter]);
+	}, [selectedSlotId]);
 
 
-	// Dummy Counts
+	// Map API Data to Queue Data based on activeFilter
+	useEffect(() => {
+		// Map filter names to data keys
+		// filters = ['In Waiting', 'Engaged', 'Checked-In', 'No show', 'Admitted']
+		if (activeFilter === 'Engaged') setQueueData(appointmentsData.engaged);
+		else if (activeFilter === 'Checked-In') setQueueData(appointmentsData.checkedIn);
+		else if (activeFilter === 'No show') setQueueData(appointmentsData.noShow);
+		else if (activeFilter === 'Admitted') setQueueData(appointmentsData.admitted);
+		else setQueueData(appointmentsData.inWaiting);
+	}, [activeFilter, appointmentsData]);
+
+
+	// API Counts
 	const getFilterCount = f => {
-		if (f === 'In Waiting') return DUMMY_PATIENTS.length;
-		if (f === 'Engaged' && sessionStarted) return DUMMY_ENGAGED_DATA.length;
-		if (f === 'No show') return DUMMY_NO_SHOW_DATA.length - 2; // minus headers
-		if (f === 'Admitted') return DUMMY_ADMITTED_DATA.length;
-		if (activeFilter === f) return queueData.length;
+		if (f === 'In Waiting') return appointmentCounts.inWaiting;
+		if (f === 'Engaged') return appointmentCounts.engaged;
+		if (f === 'No show') return appointmentCounts.noShow;
+		if (f === 'Checking In' || f === 'Checked-In') return appointmentCounts.checkedIn;
+		if (f === 'Admitted') return appointmentCounts.admitted;
 		return 0;
 	};
-	// Priority: DUMMY_ACTIVE_PATIENT if session started (to match user request for Priya Mehta), else queue list
+	// Updated Active Patient to use Real Data
 	const activePatient = useMemo(() => {
-		if (sessionStarted) return DUMMY_ACTIVE_PATIENT;
-		return queueData[currentIndex] || null;
-	}, [sessionStarted, queueData, currentIndex]);
+		// If engaged list has someone, show them.
+		if (appointmentsData.engaged.length > 0) return appointmentsData.engaged[0];
+		// Fallback? or null.
+		return null;
+	}, [appointmentsData.engaged]);
 
 
 	// Simplified Dummy Logic: Complete Patient
@@ -284,10 +425,19 @@ export default function FDQueue() {
 						</div>
 						{/* Walk-in */}
 						<div className='flex items-center gap-[10px]'>
-							<div className="flex items-center gap-1 text-sm text-secondary-grey300">
-								<span>Tokens Available</span>
-								<span className="bg-success-100 px-2 text-success-300 rounded-sm h-[22px] text-sm  border border-transparent hover:border-success-300/50 transition-colors cursor-pointer">5 Out of 100</span>
-							</div>
+							{(function () {
+								const activeSlot = timeSlots.find(s => s.key === slotValue);
+								const availableTokens = activeSlot?.raw?.availableTokens || 0;
+								const maxTokens = activeSlot?.raw?.maxTokens || 0;
+								return (
+									<div className="flex items-center gap-1 text-sm text-secondary-grey300">
+										<span>Tokens Available</span>
+										<span className="bg-success-100 px-2 text-success-300 rounded-sm h-[22px] text-sm  border border-transparent hover:border-success-300/50 transition-colors cursor-pointer">
+											{availableTokens} Out of {maxTokens}
+										</span>
+									</div>
+								);
+							})()}
 
 							<div className='bg-secondary-grey100/50 h-5 w-[1px]' ></div>
 
@@ -701,11 +851,21 @@ export default function FDQueue() {
 												}
 											}
 										]}
-										data={activeFilter === 'Engaged' ? DUMMY_ENGAGED_DATA : activeFilter === 'No show' ? DUMMY_NO_SHOW_DATA : activeFilter === 'Admitted' ? DUMMY_ADMITTED_DATA : DUMMY_PATIENTS}
+										// Conditional rendering for empty state
+										data={queueData}
 										hideSeparators={false}
 										stickyLeftWidth={280}
 										stickyRightWidth={210}
 									/>
+									{queueData.length === 0 && (
+										<div className="absolute inset-0 top-[40px] bg-white flex flex-col items-center justify-center text-secondary-grey400 z-10">
+											<div className="bg-gray-50 p-4 rounded-full mb-3">
+												<UserX className="h-8 w-8 text-gray-300" />
+											</div>
+											<p className="text-lg font-medium">No Patients Found</p>
+											<p className="text-sm text-gray-400">There are no patients in this list.</p>
+										</div>
+									)}
 								</div>
 							</div>
 
@@ -718,7 +878,8 @@ export default function FDQueue() {
 									</div>
 								</div>
 								<div className='flex-1 overflow-y-auto  flex flex-col gap-3 no-scrollbar'>
-									{DUMMY_REQUESTS.map((request, index) => (
+									{/* DUMMY_REQUESTS replaced with state or empty array for now */}
+									{appointmentRequests.map((request, index) => (
 										<div key={request.id || index} className="border-b border-gray-100 flex flex-col gap-3 last:border-0 p-3 bg-white  transition-colors">
 
 											{/* Patient Header */}
@@ -761,7 +922,7 @@ export default function FDQueue() {
 
 											{/* Buttons */}
 											<div className="flex gap-3">
-												<Button size='small' variant='primary' className='flex-1 h-9 text-xs font-medium' onClick={async () => {
+												<Button size='small' variant='primary' className='flex-1 h-9 text-sm font-medium' onClick={async () => {
 													try {
 														if (!request?.id) return; // Fix: use request.id from dummy
 														setApprovingId(request.id);
@@ -777,7 +938,7 @@ export default function FDQueue() {
 												}} disabled={approvingId === request.id}>
 													{approvingId === request.id ? 'Accepting...' : 'Accept'}
 												</Button>
-												<button className='flex-1 h-9 text-xs font-medium border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap px-1'>
+												<button className='flex-1 h-9 text-sm font-medium border border-secondary-grey200 rounded-md text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap px-1'>
 													Ask to Reschedule
 												</button>
 											</div>
@@ -850,8 +1011,27 @@ export default function FDQueue() {
 						onClick={(e) => e.stopPropagation()}
 					>
 						{activeActionMenuToken === 'slot_dropdown' ? (
-							<div className="py-1">
-								{/* Slot dropdown logic here if needed separate from top-left */}
+							<div className="py-1 min-w-[300px]">
+								{timeSlots.map((slot) => {
+									const isSelected = slotValue === slot.key;
+									return (
+										<button
+											key={slot.key}
+											onClick={() => {
+												setSlotValue(slot.key);
+												setSelectedSlotId(slot.slotId);
+												setActiveActionMenuToken(null);
+											}}
+											className={`flex items-center gap-3 px-4 py-3 text-sm text-left w-full transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+										>
+											<slot.Icon className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-gray-500'}`} />
+											<span className="flex-1">
+												<span className="font-medium mr-1">{slot.label}</span>
+												<span className={`${isSelected ? 'text-blue-100' : 'text-gray-500'}`}>({slot.time})</span>
+											</span>
+										</button>
+									);
+								})}
 							</div>
 						) : activeActionMenuToken === 'queue_actions_dropdown' ? (
 							<>

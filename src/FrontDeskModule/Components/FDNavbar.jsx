@@ -1,17 +1,59 @@
-import { Search, Mail, Phone, User, HelpCircle, LogOut, ChevronRight, Contact, UserCircle } from 'lucide-react';
+import { Search, Mail, Phone, User, HelpCircle, LogOut, ChevronRight, Contact, UserCircle, Users } from 'lucide-react';
 import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { bell } from '../../../public/index.js';
+import { bell, chevdown, patientunselect, appointement } from '../../../public/index.js';
 import useFrontDeskAuthStore from '../../store/useFrontDeskAuthStore';
 import AvatarCircle from '../../components/AvatarCircle';
 import NotificationDrawer from '../../components/NotificationDrawer.jsx';
 import AddPatientDrawer from '../../components/PatientList/AddPatientDrawer.jsx';
+import BookAppointmentDrawer from '../../components/Appointment/BookAppointmentDrawer.jsx';
 
 const Partition = () => (
 	<div className='w-[8.5px] h-[20px] flex gap-[10px] items-center justify-center'>
 		<div className='w-[0.5px] h-full bg-[#B8B8B8]'></div>
 	</div>
 );
+
+const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment, onAddStaff }) => {
+	if (!isOpen) return null;
+
+	return (
+		<div className="absolute top-full right-0 mt-1 w-[190px] bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden p-2 z-[60]">
+			<div className="flex flex-col gap-1">
+				<button
+					onClick={() => { onAddPatient?.(); onClose(); }}
+					className="w-full rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
+				>
+					<div className="w-4 h-4 flex items-center justify-center ml-1">
+						<img src={patientunselect} alt="Add Patient" />
+					</div>
+					<span className="text-[#424242] font-normal text-sm">Add Patient</span>
+				</button>
+
+				<button
+					onClick={() => { onAddStaff?.(); onClose(); }}
+					className="w-full rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
+				>
+					<div className="w-4 h-4 flex items-center justify-center ml-1">
+						<Users className="w-4 h-4 text-blue-500" />
+						{/* Placeholder icon for Staff */}
+					</div>
+					<span className="text-[#424242] font-normal text-sm">Add Staff</span>
+				</button>
+
+				<button
+					onClick={() => { onBookAppointment?.(); onClose(); }}
+					className="w-full rounded-md flex items-center gap-2 hover:bg-gray-50 h-8 transition-colors"
+				>
+					<div className="w-4 h-4 flex items-center justify-center ml-1">
+						<img src={appointement} alt="Book Appointment" />
+					</div>
+					<span className="text-[#424242] font-normal text-sm">Book Appointment</span>
+				</button>
+			</div>
+		</div>
+	);
+};
 
 const FDNavbar = () => {
 	const navigate = useNavigate();
@@ -20,7 +62,11 @@ const FDNavbar = () => {
 	const [showProfile, setShowProfile] = useState(false);
 	const [showNotifications, setShowNotifications] = useState(false);
 	const profileRef = useRef(null);
+	const dropdownRef = useRef(null);
+
 	const [addPatientOpen, setAddPatientOpen] = useState(false);
+	const [bookApptOpen, setBookApptOpen] = useState(false);
+	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
 	useEffect(() => {
 		const handler = (e) => {
@@ -34,11 +80,19 @@ const FDNavbar = () => {
 	}, []);
 
 	useEffect(() => {
-		const onClick = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setShowProfile(false); };
-		const onKey = (e) => { if (e.key === 'Escape') setShowProfile(false); };
-		document.addEventListener('mousedown', onClick);
+		const handleClickOutside = (e) => {
+			if (profileRef.current && !profileRef.current.contains(e.target)) setShowProfile(false);
+			if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setIsDropdownOpen(false);
+		};
+		const onKey = (e) => {
+			if (e.key === 'Escape') {
+				setShowProfile(false);
+				setIsDropdownOpen(false);
+			}
+		};
+		document.addEventListener('mousedown', handleClickOutside);
 		window.addEventListener('keydown', onKey);
-		return () => { document.removeEventListener('mousedown', onClick); window.removeEventListener('keydown', onKey); };
+		return () => { document.removeEventListener('mousedown', handleClickOutside); window.removeEventListener('keydown', onKey); };
 	}, []);
 
 	const handleLogout = () => {
@@ -73,12 +127,25 @@ const FDNavbar = () => {
 				</div>
 			</div>
 			<div className='flex items-center gap-2'>
-				<button
-					onClick={() => setAddPatientOpen(true)}
-					className='flex items-center bg-[#2372EC] px-3 h-8 rounded-[4px] gap-2 hover:bg-blue-600 transition-colors'
-				>
-					<span className='text-white text-sm font-medium'>Add New Patient</span>
-				</button>
+				<div className="relative" ref={dropdownRef}>
+					<button
+						onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+						className='flex items-center bg-[#2372EC] p-2 h-8 min-w-8 rounded-[4px] gap-2 hover:bg-blue-600 transition-colors'
+					>
+						<span className='text-white text-sm font-medium'>Add New</span>
+						<div className='flex border-l border-blue-400 pl-1'>
+							<img src={chevdown} alt="Dropdown" />
+						</div>
+					</button>
+					<AddNewDropdown
+						isOpen={isDropdownOpen}
+						onClose={() => setIsDropdownOpen(false)}
+						onAddPatient={() => setAddPatientOpen(true)}
+						onBookAppointment={() => setBookApptOpen(true)}
+						onAddStaff={() => { /* Placeholder for Staff Logic */ }}
+					/>
+				</div>
+
 				<Partition />
 				<div className='w-7 h-7 p-1 relative'>
 					<div className='absolute -top-1 -right-1 flex items-center justify-center rounded-full w-[14px] h-[14px] bg-[#F04248]'>
@@ -137,6 +204,17 @@ const FDNavbar = () => {
 			</div>
 			<NotificationDrawer show={showNotifications} onClose={() => setShowNotifications(false)} />
 			<AddPatientDrawer open={addPatientOpen} onClose={() => setAddPatientOpen(false)} onSave={() => setAddPatientOpen(false)} />
+			<BookAppointmentDrawer
+				open={bookApptOpen}
+				onClose={() => setBookApptOpen(false)}
+				// Pass doctor/clinic IDs from store if available, typically FD store might need to have them or pass placeholders
+				// For now passing undefined lets the drawer handle it or defaults.
+				// user object in FD store might have location IDs.
+				doctorId={"eb993b63-ec73-401b-a24c-bf59f6df3b57"}
+				clinicId={"02e3163c-c481-4831-984b-eac5d0b4fbe2"}
+				hospitalId={undefined}
+				onSave={() => setBookApptOpen(false)}
+			/>
 		</div>
 	);
 };

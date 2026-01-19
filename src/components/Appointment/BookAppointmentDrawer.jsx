@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import useToastStore from "@/store/useToastStore";
+import UniversalLoader from "../../components/UniversalLoader";
 import {
   Calendar,
   Sunrise,
@@ -34,6 +36,7 @@ export default function BookAppointmentDrawer({
   const CalendarWhiteIcon = () => (
     <img src={calendarWhite} alt="Calendar" className="w-4 h-4" />
   );
+  const { addToast } = useToastStore();
   const [isExisting, setIsExisting] = useState(false);
   const [apptType, setApptType] = useState("New Consultation");
   const [reason, setReason] = useState("");
@@ -45,9 +48,13 @@ export default function BookAppointmentDrawer({
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
   const dobRef = useRef(null);
-  const [apptDate, setApptDate] = useState(() =>
-    new Date().toISOString().slice(0, 10)
-  );
+  const [apptDate, setApptDate] = useState(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
   const apptDateRef = useRef(null);
   const [showDobCalendar, setShowDobCalendar] = useState(false);
   const [showApptDateCalendar, setShowApptDateCalendar] = useState(false);
@@ -289,11 +296,27 @@ export default function BookAppointmentDrawer({
         };
       }
       await bookWalkInAppointment(payload);
+
+      addToast({
+        title: "Appointment Booked",
+        message: "Walk-in appointment successfully booked.",
+        type: "success",
+        duration: 3000
+      });
+
       onBookedRefresh?.();
-      if (onSave) onSave(payload);
       onClose?.();
+      if (onSave) onSave(payload);
     } catch (e) {
       const msg = e?.message || "Booking failed";
+
+      addToast({
+        title: "Booking Failed",
+        message: msg,
+        type: "error",
+        duration: 4000
+      });
+
       const errs = e?.validation || e?.response?.data?.errors || null;
       if (errs && typeof errs === "object") setFieldErrors(errs);
       setErrorMsg(String(msg));
@@ -306,9 +329,14 @@ export default function BookAppointmentDrawer({
       isOpen={open}
       onClose={onClose}
       title="Book Walk-In Appointment"
-      primaryActionLabel="Book Appointment"
+      primaryActionLabel={booking ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} style={{ width: 'auto', height: 'auto' }} />
+          <span>Booking Appointment...</span>
+        </div>
+      ) : "Book Appointment"}
       onPrimaryAction={save}
-      primaryActionDisabled={!canSave()}
+      primaryActionDisabled={!canSave() || booking}
       width={600}
     >
       <div className="flex flex-col gap-4">
@@ -590,7 +618,15 @@ export default function BookAppointmentDrawer({
                   const t = cur?.time || "loading…";
                   return `${cur.label} - (${t})`;
                 })()}
-                onChange={() => {}}
+                rightMeta={(() => {
+                  const curSlots = grouped[bucketKey] || [];
+                  const curSlot = curSlots[0];
+                  if (!curSlot) return null;
+                  // Use availableTokens if present, else fallback logic if needed
+                  const avail = curSlot.availableTokens !== undefined ? curSlot.availableTokens : (curSlot.maxTokens || 0);
+                  return `${avail} Tokens Available`;
+                })()}
+                onChange={() => { }}
                 placeholder="Select"
                 RightIcon={ChevronDown}
                 onFieldOpen={() => openOnly("bucket")}
@@ -629,11 +665,7 @@ export default function BookAppointmentDrawer({
             )}
           </div>
         </div>
-        {errorMsg && (
-          <div className="p-2 rounded border border-red-200 bg-red-50 text-[12px] text-red-700">
-            {errorMsg}
-          </div>
-        )}
+       
       </div>
     </GeneralDrawer>
   );
