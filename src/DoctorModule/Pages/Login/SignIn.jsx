@@ -8,6 +8,7 @@ import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import useUIStore from "@/store/useUIStore";
 import useToastStore from "@/store/useToastStore";
 import useDoctorAuthStore from "@/store/useDoctorAuthStore";
+import useFrontDeskAuthStore from "@/store/useFrontDeskAuthStore";
 
 import RadioButton from "@/components/GeneralDrawer/RadioButton";
 
@@ -119,6 +120,21 @@ export default function DocSignIn() {
         if (loginMode === 'password') {
           // Check for required role - ONLY accept pure DOCTOR role
           const roles = res.data.roleNames || [];
+          const excludedRoles = ['DOCTOR', 'HOSPITAL_ADMIN', 'SUPER_ADMIN', 'ADMIN'];
+
+          // check if user has ANY of the excluded roles
+          const hasExcludedRole = roles.some(r => excludedRoles.includes(r));
+
+          if (!hasExcludedRole) {
+            const { setToken, setRoleNames, setUser } = useFrontDeskAuthStore.getState();
+            setToken(res.data.token);
+            setRoleNames(roles);
+            setRoleNames(roles); // using extracted roles
+            setUser(res.data.user); // assuming user object is returned, or fetch later
+
+            window.location.href = "/fd";
+            return;
+          }
 
           // Reject if no DOCTOR role
           if (!roles.includes("DOCTOR")) {
@@ -193,6 +209,23 @@ export default function DocSignIn() {
       if (res.success) {
         // Check for required role - ONLY accept pure DOCTOR role
         const roles = res.data.roleNames || [];
+        const excludedRoles = ['DOCTOR', 'HOSPITAL_ADMIN', 'SUPER_ADMIN', 'ADMIN'];
+
+        // check if user has ANY of the excluded roles
+        const hasExcludedRole = roles.some(r => excludedRoles.includes(r));
+
+        if (!hasExcludedRole) {
+          // Clear Doctor Auth Store to prevent access to doctor routes
+          useDoctorAuthStore.getState().clearAuth();
+
+          const { setToken, setRoleNames, setUser } = useFrontDeskAuthStore.getState();
+          setToken(res.data.token);
+          setRoleNames(roles);
+          setUser(res.data.user);
+
+          window.location.href = "/fd";
+          return;
+        }
 
         // Reject if no DOCTOR role
         if (!roles.includes("DOCTOR")) {

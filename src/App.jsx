@@ -12,6 +12,7 @@ import { RegistrationProvider } from "./SuperAdmin/context/RegistrationContext";
 import SuperAdminSignIn from "./SuperAdmin/pages/SignIn";
 import { ProtectedAdminRoute, PublicAdminRoute } from "./SuperAdmin/components/Guard/AdminRoutes";
 import { ProtectedHospitalRoute, ProtectedDoctorRoute, PublicHospitalRoute, PublicDoctorRoute } from "./HospitalModule/Components/Guard/HospitalRoutes";
+import { ProtectedFrontDeskRoute } from "./FrontDeskModule/Components/Guard/FrontDeskRoutes";
 import GetStarted from "./pages/GetStarted";
 import OnboardingFlow from "./DoctorModule/Pages/Login/OnboardingFlow";
 import Doctor_layout from "./DoctorModule/Components/Layout/DoctorLayout";
@@ -172,19 +173,21 @@ function App() {
       </Route>
 
       {/* FrontDesk Portal (copy of Doctor Portal) */}
-      <Route path="fd" element={<FDLayout />}>
-        <Route index element={<Navigate to="queue" replace />} />
-        <Route path="queue" element={<FDQueue />} />
-        <Route path="calendar" element={<FDCalendar />} />
-        <Route path="patients" element={<FDPatients />} />
-        <Route path="patients/:id" element={<FDPatientDetails />} />
-        {/* Settings */}
-        <Route path="settings/clinics" element={<FDClinics />} />
-        <Route path="settings/consultation" element={<FDConsultation />} />
-        <Route
-          path="settings/staff-permissions"
-          element={<FDStaffPermissions />}
-        />
+      <Route element={<ProtectedFrontDeskRoute />}>
+        <Route path="fd" element={<FDLayout />}>
+          <Route index element={<Navigate to="queue" replace />} />
+          <Route path="queue" element={<FDQueue />} />
+          <Route path="calendar" element={<FDCalendar />} />
+          <Route path="patients" element={<FDPatients />} />
+          <Route path="patients/:id" element={<FDPatientDetails />} />
+          {/* Settings */}
+          <Route path="settings/clinics" element={<FDClinics />} />
+          <Route path="settings/consultation" element={<FDConsultation />} />
+          <Route
+            path="settings/staff-permissions"
+            element={<FDStaffPermissions />}
+          />
+        </Route>
       </Route>
 
       {/* Hospital Portal (copy of Doctor Portal) */}

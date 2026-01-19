@@ -31,11 +31,16 @@ const useDoctorAuthStore = create(
                     if (res.data?.success) {
                         const data = res.data.data;
                         if (payload.method === 'PASSWORD') {
-                            set({
-                                token: data.token,
-                                roleNames: data.roleNames,
-                                loading: false
-                            });
+                            const roles = data.roleNames || [];
+                            if (roles.includes("DOCTOR")) {
+                                set({
+                                    token: data.token,
+                                    roleNames: data.roleNames,
+                                    loading: false
+                                });
+                            } else {
+                                set({ loading: false });
+                            }
                         } else if (payload.method === 'OTP') {
                             set({
                                 challengeId: data.data.challengeId,
@@ -60,11 +65,16 @@ const useDoctorAuthStore = create(
 
                     if (res.data?.success) {
                         const data = res.data.data;
-                        set({
-                            token: data.token,
-                            roleNames: data.roleNames,
-                            loading: false
-                        });
+                        const roles = data.roleNames || [];
+                        if (roles.includes("DOCTOR")) {
+                            set({
+                                token: data.token,
+                                roleNames: data.roleNames,
+                                loading: false
+                            });
+                        } else {
+                            set({ loading: false });
+                        }
                         return res.data;
                     }
                     throw new Error(res.data?.message || 'OTP verification failed');
