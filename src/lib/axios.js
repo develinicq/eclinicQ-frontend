@@ -41,6 +41,13 @@ axiosInstance.interceptors.request.use(
         dToken = store.getState().token;
       } catch (e) { /* ignore */ }
 
+      let fdToken = null;
+      try {
+        // Dynamic import for front desk auth store
+        const store = (await import('../store/useFrontDeskAuthStore')).default;
+        fdToken = store.getState().token;
+      } catch (e) { /* ignore */ }
+
       const genericToken = (() => {
         try { return useAuthStore.getState().token; } catch { return null; }
       })();
@@ -53,13 +60,13 @@ axiosInstance.interceptors.request.use(
       let token = null;
 
       if (path.startsWith('/doc')) {
-        token = dToken || saToken || hToken || genericToken || lsToken;
+        token = dToken || fdToken || saToken || hToken || genericToken || lsToken;
       } else if (path.startsWith('/hospital')) {
         token = hToken || saToken || dToken || genericToken || lsToken;
       } else if (path.startsWith('/hfd')) {
         token = hToken || saToken || dToken || genericToken || lsToken;
       } else if (path.startsWith('/fd')) {
-        token = genericToken || saToken || hToken || dToken || lsToken;
+        token = fdToken || genericToken || saToken || hToken || dToken || lsToken;
       } else {
         // Default priority for SuperAdmin or other paths
         token = saToken || hToken || dToken || genericToken || lsToken;
@@ -94,6 +101,9 @@ axiosInstance.interceptors.response.use(
 
         // Dynamic import for doctor auth store to clear it too
         import('../store/useDoctorAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
+
+        // Dynamic import for front desk auth store to clear it too
+        import('../store/useFrontDeskAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
 
         // Note: useToastStore might need to be imported or accessed similarly
         // For now, keeping the 401 logic minimal to avoid breaking more things

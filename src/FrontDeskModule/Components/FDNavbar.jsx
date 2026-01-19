@@ -1,8 +1,8 @@
-import { Search, Mail, Phone, User, HelpCircle, LogOut, ChevronRight } from 'lucide-react';
+import { Search, Mail, Phone, User, HelpCircle, LogOut, ChevronRight, Contact, UserCircle } from 'lucide-react';
 import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { bell } from '../../../public/index.js';
-import useAuthStore from '../../store/useAuthStore';
+import useFrontDeskAuthStore from '../../store/useFrontDeskAuthStore';
 import AvatarCircle from '../../components/AvatarCircle';
 import NotificationDrawer from '../../components/NotificationDrawer.jsx';
 import AddPatientDrawer from '../../components/PatientList/AddPatientDrawer.jsx';
@@ -16,11 +16,11 @@ const Partition = () => (
 const FDNavbar = () => {
 	const navigate = useNavigate();
 	const searchRef = useRef(null);
-	const { user } = useAuthStore();
+	const { user, clearAuth } = useFrontDeskAuthStore();
 	const [showProfile, setShowProfile] = useState(false);
 	const [showNotifications, setShowNotifications] = useState(false);
-		const profileRef = useRef(null);
-		const [addPatientOpen, setAddPatientOpen] = useState(false);
+	const profileRef = useRef(null);
+	const [addPatientOpen, setAddPatientOpen] = useState(false);
 
 	useEffect(() => {
 		const handler = (e) => {
@@ -41,9 +41,17 @@ const FDNavbar = () => {
 		return () => { document.removeEventListener('mousedown', onClick); window.removeEventListener('keydown', onKey); };
 	}, []);
 
-	const displayName = user?.name || user?.firstName || 'FrontDesk';
-	const email = user?.emailId || user?.email || '—';
-	const phone = user?.phone || user?.contactNumber || '—';
+	const handleLogout = () => {
+		clearAuth();
+		navigate('/doc/signin');
+	};
+
+	const displayName = user?.name || 'FrontDesk';
+	const position = user?.position || 'Receptionist';
+	const email = user?.email || '—';
+	const phone = user?.phone || '—';
+	const staffId = user?.staffId || '—';
+	const role = user?.role || 'Front Desk User';
 
 	return (
 		<div className='w-full h-12 border-b-[0.5px] border-[#D6D6D6] flex items-center px-4 gap-3'>
@@ -65,8 +73,8 @@ const FDNavbar = () => {
 				</div>
 			</div>
 			<div className='flex items-center gap-2'>
-						<button
-							onClick={() => setAddPatientOpen(true)}
+				<button
+					onClick={() => setAddPatientOpen(true)}
 					className='flex items-center bg-[#2372EC] px-3 h-8 rounded-[4px] gap-2 hover:bg-blue-600 transition-colors'
 				>
 					<span className='text-white text-sm font-medium'>Add New Patient</span>
@@ -76,7 +84,7 @@ const FDNavbar = () => {
 					<div className='absolute -top-1 -right-1 flex items-center justify-center rounded-full w-[14px] h-[14px] bg-[#F04248]'>
 						<span className='font-medium text-[10px] text-white'>8</span>
 					</div>
-					<button onClick={()=>setShowNotifications(true)} style={{background:'none',border:'none',padding:0}}>
+					<button onClick={() => setShowNotifications(true)} style={{ background: 'none', border: 'none', padding: 0 }}>
 						<img src={bell} alt='Notifications' className='w-5 h-5' />
 					</button>
 				</div>
@@ -91,8 +99,8 @@ const FDNavbar = () => {
 							<div className='p-4 flex items-start gap-3'>
 								<AvatarCircle name={displayName || 'FD'} size='md' color='orange' />
 								<div className='flex flex-col'>
-									<div className='text-sm font-semibold text-gray-900'>{displayName || '—'}</div>
-									<div className='text-xs text-gray-600'>Front Desk User</div>
+									<div className='text-sm font-semibold text-gray-900'>{displayName}</div>
+									<div className='text-xs text-gray-600'>{position}</div>
 								</div>
 							</div>
 							<div className='px-4 pb-3 space-y-2 text-xs'>
@@ -105,16 +113,20 @@ const FDNavbar = () => {
 									<span>{phone}</span>
 								</div>
 								<div className='flex items-center gap-2 text-gray-700'>
-									<User className='w-4 h-4 text-[#597DC3]' />
-									<span>Workspace</span>
+									<Contact className='w-4 h-4 text-[#597DC3]' />
+									<span className='truncate'>{staffId}</span>
+								</div>
+								<div className='flex items-center gap-2 text-gray-700'>
+									<UserCircle className='w-4 h-4 text-[#597DC3]' />
+									<span className='truncate'>{role}</span>
 								</div>
 							</div>
 							<div className='border-t border-gray-200 divide-y text-sm'>
 								<button className='w-full flex items-center justify-between px-4 h-10 hover:bg-gray-50 text-gray-700'>
-									<span className='flex items-center gap-2 text-[13px]'><HelpCircle className='w-4 h-4 text-gray-500' /> Help Center</span>
+									<span className='flex items-center gap-2 text-[13px]'><HelpCircle className='w-4 h-4 text-gray-500' /> Edit Profile</span>
 									<ChevronRight className='w-4 h-4 text-gray-400' />
 								</button>
-								<button className='w-full flex items-center justify-between px-4 h-10 hover:bg-gray-50 text-gray-700'>
+								<button onClick={handleLogout} className='w-full flex items-center justify-between px-4 h-10 hover:bg-gray-50 text-gray-700'>
 									<span className='flex items-center gap-2 text-[13px]'><LogOut className='w-4 h-4 text-gray-500' /> Logout</span>
 									<ChevronRight className='w-4 h-4 text-gray-400' />
 								</button>
@@ -123,8 +135,8 @@ const FDNavbar = () => {
 					)}
 				</div>
 			</div>
-			<NotificationDrawer show={showNotifications} onClose={()=>setShowNotifications(false)} />
-			<AddPatientDrawer open={addPatientOpen} onClose={()=>setAddPatientOpen(false)} onSave={()=>setAddPatientOpen(false)} />
+			<NotificationDrawer show={showNotifications} onClose={() => setShowNotifications(false)} />
+			<AddPatientDrawer open={addPatientOpen} onClose={() => setAddPatientOpen(false)} onSave={() => setAddPatientOpen(false)} />
 		</div>
 	);
 };

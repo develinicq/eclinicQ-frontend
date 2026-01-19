@@ -126,13 +126,23 @@ export default function DocSignIn() {
           const hasExcludedRole = roles.some(r => excludedRoles.includes(r));
 
           if (!hasExcludedRole) {
+            // Clear Doctor Auth Store to prevent access to doctor routes
+            useDoctorAuthStore.getState().clearAuth();
+
             const { setToken, setRoleNames, setUser } = useFrontDeskAuthStore.getState();
             setToken(res.data.token);
             setRoleNames(roles);
             setRoleNames(roles); // using extracted roles
             setUser(res.data.user); // assuming user object is returned, or fetch later
 
-            window.location.href = "/fd";
+            addToast({
+              title: "Login Successful",
+              message: "Redirecting to front desk dashboard...",
+              type: "success",
+              duration: 2000
+            });
+
+            window.location.href = "/fd/queue";
             return;
           }
 
@@ -223,7 +233,14 @@ export default function DocSignIn() {
           setRoleNames(roles);
           setUser(res.data.user);
 
-          window.location.href = "/fd";
+          addToast({
+            title: "Login Successful",
+            message: "Redirecting to front desk dashboard...",
+            type: "success",
+            duration: 2000
+          });
+
+          window.location.href = "/fd/queue";
           return;
         }
 

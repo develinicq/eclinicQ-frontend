@@ -12,6 +12,7 @@ import SessionTimer from '../../../components/SessionTimer';
 import Toggle from '../../../components/FormItems/Toggle';
 import BookAppointmentDrawer from '../../../components/Appointment/BookAppointmentDrawer';
 import useAuthStore from '../../../store/useAuthStore';
+import useFrontDeskAuthStore from '../../../store/useFrontDeskAuthStore';
 
 
 
@@ -108,6 +109,12 @@ export default function FDQueue() {
 	const { user } = useAuthStore();
 	const doctorId = user?.id;
 	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Fix: Define dropdownPosition
+
+	// Fetch FD profile on mount
+	useEffect(() => {
+		useFrontDeskAuthStore.getState().fetchMe();
+	}, []);
+
 	// Dummy Stubs to prevent crash
 	const pauseSlotEta = async () => ({});
 
@@ -746,7 +753,7 @@ export default function FDQueue() {
 													)}
 												</div>
 
-												
+
 
 											</div>
 
@@ -777,7 +784,7 @@ export default function FDQueue() {
 										</div>
 									))}
 								</div>
-								
+
 							</div>
 						</div>
 					</div></div></div>

@@ -19,9 +19,32 @@ const useFrontDeskAuthStore = create(
                 roleNames: []
             }),
 
-            // Front Desk shares the same login endpoint as doctors initially, 
-            // but we might want to store it separately here if needed. 
-            // Usually, SignIn.jsx handles the API call and just sets the token here.
+            fetchMe: async () => {
+                set({ loading: true });
+                try {
+                    const axiosInstance = (await import('../lib/axios')).default;
+                    const res = await axiosInstance.get('/staff/me');
+
+                    if (res.data?.success) {
+                        set({
+                            user: res.data.data,
+                            loading: false
+                        });
+                        return res.data;
+                    }
+                    throw new Error(res.data?.message || 'Failed to fetch profile');
+                } catch (error) {
+                    set({ loading: false });
+                    console.error('Fetch front desk profile error:', error);
+
+                    // Clear auth on 401 (invalid/expired token)
+                    if (error.response?.status === 401) {
+                        get().clearAuth();
+                    }
+
+                    throw error;
+                }
+            },
 
             // Helper to check auth
             isAuthenticated: () => Boolean(get().token),
