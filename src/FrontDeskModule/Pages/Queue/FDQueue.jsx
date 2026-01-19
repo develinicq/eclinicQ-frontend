@@ -418,6 +418,57 @@ export default function FDQueue() {
 		}
 	};
 
+	const [isCancellingRequest, setIsCancellingRequest] = useState(false);
+	const handleCancelRequest = async () => {
+		const id = activeActionMenuToken?.toString().replace('req_', '');
+		if (!id) return;
+
+		setIsCancellingRequest(true);
+		try {
+			// specific API for rejection
+			const res = await axiosInstance.put(`/appointments/reject/${id}`);
+			if (res.data?.success) {
+				fetchPendingAppointments();
+				setActiveActionMenuToken(null);
+				addToast({
+					title: "Request Rejected",
+					message: "The appointment request has been rejected.",
+					type: "success",
+					duration: 3000
+				});
+			}
+		} catch (error) {
+			console.error("Failed to reject request", error);
+			addToast({ title: "Error", message: "Failed to reject request", type: "error" });
+		} finally {
+			setIsCancellingRequest(false);
+		}
+	};
+
+	const handleApproveRequest = async (id) => {
+		if (!id) return;
+		setApprovingId(id);
+		try {
+			const res = await axiosInstance.put(`/appointments/approve/${id}`);
+			if (res.data?.success) {
+				fetchPendingAppointments();
+				// Also refresh main list as approved appt moves there
+				fetchAppointments(selectedSlotId);
+				addToast({
+					title: "Request Approved",
+					message: "Appointment request approved successfully.",
+					type: "success",
+					duration: 3000
+				});
+			}
+		} catch (error) {
+			console.error("Failed to approve request", error);
+			addToast({ title: "Error", message: "Failed to approve request", type: "error" });
+		} finally {
+			setApprovingId(null);
+		}
+	};
+
 	const [showWalkIn, setShowWalkIn] = useState(false);
 	// New: On check-in, call API and refresh; do not open pre-screening
 
@@ -922,8 +973,11 @@ export default function FDQueue() {
 														<div className="text-[12px] text-secondary-grey300">{request.gender} | {request.dob} ({request.age})</div>
 													</div>
 												</div>
-												<button className="text-gray-400 hover:bg-secondary-grey50">
-													<img src={more} alt="" />
+												<button
+													onClick={(e) => handleActionMenuClick(e, `req_${request.id}`)}
+													className={`text-gray-400 hover:bg-secondary-grey50 rounded-full p-1 transition-colors ${activeActionMenuToken === `req_${request.id}` ? 'bg-secondary-grey50 text-gray-600' : ''}`}
+												>
+													<img src={more} alt="" className='w-4 h-4' />
 												</button>
 											</div>
 
@@ -950,21 +1004,19 @@ export default function FDQueue() {
 
 											{/* Buttons */}
 											<div className="flex gap-3">
-												<Button size='small' variant='primary' className='flex-1 h-9 text-sm font-medium' onClick={async () => {
-													try {
-														if (!request?.id) return; // Fix: use request.id from dummy
-														setApprovingId(request.id);
-														// await approveAppointment(request.id); // Dummy: simulate async
-														await new Promise(r => setTimeout(r, 1000));
-														setAppointmentRequests(prev => prev.filter(r => r.id !== request.id));
-														// if (selectedSlotId) { await loadAppointmentsForSelectedSlot(); }
-													} catch (e) {
-														console.error('Approve failed', e);
-													} finally {
-														setApprovingId(null);
-													}
-												}} disabled={approvingId === request.id}>
-													{approvingId === request.id ? 'Accepting...' : 'Accept'}
+												<Button
+													size='small'
+													variant='primary'
+													className='flex-1 h-9 text-sm font-medium'
+													onClick={() => handleApproveRequest(request.id)}
+													disabled={approvingId === request.id}
+												>
+													{approvingId === request.id ? (
+														<div className="flex items-center justify-center gap-2">
+															<UniversalLoader size={16} className="text-white" style={{ width: 'auto', height: 'auto' }} />
+															<span>Accepting...</span>
+														</div>
+													) : 'Accept'}
 												</Button>
 												<button className='flex-1 h-9 text-sm font-medium border border-secondary-grey200 rounded-md text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap px-1'>
 													Ask to Reschedule
@@ -1143,6 +1195,32 @@ export default function FDQueue() {
 								</button>
 								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
 									<User className="h-4 w-4" /> View Profile
+								</button>
+								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
+									<RotateCcw className="h-4 w-4" /> Revoke Check-In
+								</button>
+							</>
+						) : activeActionMenuToken?.toString().startsWith('req_') ? (
+							<>
+								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+									<User className="h-4 w-4" /> View Profile
+								</button>
+								<div className="my-1 border-t border-gray-100"></div>
+								<button
+									onClick={handleCancelRequest}
+									disabled={isCancellingRequest}
+									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+								>
+									{isCancellingRequest ? (
+										<div className="flex items-center gap-2">
+											<UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
+											<span>Rejecting...</span>
+										</div>
+									) : (
+										<>
+											<CalendarX className="h-4 w-4" /> Cancel Appointment
+										</>
+									)}
 								</button>
 							</>
 						) : (
