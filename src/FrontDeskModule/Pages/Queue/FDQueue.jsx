@@ -12,6 +12,8 @@ import SessionTimer from '../../../components/SessionTimer';
 import Toggle from '../../../components/FormItems/Toggle';
 import BookAppointmentDrawer from '../../../components/Appointment/BookAppointmentDrawer';
 import useAuthStore from '../../../store/useAuthStore';
+import useToastStore from '../../../store/useToastStore';
+import UniversalLoader from '../../../components/UniversalLoader';
 import useFrontDeskAuthStore from '../../../store/useFrontDeskAuthStore';
 import axiosInstance from '../../../lib/axios';
 import { format } from 'date-fns'; // Assuming date-fns is available, or use native styling if not.
@@ -68,6 +70,7 @@ const filters = ['In Waiting', 'Engaged', 'Checked-In', 'No show', 'Admitted'];
 
 export default function FDQueue() {
 	const { user } = useAuthStore();
+	const { addToast } = useToastStore();
 	const doctorId = user?.id;
 	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Fix: Define dropdownPosition
 
@@ -388,6 +391,31 @@ export default function FDQueue() {
 			left: rect.left + window.scrollX - menuWidth + rect.width,
 		});
 		setActiveActionMenuToken(activeActionMenuToken === token ? null : token);
+	};
+
+	const [isMarkingNoShow, setIsMarkingNoShow] = useState(false);
+	const handleMarkNoShow = async () => {
+		const appointment = queueData.find(item => item.token === activeActionMenuToken);
+		if (!appointment?.id) return;
+
+		setIsMarkingNoShow(true);
+		try {
+			const res = await axiosInstance.put(`/appointments/no-show/${appointment.id}`);
+			if (res.data?.success) {
+				fetchAppointments(selectedSlotId);
+				setActiveActionMenuToken(null);
+				addToast({
+					title: "Marked as No-Show",
+					message: "The patient has been marked as No-Show.",
+					type: "success",
+					duration: 3000
+				});
+			}
+		} catch (error) {
+			console.error("Failed to mark as no-show", error);
+		} finally {
+			setIsMarkingNoShow(false);
+		}
 	};
 
 	const [showWalkIn, setShowWalkIn] = useState(false);
@@ -1134,8 +1162,21 @@ export default function FDQueue() {
 									<CalendarPlus className="h-4 w-4" /> Schedule Follow-up
 								</button>
 								<div className="my-1 border-t border-gray-100"></div>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
-									<UserX className="h-4 w-4" /> Mark as No-Show
+								<button
+									onClick={handleMarkNoShow}
+									disabled={isMarkingNoShow}
+									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+								>
+									{isMarkingNoShow ? (
+										<div className="flex items-center gap-2">
+											<UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
+											<span>Marking...</span>
+										</div>
+									) : (
+										<>
+											<UserX className="h-4 w-4" /> Mark as No-Show
+										</>
+									)}
 								</button>
 								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
 									<RotateCcw className="h-4 w-4" /> Revoke Check-In
@@ -1146,6 +1187,17 @@ export default function FDQueue() {
 					document.body
 				)
 			}
+			<BookAppointmentDrawer
+				open={showWalkIn}
+				onClose={() => setShowWalkIn(false)}
+				doctorId={"eb993b63-ec73-401b-a24c-bf59f6df3b57"}
+				clinicId={"02e3163c-c481-4831-984b-eac5d0b4fbe2"}
+				hospitalId={undefined}
+				onBookedRefresh={() => {
+					fetchAppointments(selectedSlotId);
+					fetchPendingAppointments();
+				}}
+			/>
 		</div >
 	);
 }
