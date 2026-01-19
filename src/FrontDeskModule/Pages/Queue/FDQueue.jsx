@@ -136,15 +136,108 @@ export default function FDQueue() {
 
 	const isToggleOn = sessionStarted && !queuePaused;
 
-	const handleToggleChange = () => {
+	// Start Session Logic
+	const [isStartingSession, setIsStartingSession] = useState(false);
+	const [isEndingSession, setIsEndingSession] = useState(false);
+	const [isResumingSlot, setIsResumingSlot] = useState(false);
+	const [startingToken, setStartingToken] = useState(null);
+
+	const handleStartPatientSession = async (token) => {
+		if (!selectedSlotId || !token) return;
+		setStartingToken(token);
+		try {
+			const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/session/${token}/start`);
+			if (res.data?.success) {
+				addToast({ title: "Patient Session Started", message: `Session started for Token ${token}`, type: "success" });
+				setSessionStatus('ongoing');
+				pollSlotStatus();
+			}
+		} catch (error) {
+			console.error("Failed to start patient session", error);
+			addToast({ title: "Error", message: "Failed to start patient session", type: "error" });
+		} finally {
+			setStartingToken(null);
+		}
+	};
+
+	const handleToggleChange = async () => {
 		if (isToggleOn) {
-			// Turning OFF -> Pause
-			setPauseMinutes(null);
-			setShowPauseModal(true);
+			// Turning OFF -> End Slot (Replaces Pause Modal per request)
+			if (!selectedSlotId) return;
+			setIsEndingSession(true);
+			try {
+				const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/end`);
+				if (res.data?.success) {
+					addToast({ title: "Session Ended", message: "Queue session ended successfully.", type: "success" });
+					setSessionStarted(false);
+					setQueuePaused(false);
+					setPolledActivePatient(null);
+					pollSlotStatus();
+				}
+			} catch (error) {
+				console.error("Failed to end slot session", error);
+				addToast({ title: "Error", message: "Failed to end slot session", type: "error" });
+			} finally {
+				setIsEndingSession(false);
+			}
 		} else {
 			// Turning ON -> Start or Resume
-			setSessionStarted(true);
-			setQueuePaused(false);
+			if (!selectedSlotId) return;
+			setIsStartingSession(true);
+			try {
+				const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/start`);
+				if (res.data?.success) {
+					addToast({ title: "Session Started", message: "Queue session started.", type: "success" });
+					setSessionStarted(true);
+					setQueuePaused(false);
+
+					// Auto-start first checked-in patient
+					// We need to access the LATEST checkedIn list. 
+					// appointmentsData might be stale if we depend on a previous render cycle, 
+					// but usually it's up to date enough.
+					// We ideally should fetch the list first or trust appointmentsData.
+					// Let's trust appointmentsData for now.
+					// Sort checkedIn by tokenNo just in case (though backend sorting preferred)
+					const checkedInList = appointmentsData.checkedIn || [];
+					// Assuming checkedInList items have tokenNo.
+					// Wait, appointmentsData structure needs verification. 
+					// Previously: appointmentsData = { checkedIn: [], ... }
+					// If list is valid and has items:
+					if (checkedInList.length > 0) {
+						// Find "uppermost" -> usually first index.
+						const firstPatient = checkedInList[0];
+						if (firstPatient?.token) {
+							// Call start session for this patient
+							await handleStartPatientSession(firstPatient.token);
+						}
+					}
+
+					pollSlotStatus();
+				}
+			} catch (error) {
+				console.error("Failed to start session", error);
+				addToast({ title: "Error", message: "Failed to start session", type: "error" });
+			} finally {
+				setIsStartingSession(false);
+			}
+		}
+	};
+
+	const handleResumeQueue = async () => {
+		if (!selectedSlotId) return;
+		setIsResumingSlot(true);
+		try {
+			const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/resume`);
+			if (res.data?.success) {
+				addToast({ title: "Queue Resumed", message: "Queue session resumed successfully.", type: "success" });
+				setQueuePaused(false);
+				pollSlotStatus();
+			}
+		} catch (error) {
+			console.error("Failed to resume slot", error);
+			addToast({ title: "Error", message: "Failed to resume queue", type: "error" });
+		} finally {
+			setIsResumingSlot(false);
 		}
 	};
 	// Paused state UI: countdown to auto-resume
@@ -163,6 +256,7 @@ export default function FDQueue() {
 	const [incomingToken, setIncomingToken] = useState(null);
 	// Current token reported by backend status, used to focus the engaged patient
 	const [backendCurrentToken, setBackendCurrentToken] = useState(null);
+	const [polledActivePatient, setPolledActivePatient] = useState(null);
 	// Holds list currently shown in table (derived from active filter)
 	const [queueData, setQueueData] = useState([]);
 	const [appointmentRequests, setAppointmentRequests] = useState([]);
@@ -183,7 +277,9 @@ export default function FDQueue() {
 		try {
 			const res = await axiosInstance.get(`/eta/slot/${selectedSlotId}/status`);
 			if (res.data?.success) {
+				console.log("Full Poll Response:", res.data);
 				const { slotStatus, currentToken, pauseDurationMinutes, pauseStartedAt, activePatientDetails } = res.data.message || {};
+				console.log("Extracted activePatientDetails:", activePatientDetails);
 
 				// Map backend status to frontend state
 				if (slotStatus === 'CREATED') {
@@ -198,20 +294,40 @@ export default function FDQueue() {
 					setSessionStatus('ongoing'); // Still ongoing, just paused
 					setSessionStarted(true);
 					setQueuePaused(true);
-					// If we have pause details, we could sync the timer here if needed
-					// For now, relies on local timer or existing logic
+
+					if (pauseStartedAt && pauseDurationMinutes) {
+						const start = new Date(pauseStartedAt).getTime();
+						const ends = start + (pauseDurationMinutes * 60 * 1000);
+						setPauseEndsAt(ends);
+					}
 				} else if (slotStatus === 'COMPLETED') {
 					setSessionStatus('completed');
 					setSessionStarted(false);
 					setQueuePaused(false);
 				}
 
+
 				if (currentToken) {
 					setBackendCurrentToken(currentToken);
 				}
 
-				// If active patient details are provided, we could update activePatient state or just rely on backendCurrentToken
-				// For now, we trust the token.
+				if (activePatientDetails) {
+					console.log("Setting polled patient:", activePatientDetails);
+					const p = activePatientDetails;
+					setPolledActivePatient({
+						patientName: `${p.firstName} ${p.lastName}`.trim(),
+						token: p.tokenNumber,
+						gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
+						age: calculateAge(p.dob),
+						reasonForVisit: p.reason,
+						// Add other fields if needed by the card
+						patientId: p.patientId,
+						startedAt: p.startedAt // Sync session timer
+					});
+				} else {
+					console.log("No active patient details in poll");
+					setPolledActivePatient(null);
+				}
 			}
 		} catch (error) {
 			console.error("Failed to poll slot status", error);
@@ -407,27 +523,36 @@ export default function FDQueue() {
 		return 0;
 	};
 	// Updated Active Patient to use Real Data
+	// Updated Active Patient to use Real Data from Polling
 	const activePatient = useMemo(() => {
-		// If engaged list has someone, show them.
-		if (appointmentsData.engaged.length > 0) return appointmentsData.engaged[0];
-		// Fallback? or null.
-		return null;
-	}, [appointmentsData.engaged]);
+		// Priority 1: Polled data from slot status is the ONLY source of truth for the Active Card
+		// If polling says null (no active patient), we show nothing, even if the 'engaged' list has items.
+		return polledActivePatient;
+	}, [polledActivePatient]);
 
 
 	// Simplified Dummy Logic: Complete Patient
-	const completeCurrentPatient = async () => {
-		const ANIM_MS = 300;
+	// End Session for Patient
+	const handleEndPatientSession = async () => {
 		const active = activePatient;
-		if (!active) return;
+		if (!active || !selectedSlotId) return;
 
 		setRemovingToken(active.token);
-		// Simulate completion delay
-		setTimeout(() => {
+		try {
+			const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/session/${active.token}/end`);
+			if (res.data?.success) {
+				addToast({ title: "Session Ended", message: "Patient session ended successfully.", type: "success" });
+				setSessionStatus('ongoing'); // Keep session ongoing for queue
+				// Refresh status
+				pollSlotStatus();
+				fetchAppointments(selectedSlotId);
+			}
+		} catch (error) {
+			console.error("Failed to end patient session", error);
+			addToast({ title: "Error", message: "Failed to end patient session", type: "error" });
+		} finally {
 			setRemovingToken(null);
-			// Simple navigation to next patient for demo
-			setCurrentIndex(prev => prev + 1);
-		}, ANIM_MS);
+		}
 	};
 
 	// Dummy Actions for Table
@@ -488,10 +613,6 @@ export default function FDQueue() {
 				// The UI uses `checkedInTokens` state to toggle the button.
 				// If I remove `setCheckedInTokens`, the button might reappear unless the API response updates `status`.
 				// I should probably ALSO update the local `checkedInTokens` state or ensure `mapAppointmentToRow` uses the new status.
-				// Let's assume the API updates the status. I'll rely on fetch, but also set local state for immediate feedback.
-				// Actually, better to just rely on fetch. If status changes to CHECKED-IN, we need to know how to render.
-				// Current render logic checks `checkedInTokens[row.token]`. 
-				// I should populate `checkedInTokens` from the API data in `fetchAppointments` as well?
 				// Or I should just use the `status` field from the row?
 				// Let's look at `mapAppointmentToRow`.
 
@@ -568,11 +689,21 @@ export default function FDQueue() {
 	// While paused, tick remaining time every second
 	useEffect(() => {
 		if (!queuePaused || !pauseEndsAt) return;
-		const tick = () => { setPauseRemaining(Math.max(0, Math.floor((pauseEndsAt - Date.now()) / 1000))); };
+		const tick = () => {
+			const rem = Math.max(0, Math.floor((pauseEndsAt - Date.now()) / 1000));
+			setPauseRemaining(rem);
+			if (rem <= 0) {
+				handleResumeQueue(); // Auto-resume API call
+				if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; }
+			}
+		};
 		tick();
 		pauseTickerRef.current = setInterval(tick, 1000);
 		return () => { if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; } };
-	}, [queuePaused, pauseEndsAt]);
+	}, [queuePaused, pauseEndsAt, handleResumeQueue]);
+
+	console.log("Render Queue: sessionStarted=", sessionStarted, "activePatient=", activePatient);
+
 	return (
 		<div className='flex h-full w-full bg-gray-50 overflow-hidden'>
 			{/* Middle Column: Queue Content (Table + Header) */}
@@ -616,9 +747,24 @@ export default function FDQueue() {
 							<div className='flex items-center gap-2'>
 								<Toggle
 									checked={isToggleOn}
-									onChange={handleToggleChange}
+									onChange={(!isStartingSession && !isEndingSession) ? handleToggleChange : undefined}
+									className={(isStartingSession || isEndingSession) ? "opacity-50 cursor-not-allowed" : ""}
 								/>
-								<span className={`text-sm font-medium ${isToggleOn ? 'text-gray-700' : 'text-secondary-grey300'}`}>Start Session</span>
+								<span className={`text-sm font-medium ${isToggleOn ? 'text-gray-700' : 'text-secondary-grey300'}`}>
+									{isStartingSession ? (
+										<div className="flex items-center gap-1">
+											<UniversalLoader size={14} className="text-secondary-grey300" />
+											<span className="text-secondary-grey300">Starting...</span>
+										</div>
+									) : isEndingSession ? (
+										<div className="flex items-center gap-1">
+											<UniversalLoader size={14} className="text-secondary-grey300" />
+											<span className="text-secondary-grey300">Ending...</span>
+										</div>
+									) : (
+										"Start Session"
+									)}
+								</span>
 							</div>
 
 							<div className='bg-secondary-grey100/50 h-5 w-[1px]' ></div>
@@ -651,7 +797,7 @@ export default function FDQueue() {
 										'--blink-on': '#EC7600',
 										'--blink-off': '#ffffff',
 									}}></span>
-								<span className={`font-bold text-[20px] ${queuePaused ? 'text-warning-400' : 'text-white'}`}>10</span>
+								<span className={`font-bold text-[20px] ${queuePaused ? 'text-warning-400' : 'text-white'}`}>{backendCurrentToken || activePatient?.token || '-'}</span>
 								{queuePaused && (
 									<div className='flex items-center ml-2 border border-warning-400 py-[2px] rounded px-[6px] bg-white gap-1'>
 										<img src={stopwatch} alt="" className='w-[14px] h-[14px]' />
@@ -672,10 +818,16 @@ export default function FDQueue() {
 									</button>
 								) : (
 									<button
-										onClick={() => setQueuePaused(false)}
-										className='bg-blue-primary250 text-white h-[24px] py-1 px-[6px] rounded text-[12px] font-medium flex items-center gap-1.5 hover:bg-blue-primary300 transition-colors '
+										onClick={handleResumeQueue}
+										disabled={isResumingSlot}
+										className='bg-blue-primary250 text-white h-[24px] py-1 px-[6px] rounded text-[12px] font-medium flex items-center gap-1.5 hover:bg-blue-primary300 transition-colors disabled:opacity-50'
 									>
-										<RotateCcw className='w-[14px] h-[14px] -scale-y-100 rotate-180' /> Restart Queue
+										{isResumingSlot ? (
+											<UniversalLoader size={12} className="text-white" />
+										) : (
+											<RotateCcw className='w-[14px] h-[14px] -scale-y-100 rotate-180' />
+										)}
+										{isResumingSlot ? 'Resuming...' : 'Restart Queue'}
 									</button>
 								)}
 							</div>
@@ -727,22 +879,32 @@ export default function FDQueue() {
 											<Button
 												variant="primary"
 												size="small"
-												onClick={() => setSessionStatus('ongoing')}
+												onClick={() => handleStartPatientSession(activePatient.token)}
+												disabled={startingToken === activePatient.token}
 												className=" text-white flex items-center gap-2 px-4 py-2 font-medium"
 											>
-												<Play className="w-3.5 h-3.5 " />
-												Start Session
+												{startingToken === activePatient.token ? (
+													<UniversalLoader size={12} className="text-white" />
+												) : (
+													<Play className="w-3.5 h-3.5 " />
+												)}
+												{startingToken === activePatient.token ? 'Starting...' : 'Start Session'}
 											</Button>
 										)}
 										{sessionStatus === 'ongoing' && (
 											<div className="flex items-center gap-3">
-												<SessionTimer />
+												<SessionTimer startTime={activePatient.startedAt} paused={queuePaused} />
 												<button
-													onClick={() => { setSessionStatus('completed'); completeCurrentPatient(); }}
+													onClick={handleEndPatientSession}
+													disabled={removingToken === activePatient.token}
 													className="flex items-center gap-2 bg-white border border-secondary-grey200/50 px-4 py-2 rounded-md text-sm font-medium text-secondary-grey400 hover:bg-gray-50 transition-colors"
 												>
-													<img src={checkRound} alt="" />
-													<span>End Session</span>
+													{removingToken === activePatient.token ? (
+														<UniversalLoader size={16} className="text-secondary-grey400" />
+													) : (
+														<img src={checkRound} alt="" />
+													)}
+													<span>{removingToken === activePatient.token ? 'Ending...' : 'End Session'}</span>
 												</button>
 											</div>
 										)}
@@ -1146,29 +1308,27 @@ export default function FDQueue() {
 				pauseSubmitting={pauseSubmitting}
 				pauseError={pauseError}
 				onConfirm={async () => {
+					if (!selectedSlotId || !pauseMinutes) return;
 					setPauseSubmitting(true);
 					setPauseError('');
 					try {
-						await new Promise(r => setTimeout(r, 500));
-						setQueuePaused(true);
-						setShowPauseModal(false);
+						const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/pause`, {
+							durationMinutes: pauseMinutes.toString()
+						});
+						if (res.data?.success) {
+							addToast({ title: "Queue Paused", message: `Queue paused for ${pauseMinutes} minutes.`, type: "success" });
+							setQueuePaused(true);
+							setShowPauseModal(false);
 
-						// Setup countdown and auto-resume
-						const ends = Date.now() + (pauseMinutes || 0) * 60 * 1000;
-						setPauseEndsAt(ends);
-						const initialRemaining = Math.max(0, Math.floor((ends - Date.now()) / 1000));
-						setPauseRemaining(initialRemaining);
+							const ends = Date.now() + (pauseMinutes || 0) * 60 * 1000;
+							setPauseEndsAt(ends);
 
-						if (autoResumeTimerRef.current) { clearTimeout(autoResumeTimerRef.current); }
-						autoResumeTimerRef.current = setTimeout(() => {
-							setQueuePaused(false);
-							if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; }
-							setPauseEndsAt(null); setPauseRemaining(0);
-							autoResumeTimerRef.current = null;
-						}, (pauseMinutes || 0) * 60 * 1000);
-
+							pollSlotStatus();
+						}
 					} catch (err) {
-						setPauseError(err.message || 'Failed to pause');
+						console.error("Failed to pause slot", err);
+						setPauseError(err.response?.data?.message || 'Failed to pause');
+						addToast({ title: "Error", message: "Failed to pause queue", type: "error" });
 					} finally {
 						setPauseSubmitting(false);
 					}
