@@ -310,3 +310,16 @@ export const updateDoctorConsultationDetailsForSuperAdmin = async (doctorId, pay
     throw error;
   }
 };
+
+/**
+ * Get dashboard analytics for Doctor
+ * @param {Object} params - { clinicId, aggregationType: 'daily'|'weekly'|'monthly'|'yearly' }
+ */
+export const getDoctorDashboardAnalytics = async (params = {}) => {
+  try {
+    const res = await axios.get('/doctors/dashboard/analytics', { params });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};

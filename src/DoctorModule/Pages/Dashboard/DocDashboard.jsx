@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import useAuthStore from "../../../store/useAuthStore";
 import { getDoctorMe } from "../../../services/authService";
+import { getDoctorDashboardAnalytics } from "../../../services/doctorService";
+import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
 import useSlotStore from "../../../store/useSlotStore";
 import Overview_cards from "../../../components/Dashboard/Overview_cards";
 import BookAppointmentDrawer from "../../../components/Appointment/BookAppointmentDrawer.jsx";
@@ -27,11 +29,10 @@ const PeriodTabs = ({ value, onChange }) => {
         <button
           key={t}
           onClick={() => onChange(t)}
-          className={`px-[6px]  py-1 rounded-[4px] transition-colors ${
-            value === t
-              ? "bg-[#2372EC] text-white"
-              : "bg-transparent text-[#626060] hover:bg-gray-50"
-          }`}
+          className={`px-[6px]  py-1 rounded-[4px] transition-colors ${value === t
+            ? "bg-[#2372EC] text-white"
+            : "bg-transparent text-[#626060] hover:bg-gray-50"
+            }`}
         >
           {t}
         </button>
@@ -59,12 +60,15 @@ const SectionCard = ({ title, children, right }) => (
 
 const DocDashboard = () => {
   const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
-  // Slot store hooks must be used inside component
+  const { user: fdUser } = useFrontDeskAuthStore();
   const selectedSlotId = useSlotStore((s) => s.selectedSlotId);
   const loadAppointmentsForSelectedSlot = useSlotStore(
     (s) => s.loadAppointmentsForSelectedSlot
   );
-  const [period, setPeriod] = useState("Daily");
+  const [period, setPeriod] = useState("Yearly");
+  const [analytics, setAnalytics] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+
   // Month dropdown state
   const months = [
     "All Months",
@@ -86,22 +90,45 @@ const DocDashboard = () => {
   const monthBtnRef = useRef(null);
   const monthDropRef = useRef(null);
   const [bookOpen, setBookOpen] = useState(false);
-  // Ensure doctor context exists so drawer can load slots
+
   useEffect(() => {
-    if (!doctorDetails && !doctorLoading) {
+    if (!doctorDetails && !doctorLoading && !fdUser) {
       try {
         fetchDoctorDetails?.(getDoctorMe);
-      } catch {}
+      } catch { }
     }
-  }, [doctorDetails, doctorLoading, fetchDoctorDetails]);
-  // Close handlers for month dropdown
+  }, [doctorDetails, doctorLoading, fetchDoctorDetails, fdUser]);
+
+  const clinicId = doctorDetails?.clinicId || doctorDetails?.associatedWorkplaces?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id;
+  const doctorId = doctorDetails?.id || doctorDetails?.userId || fdUser?.doctorId;
+
+  const fetchAnalytics = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const res = await getDoctorDashboardAnalytics({
+        clinicId,
+        aggregationType: period.toLowerCase()
+      });
+      if (res.success) {
+        setAnalytics(res.data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch analytics:", e);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
+  useEffect(() => {
+    if (clinicId) {
+      fetchAnalytics();
+    }
+  }, [clinicId, period]);
 
   useEffect(() => {
     const onClick = (e) => {
-      const inBtn =
-        monthBtnRef.current && monthBtnRef.current.contains(e.target);
-      const inDrop =
-        monthDropRef.current && monthDropRef.current.contains(e.target);
+      const inBtn = monthBtnRef.current && monthBtnRef.current.contains(e.target);
+      const inDrop = monthDropRef.current && monthDropRef.current.contains(e.target);
       if (isMonthOpen && !inBtn && !inDrop) setMonthOpen(false);
     };
     const onKey = (e) => {
@@ -115,12 +142,24 @@ const DocDashboard = () => {
     };
   }, [isMonthOpen]);
 
+  const summary = analytics?.summary || {};
+  const metrics = analytics?.metrics || {};
+
+  const getMetricData = (key, unit = "") => {
+    const m = metrics[key] || {};
+    return {
+      value: loadingAnalytics ? "00" : `${m.current || 0}${unit}`,
+      percent: m.percentageChange || 0,
+      variant: loadingAnalytics ? "neutral" : (m.trend === "increase" ? "profit" : "loss")
+    };
+  };
+
   return (
-    <div className="p-4 flex flex-col gap-4 no-scrollbar">
+    <div className="p-4 flex flex-col gap-4 no-scrollbar bg-white">
       {/* Welcome + Walk-In */}
       <div className="flex items-center justify-between gap-3">
         <p className="text-md text-secondary-grey300">
-          Welcome, Dr. Millin Chavan. Here's an overview of your practice.
+          Welcome, {doctorDetails?.name || "Dr. Millin Chavan"}. Here's an overview of your practice.
         </p>
         <div className="flex items-center  ">
           <button
@@ -139,31 +178,29 @@ const DocDashboard = () => {
 
       {/* Top metrics: Total Patients + Total Appointments Booked */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
-        <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div className="flex flex-col gap-1">
             <div className="text-[16px] font-medium text-secondary-grey400">
               Total Patients
             </div>
             <span className="text-[26px] font-bold text-secondary-grey400">
-              12,043
+              {loadingAnalytics ? "00" : summary.totalPatients || 0}
             </span>
           </div>
-          {/* right icon badge */}
           <div className="w-12 h-12 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center">
             <img src={appointementWhite} alt="" className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div className="flex flex-col gap-1">
             <div className="text-[16px] font-medium text-secondary-grey400">
               Total Appointments Booked
             </div>
             <span className="text-[26px] font-bold text-secondary-grey400">
-              12,043
+              {loadingAnalytics ? "00" : summary.totalAppointments || 0}
             </span>
           </div>
-          {/* right icon badge */}
           <div className="w-12 h-12 rounded-full bg-white shadow-sm border border-gray-200 flex items-center justify-center">
             <img src={appointementWhite} alt="" className="w-5 h-5" />
           </div>
@@ -179,9 +216,8 @@ const DocDashboard = () => {
             ref={monthBtnRef}
             type="button"
             onClick={() => setMonthOpen((v) => !v)}
-            className={`inline-flex items-center gap-2 px-3 h-8 rounded-md border border-secondary-grey200 bg-white text-sm text-[#424242] ${
-              isMonthOpen ? "ring-1 ring-[#2372EC]/30" : ""
-            }`}
+            className={`inline-flex items-center gap-2 px-3 h-8 rounded-md border border-secondary-grey200 bg-white text-sm text-[#424242] ${isMonthOpen ? "ring-1 ring-[#2372EC]/30" : ""
+              }`}
             aria-haspopup="listbox"
             aria-expanded={isMonthOpen}
           >
@@ -191,9 +227,8 @@ const DocDashboard = () => {
             <img
               src={angelDown}
               alt="Dropdown"
-              className={`w-3 h-3 transition-transform ${
-                isMonthOpen ? "rotate-180" : ""
-              }`}
+              className={`w-3 h-3 transition-transform ${isMonthOpen ? "rotate-180" : ""
+                }`}
             />
           </button>
 
@@ -230,11 +265,10 @@ const DocDashboard = () => {
                       setSelectedMonth(m);
                       setMonthOpen(false);
                     }}
-                    className={`w-[108px] h-8 px-2 py-1 rounded text-secondary-grey400 text-left ${
-                      selectedMonth === m
-                        ? "bg-blue-primary50 border-[0.5px] border-blue-primary150"
-                        : "hover:bg-secondary-grey50"
-                    }`}
+                    className={`w-[108px] h-8 px-2 py-1 rounded text-secondary-grey400 text-left ${selectedMonth === m
+                      ? "bg-blue-primary50 border-[0.5px] border-blue-primary150"
+                      : "hover:bg-secondary-grey50"
+                      }`}
                     style={{
                       fontFamily: "Inter",
                       fontWeight: 400,
@@ -259,67 +293,43 @@ const DocDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 mb-6">
         <Overview_cards
           title="Avg. Appointment Booked"
-          value={103}
-          percent={12}
-          periodText="from last Year"
-          variant="profit"
-          icon={<img src={appointementWhite} alt="" className="w-5 h-5" />}
+          {...getMetricData("avgAppointmentsBooked")}
+          periodText={`from last ${period.toLowerCase()}`}
         />
         <Overview_cards
           title="Avg. Engage Patient"
-          value={80}
-          percent={-8}
-          periodText="from last Year"
-          variant="loss"
-          icon={<img src={engageWhite} alt="" className="w-5 h-5" />}
+          {...getMetricData("avgEngagedPatients")}
+          periodText={`from last ${period.toLowerCase()}`}
         />
         <Overview_cards
           title="Avg. Patient Admitted"
-          value={4}
-          percent={12}
-          periodText="from last Year"
-          variant="profit"
-          icon={<img src={admitWhite} alt="" className="w-5 h-5" />}
+          {...getMetricData("avgPatientAdmitted")}
+          periodText={`from last ${period.toLowerCase()}`}
         />
         <Overview_cards
           title="Avg. No-Show Patients"
-          value={5}
-          percent={-12}
-          periodText="from last Year"
-          variant="loss"
-          icon={<img src={admitWhite} alt="" className="w-5 h-5" />}
+          {...getMetricData("avgNoShowPatients")}
+          periodText={`from last ${period.toLowerCase()}`}
         />
         <Overview_cards
           title="Avg. time Spent/ Patient"
-          value={"06:05 min"}
-          percent={5}
-          periodText="from last Year"
-          variant="profit"
-          icon={<img src={avgTimeWhite} alt="" className="w-5 h-5" />}
+          {...getMetricData("avgTimeSpentPerPatient", "s")}
+          periodText={`from last ${period.toLowerCase()}`}
         />
         <Overview_cards
           title="Avg. Token Utilization"
-          value={"85 Tokens"}
-          percent={12}
-          periodText="from last Year"
-          variant="profit"
-          icon={<img src={tokenWhite} alt="" className="w-5 h-5" />}
+          {...getMetricData("avgTokenUtilization", "%")}
+          periodText={`from last ${period.toLowerCase()}`}
         />
         <Overview_cards
           title="Avg. Waiting Time"
-          value={"12:30 min / Patient"}
-          percent={12}
-          periodText="from last year"
-          variant="profit"
-          icon={<img src={waitingWhite} alt="" className="w-5 h-5" />}
+          {...getMetricData("avgWaitingTime", "s")}
+          periodText={`from last ${period.toLowerCase()}`}
         />
         <Overview_cards
           title="Avg. New Patient Visit"
-          value={"12 Patients"}
-          percent={12}
-          periodText="from last year"
-          variant="profit"
-          icon={<img src={newPatientWhite} alt="" className="w-5 h-5" />}
+          {...getMetricData("avgNewPatientVisit")}
+          periodText={`from last ${period.toLowerCase()}`}
         />
       </div>
 
@@ -354,11 +364,8 @@ const DocDashboard = () => {
       <BookAppointmentDrawer
         open={bookOpen}
         onClose={() => setBookOpen(false)}
-        doctorId={doctorDetails?.userId || doctorDetails?.id}
-        clinicId={
-          doctorDetails?.associatedWorkplaces?.clinic?.id ||
-          doctorDetails?.clinicId
-        }
+        doctorId={doctorId}
+        clinicId={clinicId}
         hospitalId={
           (Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) &&
             doctorDetails?.associatedWorkplaces?.hospitals[0]?.id) ||
@@ -368,7 +375,7 @@ const DocDashboard = () => {
           if (selectedSlotId) {
             try {
               loadAppointmentsForSelectedSlot();
-            } catch {}
+            } catch { }
           }
         }}
       />
