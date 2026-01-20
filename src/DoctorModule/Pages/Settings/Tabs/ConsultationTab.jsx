@@ -66,6 +66,7 @@ const toRawUTC_HM = (iso) => {
 };
 
 const ConsultationTab = () => {
+    const [availabilityOpen, setAvailabilityOpen] = useState(false);
     const {
         consultationDetails,
         loading,
@@ -371,10 +372,19 @@ const ConsultationTab = () => {
                                         { label: '28 Days', value: 28 },
                                     ]}
                                     selectedValue={curFees.availabilityDurationDays}
-                                    onSelectItem={(it) => handleFeeChange("availabilityDurationDays", it.value)}
+                                    onSelectItem={(it) => {
+                                        handleFeeChange("availabilityDurationDays", it.value);
+                                        setAvailabilityOpen(false);
+                                    }}
                                     showInput={true}
                                     className="h-8 w-full text-xs"
                                     RightIcon={ChevronDown}
+                                    readonlyWhenIcon={true}
+                                    onFieldOpen={() => setAvailabilityOpen(true)}
+                                    onIconClick={() => setAvailabilityOpen(o => !o)}
+                                    dropdownOpen={availabilityOpen}
+                                    onRequestClose={() => setAvailabilityOpen(false)}
+                                    dropdownClassName="mt-6"
                                 />
                             </div>
                         </div>

@@ -55,14 +55,20 @@ const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment, onAd
 	);
 };
 
-const FDNavbar = () => {
+const FDNavbar = ({ useAuthStore = useFrontDeskAuthStore }) => {
 	const navigate = useNavigate();
 	const searchRef = useRef(null);
-	const { user, clearAuth } = useFrontDeskAuthStore();
+	const { user, clearAuth, fetchMe } = useAuthStore();
 	const [showProfile, setShowProfile] = useState(false);
 	const [showNotifications, setShowNotifications] = useState(false);
 	const profileRef = useRef(null);
 	const dropdownRef = useRef(null);
+
+	useEffect(() => {
+		if (fetchMe) {
+			fetchMe();
+		}
+	}, [fetchMe]);
 
 	const [addPatientOpen, setAddPatientOpen] = useState(false);
 	const [bookApptOpen, setBookApptOpen] = useState(false);
@@ -210,8 +216,8 @@ const FDNavbar = () => {
 				// Pass doctor/clinic IDs from store if available, typically FD store might need to have them or pass placeholders
 				// For now passing undefined lets the drawer handle it or defaults.
 				// user object in FD store might have location IDs.
-				doctorId={"eb993b63-ec73-401b-a24c-bf59f6df3b57"}
-				clinicId={"02e3163c-c481-4831-984b-eac5d0b4fbe2"}
+				doctorId={user?.doctorId}
+				clinicId={user?.clinicId}
 				hospitalId={undefined}
 				onSave={() => setBookApptOpen(false)}
 			/>

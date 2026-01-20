@@ -13,6 +13,7 @@ import SuperAdminSignIn from "./SuperAdmin/pages/SignIn";
 import { ProtectedAdminRoute, PublicAdminRoute } from "./SuperAdmin/components/Guard/AdminRoutes";
 import { ProtectedHospitalRoute, ProtectedDoctorRoute, PublicHospitalRoute, PublicDoctorRoute } from "./HospitalModule/Components/Guard/HospitalRoutes";
 import { ProtectedFrontDeskRoute } from "./FrontDeskModule/Components/Guard/FrontDeskRoutes";
+import { ProtectedHospitalFrontDeskRoute } from "./HospitalFDModule/Components/Guard/HospitalFrontDeskRoutes";
 import GetStarted from "./pages/GetStarted";
 import OnboardingFlow from "./DoctorModule/Pages/Login/OnboardingFlow";
 import Doctor_layout from "./DoctorModule/Components/Layout/DoctorLayout";
@@ -53,13 +54,9 @@ import HFDStaffPermissions from "./HospitalFDModule/Pages/Settings/HFDStaffPermi
 import FDOnboardingFlow from "./FrontDeskModule/Pages/Login/OnboardingFlow";
 import HOnboardingFlow from "./HospitalModule/Pages/Login/OnboardingFlow";
 import HospitalSignIn from "./HospitalModule/Pages/Login/SignIn";
-// Deprecated individual sign-in wrappers replaced by unified route
-// import FDSignIn from "./FrontDeskModule/Pages/Login/SignIn";
 import HFDOnboardingFlow from "./HospitalFDModule/Pages/Login/OnboardingFlow";
-// import HFDFSignIn from "./HospitalFDModule/Pages/Login/SignIn";
 import UnifiedSignIn from "./pages/UnifiedSignIn";
 import TabDemo from "./pages/TabDemo";
-// DocSignIn route intentionally not wired per requirement
 import DocSignIn from "./DoctorModule/Pages/Login/SignIn";
 
 
@@ -217,19 +214,21 @@ function App() {
       </Route>
 
       {/* Hospital FrontDesk Portal (copy of FD) */}
-      <Route path="hfd" element={<HFDLayout />}>
-        <Route index element={<Navigate to="queue" replace />} />
-        <Route path="queue" element={<HFDQueue />} />
-        <Route path="calendar" element={<HFDCalendar />} />
-        <Route path="patients" element={<HFDPatients />} />
-        <Route path="patients/:id" element={<HFDPatientDetails />} />
-        {/* Settings */}
-        <Route path="settings/clinics" element={<HFDClinics />} />
-        <Route path="settings/consultation" element={<HFDConsultation />} />
-        <Route
-          path="settings/staff-permissions"
-          element={<HFDStaffPermissions />}
-        />
+      <Route element={<ProtectedHospitalFrontDeskRoute />}>
+        <Route path="hfd" element={<HFDLayout />}>
+          <Route index element={<Navigate to="queue" replace />} />
+          <Route path="queue" element={<HFDQueue />} />
+          <Route path="calendar" element={<HFDCalendar />} />
+          <Route path="patients" element={<HFDPatients />} />
+          <Route path="patients/:id" element={<HFDPatientDetails />} />
+          {/* Settings */}
+          <Route path="settings/clinics" element={<HFDClinics />} />
+          <Route path="settings/consultation" element={<HFDConsultation />} />
+          <Route
+            path="settings/staff-permissions"
+            element={<HFDStaffPermissions />}
+          />
+        </Route>
       </Route>
     </Routes>
   );

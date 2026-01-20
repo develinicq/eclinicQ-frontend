@@ -113,6 +113,14 @@ export default function Patient() {
           Retry
         </button>
       </div>
+    );e
+  }
+
+  if (displayPatients.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-100px)] text-secondary-grey400">
+        <p className="text-base">No patient found</p>
+      </div>
     );
   }
 

@@ -72,10 +72,66 @@ const filters = ['In Waiting', 'Engaged', 'Checked-In', 'No show', 'Admitted'];
 export default function FDQueue() {
 	const { user } = useFrontDeskAuthStore();
 	const { addToast } = useToastStore();
-	// User requested to keep hardcoded IDs for now
-	const clinicId = "02e3163c-c481-4831-984b-eac5d0b4fbe2";
-	const doctorId = "eb993b63-ec73-401b-a24c-bf59f6df3b57";
+	// Clinic and Doctor IDs derived from user profile
+	const clinicId = user?.clinicId;
+	const doctorId = user?.doctorId;
 	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Fix: Define dropdownPosition
+
+	const [activeFilter, setActiveFilter] = useState('In Waiting');
+	const [slotOpen, setSlotOpen] = useState(false);
+	const [currentDate, setCurrentDate] = useState(new Date());
+	const [checkedInTokens, setCheckedInTokens] = useState({});
+	const [sessionStarted, setSessionStarted] = useState(false);
+	const [queuePaused, setQueuePaused] = useState(false);
+	const [isStartingSession, setIsStartingSession] = useState(false);
+	const [isEndingSession, setIsEndingSession] = useState(false);
+	const [isResumingSlot, setIsResumingSlot] = useState(false);
+	const [isTerminatingQueue, setIsTerminatingQueue] = useState(false);
+	const [startingToken, setStartingToken] = useState(null);
+	const [pauseEndsAt, setPauseEndsAt] = useState(null); // ms timestamp
+	const [pauseRemaining, setPauseRemaining] = useState(0); // seconds
+	const [showPauseModal, setShowPauseModal] = useState(false);
+	const [showTerminateModal, setShowTerminateModal] = useState(false);
+	const [pauseMinutes, setPauseMinutes] = useState(null); // in minutes
+	const [pauseSubmitting, setPauseSubmitting] = useState(false);
+	const [pauseError, setPauseError] = useState('');
+	const [currentIndex, setCurrentIndex] = useState(0);
+	const [sessionStatus, setSessionStatus] = useState('idle'); // 'idle' | 'ongoing' | 'completed'
+	const [removingToken, setRemovingToken] = useState(null);
+	const [incomingToken, setIncomingToken] = useState(null);
+	const [backendCurrentToken, setBackendCurrentToken] = useState(null);
+	const [polledActivePatient, setPolledActivePatient] = useState(null);
+	const [queueData, setQueueData] = useState([]);
+	const [appointmentRequests, setAppointmentRequests] = useState([]);
+	const [apptLoading, setApptLoading] = useState(false);
+	const [apptError, setApptError] = useState('');
+	const [approvingId, setApprovingId] = useState(null);
+	const [rejectingId, setRejectingId] = useState(null);
+	const [checkingInId, setCheckingInId] = useState(null);
+	const [timeSlots, setTimeSlots] = useState([]);
+	const [slotValue, setSlotValue] = useState('');
+	const [selectedSlotId, setSelectedSlotId] = useState('');
+	const [appointmentsData, setAppointmentsData] = useState({
+		checkedIn: [],
+		inWaiting: [],
+		engaged: [],
+		noShow: [],
+		admitted: [],
+		all: []
+	});
+	const [appointmentCounts, setAppointmentCounts] = useState({
+		checkedIn: 0,
+		inWaiting: 0,
+		engaged: 0,
+		noShow: 0,
+		admitted: 0,
+		all: 0
+	});
+
+	const pauseTickerRef = useRef(null);
+	const autoResumeTimerRef = useRef(null);
+
+	const isToggleOn = sessionStarted && !queuePaused;
 
 	// Helper: Calculate Age
 	const calculateAge = (dob) => {
@@ -91,6 +147,7 @@ export default function FDQueue() {
 	};
 
 	const fetchPendingAppointments = async () => {
+		if (!clinicId) return;
 		try {
 			const payload = {
 				clinicId: clinicId
@@ -119,30 +176,197 @@ export default function FDQueue() {
 		}
 	};
 
-	// Fetch FD profile and Pending Appointments on mount
+	const fetchSlots = async () => {
+		if (!doctorId || !clinicId) return;
+		try {
+			// Fix: Use local date string instead of UTC
+			const year = currentDate.getFullYear();
+			const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+			const day = String(currentDate.getDate()).padStart(2, '0');
+			const formattedDate = `${year}-${month}-${day}`;
+			const payload = {
+				doctorId: doctorId,
+				clinicId: clinicId,
+				date: formattedDate
+			};
+
+			const res = await axiosInstance.post('/slots/patient/find-slots', payload);
+			if (res.data?.success) {
+				const apiSlots = res.data.data || [];
+				// Sort by startTime
+				apiSlots.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+				const mappedSlots = apiSlots.map(slot => {
+					const startRaw = new Date(slot.startTime);
+					// The user sample is "1970-01-01T03:30:00.000Z". 3:30 UTC is 9:00 AM IST. 
+					// Let's assume we format effectively.
+					// If backend sends 1970 date with Z, we should probably display it in local time or specific timezone? 
+					// Usually this implies time-of-day. Let's use `toLocaleTimeString`.
+
+					// Actually, if it is just time of day, we should rely on the time values.
+
+					return {
+						key: slot.id, // using ID as key
+						label: getLabelForTime(startRaw.getHours()), // Use local time hours for label logic
+						time: `${formatSlotTime(slot.startTime)} - ${formatSlotTime(slot.endTime)}`, // formatting function
+						Icon: getIconForTime(startRaw.getHours()),
+						slotId: slot.id,
+						raw: slot
+					};
+				});
+
+				setTimeSlots(mappedSlots);
+
+				// Auto-select first slot if none selected or list changed significantly? 
+				// Stick to first slot rule for now as per previous logic.
+				if (mappedSlots.length > 0) {
+					// Check if current selection is still valid? 
+					// For simplicity, always select first if switching dates usually implies new slots.
+					// But user said "when landed on page call... and when changed the date re cll it".
+					// Keep it simple: Select first available slot.
+					setSlotValue(mappedSlots[0].key);
+					setSelectedSlotId(mappedSlots[0].slotId);
+				} else {
+					setSlotValue('');
+					setSelectedSlotId('');
+				}
+			}
+		} catch (error) {
+			console.error("Failed to fetch slots", error);
+		}
+	};
+
+	const pollSlotStatus = async () => {
+		if (!selectedSlotId) return;
+		try {
+			const res = await axiosInstance.get(`/eta/slot/${selectedSlotId}/status`);
+			if (res.data?.success) {
+				console.log("Full Poll Response:", res.data);
+				const { slotStatus, currentToken, pauseDurationMinutes, pauseStartedAt, activePatientDetails } = res.data.message || {};
+				console.log("Extracted activePatientDetails:", activePatientDetails);
+
+				// Map backend status to frontend state
+				if (slotStatus === 'CREATED') {
+					setSessionStatus('idle');
+					setSessionStarted(false);
+					setQueuePaused(false);
+				} else if (slotStatus === 'STARTED') {
+					setSessionStatus('ongoing');
+					setSessionStarted(true);
+					setQueuePaused(false);
+				} else if (slotStatus === 'PAUSED') {
+					setSessionStatus('ongoing'); // Still ongoing, just paused
+					setSessionStarted(true);
+					setQueuePaused(true);
+
+					if (pauseStartedAt && pauseDurationMinutes) {
+						const start = new Date(pauseStartedAt).getTime();
+						const ends = start + (pauseDurationMinutes * 60 * 1000);
+						setPauseEndsAt(ends);
+					}
+				} else if (slotStatus === 'COMPLETED') {
+					setSessionStatus('completed');
+					setSessionStarted(false);
+					setQueuePaused(false);
+				}
+
+
+				if (currentToken) {
+					setBackendCurrentToken(currentToken);
+				}
+
+				if (activePatientDetails) {
+					console.log("Setting polled patient:", activePatientDetails);
+					const p = activePatientDetails;
+					setPolledActivePatient({
+						patientName: `${p.firstName} ${p.lastName}`.trim(),
+						token: p.tokenNumber,
+						gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
+						age: calculateAge(p.dob),
+						reasonForVisit: p.reason,
+						// Add other fields if needed by the card
+						patientId: p.patientId,
+						startedAt: p.startedAt // Sync session timer
+					});
+				} else {
+					console.log("No active patient details in poll");
+					setPolledActivePatient(null);
+				}
+			}
+		} catch (error) {
+			console.error("Failed to poll slot status", error);
+		}
+	};
+
+	const mapAppointmentToRow = (appt) => {
+		// Map API response to table column structure
+		const p = appt.patientDetails || {};
+
+		return {
+			token: appt.tokenNo,
+			patientName: p.name || `${p.firstName} ${p.lastName}`.trim(),
+			gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
+			dob: p.dob ? new Date(p.dob).toLocaleDateString() : '',
+			age: p.age ? `${p.age}Y` : calculateAge(p.dob),
+			appointmentType: appt.appointmentType === 'NEW' ? 'New Consultation' : 'Follow-up Consultation', // map types
+			expectedTime: appt.expectedTime ? formatSlotTime(appt.expectedTime) : '',
+			startTime: appt.startTime ? formatSlotTime(appt.startTime) : '',
+			endTime: appt.endTime ? formatSlotTime(appt.endTime) : '',
+			bookingType: appt.bookingMode === 'WALK_IN' ? 'Walk-In' : 'Online',
+			reason: appt.reason,
+			status: appt.status,
+			id: appt.id
+		};
+	};
+
+	const fetchAppointments = async (slotId) => {
+		if (!slotId) return;
+		try {
+			const res = await axiosInstance.get(`/appointments/slot/${slotId}`);
+			if (res.data?.success) {
+				const data = res.data.data;
+				const counts = data.counts || {};
+				const appointments = data.appointments || {};
+
+				setAppointmentCounts({
+					checkedIn: counts.checkedIn || 0,
+					inWaiting: counts.inWaiting || 0,
+					engaged: counts.engaged || 0,
+					noShow: counts.noShow || 0,
+					admitted: counts.admitted || 0,
+					all: counts.all || 0
+				});
+
+				// Map all lists
+				setAppointmentsData({
+					checkedIn: (appointments.checkedIn || []).map(mapAppointmentToRow),
+					inWaiting: (appointments.inWaiting || []).map(mapAppointmentToRow),
+					engaged: (appointments.engaged || []).map(mapAppointmentToRow),
+					noShow: (appointments.noShow || []).map(mapAppointmentToRow),
+					admitted: (appointments.admitted || []).map(mapAppointmentToRow),
+					all: (appointments.all || []).map(mapAppointmentToRow)
+				});
+			}
+		} catch (error) {
+			console.error("Failed to fetch appointments", error);
+		}
+	};
+
+	// Fetch FD profile on mount
 	useEffect(() => {
 		useFrontDeskAuthStore.getState().fetchMe();
-		fetchPendingAppointments();
 	}, []);
+
+	// Fetch data when IDs become available
+	useEffect(() => {
+		if (clinicId && doctorId) {
+			fetchPendingAppointments();
+			fetchSlots();
+		}
+	}, [clinicId, doctorId, currentDate]);
 
 	// Dummy Stubs to prevent crash
 	const pauseSlotEta = async () => ({});
-
-	const [activeFilter, setActiveFilter] = useState('In Waiting');
-	const [slotOpen, setSlotOpen] = useState(false);
-	const [currentDate, setCurrentDate] = useState(new Date());
-	const [checkedInTokens, setCheckedInTokens] = useState({});
-	const [sessionStarted, setSessionStarted] = useState(false);
-	const [queuePaused, setQueuePaused] = useState(false);
-
-	const isToggleOn = sessionStarted && !queuePaused;
-
-	// Start Session Logic
-	const [isStartingSession, setIsStartingSession] = useState(false);
-	const [isEndingSession, setIsEndingSession] = useState(false);
-	const [isResumingSlot, setIsResumingSlot] = useState(false);
-	const [isTerminatingQueue, setIsTerminatingQueue] = useState(false);
-	const [startingToken, setStartingToken] = useState(null);
 
 	const handleStartPatientSession = async (token) => {
 		if (!selectedSlotId || !token) return;
@@ -243,102 +467,24 @@ export default function FDQueue() {
 		}
 	};
 	// Paused state UI: countdown to auto-resume
-	const [pauseEndsAt, setPauseEndsAt] = useState(null); // ms timestamp
-	const [pauseRemaining, setPauseRemaining] = useState(0); // seconds
-	const pauseTickerRef = useRef(null);
-	// Pause modal and auto-resume state
-	const [showPauseModal, setShowPauseModal] = useState(false);
-	const [showTerminateModal, setShowTerminateModal] = useState(false);
-	const [pauseMinutes, setPauseMinutes] = useState(null); // in minutes
-	const [pauseSubmitting, setPauseSubmitting] = useState(false);
-	const [pauseError, setPauseError] = useState('');
-	const autoResumeTimerRef = useRef(null);
-	const [currentIndex, setCurrentIndex] = useState(0);
-	const [sessionStatus, setSessionStatus] = useState('idle'); // 'idle' | 'ongoing' | 'completed'
-	const [removingToken, setRemovingToken] = useState(null);
-	const [incomingToken, setIncomingToken] = useState(null);
 	// Current token reported by backend status, used to focus the engaged patient
-	const [backendCurrentToken, setBackendCurrentToken] = useState(null);
-	const [polledActivePatient, setPolledActivePatient] = useState(null);
 	// Holds list currently shown in table (derived from active filter)
-	const [queueData, setQueueData] = useState([]);
-	const [appointmentRequests, setAppointmentRequests] = useState([]);
-	const [apptLoading, setApptLoading] = useState(false);
-	const [apptError, setApptError] = useState('');
-	const [approvingId, setApprovingId] = useState(null);
-	const [rejectingId, setRejectingId] = useState(null);
-	const [checkingInId, setCheckingInId] = useState(null);
-
-
 	// Replaced Dummy Time Slots with State
-	const [timeSlots, setTimeSlots] = useState([]);
-	const [slotValue, setSlotValue] = useState('');
-	const [selectedSlotId, setSelectedSlotId] = useState('');
+	// Removed redundant fetchSlots effect as it's now handled by the ID-dependent effect
 
-	const pollSlotStatus = async () => {
-		if (!selectedSlotId) return;
-		try {
-			const res = await axiosInstance.get(`/eta/slot/${selectedSlotId}/status`);
-			if (res.data?.success) {
-				console.log("Full Poll Response:", res.data);
-				const { slotStatus, currentToken, pauseDurationMinutes, pauseStartedAt, activePatientDetails } = res.data.message || {};
-				console.log("Extracted activePatientDetails:", activePatientDetails);
+	// Auto-select first slot logic removed/merged into fetch
+	// useEffect(() => {
+	// 	if (!slotValue) {
+	// 		setSlotValue('morning');
+	// 		setSelectedSlotId('dummy-slot-1');
+	// 	}
+	// }, []);
 
-				// Map backend status to frontend state
-				if (slotStatus === 'CREATED') {
-					setSessionStatus('idle');
-					setSessionStarted(false);
-					setQueuePaused(false);
-				} else if (slotStatus === 'STARTED') {
-					setSessionStatus('ongoing');
-					setSessionStarted(true);
-					setQueuePaused(false);
-				} else if (slotStatus === 'PAUSED') {
-					setSessionStatus('ongoing'); // Still ongoing, just paused
-					setSessionStarted(true);
-					setQueuePaused(true);
-
-					if (pauseStartedAt && pauseDurationMinutes) {
-						const start = new Date(pauseStartedAt).getTime();
-						const ends = start + (pauseDurationMinutes * 60 * 1000);
-						setPauseEndsAt(ends);
-					}
-				} else if (slotStatus === 'COMPLETED') {
-					setSessionStatus('completed');
-					setSessionStarted(false);
-					setQueuePaused(false);
-				}
-
-
-				if (currentToken) {
-					setBackendCurrentToken(currentToken);
-				}
-
-				if (activePatientDetails) {
-					console.log("Setting polled patient:", activePatientDetails);
-					const p = activePatientDetails;
-					setPolledActivePatient({
-						patientName: `${p.firstName} ${p.lastName}`.trim(),
-						token: p.tokenNumber,
-						gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
-						age: calculateAge(p.dob),
-						reasonForVisit: p.reason,
-						// Add other fields if needed by the card
-						patientId: p.patientId,
-						startedAt: p.startedAt // Sync session timer
-					});
-				} else {
-					console.log("No active patient details in poll");
-					setPolledActivePatient(null);
-				}
-			}
-		} catch (error) {
-			console.error("Failed to poll slot status", error);
-		}
-	};
-
+	// Appointments State
 	// Polling and Periodic Refresh Effect
 	useEffect(() => {
+		if (!selectedSlotId || !doctorId || !clinicId) return;
+
 		pollSlotStatus();
 		fetchPendingAppointments();
 		fetchAppointments(selectedSlotId);
@@ -353,151 +499,6 @@ export default function FDQueue() {
 			clearInterval(appointmentInterval);
 		};
 	}, [selectedSlotId, doctorId, clinicId, currentDate]);
-
-	const fetchSlots = async () => {
-		try {
-			// Fix: Use local date string instead of UTC
-			const year = currentDate.getFullYear();
-			const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-			const day = String(currentDate.getDate()).padStart(2, '0');
-			const formattedDate = `${year}-${month}-${day}`;
-			const payload = {
-				doctorId: doctorId,
-				clinicId: clinicId,
-				date: formattedDate
-			};
-
-			const res = await axiosInstance.post('/slots/patient/find-slots', payload);
-			if (res.data?.success) {
-				const apiSlots = res.data.data || [];
-				// Sort by startTime
-				apiSlots.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-
-				const mappedSlots = apiSlots.map(slot => {
-					const startRaw = new Date(slot.startTime);
-					const endRaw = new Date(slot.endTime);
-					const hour = startRaw.getUTCHours(); // Assuming UTC from 1970-01-01T...Z or handle local conversion if needed. 
-					// The user sample is "1970-01-01T03:30:00.000Z". 3:30 UTC is 9:00 AM IST. 
-					// Let's assume we format effectively.
-					// If backend sends 1970 date with Z, we should probably display it in local time or specific timezone? 
-					// Usually this implies time-of-day. Let's use `toLocaleTimeString`.
-
-					// Actually, if it is just time of day, we should rely on the time values.
-
-					return {
-						key: slot.id, // using ID as key
-						label: getLabelForTime(startRaw.getHours()), // Use local time hours for label logic
-						time: `${formatSlotTime(slot.startTime)} - ${formatSlotTime(slot.endTime)}`, // formatting function
-						Icon: getIconForTime(startRaw.getHours()),
-						slotId: slot.id,
-						raw: slot
-					};
-				});
-
-				setTimeSlots(mappedSlots);
-
-				// Auto-select first slot if none selected or list changed significantly? 
-				// Stick to first slot rule for now as per previous logic.
-				if (mappedSlots.length > 0) {
-					// Check if current selection is still valid? 
-					// For simplicity, always select first if switching dates usually implies new slots.
-					// But user said "when landed on page call... and when changed the date re cll it".
-					// Keep it simple: Select first available slot.
-					setSlotValue(mappedSlots[0].key);
-					setSelectedSlotId(mappedSlots[0].slotId);
-				} else {
-					setSlotValue('');
-					setSelectedSlotId('');
-				}
-			}
-		} catch (error) {
-			console.error("Failed to fetch slots", error);
-		}
-	};
-
-	useEffect(() => {
-		fetchSlots();
-	}, [currentDate]);
-
-	// Auto-select first slot logic removed/merged into fetch
-	// useEffect(() => {
-	// 	if (!slotValue) {
-	// 		setSlotValue('morning');
-	// 		setSelectedSlotId('dummy-slot-1');
-	// 	}
-	// }, []);
-
-	// Appointments State
-	const [appointmentsData, setAppointmentsData] = useState({
-		checkedIn: [],
-		inWaiting: [],
-		engaged: [],
-		noShow: [],
-		admitted: [],
-		all: []
-	});
-	const [appointmentCounts, setAppointmentCounts] = useState({
-		checkedIn: 0,
-		inWaiting: 0,
-		engaged: 0,
-		noShow: 0,
-		admitted: 0,
-		all: 0
-	});
-
-	const mapAppointmentToRow = (appt) => {
-		// Map API response to table column structure
-		const p = appt.patientDetails || {};
-
-		return {
-			token: appt.tokenNo,
-			patientName: p.name || `${p.firstName} ${p.lastName}`.trim(),
-			gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
-			dob: p.dob ? new Date(p.dob).toLocaleDateString() : '',
-			age: p.age ? `${p.age}Y` : calculateAge(p.dob),
-			appointmentType: appt.appointmentType === 'NEW' ? 'New Consultation' : 'Follow-up Consultation', // map types
-			expectedTime: appt.expectedTime ? formatSlotTime(appt.expectedTime) : '',
-			startTime: appt.startTime ? formatSlotTime(appt.startTime) : '',
-			endTime: appt.endTime ? formatSlotTime(appt.endTime) : '',
-			bookingType: appt.bookingMode === 'WALK_IN' ? 'Walk-In' : 'Online',
-			reason: appt.reason,
-			status: appt.status,
-			id: appt.id
-		};
-	};
-
-	const fetchAppointments = async (slotId) => {
-		if (!slotId) return;
-		try {
-			const res = await axiosInstance.get(`/appointments/slot/${slotId}`);
-			if (res.data?.success) {
-				const data = res.data.data;
-				const counts = data.counts || {};
-				const appointments = data.appointments || {};
-
-				setAppointmentCounts({
-					checkedIn: counts.checkedIn || 0,
-					inWaiting: counts.inWaiting || 0,
-					engaged: counts.engaged || 0,
-					noShow: counts.noShow || 0,
-					admitted: counts.admitted || 0,
-					all: counts.all || 0
-				});
-
-				// Map all lists
-				setAppointmentsData({
-					checkedIn: (appointments.checkedIn || []).map(mapAppointmentToRow),
-					inWaiting: (appointments.inWaiting || []).map(mapAppointmentToRow),
-					engaged: (appointments.engaged || []).map(mapAppointmentToRow),
-					noShow: (appointments.noShow || []).map(mapAppointmentToRow),
-					admitted: (appointments.admitted || []).map(mapAppointmentToRow),
-					all: (appointments.all || []).map(mapAppointmentToRow)
-				});
-			}
-		} catch (error) {
-			console.error("Failed to fetch appointments", error);
-		}
-	};
 
 	useEffect(() => {
 		if (selectedSlotId) {

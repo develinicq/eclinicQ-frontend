@@ -9,6 +9,7 @@ import useUIStore from "@/store/useUIStore";
 import useToastStore from "@/store/useToastStore";
 import useDoctorAuthStore from "@/store/useDoctorAuthStore";
 import useFrontDeskAuthStore from "@/store/useFrontDeskAuthStore";
+import useHospitalFrontDeskAuthStore from "@/store/useHospitalFrontDeskAuthStore";
 
 import RadioButton from "@/components/GeneralDrawer/RadioButton";
 
@@ -125,15 +126,35 @@ export default function DocSignIn() {
           // check if user has ANY of the excluded roles
           const hasExcludedRole = roles.some(r => excludedRoles.includes(r));
 
-          if (!hasExcludedRole) {
-            // Clear Doctor Auth Store to prevent access to doctor routes
+          // Handle Staff Roles
+          if (roles.includes("HOSPITAL_STAFF")) {
+            // Clear Doctor Auth Store
+            useDoctorAuthStore.getState().clearAuth();
+
+            const { setToken, setRoleNames, setUser } = useHospitalFrontDeskAuthStore.getState();
+            setToken(res.data.token);
+            setRoleNames(roles);
+            setUser(res.data.user);
+
+            addToast({
+              title: "Login Successful",
+              message: "Redirecting to hospital front desk dashboard...",
+              type: "success",
+              duration: 2000
+            });
+
+            window.location.href = "/hfd/queue";
+            return;
+          }
+
+          if (roles.includes("CLINIC_STAFF") || (!hasExcludedRole && roles.length > 0)) {
+            // Clear Doctor Auth Store
             useDoctorAuthStore.getState().clearAuth();
 
             const { setToken, setRoleNames, setUser } = useFrontDeskAuthStore.getState();
             setToken(res.data.token);
             setRoleNames(roles);
-            setRoleNames(roles); // using extracted roles
-            setUser(res.data.user); // assuming user object is returned, or fetch later
+            setUser(res.data.user);
 
             addToast({
               title: "Login Successful",
@@ -224,8 +245,29 @@ export default function DocSignIn() {
         // check if user has ANY of the excluded roles
         const hasExcludedRole = roles.some(r => excludedRoles.includes(r));
 
-        if (!hasExcludedRole) {
-          // Clear Doctor Auth Store to prevent access to doctor routes
+        // Handle Staff Roles
+        if (roles.includes("HOSPITAL_STAFF")) {
+          // Clear Doctor Auth Store
+          useDoctorAuthStore.getState().clearAuth();
+
+          const { setToken, setRoleNames, setUser } = useHospitalFrontDeskAuthStore.getState();
+          setToken(res.data.token);
+          setRoleNames(roles);
+          setUser(res.data.user);
+
+          addToast({
+            title: "Login Successful",
+            message: "Redirecting to hospital front desk dashboard...",
+            type: "success",
+            duration: 2000
+          });
+
+          window.location.href = "/hfd/queue";
+          return;
+        }
+
+        if (roles.includes("CLINIC_STAFF") || (!hasExcludedRole && roles.length > 0)) {
+          // Clear Doctor Auth Store
           useDoctorAuthStore.getState().clearAuth();
 
           const { setToken, setRoleNames, setUser } = useFrontDeskAuthStore.getState();

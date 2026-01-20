@@ -59,16 +59,28 @@ axiosInstance.interceptors.request.use(
       const path = typeof window !== 'undefined' ? window.location.pathname : '';
       let token = null;
 
-      if (path.startsWith('/doc')) {
+      // Disambiguate between modules using specific segment checks
+      const isDoctorModule = path.startsWith('/doc/') || path === '/doc';
+      const isHospitalModule = path.startsWith('/hospital/') || path === '/hospital';
+      const isHospitalFDModule = path.startsWith('/hfd/') || path === '/hfd';
+      const isFrontDeskModule = path.startsWith('/fd/') || path === '/fd';
+
+      // Disambiguate SuperAdmin: /doctor (SA) vs /doc (Doctor), /hospitals (SA) vs /hospital (Hospital)
+      const isSuperAdminRoute = path === '/' || path.startsWith('/doctor') || path.startsWith('/hospitals') ||
+        path.startsWith('/patients') || path.startsWith('/dashboard') ||
+        path.startsWith('/settings');
+
+      if (isSuperAdminRoute) {
+        // SuperAdmin routes should NOT fall back to hospital or doctor tokens
+        token = saToken || lsToken || genericToken;
+      } else if (isDoctorModule) {
         token = dToken || fdToken || saToken || hToken || genericToken || lsToken;
-      } else if (path.startsWith('/hospital')) {
+      } else if (isHospitalModule || isHospitalFDModule) {
         token = hToken || saToken || dToken || genericToken || lsToken;
-      } else if (path.startsWith('/hfd')) {
-        token = hToken || saToken || dToken || genericToken || lsToken;
-      } else if (path.startsWith('/fd')) {
+      } else if (isFrontDeskModule) {
         token = fdToken || genericToken || saToken || hToken || dToken || lsToken;
       } else {
-        // Default priority for SuperAdmin or other paths
+        // Universal fallback
         token = saToken || hToken || dToken || genericToken || lsToken;
       }
 
