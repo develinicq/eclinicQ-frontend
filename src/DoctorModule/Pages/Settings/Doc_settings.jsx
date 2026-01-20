@@ -56,7 +56,7 @@ import SecurityTab from "./Tabs/SecurityTab.jsx";
 import ConsultationTab from "./Tabs/ConsultationTab.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 import useHospitalAuthStore from "../../../store/useHospitalAuthStore";
-
+import { getPublicUrl } from "../../../services/uploadsService";
 
 // Global drawer animation keyframes (used by all drawers in this page)
 const DrawerKeyframes = () => (
@@ -1111,7 +1111,29 @@ const Doc_settings = () => {
     fetchClinicInfo,
   ]);
 
+  const [resolvedClinicPhotos, setResolvedClinicPhotos] = useState([]);
 
+  useEffect(() => {
+    const resolvePhotos = async () => {
+      if (!clinic) return;
+
+      const photosToResolve = Array.isArray(clinic.clinicPhotos) && clinic.clinicPhotos.length > 0
+        ? clinic.clinicPhotos
+        : (clinic.image ? [clinic.image] : []);
+
+      if (photosToResolve.length > 0) {
+        try {
+          const urls = await Promise.all(photosToResolve.map(key => getPublicUrl(key)));
+          setResolvedClinicPhotos(urls.filter(Boolean));
+        } catch (e) {
+          console.error("Failed to resolve clinic photos", e);
+        }
+      } else {
+        setResolvedClinicPhotos([]);
+      }
+    };
+    resolvePhotos();
+  }, [clinic]);
   if (!profile) {
     return (
       <div className="px-6 py-10 text-sm text-gray-600">Loading profile...</div>
@@ -1668,11 +1690,11 @@ const Doc_settings = () => {
                   </div>
 
                   <div className="flex gap-4 flex-wrap">
-                    {Array.isArray(clinic?.clinicPhotos) && clinic.clinicPhotos.length > 0 ? (
-                      clinic.clinicPhotos.map((photo, idx) => (
+                    {resolvedClinicPhotos.length > 0 ? (
+                      resolvedClinicPhotos.map((url, idx) => (
                         <div key={idx} className="w-[120px] h-[120px] rounded-md overflow-hidden border bg-gray-100">
                           <img
-                            src={`${import.meta.env.VITE_API_BASE_URL || ''}/${photo}`}
+                            src={url}
                             alt={`Clinic ${idx + 1}`}
                             className="w-full h-full object-cover"
                           />
@@ -1847,7 +1869,7 @@ const Doc_settings = () => {
           proof: clinic?.proof || clinic?.establishmentProof || "",
           noOfBeds: clinic?.noOfBeds || "",
           about: clinic?.about || "",
-          clinicPhotos: clinic?.clinicPhotos || [],
+          clinicPhotos: Array.isArray(clinic?.clinicPhotos) && clinic.clinicPhotos.length > 0 ? clinic.clinicPhotos : (clinic?.image ? [clinic.image] : []),
           latitude: clinic?.latitude || null,
           longitude: clinic?.longitude || null,
           blockNo: clinic?.blockNo || "",
@@ -1857,16 +1879,8 @@ const Doc_settings = () => {
           city: clinic?.city || "",
           state: clinic?.state || "Maharashtra",
         }}
-        onSave={async (data) => {
-          try {
-            // API expects the fields as provided by clinicalService.updateClinicInfo
-            await updateClinicInfo(data);
-            await fetchClinicInfo();
-            setClinicDrawerOpen(false);
-          } catch (e) {
-            console.error("Failed to update clinic info", e);
-            alert(e?.response?.data?.message || e?.message || "Failed to update clinic info");
-          }
+        onSave={async () => {
+          await fetchClinicInfo();
         }}
       />
 

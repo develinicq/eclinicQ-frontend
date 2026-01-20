@@ -9,6 +9,10 @@ import MapLocation from "@/components/FormItems/MapLocation";
 import useImageUploadStore from "@/store/useImageUploadStore";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import calendarWhite from "/Doctor_module/sidebar/calendar_white.png";
+import { getPublicUrl } from "@/services/uploadsService";
+import useToastStore from "@/store/useToastStore";
+import UniversalLoader from "@/components/UniversalLoader";
+import { updateClinicInfo } from "@/services/settings/clinicalService";
 const upload = '/Doctor_module/settings/upload.png'
 /**
  * EditClinicDetailsDrawer — unified drawer for Clinic Info + Address.
@@ -50,6 +54,7 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
   // Dropdown open flags
   const [cityOpen, setCityOpen] = useState(false);
   const [stateOpen, setStateOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const cityOptions = useMemo(
     () => [
@@ -110,6 +115,59 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
     setStateOpen(false);
   }, [open, initial]);
 
+  const isDirty = useMemo(() => {
+    const norm = (v) => (v ?? "");
+    const arrEq = (a = [], b = []) => {
+      if (a.length !== b.length) return true;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return true;
+      }
+      return false;
+    };
+    return (
+      norm(name) !== norm(initial?.name) ||
+      norm(phone) !== norm(initial?.phone) ||
+      norm(email) !== norm(initial?.email) ||
+      norm(establishmentDate) !== norm(initial?.establishmentDate?.split("T")[0]) ||
+      norm(noOfBeds) !== norm(initial?.noOfBeds) ||
+      norm(about) !== norm(initial?.about) ||
+      norm(proofKey) !== norm(initial?.proof) ||
+      arrEq(photos, Array.isArray(initial?.clinicPhotos) ? initial.clinicPhotos : []) ||
+      norm(blockNo) !== norm(initial?.blockNo) ||
+      norm(areaStreet) !== norm(initial?.areaStreet) ||
+      norm(landmark) !== norm(initial?.landmark) ||
+      norm(pincode) !== norm(initial?.pincode) ||
+      norm(city) !== norm(initial?.city) ||
+      norm(state) !== norm(initial?.state) ||
+      parseFloat(latLng.lat) !== parseFloat(initial?.latitude) ||
+      parseFloat(latLng.lng) !== parseFloat(initial?.longitude)
+    );
+  }, [name, phone, email, establishmentDate, noOfBeds, about, proofKey, photos, blockNo, areaStreet, landmark, pincode, city, state, latLng, initial]);
+
+  const [resolvedPhotoUrls, setResolvedPhotoUrls] = useState({});
+
+  useEffect(() => {
+    const resolve = async () => {
+      const newUrls = { ...resolvedPhotoUrls };
+      let changed = false;
+      for (const k of photos) {
+        if (!k.startsWith('blob:') && !k.startsWith('http') && !newUrls[k]) {
+          try {
+            const url = await getPublicUrl(k);
+            if (url) {
+              newUrls[k] = url;
+              changed = true;
+            }
+          } catch (e) {
+            console.error("Failed to resolve photo in drawer", e);
+          }
+        }
+      }
+      if (changed) setResolvedPhotoUrls(newUrls);
+    };
+    resolve();
+  }, [photos]);
+
   // Close calendar on outside click
   useEffect(() => {
     if (!showEstDateCalendar) return;
@@ -147,48 +205,102 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
   const onUploadPhotos = async (fileList) => {
     if (!fileList || fileList.length === 0) return;
     const files = Array.isArray(fileList) ? fileList : Array.from(fileList);
-    const newKeys = [];
+
     for (const f of files) {
+      const blobUrl = URL.createObjectURL(f);
+      // Immediately show preview
+      setPhotos((prev) => [...prev, blobUrl]);
+
       try {
         const info = await getUploadUrl(f.type, f);
-        if (!info?.uploadUrl || !info?.key) continue;
+        if (!info?.uploadUrl || !info?.key) {
+          setPhotos((prev) => prev.filter((p) => p !== blobUrl));
+          continue;
+        }
         await fetch(info.uploadUrl, {
           method: "PUT",
           headers: { "Content-Type": f.type },
           body: f,
         });
-        newKeys.push(info.key);
+
+        // Success: Replace blob URL with real key and cache the blob URL for that key
+        setPhotos((prev) => {
+          const idx = prev.indexOf(blobUrl);
+          if (idx !== -1) {
+            const next = [...prev];
+            next[idx] = info.key;
+            return next;
+          }
+          return [...prev, info.key];
+        });
+        setResolvedPhotoUrls((prev) => ({ ...prev, [info.key]: blobUrl }));
       } catch (e) {
         console.error("Photo upload failed", e);
+        setPhotos((prev) => prev.filter((p) => p !== blobUrl));
       }
     }
-    setPhotos((prev) => [...prev, ...newKeys]);
   };
 
   const removePhoto = (key) => setPhotos((prev) => prev.filter((k) => k !== key));
 
-  const save = () => {
+  const save = async () => {
     if (!canSave) return;
-    const payload = {
-      name,
-      phone,
-      email,
-      establishmentDate,
-      noOfBeds: noOfBeds ? Number(noOfBeds) : undefined,
-      about,
-      proof: proofKey || undefined,
-      clinicPhotos: photos,
-      blockNo,
-      areaStreet,
-      landmark,
-      pincode,
-      city,
-      state,
-      latitude: latLng?.lat ?? undefined,
-      longitude: latLng?.lng ?? undefined,
+    const { addToast } = useToastStore.getState();
+    setSaving(true);
+
+    const norm = (v) => (v ?? "");
+    const payload = {};
+    const pushIfChanged = (key, newVal, oldVal, payloadKey) => {
+      if (norm(newVal) !== norm(oldVal)) payload[payloadKey || key] = newVal;
     };
-    onSave?.(payload);
-    onClose?.();
+
+    pushIfChanged("name", name, initial?.name);
+    pushIfChanged("phone", phone, initial?.phone);
+    pushIfChanged("email", email, initial?.email);
+    pushIfChanged("establishmentDate", establishmentDate, initial?.establishmentDate?.split("T")[0]);
+    pushIfChanged("noOfBeds", noOfBeds ? Number(noOfBeds) : undefined, initial?.noOfBeds);
+    pushIfChanged("about", about, initial?.about);
+    pushIfChanged("proof", proofKey, initial?.proof, "tempProofKey");
+
+    // Photo array comparison
+    const arrEq = (a = [], b = []) => {
+      if (a.length !== b.length) return true;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return true;
+      }
+      return false;
+    };
+    if (arrEq(photos, Array.isArray(initial?.clinicPhotos) ? initial.clinicPhotos : [])) {
+      payload.tempImageKeys = photos.filter(p => !p.startsWith('blob:'));
+    }
+
+    pushIfChanged("blockNo", blockNo, initial?.blockNo);
+    pushIfChanged("areaStreet", areaStreet, initial?.areaStreet);
+    pushIfChanged("landmark", landmark, initial?.landmark);
+    pushIfChanged("pincode", pincode, initial?.pincode);
+    pushIfChanged("city", city, initial?.city);
+    pushIfChanged("state", state, initial?.state);
+
+    if (parseFloat(latLng.lat) !== parseFloat(initial?.latitude)) payload.latitude = latLng.lat;
+    if (parseFloat(latLng.lng) !== parseFloat(initial?.longitude)) payload.longitude = latLng.lng;
+
+    if (Object.keys(payload).length === 0) {
+      addToast({ title: "No changes", message: "Nothing to update.", type: "warning" });
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const res = await updateClinicInfo(payload);
+      addToast({ title: "Updated", message: res?.message || "Clinic details updated successfully", type: "success" });
+      onSave?.(payload);
+      onClose?.();
+    } catch (err) {
+      const msg = err?.message || "Failed to update clinic details";
+      addToast({ title: "Update failed", message: msg, type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -196,9 +308,14 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
       isOpen={open}
       onClose={onClose}
       title="Edit Clinical Details"
-      primaryActionLabel="Update"
+      primaryActionLabel={saving ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} style={{ width: 'auto', height: 'auto' }} />
+          <span>Updating...</span>
+        </div>
+      ) : "Update"}
       onPrimaryAction={save}
-      primaryActionDisabled={!canSave}
+      primaryActionDisabled={saving || !canSave || !isDirty}
       width={600}
     >
       <div className="flex flex-col gap-4">
@@ -278,75 +395,86 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
           </div>
         </div>
 
-  {/* Row 4: Number of Beds (full width) */}
-  <div>
-            <InputWithMeta
-              label="Number of Beds"
-              value={noOfBeds}
-              onChange={(v) => setNoOfBeds(String(v).replace(/[^0-9]/g, "").slice(0, 4))}
-              placeholder="Enter Number of Beds"
-              inputRightMeta="Beds"
-            />
-  </div>
+        {/* Row 4: Number of Beds (full width) */}
+        <div>
+          <InputWithMeta
+            label="Number of Beds"
+            value={noOfBeds}
+            onChange={(v) => setNoOfBeds(String(v).replace(/[^0-9]/g, "").slice(0, 4))}
+            placeholder="Enter Number of Beds"
+            inputRightMeta="Beds"
+          />
+        </div>
 
-  <div>
+        <div>
           <InputWithMeta label="About Clinic" showInput={false}>
             <RichTextBox
               value={about}
               onChange={(v) => setAbout(String(v).slice(0, 1600))}
               placeholder="Write about the clinic..."
-             
+
             />
           </InputWithMeta>
         </div>
 
         <div>
           <InputWithMeta label="Clinic Photos" showInput={false}>
-          <div className="flex flex-wrap gap-4 mt-1 items-center">
-            {photos.map((key) => (
-              <div key={key} className="relative w-[120px] h-[120px] bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
-                <img src={key} alt="Clinic" className="w-full h-full object-cover" />
-                
-              </div>
-            ))}
-            <label className="w-[120px] h-[120px] border-dashed bg-blue-primary50 border-blue-primary150 border-[0.5px] rounded-md grid place-items-center text-blue-primary250 text-sm cursor-pointer">
-              <input
-                type="file"
-                className="hidden"
-                multiple
-                accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
-                onChange={(e) => onUploadPhotos(e.target.files)}
-              />
-              
-              <div className="flex gap-1 items-center">
-                      <img src={upload} alt="Upload" className="w-4 h-4" />
-                      <span>Upload File</span>
-                    </div>
-            </label>
-          </div>
-          <div className="text-[12px] text-secondary-grey200 mt-1">
-            Support Size upto 2MB in .png, .jpg, .svg, .webp
-          </div>
+            <div className="flex flex-wrap gap-4 mt-1 items-center">
+              {photos.map((key) => (
+                <div key={key} className="group relative w-[120px] h-[120px] bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
+                  <img
+                    src={key?.startsWith('blob:') || key?.startsWith('http') ? key : (resolvedPhotoUrls[key] || '')}
+                    alt="Clinic"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    onClick={() => removePhoto(key)}
+                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <label className="w-[120px] h-[120px] border-dashed bg-blue-primary50 border-blue-primary150 border-[0.5px] rounded-md grid place-items-center text-blue-primary250 text-sm cursor-pointer">
+                <input
+                  type="file"
+                  className="hidden"
+                  multiple
+                  accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
+                  onChange={(e) => onUploadPhotos(e.target.files)}
+                />
+
+                <div className="flex gap-1 items-center">
+                  <img src={upload} alt="Upload" className="w-4 h-4" />
+                  <span>Upload File</span>
+                </div>
+              </label>
+            </div>
+            <div className="text-[12px] text-secondary-grey200 mt-1">
+              Support Size upto 2MB in .png, .jpg, .svg, .webp
+            </div>
           </InputWithMeta>
         </div>
 
-            <div className="border-b-[0.5px] h-4 border-secondary-grey100"></div>
+        <div className="border-b-[0.5px] h-4 border-secondary-grey100"></div>
         {/* Section: Clinic Address */}
         <div className="text-sm text-secondary-grey400  font-semibold">Clinic Address</div>
         {/* Address + Map */}
         <div className="flex flex-col gap-4">
-          
+
           <div className="gap-2 flex flex-col">
             <InputWithMeta label="Map Location" infoIcon placeholder="Search Location"></InputWithMeta>
             <div className="h-[100px] rounded-md overflow-hidden border">
-                <MapLocation
-                  heightClass="h-full"
-                  initialPosition={latLng.lat && latLng.lng ? [latLng.lat, latLng.lng] : null}
-                  onChange={({ lat, lng }) => setLatLng({ lat, lng })}
-                />
-              </div>
+              <MapLocation
+                heightClass="h-full"
+                initialPosition={latLng.lat && latLng.lng ? [latLng.lat, latLng.lng] : null}
+                onChange={({ lat, lng }) => setLatLng({ lat, lng })}
+              />
+            </div>
           </div>
-            
+
           {/* Row: Block no. & Road/Area/Street */}
           <div className="gap-4 flex flex-col">
             <InputWithMeta
@@ -385,63 +513,63 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
               placeholder="444001"
             />
           </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
             <div className="grid  relative">
-            <InputWithMeta
-              label="City"
-              requiredDot
-              value={city}
-              onChange={setCity}
-              placeholder="Akola"
-              infoIcon
-              RightIcon={ChevronDown}
-              onFieldOpen={() => setCityOpen((o) => !o)}
-              dropdownOpen={cityOpen}
-              onRequestClose={() => setCityOpen(false)}
-            />
-            <Dropdown
-              open={cityOpen}
-              onClose={() => setCityOpen(false)}
-              items={cityOptions.map((c) => ({ label: c, value: c }))}
-              selectedValue={city}
-              onSelect={(it) => {
-                setCity(it.value);
-                setCityOpen(false);
-              }}
-              anchorClassName="w-full h-0"
-              className="input-meta-dropdown w-full"
-            />
+              <InputWithMeta
+                label="City"
+                requiredDot
+                value={city}
+                onChange={setCity}
+                placeholder="Akola"
+                infoIcon
+                RightIcon={ChevronDown}
+                onFieldOpen={() => setCityOpen((o) => !o)}
+                dropdownOpen={cityOpen}
+                onRequestClose={() => setCityOpen(false)}
+              />
+              <Dropdown
+                open={cityOpen}
+                onClose={() => setCityOpen(false)}
+                items={cityOptions.map((c) => ({ label: c, value: c }))}
+                selectedValue={city}
+                onSelect={(it) => {
+                  setCity(it.value);
+                  setCityOpen(false);
+                }}
+                anchorClassName="w-full h-0"
+                className="input-meta-dropdown w-full"
+              />
+            </div>
+
+            <div className="relative">
+              <InputWithMeta
+                label="State"
+                requiredDot
+                value={state}
+                infoIcon
+                onChange={() => { }}
+                placeholder="Maharashtra"
+                RightIcon={ChevronDown}
+                onFieldOpen={() => setStateOpen((o) => !o)}
+                dropdownOpen={stateOpen}
+                onRequestClose={() => setStateOpen(false)}
+                readonlyWhenIcon
+              />
+              <Dropdown
+                open={stateOpen}
+                onClose={() => setStateOpen(false)}
+                items={stateOptions.map((s) => ({ label: s, value: s }))}
+                selectedValue={state}
+                onSelect={(it) => {
+                  setState(it.value);
+                  setStateOpen(false);
+                }}
+                anchorClassName="w-full h-0"
+                className="input-meta-dropdown w-full"
+              />
+            </div>
           </div>
 
-          <div className="relative">
-            <InputWithMeta
-              label="State"
-              requiredDot
-              value={state}
-              infoIcon
-              onChange={() => {}}
-              placeholder="Maharashtra"
-              RightIcon={ChevronDown}
-              onFieldOpen={() => setStateOpen((o) => !o)}
-              dropdownOpen={stateOpen}
-              onRequestClose={() => setStateOpen(false)}
-              readonlyWhenIcon
-            />
-            <Dropdown
-              open={stateOpen}
-              onClose={() => setStateOpen(false)}
-              items={stateOptions.map((s) => ({ label: s, value: s }))}
-              selectedValue={state}
-              onSelect={(it) => {
-                setState(it.value);
-                setStateOpen(false);
-              }}
-              anchorClassName="w-full h-0"
-              className="input-meta-dropdown w-full"
-            />
-          </div>
-            </div>
-          
         </div>
 
         {/* Bottom upload: Upload Clinic Image using reusable FileUploadBox */}
