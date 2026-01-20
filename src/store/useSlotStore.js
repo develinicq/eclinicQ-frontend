@@ -13,7 +13,7 @@ export const useSlotStore = create((set, get) => ({
 
   loadSlots: async ({ doctorId, date, clinicId, hospitalId }) => {
     // Validate required inputs to prevent bad requests
-    if (!doctorId || !clinicId || !date) {
+    if (!doctorId || (!clinicId && !hospitalId) || !date) {
       set({ slots: [], selectedSlotId: null, slotAppointments: null, slotsError: '' })
       return
     }
@@ -22,14 +22,14 @@ export const useSlotStore = create((set, get) => ({
     try {
       if (date instanceof Date && !isNaN(date)) {
         const y = date.getFullYear();
-        const m = String(date.getMonth()+1).padStart(2,'0');
-        const d = String(date.getDate()).padStart(2,'0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
         normalizedDate = `${y}-${m}-${d}`
       } else if (typeof date === 'string') {
         if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
           normalizedDate = date
         } else if (/^\d{4}-\d{2}-\d{2}T/.test(date)) {
-          normalizedDate = date.slice(0,10)
+          normalizedDate = date.slice(0, 10)
         }
       }
     } catch (_) { /* ignore */ }
@@ -39,19 +39,20 @@ export const useSlotStore = create((set, get) => ({
     }
     set({ slotsLoading: true, slotsError: '' })
     try {
-  const resp = await findPatientSlots({ doctorId, date: normalizedDate, clinicId, hospitalId })
-      // Normalize common shapes: {data: [...]}, {slots: [...]}, or array
+      const resp = await findPatientSlots({
+        doctorId,
+        date: normalizedDate,
+        ...(clinicId ? { clinicId } : (hospitalId ? { hospitalId } : {}))
+      })
       const arr = Array.isArray(resp)
         ? resp
         : (Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp?.slots) ? resp.slots : []))
       set({ slots: arr, slotsLoading: false })
-      // Auto-select first slot if none selected; clear selection when empty
+      // Auto-select first slot on load (e.g. when landing or changing date)
       if (arr.length) {
-        if (!get().selectedSlotId) {
-          const first = arr[0] || {}
-          const autoId = first.id || first.slotId || first._id || null
-          get().selectSlot(autoId)
-        }
+        const first = arr[0] || {}
+        const autoId = first.id || first.slotId || first._id || null
+        get().selectSlot(autoId)
       } else {
         get().selectSlot(null)
         set({ slotAppointments: null })

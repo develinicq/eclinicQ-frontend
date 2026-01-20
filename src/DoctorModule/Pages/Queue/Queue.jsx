@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, Sunrise, Sun, Sunset, Moon, X, Clock } from "lucide-react";
+import { Calendar, Sunrise, Sun, Sunset, Moon, X, Clock, ChevronDown } from "lucide-react";
 import {
   bookWalkInAppointment,
   findPatientSlots,
@@ -16,7 +16,9 @@ import { calendarMinimalistic } from "../../../../public/index.js";
 import OverviewStatCard from "../../../components/OverviewStatCard";
 import Toggle from "../../../components/FormItems/Toggle";
 import QueueTable from "./QueueTable";
-import useAuthStore from "../../../store/useAuthStore";
+import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
+import useToastStore from "../../../store/useToastStore";
+import UniversalLoader from "../../../components/UniversalLoader";
 import useSlotStore from "../../../store/useSlotStore";
 import {
   getDoctorMe,
@@ -274,7 +276,7 @@ const WalkInAppointmentDrawer = ({
       }
       try {
         console.debug("[Doctor] walk-in booking payload:", payload);
-      } catch {}
+      } catch { }
       await bookWalkInAppointment(payload);
       onBookedRefresh?.();
       onClose();
@@ -290,17 +292,15 @@ const WalkInAppointmentDrawer = ({
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${
-          show
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${show
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+          }`}
         onClick={onClose}
       />
       <div
-        className={`fixed z-50 transition-transform duration-500 ${
-          show ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed z-50 transition-transform duration-500 ${show ? "translate-x-0" : "translate-x-full"
+          }`}
         style={{
           top: 24,
           right: show ? 24 : 0,
@@ -324,11 +324,10 @@ const WalkInAppointmentDrawer = ({
               <button
                 onClick={handleBook}
                 disabled={!canBook()}
-                className={`text-sm font-medium rounded px-3 py-1.5 border ${
-                  canBook()
-                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                    : "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
-                }`}
+                className={`text-sm font-medium rounded px-3 py-1.5 border ${canBook()
+                  ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                  : "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
+                  }`}
               >
                 {booking ? "Booking..." : "Book Appointment"}
               </button>
@@ -395,11 +394,10 @@ const WalkInAppointmentDrawer = ({
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       type="text"
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.firstName
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.firstName
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                       placeholder="Enter First Name"
                     />
                     {fieldErrors.firstName && (
@@ -416,11 +414,10 @@ const WalkInAppointmentDrawer = ({
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       type="text"
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.lastName
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.lastName
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                       placeholder="Enter Last Name"
                     />
                     {fieldErrors.lastName && (
@@ -441,11 +438,10 @@ const WalkInAppointmentDrawer = ({
                         onChange={(e) => setDob(e.target.value)}
                         type="text"
                         placeholder="Select Date of Birth"
-                        className={`w-full rounded-md border px-3 py-2 text-sm pr-8 focus:outline-none ${
-                          fieldErrors.dob
-                            ? "border-red-400 focus:border-red-500"
-                            : "border-gray-300 focus:border-blue-500"
-                        }`}
+                        className={`w-full rounded-md border px-3 py-2 text-sm pr-8 focus:outline-none ${fieldErrors.dob
+                          ? "border-red-400 focus:border-red-500"
+                          : "border-gray-300 focus:border-blue-500"
+                          }`}
                       />
                       <button
                         type="button"
@@ -498,11 +494,10 @@ const WalkInAppointmentDrawer = ({
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value)}
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.gender
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.gender
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                     >
                       <option value="" disabled>
                         Select Gender
@@ -528,11 +523,10 @@ const WalkInAppointmentDrawer = ({
                     <select
                       value={bloodGroup}
                       onChange={(e) => setBloodGroup(e.target.value)}
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.bloodGroup
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.bloodGroup
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                     >
                       <option value="" disabled>
                         Select Blood Group
@@ -557,11 +551,10 @@ const WalkInAppointmentDrawer = ({
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
                       type="tel"
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.phone || fieldErrors.mobile
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.phone || fieldErrors.mobile
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                       placeholder="Enter Mobile Number"
                     />
                     {(fieldErrors.phone || fieldErrors.mobile) && (
@@ -579,11 +572,10 @@ const WalkInAppointmentDrawer = ({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     type="email"
-                    className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                      fieldErrors.email || fieldErrors.emailId
-                        ? "border-red-400 focus:border-red-500"
-                        : "border-gray-300 focus:border-blue-500"
-                    }`}
+                    className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.email || fieldErrors.emailId
+                      ? "border-red-400 focus:border-red-500"
+                      : "border-gray-300 focus:border-blue-500"
+                      }`}
                     placeholder="Enter Email"
                   />
                   {(fieldErrors.email || fieldErrors.emailId) && (
@@ -630,11 +622,10 @@ const WalkInAppointmentDrawer = ({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 type="text"
-                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                  fieldErrors.reason || fieldErrors.reasonForVisit
-                    ? "border-red-400 focus:border-red-500"
-                    : "border-gray-300 focus:border-blue-500"
-                }`}
+                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.reason || fieldErrors.reasonForVisit
+                  ? "border-red-400 focus:border-red-500"
+                  : "border-gray-300 focus:border-blue-500"
+                  }`}
                 placeholder="Enter Reason for Visit"
               />
               {(fieldErrors.reason || fieldErrors.reasonForVisit) && (
@@ -737,23 +728,21 @@ const WalkInAppointmentDrawer = ({
                     current?.maxTokens;
                   const label =
                     (avail ?? "") !== ""
-                      ? `${avail}${
-                          total != null ? ` of ${total}` : ""
-                        } Tokens available`
+                      ? `${avail}${total != null ? ` of ${total}` : ""
+                      } Tokens available`
                       : loadingSlots
-                      ? "Loading slots…"
-                      : slotsError
-                      ? "Slots unavailable"
-                      : "Tokens info unavailable";
+                        ? "Loading slots…"
+                        : slotsError
+                          ? "Slots unavailable"
+                          : "Tokens info unavailable";
                   return (
                     <div className="flex items-center justify-between">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Available Slot <span className="text-red-500">*</span>
                       </label>
                       <span
-                        className={`text-xs ${
-                          avail > 0 ? "text-green-600" : "text-amber-600"
-                        }`}
+                        className={`text-xs ${avail > 0 ? "text-green-600" : "text-amber-600"
+                          }`}
                       >
                         {label}
                       </span>
@@ -761,11 +750,10 @@ const WalkInAppointmentDrawer = ({
                   );
                 })()}
                 <select
-                  className={`w-full rounded-md border px-3 py-2 text-sm ${
-                    fieldErrors.slotId
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-gray-300 focus:border-blue-500"
-                  }`}
+                  className={`w-full rounded-md border px-3 py-2 text-sm ${fieldErrors.slotId
+                    ? "border-red-400 focus:border-red-500"
+                    : "border-gray-300 focus:border-blue-500"
+                    }`}
                   value={bucketKey}
                   onChange={(e) => {
                     const key = e.target.value;
@@ -812,20 +800,59 @@ const Queue = () => {
   // Queue is restricted to Checked-In only for both Doctor & FD views
   const [activeFilter, setActiveFilter] = useState("All");
   const [currentDate, setCurrentDate] = useState(new Date());
-  // Auth
-  const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
+  // Auth (Using useDoctorAuthStore for Doctor module)
+  const { user: doctorDetails, loading: doctorLoading, fetchMe: fetchDoctorDetails } = useDoctorAuthStore();
   useEffect(() => {
-    if (!doctorDetails && !doctorLoading && fetchDoctorDetails) {
-      fetchDoctorDetails(getDoctorMe);
+    if (!doctorDetails && !doctorLoading) {
+      fetchDoctorDetails();
     }
   }, [doctorDetails, doctorLoading, fetchDoctorDetails]);
-  const doctorId = doctorDetails?.userId || doctorDetails?.id;
-  const clinicId =
-    doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId;
-  const hospitalId =
-    (Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) &&
-      doctorDetails?.associatedWorkplaces?.hospitals[0]?.id) ||
-    undefined;
+  const calculateAge = (dob) => {
+    if (!dob) return "";
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 0 ? `${age}Y` : "";
+  };
+
+  const formatSlotTime = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const mapAppointmentToRow = (appt) => {
+    const p = appt.patientDetails || {};
+    return {
+      token: appt.tokenNo,
+      patientName: p.name || `${p.firstName} ${p.lastName}`.trim(),
+      gender: p.gender === "MALE" ? "M" : p.gender === "FEMALE" ? "F" : "O",
+      dob: p.dob ? new Date(p.dob).toLocaleDateString() : "",
+      age: p.age ? `${p.age}Y` : calculateAge(p.dob),
+      appointmentType:
+        appt.appointmentType === "NEW"
+          ? "New Consultation"
+          : "Follow-up Consultation",
+      expectedTime: appt.expectedTime ? formatSlotTime(appt.expectedTime) : "",
+      startTime: appt.startTime ? formatSlotTime(appt.startTime) : "",
+      endTime: appt.endTime ? formatSlotTime(appt.endTime) : "",
+      bookingType: appt.bookingMode === "WALK_IN" ? "Walk-In" : "Online",
+      reason: appt.reason,
+      reasonForVisit: appt.reason, // for active card
+      id: appt.id,
+    };
+  };
+
+  const [queueData, setQueueData] = useState([]);
+  const { addToast } = useToastStore();
 
   // Slot store
   const {
@@ -837,8 +864,17 @@ const Queue = () => {
     loadAppointmentsForSelectedSlot,
     slotAppointments,
   } = useSlotStore();
+  const doctorId = doctorDetails?.id || doctorDetails?._id || doctorDetails?.userId;
+  const clinicId =
+    doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId;
+  const hospitalId =
+    (Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) &&
+      doctorDetails?.associatedWorkplaces?.hospitals[0]?.id) ||
+    doctorDetails?.hospitalId ||
+    undefined;
+
   useEffect(() => {
-    if (!doctorId || !clinicId) return;
+    if (!doctorId || (!clinicId && !hospitalId)) return;
     const d = currentDate;
     const dateIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
       2,
@@ -852,13 +888,13 @@ const Queue = () => {
     }
   }, [selectedSlotId, loadAppointmentsForSelectedSlot]);
 
-  // Queue derived from slotAppointments (declared early, mapped later to avoid TDZ on sessionStarted)
-  const [queueData, setQueueData] = useState([]);
+
 
   // Session + patient timer
   const [sessionStarted, setSessionStarted] = useState(false);
   const [slotStarting, setSlotStarting] = useState(false);
-  const [startError, setStartError] = useState(null);
+  const [isStartingSession, setIsStartingSession] = useState(false);
+  const [isEndingSession, setIsEndingSession] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   // Pin the currently active token when a session is running so UI interactions don't change it
   const pinnedTokenRef = useRef(null);
@@ -909,7 +945,7 @@ const Queue = () => {
               : 0);
           ageStr = `${dd}/${mm}/${yyyy} (${age}Y)`;
         }
-      } catch {}
+      } catch { }
       return {
         patientName: fullName,
         gender:
@@ -925,14 +961,14 @@ const Queue = () => {
     }
     return activePatient
       ? {
-          patientName: activePatient.patientName,
-          gender: activePatient.gender,
-          age: activePatient.age,
-          token: activePatient.token,
-          reasonForVisit: activePatient.reasonForVisit,
-          appointmentStatus: activePatient.status,
-          startedAt: activePatient.startedAt,
-        }
+        patientName: activePatient.patientName,
+        gender: activePatient.gender,
+        age: activePatient.age,
+        token: activePatient.token,
+        reasonForVisit: activePatient.reasonForVisit,
+        appointmentStatus: activePatient.status,
+        startedAt: activePatient.startedAt,
+      }
       : null;
   }, [backendActiveDetails, activePatient]);
 
@@ -1000,7 +1036,7 @@ const Queue = () => {
             setQueuePaused(false);
             try {
               await loadAppointmentsForSelectedSlot();
-            } catch {}
+            } catch { }
           } else {
             setSessionStarted(false);
             setRunStartAt(null);
@@ -1037,6 +1073,9 @@ const Queue = () => {
     const engaged = categories.engaged || [];
     const checked = categories.checkedIn || [];
     const admitted = categories.admitted || [];
+    const noShow = categories.noShow || [];
+    // Construct 'All' from relevant categories, excluding 'In Waiting'
+    const all = [...(categories.engaged || []), ...(categories.checkedIn || []), ...(categories.admitted || []), ...(categories.noShow || [])];
     const mapAppt = (appt) => {
       if (!appt) return null;
       const p = appt.patientDetails || appt.patient || {};
@@ -1062,7 +1101,7 @@ const Queue = () => {
               : 0);
           ageStr = `${dd}/${mm}/${yyyy} (${age}Y)`;
         }
-      } catch {}
+      } catch { }
       const apptTypeMap = {
         NEW: "New Consultation",
         FOLLOW_UP: "Follow-up Consultation",
@@ -1075,16 +1114,16 @@ const Queue = () => {
         "Consultation";
       const expectedTime = appt.expectedTime
         ? new Date(appt.expectedTime).toLocaleTimeString([], {
-            hour: "numeric",
-            minute: "2-digit",
-          })
+          hour: "numeric",
+          minute: "2-digit",
+        })
         : "";
       const bookingType =
         appt.bookingMode === "ONLINE"
           ? "Online"
           : appt.bookingMode === "WALK_IN"
-          ? "Walk-In"
-          : appt.bookingType || "";
+            ? "Walk-In"
+            : appt.bookingType || "";
       const reason = appt.reason || appt.reasonForVisit || "";
       return {
         id: appt.id || appt.appointmentId,
@@ -1092,8 +1131,8 @@ const Queue = () => {
           appt.tokenNo != null
             ? Number(appt.tokenNo)
             : appt.token != null
-            ? Number(appt.token)
-            : undefined,
+              ? Number(appt.token)
+              : undefined,
         patientName: name,
         gender,
         age: ageStr,
@@ -1105,8 +1144,15 @@ const Queue = () => {
         startedAt: appt.startedAt || null,
       };
     };
-    // Force queue to Checked-In only regardless of filter selection
-    const base = checked;
+    // Filter queue data based on activeFilter
+    let base = [];
+    if (activeFilter === "Engaged") base = engaged;
+    else if (activeFilter === "Checked In") base = checked;
+    else if (activeFilter === "No Show") base = noShow;
+    else if (activeFilter === "Admitted") base = admitted;
+    else if (activeFilter === "All") base = all;
+    else base = checked; // Default fallback
+
     const mapped = base.map(mapAppt).filter(Boolean);
     setQueueData(mapped);
     // Maintain current token selection: prefer backend currentToken, else pinned token during session
@@ -1201,6 +1247,7 @@ const Queue = () => {
     if (sessionStarted) {
       // end
       setSlotEnding(true);
+      setIsEndingSession(true);
       // Keep toggle ON but disabled while ending
       // Remove session only after API response
       try {
@@ -1227,20 +1274,23 @@ const Queue = () => {
         wasRunningOnPauseRef.current = false;
         setCurrentIndex(0);
         pinnedTokenRef.current = null;
+        addToast({ title: "Session Ended", message: "Queue session ended successfully.", type: "success" });
       } catch (e) {
         console.error("End slot ETA failed", e?.response?.data || e.message);
-        // Optionally show error and keep sessionStarted true
+        const msg = e?.response?.data?.message || e.message || "Failed to end session";
+        addToast({ title: "Error", message: msg, type: "error" });
       } finally {
         setSlotEnding(false);
+        setIsEndingSession(false);
       }
       return;
     }
     if (!selectedSlotId) {
-      setStartError("Select a slot first");
+      addToast({ title: "Error", message: "Select a slot first", type: "error" });
       return;
     }
     setSlotStarting(true);
-    setStartError(null);
+    setIsStartingSession(true);
     setQueuePaused(false);
     setRunStartAt(null);
     setBaseElapsed(0);
@@ -1250,14 +1300,17 @@ const Queue = () => {
     try {
       await startSlotEta(selectedSlotId);
       setSessionStarted(true);
+      addToast({ title: "Session Started", message: "Queue session started.", type: "success" });
       const first = queueData[0];
       if (first?.token != null) pinnedTokenRef.current = first.token;
     } catch (e) {
       console.error("Start slot failed", e?.response?.data || e.message);
-      setStartError("Failed to start");
+      const msg = e?.response?.data?.message || e.message || "Failed to start session";
+      addToast({ title: "Error", message: msg, type: "error" });
       setSessionStarted(false);
     } finally {
       setSlotStarting(false);
+      setIsStartingSession(false);
     }
   };
 
@@ -1271,7 +1324,7 @@ const Queue = () => {
     }
     try {
       await loadAppointmentsForSelectedSlot();
-    } catch {}
+    } catch { }
     setRunStartAt(null);
     setBaseElapsed(0);
     setElapsed(0);
@@ -1497,103 +1550,66 @@ const Queue = () => {
   };
 
   // Slot dropdown UI from slots
-  const [slotOpen, setSlotOpen] = useState(false);
-  const slotAnchorRef = useRef(null);
-  const slotMenuRef = useRef(null);
-  const [slotPos, setSlotPos] = useState({ top: 0, left: 0, width: 360 });
-  // Topbar actions (three-dot) dropdown
-  const [actionMenuOpen, setActionMenuOpen] = useState(false);
-  const actionAnchorRef = useRef(null);
-  const actionMenuRef = useRef(null);
-  const [actionPos, setActionPos] = useState({ top: 0, left: 0, width: 220 });
-  // Group slots into day parts similar to FD
-  const groupedSlots = useMemo(() => {
-    const groups = { morning: [], afternoon: [], evening: [], night: [] };
-    (slots || []).forEach((s) => {
-      const part = classifyISTDayPart(
-        s.startTime || s.slotStartTime || s.start || s.timeStart
-      );
-      if (groups[part]) groups[part].push(s);
+  const [activeActionMenuToken, setActiveActionMenuToken] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+
+  const handleActionMenuClick = (e, token) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    // Align right edge of menu to right edge of button
+    const menuWidth = token === "slot_dropdown" ? 300 : 220;
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY + 8,
+      left: rect.left + window.scrollX - menuWidth + rect.width,
     });
-    return groups;
-  }, [slots]);
+    setActiveActionMenuToken(activeActionMenuToken === token ? null : token);
+  };
+  const getIconForTime = (hour) => {
+    if (hour < 12) return Sunrise;
+    if (hour < 17) return Sun;
+    if (hour < 20) return Sunset;
+    return Moon;
+  };
+
+  const getLabelForTime = (hour) => {
+    if (hour < 12) return "Morning";
+    if (hour < 17) return "Afternoon";
+    if (hour < 20) return "Evening";
+    return "Night";
+  };
+
   const timeSlots = useMemo(() => {
-    const arr = [];
-    if (groupedSlots.morning.length) {
-      const f = groupedSlots.morning[0],
-        l = groupedSlots.morning[groupedSlots.morning.length - 1];
-      arr.push({
-        key: "morning",
-        label: "Morning",
-        time: buildISTRangeLabel(
-          f.startTime || f.slotStartTime,
-          l.endTime || l.slotEndTime
-        ),
-        Icon: morningQueue,
-      });
+    return (slots || []).map((slot) => {
+      const startIso = slot.startTime || slot.slotStartTime || slot.start || slot.timeStart;
+      const endIso = slot.endTime || slot.slotEndTime || slot.end || slot.timeEnd;
+      const startRaw = new Date(startIso);
+      const hour = startRaw.getHours();
+
+      return {
+        key: slot.id || slot.slotId || slot._id,
+        label: getLabelForTime(hour),
+        time: buildISTRangeLabel(startIso, endIso),
+        Icon: getIconForTime(hour),
+        raw: slot,
+      };
+    });
+  }, [slots]);
+
+  const [slotValue, setSlotValue] = useState("");
+  useEffect(() => {
+    if (selectedSlotId) {
+      setSlotValue(selectedSlotId);
     }
-    if (groupedSlots.afternoon.length) {
-      const f = groupedSlots.afternoon[0],
-        l = groupedSlots.afternoon[groupedSlots.afternoon.length - 1];
-      arr.push({
-        key: "afternoon",
-        label: "Afternoon",
-        time: buildISTRangeLabel(
-          f.startTime || f.slotStartTime,
-          l.endTime || l.slotEndTime
-        ),
-        Icon: afternoonQueue,
-      });
-    }
-    if (groupedSlots.evening.length) {
-      const f = groupedSlots.evening[0],
-        l = groupedSlots.evening[groupedSlots.evening.length - 1];
-      arr.push({
-        key: "evening",
-        label: "Evening",
-        time: buildISTRangeLabel(
-          f.startTime || f.slotStartTime,
-          l.endTime || l.slotEndTime
-        ),
-        Icon: eveningQueue,
-      });
-    }
-    if (groupedSlots.night.length) {
-      const f = groupedSlots.night[0],
-        l = groupedSlots.night[groupedSlots.night.length - 1];
-      arr.push({
-        key: "night",
-        label: "Night",
-        time: buildISTRangeLabel(
-          f.startTime || f.slotStartTime,
-          l.endTime || l.slotEndTime
-        ),
-        Icon: nightQueue,
-      });
-    }
-    return arr;
-  }, [groupedSlots]);
-  const [slotValue, setSlotValue] = useState("morning");
+  }, [selectedSlotId]);
+
   const [showWalkIn, setShowWalkIn] = useState(false);
   useEffect(() => {
-    const onClick = (e) => {
-      if (
-        slotAnchorRef.current?.contains(e.target) ||
-        slotMenuRef.current?.contains(e.target)
-      )
-        return;
-      if (
-        actionAnchorRef.current?.contains(e.target) ||
-        actionMenuRef.current?.contains(e.target)
-      )
-        return;
-      setSlotOpen(false);
-      setActionMenuOpen(false);
+    const onClick = () => {
+      setActiveActionMenuToken(null);
     };
     const onKey = (e) => {
       if (e.key === "Escape") {
-        setSlotOpen(false);
-        setActionMenuOpen(false);
+        setActiveActionMenuToken(null);
       }
     };
     window.addEventListener("mousedown", onClick);
@@ -1608,98 +1624,73 @@ const Queue = () => {
     <>
       <div className="h-screen overflow-hidden bg-gray-50">
         <div className="sticky top-0 z-10 bg-white px-4 py-1 flex items-center">
-          <div className="relative mr-6" ref={slotAnchorRef}>
+          <div className="relative mr-6">
             <button
               type="button"
-              className="flex items-center bg-white rounded-md px-3  text-sm text-gray-700 hover:bg-gray-50"
-              onClick={(e) => {
-                setSlotOpen((v) => !v);
-                const r = e.currentTarget.getBoundingClientRect();
-                const width = 360;
-                const left = Math.max(
-                  8,
-                  Math.min(r.left, window.innerWidth - width - 8)
-                );
-                const top = Math.min(r.bottom + 8, window.innerHeight - 8 - 4);
-                setSlotPos({ top, left, width });
-              }}
+              className="flex w-[300px] items-center bg-white gap-1 text-[16px] text-secondary-grey400 hover:w-fit hover:bg-gray-50"
+              onClick={(e) => handleActionMenuClick(e, "slot_dropdown")}
             >
-              <span className="text-secondary-grey400 mr-1">
-                {timeSlots.find((t) => t.key === slotValue)?.label || "Morning"}
+              <span className="mr-1">
+                {timeSlots.find((t) => t.key === slotValue)?.label || (timeSlots.length > 0 ? timeSlots[0].label : "Morning")} ({timeSlots.find((t) => t.key === slotValue)?.time || (timeSlots.length > 0 ? timeSlots[0].time : "10:00am-12:00pm")})
               </span>
-              <span className="text-secondary-grey400 py-2 border-gray-300">
-                ({timeSlots.find((t) => t.key === slotValue)?.time || ""})
-              </span>
-              <div className="w-[0.5px] h-5 bg-secondary-grey150 ml-2"></div>
-              <img src={angelDown} alt="down" className="ml-2 h-3 w-3" />
+              <ChevronDown className="pl-1 h-4 border-l-[0.5px] border-secondary-grey100/50 text-gray-500" />
             </button>
-            {slotOpen &&
+            {activeActionMenuToken === "slot_dropdown" &&
               createPortal(
                 <div
-                  ref={slotMenuRef}
-                  className="fixed z-[9999]"
+                  className="fixed z-[9999] bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden py-2 px-2"
                   style={{
-                    top: slotPos.top,
-                    left: slotPos.left,
+                    top: dropdownPosition.top,
+                    left: dropdownPosition.left,
+                    width: 300,
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden">
-                    <ul className="py-2 px-2">
-                      {timeSlots.map(({ key, label, time, Icon }, idx) => (
-                        <li key={key}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSlotValue(key);
-                              const group = groupedSlots[key] || [];
-                              if (group.length) {
-                                const first = group[0];
-                                const id =
-                                  first.id || first.slotId || first._id || null;
-                                if (id) selectSlot(id);
-                              }
-                              setSlotOpen(false);
-                            }}
-                            className={`w-full text-left px-3 py-2.5 flex items-center gap-3 rounded-lg hover:bg-blue-50 ${
-                              slotValue === key ? "bg-[#2372EC] text-white" : ""
+                  <ul>
+                    {timeSlots.map(({ key, label, time, Icon }, idx) => (
+                      <li key={key}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSlotValue(key);
+                            selectSlot(key);
+                            setActiveActionMenuToken(null);
+                          }}
+                          className={`flex items-center gap-3 px-4 py-3 text-sm text-left w-full transition-colors ${slotValue === key
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-700 hover:bg-gray-50"
                             }`}
-                          >
-                            <img
-                              src={Icon}
-                              alt={label}
-                              className={`${
-                                slotValue === key ? "text-white" : ""
-                              } w-7 h-7`}
-                            />
+                        >
+                          <Icon
+                            className={`h-5 w-5 ${slotValue === key ? "text-white" : "text-gray-500"
+                              }`}
+                          />
 
-                            <span className="flex items-center gap-2">
-                              <span
-                                className={`text-[14px] font-semibold ${
-                                  slotValue === key
-                                    ? "text-white"
-                                    : "text-secondary-grey400"
+                          <span className="flex-1">
+                            <span
+                              className={`font-medium mr-1 ${slotValue === key
+                                ? "text-white"
+                                : "text-gray-900"
                                 }`}
-                              >
-                                {label}
-                              </span>
-                              <span
-                                className={`text-[13px] ${
-                                  slotValue === key
-                                    ? "text-white/90"
-                                    : "text-secondary-grey300"
-                                }`}
-                              >
-                                ({time})
-                              </span>
+                            >
+                              {label}
                             </span>
-                          </button>
-                          {idx < timeSlots.length - 1 && (
-                            <div className="h-px bg-gray-200 mx-4" />
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                            <span
+                              className={`${slotValue === key
+                                ? "text-blue-100"
+                                : "text-gray-500"
+                                }`}
+                            >
+                              ({time})
+                            </span>
+                          </span>
+                        </button>
+                        {idx < timeSlots.length - 1 && (
+                          <div className="h-px bg-gray-100 mx-4" />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>,
                 document.body
               )}
@@ -1751,119 +1742,93 @@ const Queue = () => {
                 Tokens available
               </span>
               <span className="px-2 py-1 rounded bg-success-100 font-inter font-normal text-[14px] leading-[120%] text-center text-success-300 border border-transparent hover:border-success-300 hover:border-[0.5px] transition-colors">
-                10 out of 100
+                {(() => {
+                  const activeSlot = timeSlots.find((s) => s.key === slotValue);
+                  const availableTokens = activeSlot?.raw?.availableTokens || 0;
+                  const maxTokens = activeSlot?.raw?.maxTokens || 0;
+                  return `${availableTokens} out of ${maxTokens}`;
+                })()}
               </span>
             </div>
             <img src={vertical} alt="" className="h-6" />
             <div className="flex items-center gap-2">
               <Toggle
                 checked={sessionStarted}
-                disabled={slotStarting || slotEnding}
-                onChange={handleToggleSession}
+                onChange={(!isStartingSession && !isEndingSession) ? handleToggleSession : undefined}
+                className={(isStartingSession || isEndingSession) ? "opacity-50 cursor-not-allowed" : ""}
               />
-              <span
-                className="text-secondary-grey300"
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: 400,
-                  fontSize: "14px",
-                  lineHeight: "120%",
-                  verticalAlign: "middle",
-                }}
-              >
-                Start Session
+              <span className={`text-sm font-medium ${sessionStarted ? 'text-gray-700' : 'text-secondary-grey300'}`}>
+                {isStartingSession ? (
+                  <div className="flex items-center gap-1">
+                    <UniversalLoader size={14} className="text-secondary-grey300" />
+                    <span className="text-secondary-grey300">Starting...</span>
+                  </div>
+                ) : isEndingSession ? (
+                  <div className="flex items-center gap-1">
+                    <UniversalLoader size={14} className="text-secondary-grey300" />
+                    <span className="text-secondary-grey300">Ending...</span>
+                  </div>
+                ) : (
+                  "Start Session"
+                )}
               </span>
-              {slotStarting && (
-                <span className="text-xs text-blue-600 animate-pulse">
-                  Starting
-                </span>
-              )}
-              {slotEnding && (
-                <span className="text-xs text-orange-600 animate-pulse">
-                  Ending
-                </span>
-              )}
-              {startError && !slotStarting && !sessionStarted && (
-                <span className="text-xs text-red-600">{startError}</span>
-              )}
             </div>
             <img src={vertical} alt="" className="h-6" />
             <button
               type="button"
-              ref={actionAnchorRef}
               className="relative w-4 h-6 flex items-center justify-center rounded hover:bg-gray-100"
-              onClick={(e) => {
-                setActionMenuOpen((v) => !v);
-                const r = e.currentTarget.getBoundingClientRect();
-                const width = 220;
-                const left = Math.max(
-                  8,
-                  Math.min(r.left - width + 24, window.innerWidth - width - 8)
-                );
-                const top = Math.min(r.bottom + 8, window.innerHeight - 8 - 4);
-                setActionPos({ top, left, width });
-              }}
+              onClick={(e) => handleActionMenuClick(e, "queue_actions_dropdown")}
             >
               <img src={action_dot} alt="Actions" className="w-4" />
             </button>
-            {actionMenuOpen &&
+            {activeActionMenuToken === "queue_actions_dropdown" &&
               createPortal(
                 <div
-                  ref={actionMenuRef}
-                  className="fixed z-[9999]"
+                  className="fixed z-[9999] bg-white rounded-lg border border-gray-200 shadow-xl overflow-hidden p-2"
                   style={{
-                    top: actionPos.top,
-                    left: actionPos.left,
-                    width: actionPos.width,
+                    top: dropdownPosition.top,
+                    left: dropdownPosition.left,
+                    width: 220,
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="bg-white rounded-lg border border-gray-200 shadow-xl overflow-hidden p-2">
-                    <ul className="flex flex-col gap-2">
-                      <li>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            try {
-                              if (selectedSlotId) {
-                                loadAppointmentsForSelectedSlot();
-                              }
-                            } finally {
-                              setActionMenuOpen(false);
+                  <ul className="flex flex-col gap-2">
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          try {
+                            if (selectedSlotId) {
+                              loadAppointmentsForSelectedSlot();
                             }
-                          }}
-                          className="w-full rounded-sm text-left px-2 py-1 flex items-center gap-3 hover:bg-gray-50"
-                        >
-                          <img
-                            src={refresh}
-                            alt="Refresh Queue"
-                            className="w-4 "
-                          />
-                          <span className="text-[14px] text-gray-800">
-                            Refresh Queue
-                          </span>
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActionMenuOpen(false);
-                            setShowTerminateModal(true);
-                          }}
-                          className="w-full text-left px-2 py-1 flex items-center gap-3 hover:bg-red-50"
-                        >
-                          <img
-                            src={terminate}
-                            alt="Terminate Queue"
-                            className="w-4"
-                          />
-                          <span className="text-[14px] text-red-600 font-medium">
-                            Terminate Queue
-                          </span>
-                        </button>
-                      </li>
-                    </ul>
-                  </div>
+                          } finally {
+                            setActiveActionMenuToken(null);
+                          }
+                        }}
+                        className="w-full rounded-sm text-left px-2 py-1 flex items-center gap-3 hover:bg-gray-50"
+                      >
+                        <img src={refresh} alt="Refresh" className="w-4 " />
+                        <span className="text-[14px] text-gray-800">
+                          Refresh Queue
+                        </span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveActionMenuToken(null);
+                          setShowTerminateModal(true);
+                        }}
+                        className="w-full text-left px-2 py-1 flex items-center gap-3 hover:bg-red-50"
+                      >
+                        <img src={terminate} alt="Terminate" className="w-4" />
+                        <span className="text-[14px] text-red-600 font-medium">
+                          Terminate Queue
+                        </span>
+                      </button>
+                    </li>
+                  </ul>
                 </div>,
                 document.body
               )}
@@ -1883,11 +1848,10 @@ const Queue = () => {
               >
                 <div className="flex-1 flex items-center justify-center gap-3">
                   <span
-                    className={`${
-                      queuePaused
-                        ? "text-secondary-grey200"
-                        : "text-monochrom-white"
-                    }`}
+                    className={`${queuePaused
+                      ? "text-secondary-grey200"
+                      : "text-monochrom-white"
+                      }`}
                     style={{
                       fontFamily: "Inter",
                       fontWeight: 400,
@@ -1899,9 +1863,8 @@ const Queue = () => {
                     Current Token Number
                   </span>
                   <span
-                    className={`inline-flex items-center gap-2 ${
-                      queuePaused ? "text-warning-400" : "text-monochrom-white"
-                    }`}
+                    className={`inline-flex items-center gap-2 ${queuePaused ? "text-warning-400" : "text-monochrom-white"
+                      }`}
                     style={{
                       fontFamily: "Inter",
                       fontWeight: 700,
@@ -2135,20 +2098,18 @@ const Queue = () => {
                   <button
                     key={f}
                     onClick={() => setActiveFilter(f)}
-                    className={`px-[6px] py-1 font-medium text-sm transition-colors ${
-                      activeFilter === f
-                        ? "bg-blue-primary50 border border-blue-primary150 text-blue-primary250 shadow-sm"
-                        : "text-secondary-grey300 hover:text-gray-800"
-                    }`}
+                    className={`px-[6px] py-1 font-medium text-sm transition-colors ${activeFilter === f
+                      ? "bg-blue-primary50 border border-blue-primary150 text-blue-primary250 shadow-sm"
+                      : "text-secondary-grey300 hover:text-gray-800"
+                      }`}
                     style={{ borderRadius: "4px" }}
                   >
                     {f}{" "}
                     <span
-                      className={`ml-1 ${
-                        activeFilter === f
-                          ? "border-blue-primary150"
-                          : "border-gray-200"
-                      } border  py-[.15rem] px-[.55rem] bg-white rounded-md text-xs`}
+                      className={`ml-1 ${activeFilter === f
+                        ? "border-blue-primary150"
+                        : "border-gray-200"
+                        } border  py-[.15rem] px-[.55rem] bg-white rounded-md text-xs`}
                       style={{ borderRadius: "4px" }}
                     >
                       {getFilterCount(f)}
@@ -2184,8 +2145,8 @@ const Queue = () => {
                     incomingToken={null}
                     checkedInToken={null}
                     checkedInTokens={new Set()}
-                    onCheckIn={() => {}}
-                    onRevokeCheckIn={() => {}}
+                    onCheckIn={() => { }}
+                    onRevokeCheckIn={() => { }}
                     onMarkNoShow={handleMarkNoShow}
                   />
                 ) : (
@@ -2233,7 +2194,7 @@ const Queue = () => {
           if (selectedSlotId) {
             try {
               loadAppointmentsForSelectedSlot();
-            } catch {}
+            } catch { }
           }
         }}
       />
