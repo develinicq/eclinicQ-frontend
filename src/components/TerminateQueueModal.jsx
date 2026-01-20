@@ -8,7 +8,6 @@ const TerminateQueueModal = ({
   onClose,
   onConfirm,
   sessions = [
-    { id: "all", label: "All Sessions" },
     { id: "morning", label: "Morning (10:00 Am - 12:00 PM)" },
     { id: "afternoon", label: "Afternoon (2:00 PM - 4:00 PM)" },
     { id: "evening", label: "Evening (6:00 PM - 8:00 PM)" },
@@ -23,17 +22,16 @@ const TerminateQueueModal = ({
 
   const handleSessionToggle = (sessionId) => {
     if (sessionId === "all") {
-      if (selectedSessions.includes("all")) {
+      if (selectedSessions.length === sessions.length) {
         setSelectedSessions([]);
       } else {
-        setSelectedSessions(["all"]);
+        setSelectedSessions(sessions.map((s) => s.id));
       }
     } else {
-      const newSessions = selectedSessions.filter((id) => id !== "all");
-      if (newSessions.includes(sessionId)) {
-        setSelectedSessions(newSessions.filter((id) => id !== sessionId));
+      if (selectedSessions.includes(sessionId)) {
+        setSelectedSessions(selectedSessions.filter((id) => id !== sessionId));
       } else {
-        setSelectedSessions([...newSessions, sessionId]);
+        setSelectedSessions([...selectedSessions, sessionId]);
       }
     }
   };
@@ -42,20 +40,15 @@ const TerminateQueueModal = ({
     onConfirm({ sessions: selectedSessions, reason });
   };
 
-  const isDisabled = selectedSessions.length === 0 || isSubmitting;
+  const isAllSelected = selectedSessions.length === sessions.length;
+  const isDisabled = selectedSessions.length === 0 || !reason.trim() || isSubmitting;
 
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative bg-monochrom-white rounded-lg flex flex-col"
-        style={{
-          width: "400px",
-          maxHeight: "90vh",
-          gap: "16px",
-          padding: "16px",
-          border: "1px solid #FCA5A5",
-        }}
+        className="relative bg-monochrom-white rounded-xl shadow-2xl flex flex-col"
+        style={{ width: "400px", gap: "12px", padding: "16px" }}
       >
         {/* Icon */}
         <div className="flex items-center justify-center">
@@ -100,93 +93,62 @@ const TerminateQueueModal = ({
           Session and write reason below:
         </p>
 
-        {/* Session List */}
-        <div className="flex flex-col gap-2">
-          {sessions.map((session) => {
-            const isSelected = selectedSessions.includes(session.id);
-            return (
-              <div
-                key={session.id}
-                onClick={() => handleSessionToggle(session.id)}
-                className={`flex items-center gap-2 cursor-pointer ${
-                  isSelected
-                    ? "bg-blue-primary50"
-                    : "bg-secondary-grey50 hover:bg-blue-primary50"
-                }`}
-                style={{
-                  width: "100%",
-                  height: "25px",
-                  minWidth: "22px",
-                  paddingTop: "4px",
-                  paddingRight: "6px",
-                  paddingBottom: "4px",
-                  paddingLeft: "6px",
-                  gap: "4px",
-                  borderRadius: "4px",
-                  border: isSelected
-                    ? "0.5px solid #2372EC"
-                    : "0.5px solid transparent",
-                }}
-              >
-                {/* Checkbox */}
-                <Checkbox
-                  id={`session-${session.id}`}
-                  checked={isSelected}
-                  onCheckedChange={() => handleSessionToggle(session.id)}
-                  className="flex-shrink-0 shadow-none border-[#D6D6D6] data-[state=checked]:border-blue-primary250"
-                />
+        {/* Session Checklist - Slim full-width rows */}
+        <div className="flex flex-col gap-1 w-full">
+          <div
+            onClick={() => handleSessionToggle("all")}
+            className="flex items-center gap-2 px-2 h-[28px] bg-secondary-grey50 rounded cursor-pointer hover:bg-secondary-grey100 transition-colors w-full"
+          >
+            <Checkbox
+              id="terminate-all"
+              checked={isAllSelected}
+              onCheckedChange={() => handleSessionToggle("all")}
+              className="w-3.5 h-3.5 rounded-sm border-secondary-grey200 data-[state=checked]:bg-blue-primary250 data-[state=checked]:border-blue-primary250"
+            />
+            <span className="text-secondary-grey400 text-[13px]" style={{ fontFamily: "Inter" }}>
+              All Sessions
+            </span>
+          </div>
 
-                {/* Session Text */}
-                <span
-                  className={
-                    isSelected
-                      ? "text-blue-primary250"
-                      : "text-secondary-grey400"
-                  }
-                  style={{
-                    fontFamily: "Inter",
-                    fontWeight: 400,
-                    fontSize: "14px",
-                    lineHeight: "120%",
-                    verticalAlign: "middle",
-                  }}
-                >
-                  {session.label}
-                </span>
-              </div>
-            );
-          })}
+          {sessions.map((session) => (
+            <div
+              key={session.id}
+              onClick={() => handleSessionToggle(session.id)}
+              className="flex items-center gap-2 px-2 h-[28px] bg-secondary-grey50 rounded cursor-pointer hover:bg-secondary-grey100 transition-colors w-full"
+            >
+              <Checkbox
+                id={`terminate-${session.id}`}
+                checked={selectedSessions.includes(session.id)}
+                onCheckedChange={() => handleSessionToggle(session.id)}
+                className="w-3.5 h-3.5 rounded-sm border-secondary-grey200 data-[state=checked]:bg-blue-primary250 data-[state=checked]:border-blue-primary250"
+              />
+              <span className="text-secondary-grey400 text-[13px]" style={{ fontFamily: "Inter" }}>
+                {session.label}
+              </span>
+            </div>
+          ))}
         </div>
 
-        {/* Textarea */}
+        {/* Reason Input */}
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Not Available"
-          className="resize-none text-secondary-grey400 w-full"
+          placeholder="Enter Your Reason*"
+          className="w-full p-2 border border-secondary-grey200 rounded-md outline-none focus:border-blue-primary250 transition-all resize-none"
           style={{
-            height: "66px",
-            minHeight: "60px",
-            maxHeight: "120px",
-            padding: "8px",
-            border: "0.5px solid #8E8E8E",
-            borderRadius: "4px",
+            height: "70px",
             fontFamily: "Inter",
-            fontWeight: 400,
-            fontSize: "14px",
-            lineHeight: "120%",
-            outline: "none",
+            fontSize: "13px",
+            backgroundColor: "#FAFAFA",
           }}
         />
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 w-full">
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
           <button
             className="bg-monochrom-white text-secondary-grey400 hover:bg-secondary-grey50 flex-1"
             style={{
               height: "32px",
-              minWidth: "32px",
-              gap: "8px",
               borderRadius: "4px",
               padding: "8px",
               border: "0.5px solid #8E8E8E",
@@ -203,39 +165,24 @@ const TerminateQueueModal = ({
           <button
             disabled={isDisabled}
             className={
-              isDisabled
-                ? "bg-secondary-grey50 cursor-not-allowed flex-1"
-                : "bg-error-50 hover:bg-error-400 flex-1"
+              !isDisabled
+                ? "bg-blue-primary250 hover:bg-blue-primary300 flex-1"
+                : "bg-secondary-grey50 cursor-not-allowed flex-1"
             }
             style={{
               height: "32px",
-              minWidth: "32px",
-              gap: "8px",
               borderRadius: "4px",
               padding: "8px",
-              border: isDisabled
-                ? "0.5px solid transparent"
-                : "0.5px solid #FCA5A5",
               fontFamily: "Inter",
               fontWeight: 500,
               fontSize: "14px",
               lineHeight: "120%",
               verticalAlign: "middle",
-              color: isDisabled ? "#D6D6D6" : "#DC2626",
+              color: !isDisabled ? "#FFFFFF" : "#D6D6D6",
             }}
             onClick={handleConfirm}
-            onMouseEnter={(e) => {
-              if (!isDisabled) {
-                e.target.style.color = "#FFFFFF";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isDisabled) {
-                e.target.style.color = "#DC2626";
-              }
-            }}
           >
-            {isSubmitting ? "Terminating..." : "Yes, Terminate"}
+            {isSubmitting ? "Terminating…" : "Yes, Terminate"}
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@ import Button from '../../../components/Button';
 import { appointement } from '../../../../public/index.js';
 import SampleTable from '../../../pages/SampleTable';
 import PauseQueueModal from '../../../components/PauseQueueModal';
+import TerminateQueueModal from '../../../components/TerminateQueueModal';
 import SessionTimer from '../../../components/SessionTimer';
 import Toggle from '../../../components/FormItems/Toggle';
 import BookAppointmentDrawer from '../../../components/Appointment/BookAppointmentDrawer';
@@ -140,6 +141,7 @@ export default function FDQueue() {
 	const [isStartingSession, setIsStartingSession] = useState(false);
 	const [isEndingSession, setIsEndingSession] = useState(false);
 	const [isResumingSlot, setIsResumingSlot] = useState(false);
+	const [isTerminatingQueue, setIsTerminatingQueue] = useState(false);
 	const [startingToken, setStartingToken] = useState(null);
 
 	const handleStartPatientSession = async (token) => {
@@ -246,6 +248,7 @@ export default function FDQueue() {
 	const pauseTickerRef = useRef(null);
 	// Pause modal and auto-resume state
 	const [showPauseModal, setShowPauseModal] = useState(false);
+	const [showTerminateModal, setShowTerminateModal] = useState(false);
 	const [pauseMinutes, setPauseMinutes] = useState(null); // in minutes
 	const [pauseSubmitting, setPauseSubmitting] = useState(false);
 	const [pauseError, setPauseError] = useState('');
@@ -334,16 +337,19 @@ export default function FDQueue() {
 		}
 	};
 
-	// Polling Effect
+	// Polling and Periodic Refresh Effect
 	useEffect(() => {
-		if (!selectedSlotId) return;
-
-		// Initial Call
 		pollSlotStatus();
+		fetchPendingAppointments();
 
-		const interval = setInterval(pollSlotStatus, 60000); // 1 minute
-		return () => clearInterval(interval);
-	}, [selectedSlotId]);
+		const statusInterval = setInterval(pollSlotStatus, 60000); // Poll status every 1 minute
+		const pendingInterval = setInterval(fetchPendingAppointments, 60000); // Refresh pending every 1 minute
+
+		return () => {
+			clearInterval(statusInterval);
+			clearInterval(pendingInterval);
+		};
+	}, [selectedSlotId, doctorId, clinicId, currentDate]);
 
 	const fetchSlots = async () => {
 		try {
@@ -602,19 +608,6 @@ export default function FDQueue() {
 			const res = await axiosInstance.put(`/appointments/check-in/${id}`);
 			if (res.data?.success) {
 				fetchAppointments(selectedSlotId);
-				// Also refresh pending appointments possibly related? Usually check-in is main queue.
-				// We might need to update local state if we want instant feedback, but fetchAppointments does it.
-				// We might also need to set 'checkedInTokens' locally to show the "Checked In" status instantly 
-				// if the API response doesn't immediately reflect in 'fetchAppointments' return (latency), 
-				// but usually we trust the re-fetch.
-				// For UI consistency with the requested "Add Pre-Screening" hiding, we set the local state too if we rely on it.
-				// But wait, the previous code used `setCheckedInTokens`. If we remove that, we rely on `fetchAppointments`.
-				// If the backend status becomes 'CHECKED_IN', does `mapAppointmentToRow` handle it?
-				// The UI uses `checkedInTokens` state to toggle the button.
-				// If I remove `setCheckedInTokens`, the button might reappear unless the API response updates `status`.
-				// I should probably ALSO update the local `checkedInTokens` state or ensure `mapAppointmentToRow` uses the new status.
-				// Or I should just use the `status` field from the row?
-				// Let's look at `mapAppointmentToRow`.
 
 				addToast({
 					title: "Checked In",
@@ -702,7 +695,6 @@ export default function FDQueue() {
 		return () => { if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; } };
 	}, [queuePaused, pauseEndsAt, handleResumeQueue]);
 
-	console.log("Render Queue: sessionStarted=", sessionStarted, "activePatient=", activePatient);
 
 	return (
 		<div className='flex h-full w-full bg-gray-50 overflow-hidden'>
@@ -782,8 +774,6 @@ export default function FDQueue() {
 				{/* Queue Content */}
 				<div className='px-0 pt-0 pb-2 flex-1 flex flex-col overflow-hidden'>
 
-					{/* Session Bar - GREEN if session active */}
-					{/* Session Bar - GREEN if session active */}
 					{sessionStarted && (
 						<div className={`w-full ${queuePaused ? 'bg-warning-50 text-warning-400' : 'bg-[#27CA40] text-white'} h-[40px] px-4 flex items-center justify-between relative z-20`}>
 							{/* Centered Token Number */}
@@ -1335,6 +1325,45 @@ export default function FDQueue() {
 				}}
 			/>
 
+			<TerminateQueueModal
+				show={showTerminateModal}
+				onClose={() => setShowTerminateModal(false)}
+				isSubmitting={isTerminatingQueue}
+				sessions={timeSlots.map(slot => ({
+					id: slot.slotId,
+					label: `${slot.label} (${slot.time})`
+				}))}
+				onConfirm={async (data) => {
+					setIsTerminatingQueue(true);
+					try {
+						const res = await axiosInstance.post('/slots/queue/terminate', {
+							slotIds: data.sessions,
+							cancellationReason: data.reason
+						});
+
+						if (res.data?.success || res.status === 200) {
+							addToast({
+								title: "Queue Terminated",
+								message: "Selected sessions have been terminated successfully.",
+								type: "success"
+							});
+							setShowTerminateModal(false);
+							pollSlotStatus();
+							fetchPendingAppointments();
+						}
+					} catch (error) {
+						console.error("Failed to terminate queue", error);
+						addToast({
+							title: "Error",
+							message: error.response?.data?.message || "Failed to terminate queue",
+							type: "error"
+						});
+					} finally {
+						setIsTerminatingQueue(false);
+					}
+				}}
+			/>
+
 
 			{/* Dropdown Menu Portal */}
 			{
@@ -1377,7 +1406,13 @@ export default function FDQueue() {
 									<CalendarMinus className="h-4 w-4" /> Set Doctor Out of Office
 								</button>
 								<div className="my-1 border-t border-gray-100"></div>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
+								<button
+									onClick={() => {
+										setShowTerminateModal(true);
+										setActiveActionMenuToken(null);
+									}}
+									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+								>
 									<CalendarX className="h-4 w-4" /> Terminate Queue
 								</button>
 							</>
