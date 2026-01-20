@@ -30,6 +30,7 @@ import {
   pauseSlotEta,
   resumeSlotEta,
   markNoShowAppointment,
+  terminateQueue,
 } from "../../../services/authService";
 import {
   action_dot,
@@ -47,11 +48,33 @@ import {
   angelDown,
   pauseIconRed,
   timerOrange,
-  restartQueueIcon,
+
 } from "../../../../public/index.js";
+
+const more = '/superAdmin/Doctors/Threedots.svg'
+const checkRound = '/fd/Check Round.svg';
+const verified = '/verified-tick.svg'
+const stopwatch = '/fd/Stopwatch.svg'
+const verifiedYellow = '/fd/verified_yellow.svg'
+
 import BookAppointmentDrawer from "../../../components/Appointment/BookAppointmentDrawer.jsx";
 import PauseQueueModal from "../../../components/PauseQueueModal.jsx";
 import TerminateQueueModal from "../../../components/TerminateQueueModal.jsx";
+import SessionTimer from "../../../components/SessionTimer";
+import {
+  RotateCcw,
+  CalendarMinus,
+  CalendarX,
+  User,
+  BedDouble,
+  CheckCheck,
+  Bell,
+  CalendarPlus,
+  UserX,
+  ArrowRight,
+  Play,
+  PauseCircle,
+} from "lucide-react";
 
 // Walk-in Appointment Drawer (full version replicated from Front Desk)
 const WalkInAppointmentDrawer = ({
@@ -797,6 +820,7 @@ const WalkInAppointmentDrawer = ({
 
 const Queue = () => {
   const [slotEnding, setSlotEnding] = useState(false);
+
   // Queue is restricted to Checked-In only for both Doctor & FD views
   const [activeFilter, setActiveFilter] = useState("All");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -915,62 +939,25 @@ const Queue = () => {
   const [resumeError, setResumeError] = useState("");
   const [showTerminateModal, setShowTerminateModal] = useState(false);
   const [terminateSubmitting, setTerminateSubmitting] = useState(false);
-  // Backend-reported current token and active patient details to align active selection/UI
-  const [backendCurrentToken, setBackendCurrentToken] = useState(null);
-  const [backendActiveDetails, setBackendActiveDetails] = useState(null);
+  const [isAnimationRunning, setIsAnimationRunning] = useState(false); // New animation state
+  // NEW: Strict Active Patient from Polling
+  const [backendCurrentToken, setBackendCurrentToken] = useState(null); // Restore backendCurrentToken state
+  const [polledActivePatient, setPolledActivePatient] = useState(null);
 
-  const activePatient = useMemo(
-    () => queueData[currentIndex] || null,
-    [queueData, currentIndex]
-  );
-  const activeUIDetails = useMemo(() => {
-    const b = backendActiveDetails;
-    if (b && (b.tokenNumber != null || b.patientId)) {
-      const fullName =
-        [b.firstName, b.lastName].filter(Boolean).join(" ") || "Patient";
-      const genderMap = { MALE: "M", FEMALE: "F", OTHER: "O" };
-      let ageStr = "";
-      try {
-        if (b.dob) {
-          const d = new Date(b.dob);
-          const dd = String(d.getDate()).padStart(2, "0");
-          const mm = String(d.getMonth() + 1).padStart(2, "0");
-          const yyyy = d.getFullYear();
-          const now = new Date();
-          let age =
-            now.getFullYear() -
-            yyyy -
-            (now < new Date(now.getFullYear(), d.getMonth(), d.getDate())
-              ? 1
-              : 0);
-          ageStr = `${dd}/${mm}/${yyyy} (${age}Y)`;
-        }
-      } catch { }
-      return {
-        patientName: fullName,
-        gender:
-          genderMap[(b.gender || "").toUpperCase()] ||
-          (b.gender || "—")[0] ||
-          "—",
-        age: ageStr,
-        token: b.tokenNumber,
-        reasonForVisit: b.reason || "",
-        appointmentStatus: b.appointmentStatus || "",
-        startedAt: b.startedAt || null,
-      };
+  // IF polledActivePatient is null, the card hides. 
+  // EXCEPT when isAnimationRunning is true, we preserve the LAST patient details to show "Completed"
+  const lastPatientRef = useRef(null);
+  const activePatient = useMemo(() => {
+    if (polledActivePatient) {
+      lastPatientRef.current = polledActivePatient;
+      return polledActivePatient;
     }
-    return activePatient
-      ? {
-        patientName: activePatient.patientName,
-        gender: activePatient.gender,
-        age: activePatient.age,
-        token: activePatient.token,
-        reasonForVisit: activePatient.reasonForVisit,
-        appointmentStatus: activePatient.status,
-        startedAt: activePatient.startedAt,
-      }
-      : null;
-  }, [backendActiveDetails, activePatient]);
+    if (isAnimationRunning) return lastPatientRef.current;
+    return null;
+  }, [polledActivePatient, isAnimationRunning]);
+
+  // Removed old currentIndex-based activePatient logic and old backendActiveDetails
+
 
   // Timer interval
   useEffect(() => {
@@ -994,74 +981,8 @@ const Queue = () => {
       "0"
     )}`;
 
-  // Slot status auto-sync (poll every 45s with in-flight guard) and timer sync from backend
-  useEffect(() => {
-    let ignore = false;
-    let inFlight = false;
-    const sync = async () => {
-      if (!selectedSlotId || inFlight) return;
-      inFlight = true;
-      try {
-        const st = await getSlotEtaStatus(selectedSlotId);
-        if (ignore) return;
-        const msg = st?.message || {};
-        const started =
-          msg?.slotStatus === "STARTED" ||
-          !!(st?.started || st?.inProgress || st?.active);
-        if (typeof msg?.currentToken === "number") {
-          setBackendCurrentToken(msg.currentToken);
-        }
-        // Capture backend active details and sync timer
-        if (msg?.activePatientDetails) {
-          setBackendActiveDetails(msg.activePatientDetails);
-          const iso = msg.activePatientDetails.startedAt;
-          if (iso) {
-            const ts = new Date(iso).getTime();
-            if (!isNaN(ts)) {
-              const drift = Math.abs(
-                Date.now() - ts - (runStartAt ? Date.now() - runStartAt : 0)
-              );
-              if (!runStartAt || drift > 1500) {
-                setRunStartAt(ts);
-                const secs = Math.floor((Date.now() - ts) / 1000);
-                setBaseElapsed(secs);
-                setElapsed(secs);
-              }
-            }
-          }
-        }
-        if (started !== sessionStarted) {
-          if (started) {
-            setSessionStarted(true);
-            setQueuePaused(false);
-            try {
-              await loadAppointmentsForSelectedSlot();
-            } catch { }
-          } else {
-            setSessionStarted(false);
-            setRunStartAt(null);
-            setBaseElapsed(0);
-            setElapsed(0);
-            setBackendActiveDetails(null);
-          }
-        }
-      } catch {
-      } finally {
-        inFlight = false;
-      }
-    };
-    sync();
-    const id = setInterval(sync, 45000);
-    return () => {
-      ignore = true;
-      clearInterval(id);
-    };
-  }, [
-    selectedSlotId,
-    sessionStarted,
-    loadAppointmentsForSelectedSlot,
-    runStartAt,
-  ]);
+  // REMOVED 'sync' effect. Logic consolidated into pollQueueStatus below.
+
 
   // Map appointments to queueData after sessionStarted & backend token state available
   useEffect(() => {
@@ -1183,65 +1104,133 @@ const Queue = () => {
     }
   }, [slotAppointments, sessionStarted, backendCurrentToken, activeFilter]);
 
-  // Listen to cross-view custom event dispatched by FD queue
-  useEffect(() => {
-    const handler = (e) => {
-      const { slotId, started } = e.detail || {};
-      if (!slotId || slotId !== selectedSlotId) return;
-      if (started) {
-        if (!sessionStarted) {
-          setSessionStarted(true);
-          setQueuePaused(false);
-        }
-      } else {
-        if (sessionStarted) {
-          setSessionStarted(false);
-          setRunStartAt(null);
-          setBaseElapsed(0);
-          setElapsed(0);
-        }
-      }
-    };
-    window.addEventListener("slot-session-status", handler);
-    return () => window.removeEventListener("slot-session-status", handler);
-  }, [selectedSlotId, sessionStarted]);
+  // REMOVED cross-view event listener as FDQueue controls state via backend polling only.
+
 
   // Poll appointments every 15s
   // Poll appointments for selected slot every 45s (aligned with FD) to avoid excessive API calls
+  // REMOVED separate appt poll (merged into consolidated poll above)
+
+
+  // REMOVED: Redundant auto-start EFFECTOR. 
+  // Auto-start for the first patient is now handled EXCLUSIVELY inside handleToggleSession (Initial Start only).
+
+
+  // Consolidated Poll Logic
+  const pollQueueStatus = async () => {
+    if (!selectedSlotId) return;
+    try {
+      const st = await getSlotEtaStatus(selectedSlotId);
+      if (st.message || st.success) {
+        const msg = st.message || st;
+
+        const slotStatus = msg?.slotStatus;
+        const currentToken = msg?.currentToken;
+        const pauseDurationMinutes = msg?.pauseDurationMinutes;
+        const pauseStartedAt = msg?.pauseStartedAt;
+        const activeDetails = msg?.activePatientDetails;
+
+        // 1. Sync Session Status
+        const isStarted = slotStatus === "STARTED" || slotStatus === "PAUSED";
+
+        // Avoid fluctuation: only set if changed
+        if (isStarted !== sessionStarted) {
+          setSessionStarted(isStarted);
+        }
+
+        // 2. Sync Pause
+        const isPaused = slotStatus === "PAUSED";
+        if (isPaused !== queuePaused) setQueuePaused(isPaused);
+        if (isPaused && pauseStartedAt && pauseDurationMinutes) {
+          const start = new Date(pauseStartedAt).getTime();
+          const ends = start + (pauseDurationMinutes * 60 * 1000);
+          // Only update if significantly different to avoid timer jitter
+          if (!pauseEndsAt || Math.abs(pauseEndsAt - ends) > 2000) {
+            setPauseEndsAt(ends);
+          }
+        } else if (!isPaused) {
+          if (pauseEndsAt) setPauseEndsAt(null);
+        }
+
+        // 3. Sync Current Token (Backend)
+        if (currentToken != null) {
+          setBackendCurrentToken(currentToken);
+        }
+
+        // 4. Mapped Active Patient (Strict)
+        if (activeDetails) {
+          const p = activeDetails;
+          const genderMap = { MALE: "M", FEMALE: "F", OTHER: "O" };
+          let ageStr = "";
+          try {
+            if (p.dob) {
+              const d = new Date(p.dob);
+              const today = new Date();
+              let age = today.getFullYear() - d.getFullYear();
+              const m = today.getMonth() - d.getMonth();
+              if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
+                age--;
+              }
+              const dd = String(d.getDate()).padStart(2, "0");
+              const mm = String(d.getMonth() + 1).padStart(2, "0");
+              const yyyy = d.getFullYear();
+              ageStr = `${dd}/${mm}/${yyyy} (${age}Y)`;
+            }
+          } catch { }
+
+          const newActive = {
+            patientName: `${p.firstName} ${p.lastName}`.trim(),
+            token: p.tokenNumber,
+            gender: genderMap[(p.gender || "").toUpperCase()] || (p.gender || "—")[0] || "—",
+            age: ageStr,
+            reasonForVisit: p.reason || "",
+            appointmentStatus: p.appointmentStatus || p.status || (isPaused ? 'PAUSED' : 'ONGOING'),
+            startedAt: p.startedAt,
+            // Add any other fields needed
+          };
+
+          // Deep compare to avoid fluctuation
+          if (JSON.stringify(newActive) !== JSON.stringify(polledActivePatient)) {
+            setPolledActivePatient(newActive);
+          }
+
+          // Timer Sync
+          if (p.startedAt) {
+            const ts = new Date(p.startedAt).getTime();
+            if (!isNaN(ts)) {
+              // Only sync if runStartAt is null or drifted
+              const drift = Math.abs(Date.now() - ts - (runStartAt ? Date.now() - runStartAt : 0));
+              if (!runStartAt || drift > 2000) {
+                setRunStartAt(ts);
+                setBaseElapsed(Math.floor((Date.now() - ts) / 1000));
+              }
+            }
+          }
+        } else {
+          if (polledActivePatient !== null) setPolledActivePatient(null);
+          // If no active patient but session started, maybe handle idle state?
+          // FDQueue logic just sets null.
+        }
+
+      }
+    } catch (e) {
+      console.error("Poll failed", e);
+    }
+  };
+
   useEffect(() => {
     if (!selectedSlotId) return;
-    const id = setInterval(() => {
-      loadAppointmentsForSelectedSlot();
-    }, 45000);
-    return () => clearInterval(id);
-  }, [selectedSlotId, loadAppointmentsForSelectedSlot]);
+    pollQueueStatus();
+    loadAppointmentsForSelectedSlot();
 
-  // Auto-start first patient session when slot session active.
-  // Guard conditions ensure: slot session started, timer not already running, there is at least one checked-in patient (queueData.length > 0), and a slot is selected.
-  // This prevents triggering when no patients are checked in (doctor should only see checked-in list).
-  useEffect(() => {
-    if (
-      sessionStarted &&
-      !runStartAt &&
-      queueData.length > 0 &&
-      selectedSlotId
-    ) {
-      const first = queueData[0];
-      if (first?.token != null) {
-        startPatientSessionEta(selectedSlotId, first.token)
-          .then(() => {
-            setRunStartAt(Date.now());
-            pinnedTokenRef.current = first.token;
-          })
-          .catch((e) =>
-            console.error(
-              "Auto patient start failed",
-              e?.response?.data || e.message
-            )
-          );
-      }
-    }
-  }, [sessionStarted, runStartAt, queueData, selectedSlotId]);
+    const id = setInterval(() => {
+      pollQueueStatus();
+      loadAppointmentsForSelectedSlot();
+    }, 60000); // 60s Interval
+
+    return () => clearInterval(id);
+  }, [selectedSlotId, doctorId, clinicId, sessionStarted, queuePaused]); // Include state deps to refresh closure
+
 
   const handleToggleSession = async () => {
     if (sessionStarted) {
@@ -1301,8 +1290,28 @@ const Queue = () => {
       await startSlotEta(selectedSlotId);
       setSessionStarted(true);
       addToast({ title: "Session Started", message: "Queue session started.", type: "success" });
-      const first = queueData[0];
-      if (first?.token != null) pinnedTokenRef.current = first.token;
+
+      // Auto-start first patient if available
+      // We should load appointments first to ensure we have the latest list
+      try {
+        await loadAppointmentsForSelectedSlot();
+
+        // Use store state directly to avoid waiting for component re-render/useEffect
+        const latestSlots = useSlotStore.getState().slotAppointments;
+        const checkedInList = latestSlots?.appointments?.checkedIn || [];
+
+        if (checkedInList.length > 0) {
+          const firstAppt = checkedInList[0];
+          // Map to a usable format or just extract token
+          const token = firstAppt.tokenNo || firstAppt.token;
+          if (token != null) {
+            await startPatientSessionEta(selectedSlotId, token);
+            await pollQueueStatus(); // Get the active details immediately
+          }
+        }
+      } catch (e) {
+        console.error("Auto-start patient failed", e);
+      }
     } catch (e) {
       console.error("Start slot failed", e?.response?.data || e.message);
       const msg = e?.response?.data?.message || e.message || "Failed to start session";
@@ -1314,27 +1323,67 @@ const Queue = () => {
     }
   };
 
+  // Doctor actions: Mark No-Show from actions menu, then refresh the slot appointments
+  const [isMarkingNoShowState, setIsMarkingNoShowState] = useState(false);
+  const [isEndingPatient, setIsEndingPatient] = useState(false); // New loading state for End Session
+  const [isStartingPatient, setIsStartingPatient] = useState(false); // New loading state for Start Session
+
+  const handleStartPatientSession = async (token) => {
+    if (!selectedSlotId || token == null) return;
+    setIsStartingPatient(token);
+    try {
+      const res = await startPatientSessionEta(selectedSlotId, token);
+      if (res.data?.success || res.success) {
+        addToast({ title: "Session Started", message: `Session started for Token ${token}`, type: "success" });
+        setRunStartAt(Date.now());
+        pinnedTokenRef.current = token;
+        await pollQueueStatus();
+      }
+    } catch (e) {
+      console.error("Manual patient start failed", e?.response?.data || e.message);
+      addToast({ title: "Error", message: "Failed to start patient session", type: "error" });
+    } finally {
+      setIsStartingPatient(false);
+    }
+  };
+
   const completeCurrentPatient = async () => {
     const active = activePatient;
     if (!active || !selectedSlotId) return;
+
+    setIsEndingPatient(true);
     try {
-      await endPatientSessionEta(selectedSlotId, active.token);
+      const res = await endPatientSessionEta(selectedSlotId, active.token);
+      if (res.data?.success || res.success) {
+        const msg = res.data?.message || "Patient session ended successfully.";
+        addToast({ title: "Session Ended", message: msg, type: "success" });
+
+        // Phase 1: Show animation
+        setIsAnimationRunning(true);
+        // We assume activePatient still points to the same object because polledActivePatient stays unchanged until the next poll.
+
+        // Phase 2: Wait for animation duration
+        setTimeout(async () => {
+          setIsAnimationRunning(false);
+          // Phase 3: Refresh status immediately after animation
+          await pollQueueStatus();
+          await loadAppointmentsForSelectedSlot();
+        }, 2000); // 2 seconds animation
+      }
     } catch (e) {
       console.error("End patient ETA failed", e?.response?.data || e.message);
+      addToast({ title: "Error", message: "Failed to end patient session", type: "error" });
+    } finally {
+      setIsEndingPatient(false);
+      // setRunStartAt(null); // Let polling clean these up
+      // setBaseElapsed(0);
+      // setElapsed(0);
+      wasRunningOnPauseRef.current = false;
+      setCurrentIndex(0);
+      pinnedTokenRef.current = null;
     }
-    try {
-      await loadAppointmentsForSelectedSlot();
-    } catch { }
-    setRunStartAt(null);
-    setBaseElapsed(0);
-    setElapsed(0);
-    wasRunningOnPauseRef.current = false;
-    setCurrentIndex(0);
-    // Unpin token after completion so next auto-select uses first checked-in
-    pinnedTokenRef.current = null;
   };
 
-  // Doctor actions: Mark No-Show from actions menu, then refresh the slot appointments
   const handleMarkNoShow = async (row) => {
     try {
       let id = row?.id;
@@ -1343,12 +1392,32 @@ const Queue = () => {
         id = found?.id;
       }
       if (!id) return;
-      await markNoShowAppointment(id);
-      if (selectedSlotId) {
-        await loadAppointmentsForSelectedSlot();
+
+      setIsMarkingNoShowState(true);
+      const res = await markNoShowAppointment(id);
+      if (res.data?.success || res.success) {
+        if (selectedSlotId) {
+          await loadAppointmentsForSelectedSlot();
+        }
+        addToast({
+          title: "Marked as No-Show",
+          message: "The patient has been marked as No-Show.",
+          type: "success",
+          duration: 3000,
+        });
       }
     } catch (e) {
       console.error("No-show failed", e?.response?.data || e.message);
+      addToast({
+        title: "Error",
+        message:
+          e?.response?.data?.message ||
+          e.message ||
+          "Failed to mark as No-Show",
+        type: "error",
+      });
+    } finally {
+      setIsMarkingNoShowState(false);
     }
   };
 
@@ -1491,26 +1560,31 @@ const Queue = () => {
     if (!selectedSlotId || sessions.length === 0) return;
     setTerminateSubmitting(true);
     try {
-      // TODO: Replace with actual terminate queue API call
-      console.log("Terminating queue:", {
-        sessions,
-        reason,
-        slotId: selectedSlotId,
-      });
-      // await terminateQueue(selectedSlotId, { sessions, reason });
+      await terminateQueue({ slotIds: sessions, cancellationReason: reason });
 
       // For now, just end the session
       if (sessionStarted) {
+        // This stops local tracking
         await handleToggleSession();
       }
 
       setShowTerminateModal(false);
+      addToast({
+        title: "Queue Terminated",
+        message: "Selected sessions have been terminated successfully.",
+        type: "success"
+      });
       // Refresh appointments after termination
       if (selectedSlotId) {
         await loadAppointmentsForSelectedSlot();
       }
     } catch (e) {
       console.error("Terminate queue error:", e?.response?.data || e.message);
+      addToast({
+        title: "Error",
+        message: e?.response?.data?.message || "Failed to terminate queue",
+        type: "error"
+      });
     } finally {
       setTerminateSubmitting(false);
     }
@@ -1768,6 +1842,8 @@ const Queue = () => {
                     <UniversalLoader size={14} className="text-secondary-grey300" />
                     <span className="text-secondary-grey300">Ending...</span>
                   </div>
+                ) : sessionStarted ? (
+                  "Session Started"
                 ) : (
                   "Start Session"
                 )}
@@ -1837,133 +1913,49 @@ const Queue = () => {
 
         <div className="px-0 pt-0 pb-2 h-[calc(100vh-100px)] flex flex-col overflow-hidden no-scrollbar">
           {sessionStarted && (
-            <div>
-              <div
-                className="w-full h-[38px] flex items-center relative px-0 rounded-none"
-                style={
-                  queuePaused
-                    ? { background: "#FFF7F0" }
-                    : { background: "#27CA40" }
-                }
-              >
-                <div className="flex-1 flex items-center justify-center gap-3">
-                  <span
-                    className={`${queuePaused
-                      ? "text-secondary-grey200"
-                      : "text-monochrom-white"
-                      }`}
-                    style={{
-                      fontFamily: "Inter",
-                      fontWeight: 400,
-                      fontSize: "20px",
-                      lineHeight: "120%",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    Current Token Number
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-2 ${queuePaused ? "text-warning-400" : "text-monochrom-white"
-                      }`}
-                    style={{
-                      fontFamily: "Inter",
-                      fontWeight: 700,
-                      fontSize: "20px",
-                      lineHeight: "120%",
-                      textAlign: "center",
-                    }}
-                  >
-                    <span
-                      className="inline-block w-4 h-4 rounded-full"
-                      style={{
-                        animation: queuePaused
-                          ? "blink-dot-warning 1s infinite"
-                          : "blink-dot 1s infinite",
-                      }}
-                    ></span>
-                    {String(activePatient?.token ?? 0).padStart(2, "0")}
-                  </span>
-                  {queuePaused && (
-                    <span
-                      className="inline-flex items-center text-warning-400 bg-monochrom-white whitespace-nowrap"
-                      style={{
-                        height: "22px",
-                        minWidth: "22px",
-                        paddingTop: "2px",
-                        paddingRight: "6px",
-                        paddingBottom: "2px",
-                        paddingLeft: "6px",
-                        gap: "4px",
-                        borderRadius: "4px",
-                        border: "0.5px solid var(--warning-400)",
-                        fontFamily: "Inter",
-                        fontWeight: 400,
-                        fontSize: "14px",
-                        lineHeight: "120%",
-                        textAlign: "center",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <img src={timerOrange} alt="Timer" className="w-4 h-4" />
-                      Paused (
-                      {String(Math.floor(pauseRemaining / 60)).padStart(2, "0")}
-                      :{String(pauseRemaining % 60).padStart(2, "0")} Mins)
+            <div className={`w-full ${queuePaused ? 'bg-warning-50 text-warning-400' : 'bg-[#27CA40] text-white'} h-[40px] px-4 flex items-center justify-between relative z-20`}>
+              <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 ${queuePaused ? 'text-secondary-grey200' : 'text-white'}`}>
+                <span className=' text-[20px] mr-3'>Current Token Number</span>
+                <span className={`w-4 h-4 rounded-full animate-colorBlink ${queuePaused ? 'bg-warning-400' : 'bg-white '} transition-all duration-1000`}
+                  style={!queuePaused ? {
+                    '--blink-on': '#22c55e',
+                    '--blink-off': '#ffffff',
+                  } : {
+                    '--blink-on': '#EC7600',
+                    '--blink-off': '#ffffff',
+                  }}></span>
+                <span className={`font-bold text-[20px] ${queuePaused ? 'text-warning-400' : 'text-white'}`}>{activePatient?.token || '-'}</span>
+                {queuePaused && (
+                  <div className='flex items-center ml-2 border border-warning-400 py-[2px] rounded px-[6px] bg-white gap-1'>
+                    <img src={stopwatch} alt="" className='w-[14px] h-[14px]' />
+                    <span className="text-[14px] text-warning-400 ">
+                      Paused ({String(Math.floor(pauseRemaining / 60)).padStart(2, "0")}:{String(pauseRemaining % 60).padStart(2, "0")} Mins)
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
+              {/* Right Actions */}
+              <div className="ml-auto">
                 {!queuePaused ? (
                   <button
-                    onClick={() => {
-                      setPauseMinutes(null);
-                      setShowPauseModal(true);
-                    }}
-                    className="group absolute right-4 top-1/2 -translate-y-1/2 inline-flex items-center gap-2 h-[32px] min-w-[32px] p-2 rounded-md text-sm bg-error-50 text-error-400 hover:bg-error-400 hover:text-monochrom-white transition-colors"
-                    style={{ border: "0.5px solid #F87171" }}
+                    onClick={() => { setPauseMinutes(null); setShowPauseModal(true); }}
+                    className='bg-white text-[#ef4444] h-[24px] py-1 px-[6px] rounded text-[12px] font-medium border border-error-200/50 flex items-center gap-2 hover:bg-error-400 hover:text-white transition-colors '
                   >
-                    <img
-                      src={pauseIconRed}
-                      alt=""
-                      className="h-4 group-hover:invert group-hover:brightness-0"
-                    />
-                    <span>Pause Queue</span>
+                    <img src={pauseIconRed} alt="" className='' /> Pause Queue
                   </button>
                 ) : (
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end">
-                    <button
-                      onClick={resumeQueue}
-                      disabled={resumeSubmitting}
-                      className="inline-flex items-center bg-blue-primary250 text-monochrom-white hover:bg-blue-primary300 transition-colors"
-                      style={{
-                        height: "24px",
-                        minWidth: "24px",
-                        paddingTop: "4px",
-                        paddingRight: "6px",
-                        paddingBottom: "4px",
-                        paddingLeft: "6px",
-                        gap: "8px",
-                        borderRadius: "4px",
-                        fontFamily: "Inter",
-                        fontWeight: 500,
-                        fontSize: "12px",
-                        lineHeight: "120%",
-                        verticalAlign: "middle",
-                        opacity: resumeSubmitting ? 0.7 : 1,
-                        cursor: resumeSubmitting ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      <img
-                        src={restartQueueIcon}
-                        alt="Restart"
-                        className="w-4 h-4"
-                      />
-                      {resumeSubmitting ? "Resuming…" : "Restart Queue"}
-                    </button>
-                    {resumeError && (
-                      <span className="mt-1 text-[11px] text-red-600">
-                        {resumeError}
-                      </span>
+                  <button
+                    onClick={resumeQueue}
+                    disabled={resumeSubmitting}
+                    className='bg-blue-primary250 text-white h-[24px] py-1 px-[6px] rounded text-[12px] font-medium flex items-center gap-1.5 hover:bg-blue-primary300 transition-colors disabled:opacity-50'
+                  >
+                    {resumeSubmitting ? (
+                      <UniversalLoader size={12} className="text-white" />
+                    ) : (
+                      <RotateCcw className='w-[14px] h-[14px] -scale-y-100 rotate-180' />
                     )}
-                  </div>
+                    {resumeSubmitting ? 'Resuming...' : 'Restart Queue'}
+                  </button>
                 )}
               </div>
             </div>
@@ -2020,76 +2012,151 @@ const Queue = () => {
               })()}
             </div>
 
-            {sessionStarted && activeUIDetails && (
-              <div className="mb-2 p-2">
-                <h3 className="text-gray-800 font-semibold mb-2">
-                  Active Patient
-                </h3>
-                <div
-                  id="active-patient-card"
-                  className="bg-white rounded-lg border border-blue-200 px-4 py-3 flex items-center justify-between text-sm active-card-enter"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <AvatarCircle name={activeUIDetails.patientName} size="s" />
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1">
-                          <span className="font-semibold text-gray-900 truncate max-w-[160px]">
-                            {activeUIDetails.patientName}
-                          </span>
-                          <span className="text-gray-400 text-xs leading-none">
-                            ↗
-                          </span>
+            {sessionStarted && activePatient && (
+              <>
+                <span className="text-[20px] font-medium text-secondary-grey400 mb-2 px-2">Ongoing Consultation</span>
+                <div className="px-2 mb-2">
+                  <div
+                    className={`
+                      flex items-center justify-between
+                      rounded-xl
+                      px-4 py-3
+                      bg-white
+                      ${activePatient.appointmentStatus === 'COMPLETED'
+                        ? 'border border-success-200 bg-[linear-gradient(90deg,rgba(39,202,64,0.08)_0%,rgba(39,202,64,0)_25%,rgba(39,202,64,0)_75%,rgba(39,202,64,0.08)_100%)]'
+                        : activePatient.appointmentStatus === 'ADMITTED'
+                          ? 'border border-[#D4AF37] bg-[linear-gradient(90deg,rgba(212,175,55,0.15)_0%,rgba(212,175,55,0.05)_25%,rgba(212,175,55,0.05)_75%,rgba(212,175,55,0.15)_100%)]'
+                          : 'border border-blue-primary250 bg-[linear-gradient(90deg,rgba(35,114,236,0.08)_0%,rgba(35,114,236,0)_25%,rgba(35,114,236,0)_75%,rgba(35,114,236,0.08)_100%)]'
+                      }
+                    `}
+                  >
+                    <div className='flex items-center gap-3'>
+                      <AvatarCircle name={activePatient.patientName} size="lg" className="h-12 w-12 text-lg" />
+                      <div className="flex gap-6 items-center">
+                        <div>
+                          <div className='flex items-center gap-2'>
+                            <span className="font-semibold text-secondary-grey400 text-[16px]">{activePatient.patientName}</span>
+                            <ArrowRight className="h-4 w-4 text-gray-400 -rotate-45" />
+                          </div>
+                          <div className='text-xs text-secondary-grey300'>{activePatient.gender} | {activePatient.age}</div>
                         </div>
-                        <div className="text-[11px] text-gray-500 mt-0.5">
-                          {activeUIDetails.gender} | {activeUIDetails.age}
+                        <div className="h-10 w-px bg-secondary-grey100/50"></div>
+                        <div className="flex flex-col gap-1 text-sm text-secondary-grey200">
+                          <div className="flex items-center gap-2">
+                            <span className="">Token Number</span>
+                            <span className="bg-blue-primary50 text-blue-primary250 h-[22px] px-[6px] py-[2px] rounded-sm border border-blue-primary250/50 text-center flex items-center justify-center ">{activePatient.token}</span>
+                          </div>
+                          <div className="">Reason for Visit : <span className="text-secondary-grey400">{activePatient.reasonForVisit}</span></div>
                         </div>
                       </div>
-                      <div className="h-10 w-px bg-gray-200" />
-                      <div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-gray-500">Token Number</span>
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-blue-300 bg-blue-50 text-[11px] font-medium text-blue-700">
-                            {activeUIDetails.token}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-500">
-                          <span>Reason :</span>
-                          <span className="font-xs whitespace-nowrap text-gray-700">
-                            {activeUIDetails.reasonForVisit}
-                          </span>
-                        </div>
-                        {/* Removed ENGAGED status badge from UI as requested */}
-                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 pl-4">
-                    <div className="inline-flex items-center gap-1 rounded-md border border-green-200 bg-green-50 px-2 py-1 text-[12px] font-medium text-green-700">
-                      <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-                      {formatTime(elapsed)}
+                    <div className='flex gap-2 items-center'>
+                      {(activePatient.startedAt || runStartAt) && !isAnimationRunning && activePatient.appointmentStatus !== 'COMPLETED' && (
+                        <div className="flex items-center gap-3">
+                          <SessionTimer startTime={activePatient.startedAt || runStartAt} paused={queuePaused} />
+                        </div>
+                      )}
+
+                      {(activePatient.appointmentStatus === 'COMPLETED' || isAnimationRunning) ? (
+                        <div className="flex items-center gap-2 text-success-300 font-medium text-sm mr-6">
+                          <img src={verified} alt="" className="w-5 h-5" />
+                          <span>Visit Completed</span>
+                        </div>
+                      ) : activePatient.appointmentStatus === 'ADMITTED' ? (
+                        <div className="flex items-center gap-2 text-[#D4AF37] font-medium text-sm mr-6">
+                          <img src={verifiedYellow} alt="" className='w-5 h-5' />
+                          <span>Patient Admitted</span>
+                        </div>
+                      ) : (activePatient.startedAt || polledActivePatient) ? (
+                        // Ongoing or Started
+                        <button
+                          onClick={completeCurrentPatient}
+                          disabled={isEndingPatient}
+                          className="flex items-center gap-2 bg-white border border-secondary-grey200/50 px-4 py-2 rounded-md text-sm font-medium text-secondary-grey400 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isEndingPatient ? (
+                            <UniversalLoader size={12} className="text-secondary-grey200" />
+                          ) : (
+                            <img src={checkRound} alt="" />
+                          )}
+                          <span>{isEndingPatient ? 'Ending...' : 'End Session'}</span>
+                        </button>
+                      ) : (
+                        // Not yet started (Idle on card)
+                        <button
+                          onClick={() => handleStartPatientSession(activePatient.token)}
+                          disabled={isStartingPatient}
+                          className="flex items-center gap-2 bg-blue-primary250 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-primary300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isStartingPatient ? (
+                            <UniversalLoader size={12} className="text-white" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                          <span>{isStartingPatient ? 'Starting...' : 'Start Session'}</span>
+                        </button>
+                      )}
+
+                      {/* Action Menu if not completed/admitted/animating */}
+                      {activePatient.appointmentStatus !== 'COMPLETED' &&
+                        activePatient.appointmentStatus !== 'ADMITTED' &&
+                        !isAnimationRunning && (
+                          <button
+                            onClick={(e) => handleActionMenuClick(e, 'active_patient_card')}
+                            className="px-2 rounded-full transition-colors hover:bg-gray-100"
+                          >
+                            <img src={more} alt="" />
+                          </button>
+                        )}
+                      {activeActionMenuToken === 'active_patient_card' && createPortal(
+                        <div
+                          className="fixed z-[99999] bg-white rounded-lg shadow-xl border border-gray-100 py-1 flex flex-col min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
+                          style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                            onClick={() => setActiveActionMenuToken(null)}
+                          >
+                            <User className="h-4 w-4" /> View Profile
+                          </button>
+                          <button
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                            onClick={() => setActiveActionMenuToken(null)}
+                          >
+                            <Calendar className="h-4 w-4" /> Reschedule
+                          </button>
+                          <button
+                            onClick={() => {
+                              // Mark as Admitted logic if needed
+                              setActiveActionMenuToken(null);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                          >
+                            <BedDouble className="h-4 w-4" /> Mark as Admitted
+                          </button>
+                          <button
+                            onClick={() => {
+                              completeCurrentPatient();
+                              setActiveActionMenuToken(null);
+                            }}
+                            disabled={isEndingPatient}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full disabled:opacity-50"
+                          >
+                            {isEndingPatient ? (
+                              <UniversalLoader size={12} className="text-secondary-grey200" />
+                            ) : (
+                              <CheckCheck className="h-4 w-4" />
+                            )}
+                            <span>End Visit</span>
+                          </button>
+                        </div>,
+                        document.body
+                      )}
                     </div>
-                    {runStartAt ? (
-                      <button
-                        onClick={completeCurrentPatient}
-                        className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        End Session
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setRunStartAt(Date.now());
-                          if (activeUIDetails?.token != null)
-                            pinnedTokenRef.current = activeUIDetails.token;
-                        }}
-                        className="inline-flex items-center rounded-md border border-blue-300 bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        Start Session
-                      </button>
-                    )}
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
             <div className="flex items-center justify-between px-1 py-3">
@@ -2148,6 +2215,10 @@ const Queue = () => {
                     onCheckIn={() => { }}
                     onRevokeCheckIn={() => { }}
                     onMarkNoShow={handleMarkNoShow}
+                    isMarkingNoShowState={isMarkingNoShowState}
+                    onStartSession={handleStartPatientSession}
+                    isStartingPatient={isStartingPatient}
+                    sessionStarted={sessionStarted}
                   />
                 ) : (
                   <div className="flex-1 flex items-center justify-center p-6">

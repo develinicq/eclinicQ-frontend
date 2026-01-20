@@ -3,7 +3,7 @@ import axiosInstance from "../lib/axios";
 export const registerUser = async (formData) => {
   try {
     const response = await axiosInstance.post("/auth/register", formData);
-    return response.data; 
+    return response.data;
   } catch (error) {
     console.error("Registration failed:", error.response?.data || error.message);
     throw error;
@@ -127,8 +127,8 @@ export const getAppointmentsForSlot = async (slotId) => {
 export const approveAppointment = async (appointmentId) => {
   if (!appointmentId) throw new Error('appointmentId is required');
   try {
-  // API requires PUT; send empty object as body
-  const response = await axiosInstance.put(`/appointments/approve/${encodeURIComponent(appointmentId)}`, {});
+    // API requires PUT; send empty object as body
+    const response = await axiosInstance.put(`/appointments/approve/${encodeURIComponent(appointmentId)}`, {});
     return response.data; // { success, data: { ...updatedAppointment } }
   } catch (error) {
     console.error('Approve appointment failed:', error?.response?.data || error.message);
@@ -254,8 +254,8 @@ export const startPatientSessionEta = async (slotId, tokenNumber) => {
   if (!slotId) throw new Error('slotId is required');
   if (tokenNumber == null) throw new Error('tokenNumber is required');
   try {
-  // Use POST for mutating start action
-  const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/start`, {});
+    // Use POST for mutating start action
+    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/start`, {});
     return response.data;
   } catch (error) {
     console.error('Start patient session ETA failed:', error?.response?.data || error.message);
@@ -268,8 +268,8 @@ export const endPatientSessionEta = async (slotId, tokenNumber) => {
   if (!slotId) throw new Error('slotId is required');
   if (tokenNumber == null) throw new Error('tokenNumber is required');
   try {
-  // Use POST for mutating end action
-  const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/end`, {});
+    // Use POST for mutating end action
+    const response = await axiosInstance.post(`/eta/slot/${encodeURIComponent(slotId)}/session/${encodeURIComponent(tokenNumber)}/end`, {});
     return response.data;
   } catch (error) {
     console.error('End patient session ETA failed:', error?.response?.data || error.message);
@@ -298,6 +298,20 @@ export const resumeSlotEta = async (slotId) => {
     return response.data; // expecting { success, data: { resumedAt } }
   } catch (error) {
     console.error('Resume slot ETA failed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+// Terminate queue sessions
+export const terminateQueue = async ({ slotIds, cancellationReason }) => {
+  if (!slotIds || !slotIds.length) throw new Error('slotIds are required');
+  try {
+    const response = await axiosInstance.post('/slots/queue/terminate', {
+      slotIds,
+      cancellationReason
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Terminate queue failed:', error?.response?.data || error.message);
     throw error;
   }
 };
