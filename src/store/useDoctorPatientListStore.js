@@ -9,8 +9,11 @@ const useDoctorPatientListStore = create((set, get) => ({
   // fetch patients for doctor. Accept optional params object for pagination/filtering in future.
   fetchPatients: async (opts = {}) => {
     set({ loading: true, error: null });
+    const { clinicId, doctorId } = opts;
     try {
-      const res = await axios.get('/patients/for-doctor/patients-list');
+      const res = await axios.get('/patients/for-doctor/patients-list', {
+        params: { clinicId, doctorId }
+      });
       // API might return { data: [...] } or { data: { patients: [...] } }
       const rawRes = res?.data?.data;
       const data = Array.isArray(rawRes) ? rawRes : (rawRes?.patients || []);

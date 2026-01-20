@@ -4,6 +4,9 @@ import PatientHeader from "../../../components/PatientList/Header";
 import SampleTable from "../../../pages/SampleTable.jsx";
 import AddPatientDrawer from "../../../components/PatientList/AddPatientDrawer";
 import useDoctorPatientListStore from "../../../store/useDoctorPatientListStore";
+import useAuthStore from "../../../store/useAuthStore";
+import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
+import useClinicStore from "../../../store/settings/useClinicStore";
 import {
   action_calendar,
   action_dot,
@@ -46,11 +49,19 @@ export default function Patient() {
   const { patients, loading, error, fetchPatients, clearPatientsStore } =
     useDoctorPatientListStore();
 
+  const { doctorDetails } = useAuthStore();
+  const { user: fdUser } = useFrontDeskAuthStore();
+  const { clinic: clinicData } = useClinicStore();
+
   useEffect(() => {
     let mounted = true;
     (async () => {
+      // Resolve IDs for both Doctor and Front Desk contexts
+      const clinicId = doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
+      const doctorId = doctorDetails?.id || doctorDetails?.doctorId || fdUser?.doctorId;
+
       try {
-        await fetchPatients();
+        await fetchPatients({ clinicId, doctorId });
       } catch (e) {
         // If fetch fails, keep using demoPatients as fallback
         if (mounted) {
@@ -63,7 +74,7 @@ export default function Patient() {
       // keep store clean when unmounting page
       clearPatientsStore();
     };
-  }, [fetchPatients, clearPatientsStore]);
+  }, [fetchPatients, clearPatientsStore, doctorDetails, fdUser, clinicData]);
 
   const displayPatients = loading
     ? []
@@ -107,13 +118,17 @@ export default function Patient() {
         <div className="text-red-600 font-medium mb-2">Failed to load patients</div>
         <div className="text-sm text-red-500 mb-4">{error}</div>
         <button
-          onClick={() => fetchPatients()}
+          onClick={() => {
+            const clinicId = doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
+            const doctorId = doctorDetails?.id || doctorDetails?.doctorId || fdUser?.doctorId;
+            fetchPatients({ clinicId, doctorId });
+          }}
           className="px-6 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors shadow-sm"
         >
           Retry
         </button>
       </div>
-    );e
+    );
   }
 
   if (displayPatients.length === 0) {
