@@ -341,13 +341,16 @@ export default function FDQueue() {
 	useEffect(() => {
 		pollSlotStatus();
 		fetchPendingAppointments();
+		fetchAppointments(selectedSlotId);
 
 		const statusInterval = setInterval(pollSlotStatus, 60000); // Poll status every 1 minute
 		const pendingInterval = setInterval(fetchPendingAppointments, 60000); // Refresh pending every 1 minute
+		const appointmentInterval = setInterval(() => fetchAppointments(selectedSlotId), 60000); // Refresh appointments every 1 minute
 
 		return () => {
 			clearInterval(statusInterval);
 			clearInterval(pendingInterval);
+			clearInterval(appointmentInterval);
 		};
 	}, [selectedSlotId, doctorId, clinicId, currentDate]);
 
@@ -1274,17 +1277,10 @@ export default function FDQueue() {
 
 							</div>
 						</div>
-					</div></div></div>
-			{/* PreScreeningDrawer disabled for now per requirement */}
-			{/* Walk-in Drawer: Fix undefined props */}
-			<BookAppointmentDrawer
-				open={showWalkIn}
-				onClose={() => setShowWalkIn(false)}
-				doctorId={doctorId}
-			/>
+					</div>
+				</div>
+			</div>
 
-
-			{/* Pause Queue Modal */}
 			{/* Pause Queue Modal */}
 
 			<PauseQueueModal
