@@ -188,6 +188,7 @@ const DocSidebar = () => {
     { label: "Clinics Details", to: "/doc/settings/clinics" },
     { label: "Staff Permissions", to: "/doc/settings/staff-permissions" },
     { label: "Security Settings", to: "/doc/settings/security" },
+     { label: "Subscriptions/Billing", to: "/doc/settings/billing" },
   ];
 
   const settingsSubItems = isDualRole

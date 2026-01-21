@@ -57,6 +57,14 @@ import HospitalSignIn from "./HospitalModule/Pages/Login/SignIn";
 import HFDOnboardingFlow from "./HospitalFDModule/Pages/Login/OnboardingFlow";
 import UnifiedSignIn from "./pages/UnifiedSignIn";
 import TabDemo from "./pages/TabDemo";
+import UpgradePlan from "./DoctorModule/Pages/Settings/UpgradePlan";
+import Payment from "./DoctorModule/Pages/Settings/Payment";
+
+import Step6 from "./SuperAdmin/pages/Dashboard/Doctor_registration/Step6";
+import Step6Payment from "./SuperAdmin/pages/Dashboard/Doctor_registration/Step6payment";
+import Step7 from "./SuperAdmin/pages/Dashboard/Doctor_registration/Step7";
+
+// DocSignIn route intentionally not wired per requirement
 import DocSignIn from "./DoctorModule/Pages/Login/SignIn";
 
 
@@ -165,9 +173,14 @@ function App() {
           <Route path="settings/clinics" element={<Doc_settings />} />
           <Route path="settings/staff-permissions" element={<Doc_settings />} />
           <Route path="settings/security" element={<Doc_settings />} />
+          <Route path="settings/billing" element={<Doc_settings />} />
           <Route path="settings/rx-template" element={<Doc_settings />} />
         </Route>
       </Route>
+
+      {/* billing */}
+       <Route path="billing/upgrade-plan" element={<UpgradePlan/>} />
+       <Route path="billing/payment" element={<Payment/>} />
 
       {/* FrontDesk Portal (copy of Doctor Portal) */}
       <Route element={<ProtectedFrontDeskRoute />}>
@@ -230,6 +243,33 @@ function App() {
           />
         </Route>
       </Route>
+
+
+      {/* testing and building */}
+      <Route
+  path="step6/test"
+  element={
+    <RegistrationProvider>
+      <Step6 />
+    </RegistrationProvider>
+  }
+/>
+   <Route
+  path="step6/test/payment"
+  element={
+    <RegistrationProvider>
+      <Step6Payment/>
+    </RegistrationProvider>
+  }
+/>
+         <Route
+  path="/success"
+  element={
+    <RegistrationProvider>
+      <Step7/>
+    </RegistrationProvider>
+  }
+/>
     </Routes>
   );
 }

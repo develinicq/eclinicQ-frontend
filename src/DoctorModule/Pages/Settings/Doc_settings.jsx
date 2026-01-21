@@ -899,6 +899,12 @@ const StaffTab = () => {
   );
 };
 
+import {
+  getDoctorConsultationDetails,
+  putDoctorConsultationDetails,
+} from "../../../services/doctorConsultationService";
+import BillingTab from "./Tabs/BillingTab";
+
 const Doc_settings = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -906,6 +912,7 @@ const Doc_settings = () => {
   // Hospital Auth Store for role check
   const { roleNames: hospitalRoles } = useHospitalAuthStore();
   const isDualRole = hospitalRoles?.includes("HOSPITAL_ADMIN") && hospitalRoles?.includes("DOCTOR");
+
 
 
   // Grab global profile + actions from Zustand
@@ -962,6 +969,7 @@ const Doc_settings = () => {
     { key: "clinical", label: "Clinical Details" },
     { key: "staff", label: "Staff Permissions" },
     { key: "security", label: "Security Settings" },
+    {key:"billing",label:"Subscriptions/Billing"}
   ];
 
   const tabs = isDualRole
@@ -975,6 +983,7 @@ const Doc_settings = () => {
     if (p.endsWith("/settings/clinics")) return "clinical";
     if (p.endsWith("/settings/staff-permissions")) return "staff";
     if (p.startsWith("/doc/settings/security")) return "security";
+    if (p.endsWith("/settings/billing")) return "billing";
     return "personal";
   }, [location.pathname]);
 
@@ -997,6 +1006,8 @@ const Doc_settings = () => {
         return `${base}/settings/staff-permissions`;
       case "security":
         return `${base}/settings/security`;
+        case "billing":
+          return `${base}/settings/billing`;
       default:
         return `${base}/settings/account`;
     }
@@ -1758,7 +1769,9 @@ const Doc_settings = () => {
         </div>
       ) : activeTab === "staff" ? (
         <StaffTab />
-      ) : (
+      ) : activeTab === "billing" ? (
+ <BillingTab/>
+) : (
         <SecurityTab />
       )}
 
