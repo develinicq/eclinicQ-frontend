@@ -73,6 +73,8 @@ export default function SignIn({ variant = "neutral" }) {
   const [errorMsg, setErrorMsg] = useState("");
   const [otpRequesting, setOtpRequesting] = useState(false);
   const [challengeId, setChallengeId] = useState(null);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [resending, setResending] = useState(false);
   const otpRefs = useRef([...Array(6)].map(() => React.createRef()));
 
   const allOtpFilled = otp.every(Boolean);
@@ -112,11 +114,29 @@ export default function SignIn({ variant = "neutral" }) {
   const handleSendOtp = () => {
     setOtpSent(true);
     resetOtp();
+    startResendTimer();
   };
-  const requestOtp = async () => {
+
+  const startResendTimer = () => {
+    setResendTimer(60);
+    const interval = setInterval(() => {
+      setResendTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+  const requestOtp = async (isResend = false) => {
     if (!identifier.trim()) return;
     setErrorMsg("");
-    setOtpRequesting(true);
+    if (isResend) {
+      setResending(true);
+    } else {
+      setOtpRequesting(true);
+    }
     try {
       const resp = await loginOtpStart({ userName: identifier.trim() });
       // Expected nested shape: { data: { data: { challengeId } } }
@@ -125,6 +145,9 @@ export default function SignIn({ variant = "neutral" }) {
         resp?.data?.challengeId ||
         resp?.challengeId;
       setChallengeId(cid || null);
+      if (isResend) {
+        addToast({ message: "OTP Resent successfully", type: "success" });
+      }
       setOtpSent(true);
       resetOtp();
     } catch (e) {
@@ -136,6 +159,7 @@ export default function SignIn({ variant = "neutral" }) {
       setErrorMsg(String(apiMsg));
     } finally {
       setOtpRequesting(false);
+      setResending(false);
     }
   };
 
@@ -180,8 +204,8 @@ export default function SignIn({ variant = "neutral" }) {
     mode === "password"
       ? canPasswordLogin
       : mode === "mpin"
-      ? canMPinLogin
-      : false;
+        ? canMPinLogin
+        : false;
 
   const handlePasswordLogin = async () => {
     if (!canPasswordLogin) return;
@@ -397,12 +421,11 @@ export default function SignIn({ variant = "neutral" }) {
                     </div>
                     <button
                       disabled={!identifier || otpRequesting}
-                      onClick={requestOtp}
-                      className={`w-full h-9 rounded text-sm flex items-center justify-center border ${
-                        identifier && !otpRequesting
-                          ? "bg-[#2F66F6] text-white border-[#2F66F6]"
-                          : "bg-[#F3F4F6] text-[#9AA1A9] border-[#E5E7EB] cursor-not-allowed"
-                      }`}
+                      onClick={() => requestOtp(false)}
+                      className={`w-full h-9 rounded text-sm flex items-center justify-center border ${identifier && !otpRequesting
+                        ? "bg-[#2F66F6] text-white border-[#2F66F6]"
+                        : "bg-[#F3F4F6] text-[#9AA1A9] border-[#E5E7EB] cursor-not-allowed"
+                        }`}
                     >
                       {otpRequesting ? (
                         "Sending..."
@@ -450,7 +473,21 @@ export default function SignIn({ variant = "neutral" }) {
                     </div>
                     <div className="text-center text-xs text-gray-500">
                       Haven't Received Your Code yet?{" "}
-                      <button className="text-[#2F66F6]">Resend</button>
+                      {resending ? (
+                        <span className="text-[#6B7280]">Resending...</span>
+                      ) : resendTimer > 0 ? (
+                        <span className="text-[#6B7280]">Resend after {resendTimer}s</span>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            requestOtp(true);
+                            startResendTimer();
+                          }}
+                          className="text-[#2F66F6]"
+                        >
+                          Resend
+                        </button>
+                      )}
                     </div>
                     <hr className="border-gray-200 my-2" />
                     <div className="flex items-center gap-2">
@@ -469,13 +506,19 @@ export default function SignIn({ variant = "neutral" }) {
                     <button
                       disabled={!allOtpFilled || submitting}
                       onClick={verifyOtp}
-                      className={`w-full h-9 rounded text-sm flex items-center justify-center ${
-                        allOtpFilled && !submitting
-                          ? "bg-[#2F66F6] text-white"
-                          : "bg-[#F3F4F6] text-[#9AA1A9]"
-                      }`}
+                      className={`w-full h-9 rounded text-sm flex items-center justify-center gap-2 ${allOtpFilled && !submitting
+                        ? "bg-[#2F66F6] text-white"
+                        : "bg-[#F3F4F6] text-[#9AA1A9]"
+                        }`}
                     >
-                      {submitting ? "Verifying..." : "Verify OTP"}
+                      {submitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                          Verifying...
+                        </>
+                      ) : (
+                        "Verify OTP"
+                      )}
                     </button>
                   </div>
                 )}

@@ -4,17 +4,22 @@ import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
 import Dropdown from "@/components/GeneralDrawer/Dropdown";
 import RadioButton from "@/components/GeneralDrawer/RadioButton";
-import { ChevronDown, CheckCircle2 } from "lucide-react";
+import { ChevronDown, CheckCircle2, X } from "lucide-react";
 import MapLocation from "@/components/FormItems/MapLocation";
 import useImageUploadStore from "@/store/useImageUploadStore";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import { updateHospitalInfoAndAddressForSuperAdmin, updateHospitalAdminDetailsForSuperAdmin } from "@/services/hospitalService";
 import useToastStore from "@/store/useToastStore";
 import UniversalLoader from "@/components/UniversalLoader";
+import { getPublicUrl } from "@/services/uploadsService";
 const upload = '/Doctor_module/settings/upload.png'
 
-export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {} }) {
+export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}, initialSection = null }) {
 	const hospitalId = initial?.hospitalId || initial?.id || initial?.temp;
+
+	const hospitalInfoRef = React.useRef(null);
+	const adminDetailsRef = React.useRef(null);
+	const addressDetailsRef = React.useRef(null);
 	const [name, setName] = useState("");
 	const [type, setType] = useState("");
 	const [headline, setHeadline] = useState("");
@@ -31,7 +36,6 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 	const [bloodBank, setBloodBank] = useState("No");
 	const [bloodBankPhone, setBloodBankPhone] = useState("");
 	const [about, setAbout] = useState("");
-	const [photos, setPhotos] = useState([]);
 
 	const [blockNo, setBlockNo] = useState("");
 	const [areaStreet, setAreaStreet] = useState("");
@@ -48,6 +52,8 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 	const [adminEmail, setAdminEmail] = useState("");
 	const [adminGender, setAdminGender] = useState("");
 	const [adminCity, setAdminCity] = useState("");
+	const [managedPhotos, setManagedPhotos] = useState([]); // { id, key, url, uploading }
+	const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
 
 	const [loading, setLoading] = useState(false);
 	const [showEstDateCalendar, setShowEstDateCalendar] = useState(false);
@@ -93,8 +99,20 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 		setAmbulancePhone(initial?.ambulancePhone || "");
 		setBloodBank(initial?.bloodBank ? "Yes" : "No");
 		setBloodBankPhone(initial?.bloodBankPhone || "");
-		setAbout(initial?.about || "");
-		setPhotos(Array.isArray(initial?.photos) ? initial.photos : []);
+		// Initialize managedPhotos from existing keys
+		const initKeys = Array.isArray(initial?.photos) ? initial.photos : [];
+		const initialItems = initKeys.map(key => ({
+			id: Math.random().toString(36).substr(2, 9),
+			key,
+			url: null,
+			uploading: false
+		}));
+		setManagedPhotos(initialItems);
+
+		initialItems.forEach(async (item) => {
+			const url = await getPublicUrl(item.key);
+			setManagedPhotos(prev => prev.map(p => p.id === item.id ? { ...p, url } : p));
+		});
 
 		setBlockNo(initial?.address?.block || "");
 		setAreaStreet(initial?.address?.road || "");
@@ -115,7 +133,23 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 		setAdminEmail(admin.email || admin.emailId || "");
 		setAdminGender(admin.gender ? admin.gender.toUpperCase() : "");
 		setAdminCity(admin.city || "");
-	}, [open, initial]);
+
+		// Handle Scrolling
+		if (initialSection) {
+			setTimeout(() => {
+				let target = null;
+				if (initialSection === 'info') target = hospitalInfoRef.current;
+				else if (initialSection === 'admin') target = adminDetailsRef.current;
+				else if (initialSection === 'address') target = addressDetailsRef.current;
+
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			}, 100);
+		}
+	}, [open, initial, initialSection]);
+
+	// Removed redundant photoresolving effect as it's now handled in managedPhotos
 
 	const isDirty = useMemo(() => {
 		const norm = (v) => v || "";
@@ -135,7 +169,7 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 			(bloodBank === "Yes") !== !!initial.bloodBank ||
 			norm(bloodBankPhone) !== norm(initial.bloodBankPhone) ||
 			norm(about) !== norm(initial.about) ||
-			JSON.stringify(photos) !== JSON.stringify(Array.isArray(initial.photos) ? initial.photos : []) ||
+			JSON.stringify(managedPhotos.map(p => p.key).filter(Boolean)) !== JSON.stringify(Array.isArray(initial.photos) ? initial.photos : []) ||
 			norm(blockNo) !== norm(initial.address?.blockNo || initial.address?.block) ||
 			norm(areaStreet) !== norm(initial.address?.street || initial.address?.road) ||
 			norm(landmark) !== norm(initial.address?.landmark) ||
@@ -152,27 +186,48 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 			norm(adminGender) !== norm(initial.admin?.gender ? initial.admin.gender.toUpperCase() : "") ||
 			norm(adminCity) !== norm(initial.admin?.city)
 		);
-	}, [name, type, headline, url, establishmentDate, phone, email, emergencyPhone, beds, icuBeds, ambulances, ambulancePhone, bloodBank, bloodBankPhone, about, photos, blockNo, areaStreet, landmark, pincode, city, state, latLng, adminFirstName, adminLastName, adminMobile, adminEmail, adminGender, adminCity, initial]);
+	}, [name, type, headline, url, establishmentDate, phone, email, emergencyPhone, beds, icuBeds, ambulances, ambulancePhone, bloodBank, bloodBankPhone, about, managedPhotos, blockNo, areaStreet, landmark, pincode, city, state, latLng, adminFirstName, adminLastName, adminMobile, adminEmail, adminGender, adminCity, initial]);
 
 	const onUploadPhotos = async (fileList) => {
 		if (!fileList || fileList.length === 0) return;
 		const files = Array.isArray(fileList) ? fileList : Array.from(fileList);
-		const newKeys = [];
-		for (const f of files) {
+		setIsUploadingPhotos(true);
+
+		const newItems = files.map(f => ({
+			id: Math.random().toString(36).substr(2, 9),
+			url: URL.createObjectURL(f),
+			file: f,
+			uploading: true,
+			key: null
+		}));
+
+		setManagedPhotos(prev => [...prev, ...newItems]);
+
+		for (const item of newItems) {
 			try {
-				const info = await getUploadUrl(f.type, f);
-				if (!info?.uploadUrl || !info?.key) continue;
+				const info = await getUploadUrl(item.file.type, item.file);
+				if (!info?.uploadUrl || !info?.key) throw new Error("No upload URL");
+
 				await fetch(info.uploadUrl, {
 					method: "PUT",
-					headers: { "Content-Type": f.type },
-					body: f,
+					headers: { "Content-Type": item.file.type },
+					body: item.file,
 				});
-				newKeys.push(info.key);
+
+				setManagedPhotos(prev => prev.map(p =>
+					p.id === item.id ? { ...p, key: info.key, uploading: false } : p
+				));
 			} catch (e) {
 				console.error("Photo upload failed", e);
+				addToast({ title: "Error", message: `Failed to upload ${item.file.name}`, type: "error" });
+				setManagedPhotos(prev => prev.filter(p => p.id !== item.id));
 			}
 		}
-		setPhotos((prev) => [...prev, ...newKeys]);
+		setIsUploadingPhotos(false);
+	};
+
+	const handleRemovePhoto = (id) => {
+		setManagedPhotos(prev => prev.filter(p => p.id !== id));
 	};
 
 	const handleSave = async () => {
@@ -206,8 +261,9 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 		if ((bloodBank === "Yes") !== !!initial.bloodBank) hospitalData.hasBloodBank = bloodBank === "Yes";
 		addIfChanged(hospitalData, "bloodBankContactNo", bloodBankPhone, initial.bloodBankPhone);
 		addIfChanged(hospitalData, "about", about, initial.about);
-		if (JSON.stringify(photos) !== JSON.stringify(Array.isArray(initial.photos) ? initial.photos : [])) {
-			hospitalData.tempImageKeys = photos;
+		const currentKeys = managedPhotos.map(p => p.key).filter(Boolean);
+		if (JSON.stringify(currentKeys) !== JSON.stringify(Array.isArray(initial.photos) ? initial.photos : [])) {
+			hospitalData.tempImageKeys = currentKeys;
 		}
 		addIfChanged(hospitalData, "blockNo", blockNo, initial.address?.blockNo || initial.address?.block);
 		addIfChanged(hospitalData, "street", areaStreet, initial.address?.street || initial.address?.road);
@@ -283,7 +339,9 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 			width={600}
 		>
 			<div className="flex flex-col gap-3">
-				<InputWithMeta label="Hospital Name" requiredDot value={name} onChange={setName} placeholder="Manipal Hospital" />
+				<div ref={hospitalInfoRef}>
+					<InputWithMeta label="Hospital Name" requiredDot value={name} onChange={setName} placeholder="Manipal Hospital" />
+				</div>
 				<InputWithMeta label="Hospital Headline" value={headline} onChange={setHeadline} placeholder="Your Health, Our Priority" />
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
 					<div className="relative">
@@ -332,13 +390,27 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 				</div>
 				<div>
 					<InputWithMeta label="Hospital Photos" showInput={false} />
-					<div className="flex flex-nowrap gap-3 mt-1 items-center overflow-x-auto mb-1 scrollbar-hide">
-						{photos.map((src, idx) => (
-							<div key={idx} className="relative w-[120px] h-[120px] bg-gray-100 rounded-md border border-gray-200 overflow-hidden shrink-0">
-								<img src={src} alt="Hospital" className="w-full h-full object-cover" />
+					<div className="flex flex-nowrap gap-3 mt-1 items-center overflow-x-auto mb-1 scrollbar-hide py-1">
+						{managedPhotos.map((photo) => (
+							<div key={photo.id} className="relative w-[120px] h-[120px] bg-gray-100 rounded-md border border-gray-200 overflow-hidden shrink-0 group">
+								<img src={photo.url} alt="Hospital" className={`w-full h-full object-cover ${photo.uploading ? 'opacity-50 blur-[1px]' : ''}`} />
+								{photo.uploading && (
+									<div className="absolute inset-0 flex items-center justify-center">
+										<UniversalLoader size={20} />
+									</div>
+								)}
+								{!photo.uploading && (
+									<button
+										onClick={() => handleRemovePhoto(photo.id)}
+										className="absolute top-1 right-1 p-1 bg-white/90 hover:bg-white rounded-full text-red-500 shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+										title="Remove Photo"
+									>
+										<X size={14} />
+									</button>
+								)}
 							</div>
 						))}
-						<label className="w-[120px] h-[120px] border-dashed bg-blue-primary50 border-blue-primary150 border-[0.5px] rounded-md grid place-items-center text-blue-primary250 text-sm cursor-pointer shrink-0">
+						<label className={`w-[120px] h-[120px] border-dashed bg-blue-primary50 border-blue-primary150 border-[0.5px] rounded-md grid place-items-center text-blue-primary250 text-sm cursor-pointer shrink-0 transition-all hover:bg-blue-primary100 active:scale-95`}>
 							<input type="file" className="hidden" multiple accept="image/*" onChange={(e) => onUploadPhotos(e.target.files)} />
 							<div className="flex flex-col items-center gap-1">
 								<img src={upload} alt="Upload" className="w-4 h-4" />
@@ -350,7 +422,7 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 				</div>
 
 				<div className="border-b-[0.5px] border-secondary-grey100 my-2"></div>
-				<div className="text-sm font-semibold text-secondary-grey400">Admin Details</div>
+				<div ref={adminDetailsRef} className="text-sm font-semibold text-secondary-grey400">Admin Details</div>
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<InputWithMeta label="First Name" requiredDot value={adminFirstName} onChange={setAdminFirstName} placeholder="Enter First Name" />
 					<InputWithMeta label="Last Name" requiredDot value={adminLastName} onChange={setAdminLastName} placeholder="Enter Last Name" />
@@ -374,7 +446,7 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 				</div>
 
 				<div className="border-b-[0.5px] border-secondary-grey100 my-2"></div>
-				<div className="text-sm font-semibold text-secondary-grey400">Hospital Address</div>
+				<div ref={addressDetailsRef} className="text-sm font-semibold text-secondary-grey400">Hospital Address</div>
 				<div className="flex flex-col gap-2">
 					<div>
 						<InputWithMeta label="Map Location" infoIcon placeholder="Search Location" />

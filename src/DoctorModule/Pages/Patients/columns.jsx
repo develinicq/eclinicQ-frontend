@@ -110,7 +110,6 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         sticky: 'left',
         headerClassName: 'pl-[52px]',
         render: (row) => {
-            const isActive = row.status === 'Active';
             return (
                 <Link to={`/doc/patients/${row.patientId || row.id}`} className="flex items-center gap-2 group cursor-pointer w-full h-full block">
                     <AvatarCircle name={row.name} size="s" color="blue" />
@@ -119,7 +118,7 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
                             {row.name}
                         </span>
                         <p className="text-secondary-grey300">
-                            {row.gender} | {row.dob}
+                            {row.gender ? (row.gender.charAt(0).toUpperCase() + row.gender.slice(1).toLowerCase()) : '-'} | {row.dob} {row.age ? `(${row.age}Y)` : ''}
                         </p>
                     </div>
                 </Link>
@@ -127,10 +126,10 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         },
     },
     {
-        key: 'patientId', // Adapted key from source (was 'id' in SuperAdmin but 'patientId' in Doctor data)
+        key: 'patientId',
         header: <TableHeader label="Patient ID" />,
         width: 140,
-        render: (row) => <span className="text-secondary-grey300 text-sm">{row.patientId || row.id}</span>
+        render: (row) => <span className="text-secondary-grey300 text-sm">{row.patientCode || row.patientId || row.id}</span>
     },
     {
         key: 'contact',

@@ -49,7 +49,7 @@ export default function AddSurgeryDrawer({ open, onClose, onSuccess, hospitalId 
             title="Create New Surgery"
             primaryActionLabel={loading ? (
                 <div className="flex items-center gap-2">
-                    <UniversalLoader size={16}  />
+                    <UniversalLoader size={16} />
                     <span>Adding...</span>
                 </div>
             ) : "Add"}

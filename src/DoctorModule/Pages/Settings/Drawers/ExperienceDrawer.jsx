@@ -6,42 +6,45 @@ import Dropdown from "@/components/GeneralDrawer/Dropdown";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 const calendarBlackPath = '/Doctor_module/settings/calendar.png';
 import { ChevronDown } from "lucide-react";
+import { addExperience, updateExperience } from "@/services/settings/experienceService";
+import useToastStore from "@/store/useToastStore";
+import UniversalLoader from "@/components/UniversalLoader";
 
 
 // Local checkbox-with-label row used inside this drawer
 const CheckboxWithLabel = ({ label, checked, onChange }) => (
   <InputWithMeta label=" " showInput={false}>
     <label className="inline-flex items-center gap-2 cursor-pointer text-[12px] text-[#424242]">
-  <input
-    type="checkbox"
-    className="peer sr-only"
-    checked={checked}
-    onChange={onChange}
-  />
-
-  <span className="w-5 h-5 rounded-md border border-gray-400 flex items-center justify-center
-                   peer-checked:bg-blue-600 peer-checked:border-blue-600">
-    <svg
-      className="hidden peer-checked:block w-3 h-3 text-white"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-    >
-      <path
-        fillRule="evenodd"
-        d="M16.707 5.293a1 1 0 010 1.414l-7.364 7.364a1 1 0 01-1.414 0L3.293 9.414a1 1 0 011.414-1.414l3.05 3.05 6.657-6.657a1 1 0 011.414 0z"
-        clipRule="evenodd"
+      <input
+        type="checkbox"
+        className="peer sr-only"
+        checked={checked}
+        onChange={onChange}
       />
-    </svg>
-  </span>
 
-  <span className="text-sm text-secondary-grey300">{label}</span>
-</label>
+      <span className="w-5 h-5 rounded-md border border-gray-400 flex items-center justify-center
+                   peer-checked:bg-blue-600 peer-checked:border-blue-600">
+        <svg
+          className="hidden peer-checked:block w-3 h-3 text-white"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fillRule="evenodd"
+            d="M16.707 5.293a1 1 0 010 1.414l-7.364 7.364a1 1 0 01-1.414 0L3.293 9.414a1 1 0 011.414-1.414l3.05 3.05 6.657-6.657a1 1 0 011.414 0z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </span>
+
+      <span className="text-sm text-secondary-grey300">{label}</span>
+    </label>
 
   </InputWithMeta>
 );
 
 export default function ExperienceDrawer({ open, onClose, initial = {}, mode = "add", onSave }) {
-  
+
   const [data, setData] = useState({
     jobTitle: "",
     employmentType: "",
@@ -57,6 +60,7 @@ export default function ExperienceDrawer({ open, onClose, initial = {}, mode = "
   const [showStartCalendar, setShowStartCalendar] = useState(false);
   const [showEndCalendar, setShowEndCalendar] = useState(false);
   const [hospitalOpen, setHospitalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const hospitalOptions = useMemo(
     () => [
       "Chauhan Clinic",
@@ -68,7 +72,7 @@ export default function ExperienceDrawer({ open, onClose, initial = {}, mode = "
     []
   );
   const formatDateForInput = (value) =>
-  value ? new Date(value).toISOString().split("T")[0] : "";
+    value ? new Date(value).toISOString().split("T")[0] : "";
 
 
   useEffect(() => {
@@ -80,7 +84,7 @@ export default function ExperienceDrawer({ open, onClose, initial = {}, mode = "
         hospitalOrClinicName: init.hospitalOrClinicName || "",
         isCurrentlyWorking: Boolean(init.isCurrentlyWorking),
         startDate: formatDateForInput(init.startDate),
-endDate: formatDateForInput(init.endDate),
+        endDate: formatDateForInput(init.endDate),
 
         endCurrentPositionNote:
           init.endCurrentPositionNote || init.currentPositionNote || "",
@@ -107,6 +111,37 @@ endDate: formatDateForInput(init.endDate),
     { key: "description", label: "Description", type: "textarea", maxLength: 1600, placeholder: "List your Duties, Highlights and Achievements" },
   ];
 
+  const isDirty = useMemo(() => {
+    const norm = (v) => (v ?? "");
+    const initialJob = norm(initial?.jobTitle);
+    const initialEmp = norm(initial?.employmentType);
+    const initialHosp = norm(initial?.hospitalOrClinicName);
+    const initialCurr = Boolean(initial?.isCurrentlyWorking);
+    const initialStart = formatDateForInput(initial?.startDate);
+    const initialEnd = formatDateForInput(initial?.endDate);
+    const initialDesc = norm(initial?.description);
+
+    return (
+      norm(data.jobTitle) !== initialJob ||
+      norm(data.employmentType) !== initialEmp ||
+      norm(data.hospitalOrClinicName) !== initialHosp ||
+      data.isCurrentlyWorking !== initialCurr ||
+      data.startDate !== initialStart ||
+      (!data.isCurrentlyWorking && data.endDate !== initialEnd) ||
+      norm(data.description) !== initialDesc
+    );
+  }, [data, initial]);
+
+  const isValid = useMemo(() => {
+    return Boolean(
+      data.jobTitle?.trim() &&
+      data.employmentType?.trim() &&
+      data.hospitalOrClinicName?.trim() &&
+      data.startDate &&
+      (data.isCurrentlyWorking || data.endDate)
+    );
+  }, [data]);
+
   function validate() {
     const e = {};
     if (!data.jobTitle?.trim()) e.jobTitle = "Job Title is required";
@@ -114,7 +149,7 @@ endDate: formatDateForInput(init.endDate),
     if (!data.hospitalOrClinicName?.trim()) e.hospitalOrClinicName = "Hospital or Clinic Name is required";
     if (!data.startDate) e.startDate = "Start Date is required";
     if (!data.isCurrentlyWorking && !data.endDate) e.endDate = "Till Date is required";
-    if (data.startDate && data.endDate) {
+    if (data.startDate && data.endDate && !data.isCurrentlyWorking) {
       const s = new Date(data.startDate);
       const t = new Date(data.endDate);
       if (t < s) e.endDate = "Till Date cannot be before Start Date";
@@ -125,10 +160,56 @@ endDate: formatDateForInput(init.endDate),
 
   async function handleSave() {
     if (!validate()) return;
-    const payload = { ...data };
-    if (payload.isCurrentlyWorking) payload.endDate = "";
-    await onSave?.(payload);
-    onClose?.();
+    const { addToast } = useToastStore.getState();
+    const basePayload = {
+      jobTitle: data.jobTitle,
+      employmentType: data.employmentType,
+      hospitalOrClinicName: data.hospitalOrClinicName,
+      isCurrentlyWorking: data.isCurrentlyWorking,
+      startDate: data.startDate,
+      endDate: data.isCurrentlyWorking ? null : data.endDate,
+      description: data.description || null,
+    };
+
+    try {
+      setSaving(true);
+      if (mode === "edit" && initial?.id) {
+        // Build diff
+        const diff = {};
+        const pushIf = (k, n, o) => { if ((n ?? "") !== (o ?? "")) diff[k] = n; };
+        pushIf("jobTitle", basePayload.jobTitle, initial.jobTitle);
+        pushIf("employmentType", basePayload.employmentType, initial.employmentType);
+        pushIf("hospitalOrClinicName", basePayload.hospitalOrClinicName, initial.hospitalOrClinicName);
+        if (basePayload.isCurrentlyWorking !== Boolean(initial.isCurrentlyWorking)) {
+          diff.isCurrentlyWorking = basePayload.isCurrentlyWorking;
+        }
+        pushIf("startDate", basePayload.startDate, formatDateForInput(initial.startDate));
+        if (!basePayload.isCurrentlyWorking) {
+          pushIf("endDate", basePayload.endDate, formatDateForInput(initial.endDate));
+        } else {
+          diff.endDate = null;
+        }
+        pushIf("description", basePayload.description, initial.description);
+
+        if (Object.keys(diff).length === 0) {
+          onClose?.();
+          return;
+        }
+
+        const res = await updateExperience({ id: initial.id, ...diff });
+        addToast({ title: "Updated", message: res?.message || "Experience updated successfully", type: "success" });
+        onSave?.(res?.data || { ...initial, ...diff });
+      } else {
+        const res = await addExperience(basePayload);
+        addToast({ title: "Added", message: res?.message || "Experience added successfully", type: "success" });
+        onSave?.(res?.data || basePayload);
+      }
+      onClose?.();
+    } catch (e) {
+      addToast({ title: "Error", message: e?.message || "Failed to save experience", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   }
 
 
@@ -137,8 +218,14 @@ endDate: formatDateForInput(init.endDate),
       isOpen={open}
       onClose={onClose}
       title={title}
-      primaryActionLabel="Save"
+      primaryActionLabel={saving ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} style={{ width: 'auto', height: 'auto' }} />
+          <span>{mode === 'edit' ? 'Updating...' : 'Saving...'}</span>
+        </div>
+      ) : (mode === 'edit' ? "Update" : "Save")}
       onPrimaryAction={handleSave}
+      primaryActionDisabled={saving || !isValid || (mode === 'edit' && !isDirty)}
       width={600}
     >
       <div className="flex flex-col gap-3">

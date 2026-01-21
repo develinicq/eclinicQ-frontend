@@ -182,7 +182,10 @@ const Hos_1 = forwardRef((props, ref) => {
         setLoading(false);
         return true; // allow moving to next step only on success
       } catch (err) {
-        const msg = err?.response?.data?.message || err.message || 'Submission failed';
+        const raw = err?.response?.data?.message ?? err.message ?? 'Submission failed';
+        // Handle case where message is an object (e.g. Prisma error) by stringifying or defaulting
+        const msg = typeof raw === 'string' ? raw : (raw?.message || raw?.code || JSON.stringify(raw));
+
         setLoading(false);
         // Toast error
         useToastStore.getState().addToast({

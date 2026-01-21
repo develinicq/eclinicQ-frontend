@@ -63,7 +63,7 @@ export default function Timing({ hospital }) {
         <div className="flex flex-col md:flex-row gap-6 p-4">
             {loading && (
                 <div className="w-full flex items-center justify-center h-40">
-                    <UniversalLoader size={28} className="bg-white" />
+                    <UniversalLoader size={28} className="" />
                 </div>
             )}
             {!loading && error && (

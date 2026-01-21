@@ -9,9 +9,15 @@ const useDoctorPatientListStore = create((set, get) => ({
   // fetch patients for doctor. Accept optional params object for pagination/filtering in future.
   fetchPatients: async (opts = {}) => {
     set({ loading: true, error: null });
+    const { clinicId, doctorId } = opts;
     try {
-      const res = await axios.get('/patients/for-doctor/patients-list');
-      const data = res?.data?.data || [];
+      const res = await axios.get('/patients/for-doctor/patients-list', {
+        params: { clinicId, doctorId }
+      });
+      // API might return { data: [...] } or { data: { patients: [...] } }
+      const rawRes = res?.data?.data;
+      const data = Array.isArray(rawRes) ? rawRes : (rawRes?.patients || []);
+
       // Normalize API shape to what PatientTable expects
       const mapped = data.map((p) => {
         const dobRaw = p?.dob || p?.dateOfBirth || null;
@@ -33,7 +39,7 @@ const useDoctorPatientListStore = create((set, get) => ({
             const dt = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
             const date = dt.toLocaleDateString('en-GB');
             const time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-            lastVisit = `${date} | ${time}`;   
+            lastVisit = `${date} | ${time}`;
           } else {
             // Try generic parse (ISO etc.)
             const parsed = new Date(lastVisitRaw);
@@ -59,6 +65,7 @@ const useDoctorPatientListStore = create((set, get) => ({
           location: locationVal,
           gender: p?.genderInitial || p?.gender || '',
           dob,
+          age: p?.age || '', // Ensure age is included
           lastVisit,
           reason: p?.reasonForLastVisit || p?.reason || '',
           profilePhoto: p?.profilePhoto || null,

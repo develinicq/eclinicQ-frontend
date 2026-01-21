@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import AvatarCircle from "../../../components/AvatarCircle";
 import Button from "../../../components/Button";
+import UniversalLoader from "../../../components/UniversalLoader";
 import {
   ChevronsUpDown,
   User,
@@ -11,6 +12,7 @@ import {
   UserX,
   Undo2,
   ChevronDown,
+  Play,
 } from "lucide-react";
 import { arrowLeft, arrowRight } from "../../../../public/index.js";
 
@@ -298,38 +300,46 @@ const QueueTable = ({
   incomingToken,
   onRevokeCheckIn,
   onMarkNoShow,
+  isMarkingNoShowState,
   allowSampleFallback = true,
   prescreeningEnabled = true,
   hideCheckIn = false,
+  onStartSession,
+  isStartingPatient,
+  sessionStarted,
 }) => {
   const [menuRow, setMenuRow] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   useEffect(() => {
-    const close = () => setMenuRow(null);
+    const close = () => {
+      if (!isMarkingNoShowState) setMenuRow(null);
+    };
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
-  }, []);
+  }, [isMarkingNoShowState]);
+
+
   // Normalize input rows: prefer items from parent (live queue), else fallback to local sample
   const data =
     Array.isArray(items) && items.length
       ? items.map((p) => ({
-          id: p.id || p.appointmentId,
-          token: p.token,
-          name: p.patientName,
-          gender: p.gender,
-          dob: (p.age || "").split(" (")[0],
-          age: parseInt(
-            ((p.age || "").match(/\((\d+)Y\)/) || [])[1] || "0",
-            10
-          ),
-          apptType: p.appointmentType,
-          exptTime: p.expectedTime,
-          bookingType: p.bookingType,
-          reason: p.reasonForVisit,
-        }))
+        id: p.id || p.appointmentId,
+        token: p.token,
+        name: p.patientName,
+        gender: p.gender,
+        dob: (p.age || "").split(" (")[0],
+        age: parseInt(
+          ((p.age || "").match(/\((\d+)Y\)/) || [])[1] || "0",
+          10
+        ),
+        apptType: p.appointmentType,
+        exptTime: p.expectedTime,
+        bookingType: p.bookingType,
+        reason: p.reasonForVisit,
+      }))
       : allowSampleFallback
-      ? rows
-      : [];
+        ? rows
+        : [];
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full min-h-0 flex flex-col">
       {/* Scroll area for the table content */}
@@ -474,9 +484,8 @@ const QueueTable = ({
             {data.map((row) => (
               <tr
                 key={row.token}
-                className={`group hover:bg-gray-50 ${
-                  removingToken === row.token ? "row-exit" : ""
-                } ${incomingToken === row.token ? "row-enter" : ""}`}
+                className={`group hover:bg-gray-50 ${removingToken === row.token ? "row-exit" : ""
+                  } ${incomingToken === row.token ? "row-enter" : ""}`}
               >
                 {/* Token (sticky left) */}
                 <td
@@ -544,7 +553,7 @@ const QueueTable = ({
                             onClick={() => onCheckIn(row)}
                           >
                             {checkingInTokens &&
-                            checkingInTokens.has?.(row.token)
+                              checkingInTokens.has?.(row.token)
                               ? "Checking in…"
                               : "Add Pre-screening"}
                           </Button>
@@ -562,7 +571,7 @@ const QueueTable = ({
                             onClick={() => onCheckIn(row)}
                           >
                             {checkingInTokens &&
-                            checkingInTokens.has?.(row.token)
+                              checkingInTokens.has?.(row.token)
                               ? "Checking in…"
                               : "Check-In"}
                           </Button>
@@ -616,6 +625,23 @@ const QueueTable = ({
                       </svg>
                     </button>
 
+                    {/* Manual Start Session Button */}
+                    {sessionStarted && (
+                      <button
+                        type="button"
+                        title="Start Session"
+                        disabled={isStartingPatient === row.token}
+                        onClick={() => onStartSession?.(row.token)}
+                        className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-md border border-blue-primary250 bg-blue-primary50 text-blue-primary250 hover:bg-blue-primary250 hover:text-white transition-all disabled:opacity-50"
+                      >
+                        {isStartingPatient === row.token ? (
+                          <UniversalLoader size={14} className="text-blue-primary250" />
+                        ) : (
+                          <Play size={16} />
+                        )}
+                      </button>
+                    )}
+
                     {/* Dropdown menu (fixed, bottom-left from trigger) */}
                     {menuRow === row.token &&
                       createPortal(
@@ -655,14 +681,26 @@ const QueueTable = ({
                             <ul className="py-1 text-sm">
                               <li>
                                 <button
-                                  onClick={() => {
-                                    onMarkNoShow?.(row);
+                                  disabled={isMarkingNoShowState}
+                                  onClick={async (e) => {
+                                    e.stopPropagation(); // prevent document click close
+                                    if (onMarkNoShow) await onMarkNoShow(row);
                                     setMenuRow(null);
                                   }}
-                                  className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 inline-flex items-center gap-2"
+                                  className={`w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 inline-flex items-center gap-2 ${isMarkingNoShowState ? "opacity-50 cursor-not-allowed" : ""
+                                    }`}
                                 >
-                                  <UserX className="w-4 h-4" />
-                                  Mark as No-Show
+                                  {isMarkingNoShowState ? (
+                                    <div className="flex items-center gap-2">
+                                      <UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
+                                      <span>Marking...</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <UserX className="w-4 h-4" />
+                                      Mark as No-Show
+                                    </>
+                                  )}
                                 </button>
                               </li>
                               <li>

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, Sunrise, Sun, Sunset, Moon, X, Clock } from "lucide-react";
+import { Calendar, Sunrise, Sun, Sunset, Moon, X, Clock, ChevronDown } from "lucide-react";
 import {
   bookWalkInAppointment,
   findPatientSlots,
@@ -16,7 +16,9 @@ import { calendarMinimalistic } from "../../../../public/index.js";
 import OverviewStatCard from "../../../components/OverviewStatCard";
 import Toggle from "../../../components/FormItems/Toggle";
 import QueueTable from "./QueueTable";
-import useAuthStore from "../../../store/useAuthStore";
+import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
+import useToastStore from "../../../store/useToastStore";
+import UniversalLoader from "../../../components/UniversalLoader";
 import useSlotStore from "../../../store/useSlotStore";
 import {
   getDoctorMe,
@@ -28,6 +30,7 @@ import {
   pauseSlotEta,
   resumeSlotEta,
   markNoShowAppointment,
+  terminateQueue,
 } from "../../../services/authService";
 import {
   action_dot,
@@ -45,11 +48,33 @@ import {
   angelDown,
   pauseIconRed,
   timerOrange,
-  restartQueueIcon,
+
 } from "../../../../public/index.js";
+
+const more = '/superAdmin/Doctors/Threedots.svg'
+const checkRound = '/fd/Check Round.svg';
+const verified = '/verified-tick.svg'
+const stopwatch = '/fd/Stopwatch.svg'
+const verifiedYellow = '/fd/verified_yellow.svg'
+
 import BookAppointmentDrawer from "../../../components/Appointment/BookAppointmentDrawer.jsx";
 import PauseQueueModal from "../../../components/PauseQueueModal.jsx";
 import TerminateQueueModal from "../../../components/TerminateQueueModal.jsx";
+import SessionTimer from "../../../components/SessionTimer";
+import {
+  RotateCcw,
+  CalendarMinus,
+  CalendarX,
+  User,
+  BedDouble,
+  CheckCheck,
+  Bell,
+  CalendarPlus,
+  UserX,
+  ArrowRight,
+  Play,
+  PauseCircle,
+} from "lucide-react";
 
 // Walk-in Appointment Drawer (full version replicated from Front Desk)
 const WalkInAppointmentDrawer = ({
@@ -274,7 +299,7 @@ const WalkInAppointmentDrawer = ({
       }
       try {
         console.debug("[Doctor] walk-in booking payload:", payload);
-      } catch {}
+      } catch { }
       await bookWalkInAppointment(payload);
       onBookedRefresh?.();
       onClose();
@@ -290,17 +315,15 @@ const WalkInAppointmentDrawer = ({
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${
-          show
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${show
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
+          }`}
         onClick={onClose}
       />
       <div
-        className={`fixed z-50 transition-transform duration-500 ${
-          show ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed z-50 transition-transform duration-500 ${show ? "translate-x-0" : "translate-x-full"
+          }`}
         style={{
           top: 24,
           right: show ? 24 : 0,
@@ -324,11 +347,10 @@ const WalkInAppointmentDrawer = ({
               <button
                 onClick={handleBook}
                 disabled={!canBook()}
-                className={`text-sm font-medium rounded px-3 py-1.5 border ${
-                  canBook()
-                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                    : "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
-                }`}
+                className={`text-sm font-medium rounded px-3 py-1.5 border ${canBook()
+                  ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                  : "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
+                  }`}
               >
                 {booking ? "Booking..." : "Book Appointment"}
               </button>
@@ -395,11 +417,10 @@ const WalkInAppointmentDrawer = ({
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       type="text"
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.firstName
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.firstName
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                       placeholder="Enter First Name"
                     />
                     {fieldErrors.firstName && (
@@ -416,11 +437,10 @@ const WalkInAppointmentDrawer = ({
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       type="text"
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.lastName
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.lastName
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                       placeholder="Enter Last Name"
                     />
                     {fieldErrors.lastName && (
@@ -441,11 +461,10 @@ const WalkInAppointmentDrawer = ({
                         onChange={(e) => setDob(e.target.value)}
                         type="text"
                         placeholder="Select Date of Birth"
-                        className={`w-full rounded-md border px-3 py-2 text-sm pr-8 focus:outline-none ${
-                          fieldErrors.dob
-                            ? "border-red-400 focus:border-red-500"
-                            : "border-gray-300 focus:border-blue-500"
-                        }`}
+                        className={`w-full rounded-md border px-3 py-2 text-sm pr-8 focus:outline-none ${fieldErrors.dob
+                          ? "border-red-400 focus:border-red-500"
+                          : "border-gray-300 focus:border-blue-500"
+                          }`}
                       />
                       <button
                         type="button"
@@ -498,11 +517,10 @@ const WalkInAppointmentDrawer = ({
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value)}
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.gender
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.gender
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                     >
                       <option value="" disabled>
                         Select Gender
@@ -528,11 +546,10 @@ const WalkInAppointmentDrawer = ({
                     <select
                       value={bloodGroup}
                       onChange={(e) => setBloodGroup(e.target.value)}
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.bloodGroup
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.bloodGroup
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                     >
                       <option value="" disabled>
                         Select Blood Group
@@ -557,11 +574,10 @@ const WalkInAppointmentDrawer = ({
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
                       type="tel"
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                        fieldErrors.phone || fieldErrors.mobile
-                          ? "border-red-400 focus:border-red-500"
-                          : "border-gray-300 focus:border-blue-500"
-                      }`}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.phone || fieldErrors.mobile
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-gray-300 focus:border-blue-500"
+                        }`}
                       placeholder="Enter Mobile Number"
                     />
                     {(fieldErrors.phone || fieldErrors.mobile) && (
@@ -579,11 +595,10 @@ const WalkInAppointmentDrawer = ({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     type="email"
-                    className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                      fieldErrors.email || fieldErrors.emailId
-                        ? "border-red-400 focus:border-red-500"
-                        : "border-gray-300 focus:border-blue-500"
-                    }`}
+                    className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.email || fieldErrors.emailId
+                      ? "border-red-400 focus:border-red-500"
+                      : "border-gray-300 focus:border-blue-500"
+                      }`}
                     placeholder="Enter Email"
                   />
                   {(fieldErrors.email || fieldErrors.emailId) && (
@@ -630,11 +645,10 @@ const WalkInAppointmentDrawer = ({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 type="text"
-                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${
-                  fieldErrors.reason || fieldErrors.reasonForVisit
-                    ? "border-red-400 focus:border-red-500"
-                    : "border-gray-300 focus:border-blue-500"
-                }`}
+                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none ${fieldErrors.reason || fieldErrors.reasonForVisit
+                  ? "border-red-400 focus:border-red-500"
+                  : "border-gray-300 focus:border-blue-500"
+                  }`}
                 placeholder="Enter Reason for Visit"
               />
               {(fieldErrors.reason || fieldErrors.reasonForVisit) && (
@@ -737,23 +751,21 @@ const WalkInAppointmentDrawer = ({
                     current?.maxTokens;
                   const label =
                     (avail ?? "") !== ""
-                      ? `${avail}${
-                          total != null ? ` of ${total}` : ""
-                        } Tokens available`
+                      ? `${avail}${total != null ? ` of ${total}` : ""
+                      } Tokens available`
                       : loadingSlots
-                      ? "Loading slots…"
-                      : slotsError
-                      ? "Slots unavailable"
-                      : "Tokens info unavailable";
+                        ? "Loading slots…"
+                        : slotsError
+                          ? "Slots unavailable"
+                          : "Tokens info unavailable";
                   return (
                     <div className="flex items-center justify-between">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Available Slot <span className="text-red-500">*</span>
                       </label>
                       <span
-                        className={`text-xs ${
-                          avail > 0 ? "text-green-600" : "text-amber-600"
-                        }`}
+                        className={`text-xs ${avail > 0 ? "text-green-600" : "text-amber-600"
+                          }`}
                       >
                         {label}
                       </span>
@@ -761,11 +773,10 @@ const WalkInAppointmentDrawer = ({
                   );
                 })()}
                 <select
-                  className={`w-full rounded-md border px-3 py-2 text-sm ${
-                    fieldErrors.slotId
-                      ? "border-red-400 focus:border-red-500"
-                      : "border-gray-300 focus:border-blue-500"
-                  }`}
+                  className={`w-full rounded-md border px-3 py-2 text-sm ${fieldErrors.slotId
+                    ? "border-red-400 focus:border-red-500"
+                    : "border-gray-300 focus:border-blue-500"
+                    }`}
                   value={bucketKey}
                   onChange={(e) => {
                     const key = e.target.value;
@@ -809,23 +820,63 @@ const WalkInAppointmentDrawer = ({
 
 const Queue = () => {
   const [slotEnding, setSlotEnding] = useState(false);
+
   // Queue is restricted to Checked-In only for both Doctor & FD views
   const [activeFilter, setActiveFilter] = useState("All");
   const [currentDate, setCurrentDate] = useState(new Date());
-  // Auth
-  const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
+  // Auth (Using useDoctorAuthStore for Doctor module)
+  const { user: doctorDetails, loading: doctorLoading, fetchMe: fetchDoctorDetails } = useDoctorAuthStore();
   useEffect(() => {
-    if (!doctorDetails && !doctorLoading && fetchDoctorDetails) {
-      fetchDoctorDetails(getDoctorMe);
+    if (!doctorDetails && !doctorLoading) {
+      fetchDoctorDetails();
     }
   }, [doctorDetails, doctorLoading, fetchDoctorDetails]);
-  const doctorId = doctorDetails?.userId || doctorDetails?.id;
-  const clinicId =
-    doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId;
-  const hospitalId =
-    (Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) &&
-      doctorDetails?.associatedWorkplaces?.hospitals[0]?.id) ||
-    undefined;
+  const calculateAge = (dob) => {
+    if (!dob) return "";
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 0 ? `${age}Y` : "";
+  };
+
+  const formatSlotTime = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const mapAppointmentToRow = (appt) => {
+    const p = appt.patientDetails || {};
+    return {
+      token: appt.tokenNo,
+      patientName: p.name || `${p.firstName} ${p.lastName}`.trim(),
+      gender: p.gender === "MALE" ? "M" : p.gender === "FEMALE" ? "F" : "O",
+      dob: p.dob ? new Date(p.dob).toLocaleDateString() : "",
+      age: p.age ? `${p.age}Y` : calculateAge(p.dob),
+      appointmentType:
+        appt.appointmentType === "NEW"
+          ? "New Consultation"
+          : "Follow-up Consultation",
+      expectedTime: appt.expectedTime ? formatSlotTime(appt.expectedTime) : "",
+      startTime: appt.startTime ? formatSlotTime(appt.startTime) : "",
+      endTime: appt.endTime ? formatSlotTime(appt.endTime) : "",
+      bookingType: appt.bookingMode === "WALK_IN" ? "Walk-In" : "Online",
+      reason: appt.reason,
+      reasonForVisit: appt.reason, // for active card
+      id: appt.id,
+    };
+  };
+
+  const [queueData, setQueueData] = useState([]);
+  const { addToast } = useToastStore();
 
   // Slot store
   const {
@@ -837,8 +888,17 @@ const Queue = () => {
     loadAppointmentsForSelectedSlot,
     slotAppointments,
   } = useSlotStore();
+  const doctorId = doctorDetails?.id || doctorDetails?._id || doctorDetails?.userId;
+  const clinicId =
+    doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId;
+  const hospitalId =
+    (Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) &&
+      doctorDetails?.associatedWorkplaces?.hospitals[0]?.id) ||
+    doctorDetails?.hospitalId ||
+    undefined;
+
   useEffect(() => {
-    if (!doctorId || !clinicId) return;
+    if (!doctorId || (!clinicId && !hospitalId)) return;
     const d = currentDate;
     const dateIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
       2,
@@ -852,13 +912,13 @@ const Queue = () => {
     }
   }, [selectedSlotId, loadAppointmentsForSelectedSlot]);
 
-  // Queue derived from slotAppointments (declared early, mapped later to avoid TDZ on sessionStarted)
-  const [queueData, setQueueData] = useState([]);
+
 
   // Session + patient timer
   const [sessionStarted, setSessionStarted] = useState(false);
   const [slotStarting, setSlotStarting] = useState(false);
-  const [startError, setStartError] = useState(null);
+  const [isStartingSession, setIsStartingSession] = useState(false);
+  const [isEndingSession, setIsEndingSession] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   // Pin the currently active token when a session is running so UI interactions don't change it
   const pinnedTokenRef = useRef(null);
@@ -879,62 +939,25 @@ const Queue = () => {
   const [resumeError, setResumeError] = useState("");
   const [showTerminateModal, setShowTerminateModal] = useState(false);
   const [terminateSubmitting, setTerminateSubmitting] = useState(false);
-  // Backend-reported current token and active patient details to align active selection/UI
-  const [backendCurrentToken, setBackendCurrentToken] = useState(null);
-  const [backendActiveDetails, setBackendActiveDetails] = useState(null);
+  const [isAnimationRunning, setIsAnimationRunning] = useState(false); // New animation state
+  // NEW: Strict Active Patient from Polling
+  const [backendCurrentToken, setBackendCurrentToken] = useState(null); // Restore backendCurrentToken state
+  const [polledActivePatient, setPolledActivePatient] = useState(null);
 
-  const activePatient = useMemo(
-    () => queueData[currentIndex] || null,
-    [queueData, currentIndex]
-  );
-  const activeUIDetails = useMemo(() => {
-    const b = backendActiveDetails;
-    if (b && (b.tokenNumber != null || b.patientId)) {
-      const fullName =
-        [b.firstName, b.lastName].filter(Boolean).join(" ") || "Patient";
-      const genderMap = { MALE: "M", FEMALE: "F", OTHER: "O" };
-      let ageStr = "";
-      try {
-        if (b.dob) {
-          const d = new Date(b.dob);
-          const dd = String(d.getDate()).padStart(2, "0");
-          const mm = String(d.getMonth() + 1).padStart(2, "0");
-          const yyyy = d.getFullYear();
-          const now = new Date();
-          let age =
-            now.getFullYear() -
-            yyyy -
-            (now < new Date(now.getFullYear(), d.getMonth(), d.getDate())
-              ? 1
-              : 0);
-          ageStr = `${dd}/${mm}/${yyyy} (${age}Y)`;
-        }
-      } catch {}
-      return {
-        patientName: fullName,
-        gender:
-          genderMap[(b.gender || "").toUpperCase()] ||
-          (b.gender || "—")[0] ||
-          "—",
-        age: ageStr,
-        token: b.tokenNumber,
-        reasonForVisit: b.reason || "",
-        appointmentStatus: b.appointmentStatus || "",
-        startedAt: b.startedAt || null,
-      };
+  // IF polledActivePatient is null, the card hides. 
+  // EXCEPT when isAnimationRunning is true, we preserve the LAST patient details to show "Completed"
+  const lastPatientRef = useRef(null);
+  const activePatient = useMemo(() => {
+    if (polledActivePatient) {
+      lastPatientRef.current = polledActivePatient;
+      return polledActivePatient;
     }
-    return activePatient
-      ? {
-          patientName: activePatient.patientName,
-          gender: activePatient.gender,
-          age: activePatient.age,
-          token: activePatient.token,
-          reasonForVisit: activePatient.reasonForVisit,
-          appointmentStatus: activePatient.status,
-          startedAt: activePatient.startedAt,
-        }
-      : null;
-  }, [backendActiveDetails, activePatient]);
+    if (isAnimationRunning) return lastPatientRef.current;
+    return null;
+  }, [polledActivePatient, isAnimationRunning]);
+
+  // Removed old currentIndex-based activePatient logic and old backendActiveDetails
+
 
   // Timer interval
   useEffect(() => {
@@ -958,74 +981,8 @@ const Queue = () => {
       "0"
     )}`;
 
-  // Slot status auto-sync (poll every 45s with in-flight guard) and timer sync from backend
-  useEffect(() => {
-    let ignore = false;
-    let inFlight = false;
-    const sync = async () => {
-      if (!selectedSlotId || inFlight) return;
-      inFlight = true;
-      try {
-        const st = await getSlotEtaStatus(selectedSlotId);
-        if (ignore) return;
-        const msg = st?.message || {};
-        const started =
-          msg?.slotStatus === "STARTED" ||
-          !!(st?.started || st?.inProgress || st?.active);
-        if (typeof msg?.currentToken === "number") {
-          setBackendCurrentToken(msg.currentToken);
-        }
-        // Capture backend active details and sync timer
-        if (msg?.activePatientDetails) {
-          setBackendActiveDetails(msg.activePatientDetails);
-          const iso = msg.activePatientDetails.startedAt;
-          if (iso) {
-            const ts = new Date(iso).getTime();
-            if (!isNaN(ts)) {
-              const drift = Math.abs(
-                Date.now() - ts - (runStartAt ? Date.now() - runStartAt : 0)
-              );
-              if (!runStartAt || drift > 1500) {
-                setRunStartAt(ts);
-                const secs = Math.floor((Date.now() - ts) / 1000);
-                setBaseElapsed(secs);
-                setElapsed(secs);
-              }
-            }
-          }
-        }
-        if (started !== sessionStarted) {
-          if (started) {
-            setSessionStarted(true);
-            setQueuePaused(false);
-            try {
-              await loadAppointmentsForSelectedSlot();
-            } catch {}
-          } else {
-            setSessionStarted(false);
-            setRunStartAt(null);
-            setBaseElapsed(0);
-            setElapsed(0);
-            setBackendActiveDetails(null);
-          }
-        }
-      } catch {
-      } finally {
-        inFlight = false;
-      }
-    };
-    sync();
-    const id = setInterval(sync, 45000);
-    return () => {
-      ignore = true;
-      clearInterval(id);
-    };
-  }, [
-    selectedSlotId,
-    sessionStarted,
-    loadAppointmentsForSelectedSlot,
-    runStartAt,
-  ]);
+  // REMOVED 'sync' effect. Logic consolidated into pollQueueStatus below.
+
 
   // Map appointments to queueData after sessionStarted & backend token state available
   useEffect(() => {
@@ -1037,6 +994,9 @@ const Queue = () => {
     const engaged = categories.engaged || [];
     const checked = categories.checkedIn || [];
     const admitted = categories.admitted || [];
+    const noShow = categories.noShow || [];
+    // Construct 'All' from relevant categories, excluding 'In Waiting'
+    const all = [...(categories.engaged || []), ...(categories.checkedIn || []), ...(categories.admitted || []), ...(categories.noShow || [])];
     const mapAppt = (appt) => {
       if (!appt) return null;
       const p = appt.patientDetails || appt.patient || {};
@@ -1062,7 +1022,7 @@ const Queue = () => {
               : 0);
           ageStr = `${dd}/${mm}/${yyyy} (${age}Y)`;
         }
-      } catch {}
+      } catch { }
       const apptTypeMap = {
         NEW: "New Consultation",
         FOLLOW_UP: "Follow-up Consultation",
@@ -1075,16 +1035,16 @@ const Queue = () => {
         "Consultation";
       const expectedTime = appt.expectedTime
         ? new Date(appt.expectedTime).toLocaleTimeString([], {
-            hour: "numeric",
-            minute: "2-digit",
-          })
+          hour: "numeric",
+          minute: "2-digit",
+        })
         : "";
       const bookingType =
         appt.bookingMode === "ONLINE"
           ? "Online"
           : appt.bookingMode === "WALK_IN"
-          ? "Walk-In"
-          : appt.bookingType || "";
+            ? "Walk-In"
+            : appt.bookingType || "";
       const reason = appt.reason || appt.reasonForVisit || "";
       return {
         id: appt.id || appt.appointmentId,
@@ -1092,8 +1052,8 @@ const Queue = () => {
           appt.tokenNo != null
             ? Number(appt.tokenNo)
             : appt.token != null
-            ? Number(appt.token)
-            : undefined,
+              ? Number(appt.token)
+              : undefined,
         patientName: name,
         gender,
         age: ageStr,
@@ -1105,8 +1065,15 @@ const Queue = () => {
         startedAt: appt.startedAt || null,
       };
     };
-    // Force queue to Checked-In only regardless of filter selection
-    const base = checked;
+    // Filter queue data based on activeFilter
+    let base = [];
+    if (activeFilter === "Engaged") base = engaged;
+    else if (activeFilter === "Checked In") base = checked;
+    else if (activeFilter === "No Show") base = noShow;
+    else if (activeFilter === "Admitted") base = admitted;
+    else if (activeFilter === "All") base = all;
+    else base = checked; // Default fallback
+
     const mapped = base.map(mapAppt).filter(Boolean);
     setQueueData(mapped);
     // Maintain current token selection: prefer backend currentToken, else pinned token during session
@@ -1137,70 +1104,139 @@ const Queue = () => {
     }
   }, [slotAppointments, sessionStarted, backendCurrentToken, activeFilter]);
 
-  // Listen to cross-view custom event dispatched by FD queue
-  useEffect(() => {
-    const handler = (e) => {
-      const { slotId, started } = e.detail || {};
-      if (!slotId || slotId !== selectedSlotId) return;
-      if (started) {
-        if (!sessionStarted) {
-          setSessionStarted(true);
-          setQueuePaused(false);
-        }
-      } else {
-        if (sessionStarted) {
-          setSessionStarted(false);
-          setRunStartAt(null);
-          setBaseElapsed(0);
-          setElapsed(0);
-        }
-      }
-    };
-    window.addEventListener("slot-session-status", handler);
-    return () => window.removeEventListener("slot-session-status", handler);
-  }, [selectedSlotId, sessionStarted]);
+  // REMOVED cross-view event listener as FDQueue controls state via backend polling only.
+
 
   // Poll appointments every 15s
   // Poll appointments for selected slot every 45s (aligned with FD) to avoid excessive API calls
+  // REMOVED separate appt poll (merged into consolidated poll above)
+
+
+  // REMOVED: Redundant auto-start EFFECTOR. 
+  // Auto-start for the first patient is now handled EXCLUSIVELY inside handleToggleSession (Initial Start only).
+
+
+  // Consolidated Poll Logic
+  const pollQueueStatus = async () => {
+    if (!selectedSlotId) return;
+    try {
+      const st = await getSlotEtaStatus(selectedSlotId);
+      if (st.message || st.success) {
+        const msg = st.message || st;
+
+        const slotStatus = msg?.slotStatus;
+        const currentToken = msg?.currentToken;
+        const pauseDurationMinutes = msg?.pauseDurationMinutes;
+        const pauseStartedAt = msg?.pauseStartedAt;
+        const activeDetails = msg?.activePatientDetails;
+
+        // 1. Sync Session Status
+        const isStarted = slotStatus === "STARTED" || slotStatus === "PAUSED";
+
+        // Avoid fluctuation: only set if changed
+        if (isStarted !== sessionStarted) {
+          setSessionStarted(isStarted);
+        }
+
+        // 2. Sync Pause
+        const isPaused = slotStatus === "PAUSED";
+        if (isPaused !== queuePaused) setQueuePaused(isPaused);
+        if (isPaused && pauseStartedAt && pauseDurationMinutes) {
+          const start = new Date(pauseStartedAt).getTime();
+          const ends = start + (pauseDurationMinutes * 60 * 1000);
+          // Only update if significantly different to avoid timer jitter
+          if (!pauseEndsAt || Math.abs(pauseEndsAt - ends) > 2000) {
+            setPauseEndsAt(ends);
+          }
+        } else if (!isPaused) {
+          if (pauseEndsAt) setPauseEndsAt(null);
+        }
+
+        // 3. Sync Current Token (Backend)
+        if (currentToken != null) {
+          setBackendCurrentToken(currentToken);
+        }
+
+        // 4. Mapped Active Patient (Strict)
+        if (activeDetails) {
+          const p = activeDetails;
+          const genderMap = { MALE: "M", FEMALE: "F", OTHER: "O" };
+          let ageStr = "";
+          try {
+            if (p.dob) {
+              const d = new Date(p.dob);
+              const today = new Date();
+              let age = today.getFullYear() - d.getFullYear();
+              const m = today.getMonth() - d.getMonth();
+              if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
+                age--;
+              }
+              const dd = String(d.getDate()).padStart(2, "0");
+              const mm = String(d.getMonth() + 1).padStart(2, "0");
+              const yyyy = d.getFullYear();
+              ageStr = `${dd}/${mm}/${yyyy} (${age}Y)`;
+            }
+          } catch { }
+
+          const newActive = {
+            patientName: `${p.firstName} ${p.lastName}`.trim(),
+            token: p.tokenNumber,
+            gender: genderMap[(p.gender || "").toUpperCase()] || (p.gender || "—")[0] || "—",
+            age: ageStr,
+            reasonForVisit: p.reason || "",
+            appointmentStatus: p.appointmentStatus || p.status || (isPaused ? 'PAUSED' : 'ONGOING'),
+            startedAt: p.startedAt,
+            // Add any other fields needed
+          };
+
+          // Deep compare to avoid fluctuation
+          if (JSON.stringify(newActive) !== JSON.stringify(polledActivePatient)) {
+            setPolledActivePatient(newActive);
+          }
+
+          // Timer Sync
+          if (p.startedAt) {
+            const ts = new Date(p.startedAt).getTime();
+            if (!isNaN(ts)) {
+              // Only sync if runStartAt is null or drifted
+              const drift = Math.abs(Date.now() - ts - (runStartAt ? Date.now() - runStartAt : 0));
+              if (!runStartAt || drift > 2000) {
+                setRunStartAt(ts);
+                setBaseElapsed(Math.floor((Date.now() - ts) / 1000));
+              }
+            }
+          }
+        } else {
+          if (polledActivePatient !== null) setPolledActivePatient(null);
+          // If no active patient but session started, maybe handle idle state?
+          // FDQueue logic just sets null.
+        }
+
+      }
+    } catch (e) {
+      console.error("Poll failed", e);
+    }
+  };
+
   useEffect(() => {
     if (!selectedSlotId) return;
-    const id = setInterval(() => {
-      loadAppointmentsForSelectedSlot();
-    }, 45000);
-    return () => clearInterval(id);
-  }, [selectedSlotId, loadAppointmentsForSelectedSlot]);
+    pollQueueStatus();
+    loadAppointmentsForSelectedSlot();
 
-  // Auto-start first patient session when slot session active.
-  // Guard conditions ensure: slot session started, timer not already running, there is at least one checked-in patient (queueData.length > 0), and a slot is selected.
-  // This prevents triggering when no patients are checked in (doctor should only see checked-in list).
-  useEffect(() => {
-    if (
-      sessionStarted &&
-      !runStartAt &&
-      queueData.length > 0 &&
-      selectedSlotId
-    ) {
-      const first = queueData[0];
-      if (first?.token != null) {
-        startPatientSessionEta(selectedSlotId, first.token)
-          .then(() => {
-            setRunStartAt(Date.now());
-            pinnedTokenRef.current = first.token;
-          })
-          .catch((e) =>
-            console.error(
-              "Auto patient start failed",
-              e?.response?.data || e.message
-            )
-          );
-      }
-    }
-  }, [sessionStarted, runStartAt, queueData, selectedSlotId]);
+    const id = setInterval(() => {
+      pollQueueStatus();
+      loadAppointmentsForSelectedSlot();
+    }, 60000); // 60s Interval
+
+    return () => clearInterval(id);
+  }, [selectedSlotId, doctorId, clinicId, sessionStarted, queuePaused]); // Include state deps to refresh closure
+
 
   const handleToggleSession = async () => {
     if (sessionStarted) {
       // end
       setSlotEnding(true);
+      setIsEndingSession(true);
       // Keep toggle ON but disabled while ending
       // Remove session only after API response
       try {
@@ -1227,20 +1263,23 @@ const Queue = () => {
         wasRunningOnPauseRef.current = false;
         setCurrentIndex(0);
         pinnedTokenRef.current = null;
+        addToast({ title: "Session Ended", message: "Queue session ended successfully.", type: "success" });
       } catch (e) {
         console.error("End slot ETA failed", e?.response?.data || e.message);
-        // Optionally show error and keep sessionStarted true
+        const msg = e?.response?.data?.message || e.message || "Failed to end session";
+        addToast({ title: "Error", message: msg, type: "error" });
       } finally {
         setSlotEnding(false);
+        setIsEndingSession(false);
       }
       return;
     }
     if (!selectedSlotId) {
-      setStartError("Select a slot first");
+      addToast({ title: "Error", message: "Select a slot first", type: "error" });
       return;
     }
     setSlotStarting(true);
-    setStartError(null);
+    setIsStartingSession(true);
     setQueuePaused(false);
     setRunStartAt(null);
     setBaseElapsed(0);
@@ -1250,38 +1289,101 @@ const Queue = () => {
     try {
       await startSlotEta(selectedSlotId);
       setSessionStarted(true);
-      const first = queueData[0];
-      if (first?.token != null) pinnedTokenRef.current = first.token;
+      addToast({ title: "Session Started", message: "Queue session started.", type: "success" });
+
+      // Auto-start first patient if available
+      // We should load appointments first to ensure we have the latest list
+      try {
+        await loadAppointmentsForSelectedSlot();
+
+        // Use store state directly to avoid waiting for component re-render/useEffect
+        const latestSlots = useSlotStore.getState().slotAppointments;
+        const checkedInList = latestSlots?.appointments?.checkedIn || [];
+
+        if (checkedInList.length > 0) {
+          const firstAppt = checkedInList[0];
+          // Map to a usable format or just extract token
+          const token = firstAppt.tokenNo || firstAppt.token;
+          if (token != null) {
+            await startPatientSessionEta(selectedSlotId, token);
+            await pollQueueStatus(); // Get the active details immediately
+          }
+        }
+      } catch (e) {
+        console.error("Auto-start patient failed", e);
+      }
     } catch (e) {
       console.error("Start slot failed", e?.response?.data || e.message);
-      setStartError("Failed to start");
+      const msg = e?.response?.data?.message || e.message || "Failed to start session";
+      addToast({ title: "Error", message: msg, type: "error" });
       setSessionStarted(false);
     } finally {
       setSlotStarting(false);
+      setIsStartingSession(false);
+    }
+  };
+
+  // Doctor actions: Mark No-Show from actions menu, then refresh the slot appointments
+  const [isMarkingNoShowState, setIsMarkingNoShowState] = useState(false);
+  const [isEndingPatient, setIsEndingPatient] = useState(false); // New loading state for End Session
+  const [isStartingPatient, setIsStartingPatient] = useState(false); // New loading state for Start Session
+
+  const handleStartPatientSession = async (token) => {
+    if (!selectedSlotId || token == null) return;
+    setIsStartingPatient(token);
+    try {
+      const res = await startPatientSessionEta(selectedSlotId, token);
+      if (res.data?.success || res.success) {
+        addToast({ title: "Session Started", message: `Session started for Token ${token}`, type: "success" });
+        setRunStartAt(Date.now());
+        pinnedTokenRef.current = token;
+        await pollQueueStatus();
+      }
+    } catch (e) {
+      console.error("Manual patient start failed", e?.response?.data || e.message);
+      addToast({ title: "Error", message: "Failed to start patient session", type: "error" });
+    } finally {
+      setIsStartingPatient(false);
     }
   };
 
   const completeCurrentPatient = async () => {
     const active = activePatient;
     if (!active || !selectedSlotId) return;
+
+    setIsEndingPatient(true);
     try {
-      await endPatientSessionEta(selectedSlotId, active.token);
+      const res = await endPatientSessionEta(selectedSlotId, active.token);
+      if (res.data?.success || res.success) {
+        const msg = res.data?.message || "Patient session ended successfully.";
+        addToast({ title: "Session Ended", message: msg, type: "success" });
+
+        // Phase 1: Show animation
+        setIsAnimationRunning(true);
+        // We assume activePatient still points to the same object because polledActivePatient stays unchanged until the next poll.
+
+        // Phase 2: Wait for animation duration
+        setTimeout(async () => {
+          setIsAnimationRunning(false);
+          // Phase 3: Refresh status immediately after animation
+          await pollQueueStatus();
+          await loadAppointmentsForSelectedSlot();
+        }, 2000); // 2 seconds animation
+      }
     } catch (e) {
       console.error("End patient ETA failed", e?.response?.data || e.message);
+      addToast({ title: "Error", message: "Failed to end patient session", type: "error" });
+    } finally {
+      setIsEndingPatient(false);
+      // setRunStartAt(null); // Let polling clean these up
+      // setBaseElapsed(0);
+      // setElapsed(0);
+      wasRunningOnPauseRef.current = false;
+      setCurrentIndex(0);
+      pinnedTokenRef.current = null;
     }
-    try {
-      await loadAppointmentsForSelectedSlot();
-    } catch {}
-    setRunStartAt(null);
-    setBaseElapsed(0);
-    setElapsed(0);
-    wasRunningOnPauseRef.current = false;
-    setCurrentIndex(0);
-    // Unpin token after completion so next auto-select uses first checked-in
-    pinnedTokenRef.current = null;
   };
 
-  // Doctor actions: Mark No-Show from actions menu, then refresh the slot appointments
   const handleMarkNoShow = async (row) => {
     try {
       let id = row?.id;
@@ -1290,12 +1392,32 @@ const Queue = () => {
         id = found?.id;
       }
       if (!id) return;
-      await markNoShowAppointment(id);
-      if (selectedSlotId) {
-        await loadAppointmentsForSelectedSlot();
+
+      setIsMarkingNoShowState(true);
+      const res = await markNoShowAppointment(id);
+      if (res.data?.success || res.success) {
+        if (selectedSlotId) {
+          await loadAppointmentsForSelectedSlot();
+        }
+        addToast({
+          title: "Marked as No-Show",
+          message: "The patient has been marked as No-Show.",
+          type: "success",
+          duration: 3000,
+        });
       }
     } catch (e) {
       console.error("No-show failed", e?.response?.data || e.message);
+      addToast({
+        title: "Error",
+        message:
+          e?.response?.data?.message ||
+          e.message ||
+          "Failed to mark as No-Show",
+        type: "error",
+      });
+    } finally {
+      setIsMarkingNoShowState(false);
     }
   };
 
@@ -1438,26 +1560,31 @@ const Queue = () => {
     if (!selectedSlotId || sessions.length === 0) return;
     setTerminateSubmitting(true);
     try {
-      // TODO: Replace with actual terminate queue API call
-      console.log("Terminating queue:", {
-        sessions,
-        reason,
-        slotId: selectedSlotId,
-      });
-      // await terminateQueue(selectedSlotId, { sessions, reason });
+      await terminateQueue({ slotIds: sessions, cancellationReason: reason });
 
       // For now, just end the session
       if (sessionStarted) {
+        // This stops local tracking
         await handleToggleSession();
       }
 
       setShowTerminateModal(false);
+      addToast({
+        title: "Queue Terminated",
+        message: "Selected sessions have been terminated successfully.",
+        type: "success"
+      });
       // Refresh appointments after termination
       if (selectedSlotId) {
         await loadAppointmentsForSelectedSlot();
       }
     } catch (e) {
       console.error("Terminate queue error:", e?.response?.data || e.message);
+      addToast({
+        title: "Error",
+        message: e?.response?.data?.message || "Failed to terminate queue",
+        type: "error"
+      });
     } finally {
       setTerminateSubmitting(false);
     }
@@ -1497,103 +1624,66 @@ const Queue = () => {
   };
 
   // Slot dropdown UI from slots
-  const [slotOpen, setSlotOpen] = useState(false);
-  const slotAnchorRef = useRef(null);
-  const slotMenuRef = useRef(null);
-  const [slotPos, setSlotPos] = useState({ top: 0, left: 0, width: 360 });
-  // Topbar actions (three-dot) dropdown
-  const [actionMenuOpen, setActionMenuOpen] = useState(false);
-  const actionAnchorRef = useRef(null);
-  const actionMenuRef = useRef(null);
-  const [actionPos, setActionPos] = useState({ top: 0, left: 0, width: 220 });
-  // Group slots into day parts similar to FD
-  const groupedSlots = useMemo(() => {
-    const groups = { morning: [], afternoon: [], evening: [], night: [] };
-    (slots || []).forEach((s) => {
-      const part = classifyISTDayPart(
-        s.startTime || s.slotStartTime || s.start || s.timeStart
-      );
-      if (groups[part]) groups[part].push(s);
+  const [activeActionMenuToken, setActiveActionMenuToken] = useState(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+
+  const handleActionMenuClick = (e, token) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    // Align right edge of menu to right edge of button
+    const menuWidth = token === "slot_dropdown" ? 300 : 220;
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY + 8,
+      left: rect.left + window.scrollX - menuWidth + rect.width,
     });
-    return groups;
-  }, [slots]);
+    setActiveActionMenuToken(activeActionMenuToken === token ? null : token);
+  };
+  const getIconForTime = (hour) => {
+    if (hour < 12) return Sunrise;
+    if (hour < 17) return Sun;
+    if (hour < 20) return Sunset;
+    return Moon;
+  };
+
+  const getLabelForTime = (hour) => {
+    if (hour < 12) return "Morning";
+    if (hour < 17) return "Afternoon";
+    if (hour < 20) return "Evening";
+    return "Night";
+  };
+
   const timeSlots = useMemo(() => {
-    const arr = [];
-    if (groupedSlots.morning.length) {
-      const f = groupedSlots.morning[0],
-        l = groupedSlots.morning[groupedSlots.morning.length - 1];
-      arr.push({
-        key: "morning",
-        label: "Morning",
-        time: buildISTRangeLabel(
-          f.startTime || f.slotStartTime,
-          l.endTime || l.slotEndTime
-        ),
-        Icon: morningQueue,
-      });
+    return (slots || []).map((slot) => {
+      const startIso = slot.startTime || slot.slotStartTime || slot.start || slot.timeStart;
+      const endIso = slot.endTime || slot.slotEndTime || slot.end || slot.timeEnd;
+      const startRaw = new Date(startIso);
+      const hour = startRaw.getHours();
+
+      return {
+        key: slot.id || slot.slotId || slot._id,
+        label: getLabelForTime(hour),
+        time: buildISTRangeLabel(startIso, endIso),
+        Icon: getIconForTime(hour),
+        raw: slot,
+      };
+    });
+  }, [slots]);
+
+  const [slotValue, setSlotValue] = useState("");
+  useEffect(() => {
+    if (selectedSlotId) {
+      setSlotValue(selectedSlotId);
     }
-    if (groupedSlots.afternoon.length) {
-      const f = groupedSlots.afternoon[0],
-        l = groupedSlots.afternoon[groupedSlots.afternoon.length - 1];
-      arr.push({
-        key: "afternoon",
-        label: "Afternoon",
-        time: buildISTRangeLabel(
-          f.startTime || f.slotStartTime,
-          l.endTime || l.slotEndTime
-        ),
-        Icon: afternoonQueue,
-      });
-    }
-    if (groupedSlots.evening.length) {
-      const f = groupedSlots.evening[0],
-        l = groupedSlots.evening[groupedSlots.evening.length - 1];
-      arr.push({
-        key: "evening",
-        label: "Evening",
-        time: buildISTRangeLabel(
-          f.startTime || f.slotStartTime,
-          l.endTime || l.slotEndTime
-        ),
-        Icon: eveningQueue,
-      });
-    }
-    if (groupedSlots.night.length) {
-      const f = groupedSlots.night[0],
-        l = groupedSlots.night[groupedSlots.night.length - 1];
-      arr.push({
-        key: "night",
-        label: "Night",
-        time: buildISTRangeLabel(
-          f.startTime || f.slotStartTime,
-          l.endTime || l.slotEndTime
-        ),
-        Icon: nightQueue,
-      });
-    }
-    return arr;
-  }, [groupedSlots]);
-  const [slotValue, setSlotValue] = useState("morning");
+  }, [selectedSlotId]);
+
   const [showWalkIn, setShowWalkIn] = useState(false);
   useEffect(() => {
-    const onClick = (e) => {
-      if (
-        slotAnchorRef.current?.contains(e.target) ||
-        slotMenuRef.current?.contains(e.target)
-      )
-        return;
-      if (
-        actionAnchorRef.current?.contains(e.target) ||
-        actionMenuRef.current?.contains(e.target)
-      )
-        return;
-      setSlotOpen(false);
-      setActionMenuOpen(false);
+    const onClick = () => {
+      setActiveActionMenuToken(null);
     };
     const onKey = (e) => {
       if (e.key === "Escape") {
-        setSlotOpen(false);
-        setActionMenuOpen(false);
+        setActiveActionMenuToken(null);
       }
     };
     window.addEventListener("mousedown", onClick);
@@ -1608,98 +1698,73 @@ const Queue = () => {
     <>
       <div className="h-screen overflow-hidden bg-gray-50">
         <div className="sticky top-0 z-10 bg-white px-4 py-1 flex items-center">
-          <div className="relative mr-6" ref={slotAnchorRef}>
+          <div className="relative mr-6">
             <button
               type="button"
-              className="flex items-center bg-white rounded-md px-3  text-sm text-gray-700 hover:bg-gray-50"
-              onClick={(e) => {
-                setSlotOpen((v) => !v);
-                const r = e.currentTarget.getBoundingClientRect();
-                const width = 360;
-                const left = Math.max(
-                  8,
-                  Math.min(r.left, window.innerWidth - width - 8)
-                );
-                const top = Math.min(r.bottom + 8, window.innerHeight - 8 - 4);
-                setSlotPos({ top, left, width });
-              }}
+              className="flex w-[300px] items-center bg-white gap-1 text-[16px] text-secondary-grey400 hover:w-fit hover:bg-gray-50"
+              onClick={(e) => handleActionMenuClick(e, "slot_dropdown")}
             >
-              <span className="text-secondary-grey400 mr-1">
-                {timeSlots.find((t) => t.key === slotValue)?.label || "Morning"}
+              <span className="mr-1">
+                {timeSlots.find((t) => t.key === slotValue)?.label || (timeSlots.length > 0 ? timeSlots[0].label : "Morning")} ({timeSlots.find((t) => t.key === slotValue)?.time || (timeSlots.length > 0 ? timeSlots[0].time : "10:00am-12:00pm")})
               </span>
-              <span className="text-secondary-grey400 py-2 border-gray-300">
-                ({timeSlots.find((t) => t.key === slotValue)?.time || ""})
-              </span>
-              <div className="w-[0.5px] h-5 bg-secondary-grey150 ml-2"></div>
-              <img src={angelDown} alt="down" className="ml-2 h-3 w-3" />
+              <ChevronDown className="pl-1 h-4 border-l-[0.5px] border-secondary-grey100/50 text-gray-500" />
             </button>
-            {slotOpen &&
+            {activeActionMenuToken === "slot_dropdown" &&
               createPortal(
                 <div
-                  ref={slotMenuRef}
-                  className="fixed z-[9999]"
+                  className="fixed z-[9999] bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden py-2 px-2"
                   style={{
-                    top: slotPos.top,
-                    left: slotPos.left,
+                    top: dropdownPosition.top,
+                    left: dropdownPosition.left,
+                    width: 300,
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden">
-                    <ul className="py-2 px-2">
-                      {timeSlots.map(({ key, label, time, Icon }, idx) => (
-                        <li key={key}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSlotValue(key);
-                              const group = groupedSlots[key] || [];
-                              if (group.length) {
-                                const first = group[0];
-                                const id =
-                                  first.id || first.slotId || first._id || null;
-                                if (id) selectSlot(id);
-                              }
-                              setSlotOpen(false);
-                            }}
-                            className={`w-full text-left px-3 py-2.5 flex items-center gap-3 rounded-lg hover:bg-blue-50 ${
-                              slotValue === key ? "bg-[#2372EC] text-white" : ""
+                  <ul>
+                    {timeSlots.map(({ key, label, time, Icon }, idx) => (
+                      <li key={key}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSlotValue(key);
+                            selectSlot(key);
+                            setActiveActionMenuToken(null);
+                          }}
+                          className={`flex items-center gap-3 px-4 py-3 text-sm text-left w-full transition-colors ${slotValue === key
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-700 hover:bg-gray-50"
                             }`}
-                          >
-                            <img
-                              src={Icon}
-                              alt={label}
-                              className={`${
-                                slotValue === key ? "text-white" : ""
-                              } w-7 h-7`}
-                            />
+                        >
+                          <Icon
+                            className={`h-5 w-5 ${slotValue === key ? "text-white" : "text-gray-500"
+                              }`}
+                          />
 
-                            <span className="flex items-center gap-2">
-                              <span
-                                className={`text-[14px] font-semibold ${
-                                  slotValue === key
-                                    ? "text-white"
-                                    : "text-secondary-grey400"
+                          <span className="flex-1">
+                            <span
+                              className={`font-medium mr-1 ${slotValue === key
+                                ? "text-white"
+                                : "text-gray-900"
                                 }`}
-                              >
-                                {label}
-                              </span>
-                              <span
-                                className={`text-[13px] ${
-                                  slotValue === key
-                                    ? "text-white/90"
-                                    : "text-secondary-grey300"
-                                }`}
-                              >
-                                ({time})
-                              </span>
+                            >
+                              {label}
                             </span>
-                          </button>
-                          {idx < timeSlots.length - 1 && (
-                            <div className="h-px bg-gray-200 mx-4" />
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                            <span
+                              className={`${slotValue === key
+                                ? "text-blue-100"
+                                : "text-gray-500"
+                                }`}
+                            >
+                              ({time})
+                            </span>
+                          </span>
+                        </button>
+                        {idx < timeSlots.length - 1 && (
+                          <div className="h-px bg-gray-100 mx-4" />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>,
                 document.body
               )}
@@ -1751,119 +1816,95 @@ const Queue = () => {
                 Tokens available
               </span>
               <span className="px-2 py-1 rounded bg-success-100 font-inter font-normal text-[14px] leading-[120%] text-center text-success-300 border border-transparent hover:border-success-300 hover:border-[0.5px] transition-colors">
-                10 out of 100
+                {(() => {
+                  const activeSlot = timeSlots.find((s) => s.key === slotValue);
+                  const availableTokens = activeSlot?.raw?.availableTokens || 0;
+                  const maxTokens = activeSlot?.raw?.maxTokens || 0;
+                  return `${availableTokens} out of ${maxTokens}`;
+                })()}
               </span>
             </div>
             <img src={vertical} alt="" className="h-6" />
             <div className="flex items-center gap-2">
               <Toggle
                 checked={sessionStarted}
-                disabled={slotStarting || slotEnding}
-                onChange={handleToggleSession}
+                onChange={(!isStartingSession && !isEndingSession) ? handleToggleSession : undefined}
+                className={(isStartingSession || isEndingSession) ? "opacity-50 cursor-not-allowed" : ""}
               />
-              <span
-                className="text-secondary-grey300"
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: 400,
-                  fontSize: "14px",
-                  lineHeight: "120%",
-                  verticalAlign: "middle",
-                }}
-              >
-                Start Session
+              <span className={`text-sm font-medium ${sessionStarted ? 'text-gray-700' : 'text-secondary-grey300'}`}>
+                {isStartingSession ? (
+                  <div className="flex items-center gap-1">
+                    <UniversalLoader size={14} className="text-secondary-grey300" />
+                    <span className="text-secondary-grey300">Starting...</span>
+                  </div>
+                ) : isEndingSession ? (
+                  <div className="flex items-center gap-1">
+                    <UniversalLoader size={14} className="text-secondary-grey300" />
+                    <span className="text-secondary-grey300">Ending...</span>
+                  </div>
+                ) : sessionStarted ? (
+                  "Session Started"
+                ) : (
+                  "Start Session"
+                )}
               </span>
-              {slotStarting && (
-                <span className="text-xs text-blue-600 animate-pulse">
-                  Starting
-                </span>
-              )}
-              {slotEnding && (
-                <span className="text-xs text-orange-600 animate-pulse">
-                  Ending
-                </span>
-              )}
-              {startError && !slotStarting && !sessionStarted && (
-                <span className="text-xs text-red-600">{startError}</span>
-              )}
             </div>
             <img src={vertical} alt="" className="h-6" />
             <button
               type="button"
-              ref={actionAnchorRef}
               className="relative w-4 h-6 flex items-center justify-center rounded hover:bg-gray-100"
-              onClick={(e) => {
-                setActionMenuOpen((v) => !v);
-                const r = e.currentTarget.getBoundingClientRect();
-                const width = 220;
-                const left = Math.max(
-                  8,
-                  Math.min(r.left - width + 24, window.innerWidth - width - 8)
-                );
-                const top = Math.min(r.bottom + 8, window.innerHeight - 8 - 4);
-                setActionPos({ top, left, width });
-              }}
+              onClick={(e) => handleActionMenuClick(e, "queue_actions_dropdown")}
             >
               <img src={action_dot} alt="Actions" className="w-4" />
             </button>
-            {actionMenuOpen &&
+            {activeActionMenuToken === "queue_actions_dropdown" &&
               createPortal(
                 <div
-                  ref={actionMenuRef}
-                  className="fixed z-[9999]"
+                  className="fixed z-[9999] bg-white rounded-lg border border-gray-200 shadow-xl overflow-hidden p-2"
                   style={{
-                    top: actionPos.top,
-                    left: actionPos.left,
-                    width: actionPos.width,
+                    top: dropdownPosition.top,
+                    left: dropdownPosition.left,
+                    width: 220,
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="bg-white rounded-lg border border-gray-200 shadow-xl overflow-hidden p-2">
-                    <ul className="flex flex-col gap-2">
-                      <li>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            try {
-                              if (selectedSlotId) {
-                                loadAppointmentsForSelectedSlot();
-                              }
-                            } finally {
-                              setActionMenuOpen(false);
+                  <ul className="flex flex-col gap-2">
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          try {
+                            if (selectedSlotId) {
+                              loadAppointmentsForSelectedSlot();
                             }
-                          }}
-                          className="w-full rounded-sm text-left px-2 py-1 flex items-center gap-3 hover:bg-gray-50"
-                        >
-                          <img
-                            src={refresh}
-                            alt="Refresh Queue"
-                            className="w-4 "
-                          />
-                          <span className="text-[14px] text-gray-800">
-                            Refresh Queue
-                          </span>
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActionMenuOpen(false);
-                            setShowTerminateModal(true);
-                          }}
-                          className="w-full text-left px-2 py-1 flex items-center gap-3 hover:bg-red-50"
-                        >
-                          <img
-                            src={terminate}
-                            alt="Terminate Queue"
-                            className="w-4"
-                          />
-                          <span className="text-[14px] text-red-600 font-medium">
-                            Terminate Queue
-                          </span>
-                        </button>
-                      </li>
-                    </ul>
-                  </div>
+                          } finally {
+                            setActiveActionMenuToken(null);
+                          }
+                        }}
+                        className="w-full rounded-sm text-left px-2 py-1 flex items-center gap-3 hover:bg-gray-50"
+                      >
+                        <img src={refresh} alt="Refresh" className="w-4 " />
+                        <span className="text-[14px] text-gray-800">
+                          Refresh Queue
+                        </span>
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveActionMenuToken(null);
+                          setShowTerminateModal(true);
+                        }}
+                        className="w-full text-left px-2 py-1 flex items-center gap-3 hover:bg-red-50"
+                      >
+                        <img src={terminate} alt="Terminate" className="w-4" />
+                        <span className="text-[14px] text-red-600 font-medium">
+                          Terminate Queue
+                        </span>
+                      </button>
+                    </li>
+                  </ul>
                 </div>,
                 document.body
               )}
@@ -1872,135 +1913,49 @@ const Queue = () => {
 
         <div className="px-0 pt-0 pb-2 h-[calc(100vh-100px)] flex flex-col overflow-hidden no-scrollbar">
           {sessionStarted && (
-            <div>
-              <div
-                className="w-full h-[38px] flex items-center relative px-0 rounded-none"
-                style={
-                  queuePaused
-                    ? { background: "#FFF7F0" }
-                    : { background: "#27CA40" }
-                }
-              >
-                <div className="flex-1 flex items-center justify-center gap-3">
-                  <span
-                    className={`${
-                      queuePaused
-                        ? "text-secondary-grey200"
-                        : "text-monochrom-white"
-                    }`}
-                    style={{
-                      fontFamily: "Inter",
-                      fontWeight: 400,
-                      fontSize: "20px",
-                      lineHeight: "120%",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    Current Token Number
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-2 ${
-                      queuePaused ? "text-warning-400" : "text-monochrom-white"
-                    }`}
-                    style={{
-                      fontFamily: "Inter",
-                      fontWeight: 700,
-                      fontSize: "20px",
-                      lineHeight: "120%",
-                      textAlign: "center",
-                    }}
-                  >
-                    <span
-                      className="inline-block w-4 h-4 rounded-full"
-                      style={{
-                        animation: queuePaused
-                          ? "blink-dot-warning 1s infinite"
-                          : "blink-dot 1s infinite",
-                      }}
-                    ></span>
-                    {String(activePatient?.token ?? 0).padStart(2, "0")}
-                  </span>
-                  {queuePaused && (
-                    <span
-                      className="inline-flex items-center text-warning-400 bg-monochrom-white whitespace-nowrap"
-                      style={{
-                        height: "22px",
-                        minWidth: "22px",
-                        paddingTop: "2px",
-                        paddingRight: "6px",
-                        paddingBottom: "2px",
-                        paddingLeft: "6px",
-                        gap: "4px",
-                        borderRadius: "4px",
-                        border: "0.5px solid var(--warning-400)",
-                        fontFamily: "Inter",
-                        fontWeight: 400,
-                        fontSize: "14px",
-                        lineHeight: "120%",
-                        textAlign: "center",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <img src={timerOrange} alt="Timer" className="w-4 h-4" />
-                      Paused (
-                      {String(Math.floor(pauseRemaining / 60)).padStart(2, "0")}
-                      :{String(pauseRemaining % 60).padStart(2, "0")} Mins)
+            <div className={`w-full ${queuePaused ? 'bg-warning-50 text-warning-400' : 'bg-[#27CA40] text-white'} h-[40px] px-4 flex items-center justify-between relative z-20`}>
+              <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 ${queuePaused ? 'text-secondary-grey200' : 'text-white'}`}>
+                <span className=' text-[20px] mr-3'>Current Token Number</span>
+                <span className={`w-4 h-4 rounded-full animate-colorBlink ${queuePaused ? 'bg-warning-400' : 'bg-white '} transition-all duration-1000`}
+                  style={!queuePaused ? {
+                    '--blink-on': '#22c55e',
+                    '--blink-off': '#ffffff',
+                  } : {
+                    '--blink-on': '#EC7600',
+                    '--blink-off': '#ffffff',
+                  }}></span>
+                <span className={`font-bold text-[20px] ${queuePaused ? 'text-warning-400' : 'text-white'}`}>{activePatient?.token || '-'}</span>
+                {queuePaused && (
+                  <div className='flex items-center ml-2 border border-warning-400 py-[2px] rounded px-[6px] bg-white gap-1'>
+                    <img src={stopwatch} alt="" className='w-[14px] h-[14px]' />
+                    <span className="text-[14px] text-warning-400 ">
+                      Paused ({String(Math.floor(pauseRemaining / 60)).padStart(2, "0")}:{String(pauseRemaining % 60).padStart(2, "0")} Mins)
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
+              {/* Right Actions */}
+              <div className="ml-auto">
                 {!queuePaused ? (
                   <button
-                    onClick={() => {
-                      setPauseMinutes(null);
-                      setShowPauseModal(true);
-                    }}
-                    className="group absolute right-4 top-1/2 -translate-y-1/2 inline-flex items-center gap-2 h-[32px] min-w-[32px] p-2 rounded-md text-sm bg-error-50 text-error-400 hover:bg-error-400 hover:text-monochrom-white transition-colors"
-                    style={{ border: "0.5px solid #F87171" }}
+                    onClick={() => { setPauseMinutes(null); setShowPauseModal(true); }}
+                    className='bg-white text-[#ef4444] h-[24px] py-1 px-[6px] rounded text-[12px] font-medium border border-error-200/50 flex items-center gap-2 hover:bg-error-400 hover:text-white transition-colors '
                   >
-                    <img
-                      src={pauseIconRed}
-                      alt=""
-                      className="h-4 group-hover:invert group-hover:brightness-0"
-                    />
-                    <span>Pause Queue</span>
+                    <img src={pauseIconRed} alt="" className='' /> Pause Queue
                   </button>
                 ) : (
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end">
-                    <button
-                      onClick={resumeQueue}
-                      disabled={resumeSubmitting}
-                      className="inline-flex items-center bg-blue-primary250 text-monochrom-white hover:bg-blue-primary300 transition-colors"
-                      style={{
-                        height: "24px",
-                        minWidth: "24px",
-                        paddingTop: "4px",
-                        paddingRight: "6px",
-                        paddingBottom: "4px",
-                        paddingLeft: "6px",
-                        gap: "8px",
-                        borderRadius: "4px",
-                        fontFamily: "Inter",
-                        fontWeight: 500,
-                        fontSize: "12px",
-                        lineHeight: "120%",
-                        verticalAlign: "middle",
-                        opacity: resumeSubmitting ? 0.7 : 1,
-                        cursor: resumeSubmitting ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      <img
-                        src={restartQueueIcon}
-                        alt="Restart"
-                        className="w-4 h-4"
-                      />
-                      {resumeSubmitting ? "Resuming…" : "Restart Queue"}
-                    </button>
-                    {resumeError && (
-                      <span className="mt-1 text-[11px] text-red-600">
-                        {resumeError}
-                      </span>
+                  <button
+                    onClick={resumeQueue}
+                    disabled={resumeSubmitting}
+                    className='bg-blue-primary250 text-white h-[24px] py-1 px-[6px] rounded text-[12px] font-medium flex items-center gap-1.5 hover:bg-blue-primary300 transition-colors disabled:opacity-50'
+                  >
+                    {resumeSubmitting ? (
+                      <UniversalLoader size={12} className="text-white" />
+                    ) : (
+                      <RotateCcw className='w-[14px] h-[14px] -scale-y-100 rotate-180' />
                     )}
-                  </div>
+                    {resumeSubmitting ? 'Resuming...' : 'Restart Queue'}
+                  </button>
                 )}
               </div>
             </div>
@@ -2057,76 +2012,151 @@ const Queue = () => {
               })()}
             </div>
 
-            {sessionStarted && activeUIDetails && (
-              <div className="mb-2 p-2">
-                <h3 className="text-gray-800 font-semibold mb-2">
-                  Active Patient
-                </h3>
-                <div
-                  id="active-patient-card"
-                  className="bg-white rounded-lg border border-blue-200 px-4 py-3 flex items-center justify-between text-sm active-card-enter"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <AvatarCircle name={activeUIDetails.patientName} size="s" />
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1">
-                          <span className="font-semibold text-gray-900 truncate max-w-[160px]">
-                            {activeUIDetails.patientName}
-                          </span>
-                          <span className="text-gray-400 text-xs leading-none">
-                            ↗
-                          </span>
+            {sessionStarted && activePatient && (
+              <>
+                <span className="text-[20px] font-medium text-secondary-grey400 mb-2 px-2">Ongoing Consultation</span>
+                <div className="px-2 mb-2">
+                  <div
+                    className={`
+                      flex items-center justify-between
+                      rounded-xl
+                      px-4 py-3
+                      bg-white
+                      ${activePatient.appointmentStatus === 'COMPLETED'
+                        ? 'border border-success-200 bg-[linear-gradient(90deg,rgba(39,202,64,0.08)_0%,rgba(39,202,64,0)_25%,rgba(39,202,64,0)_75%,rgba(39,202,64,0.08)_100%)]'
+                        : activePatient.appointmentStatus === 'ADMITTED'
+                          ? 'border border-[#D4AF37] bg-[linear-gradient(90deg,rgba(212,175,55,0.15)_0%,rgba(212,175,55,0.05)_25%,rgba(212,175,55,0.05)_75%,rgba(212,175,55,0.15)_100%)]'
+                          : 'border border-blue-primary250 bg-[linear-gradient(90deg,rgba(35,114,236,0.08)_0%,rgba(35,114,236,0)_25%,rgba(35,114,236,0)_75%,rgba(35,114,236,0.08)_100%)]'
+                      }
+                    `}
+                  >
+                    <div className='flex items-center gap-3'>
+                      <AvatarCircle name={activePatient.patientName} size="lg" className="h-12 w-12 text-lg" />
+                      <div className="flex gap-6 items-center">
+                        <div>
+                          <div className='flex items-center gap-2'>
+                            <span className="font-semibold text-secondary-grey400 text-[16px]">{activePatient.patientName}</span>
+                            <ArrowRight className="h-4 w-4 text-gray-400 -rotate-45" />
+                          </div>
+                          <div className='text-xs text-secondary-grey300'>{activePatient.gender} | {activePatient.age}</div>
                         </div>
-                        <div className="text-[11px] text-gray-500 mt-0.5">
-                          {activeUIDetails.gender} | {activeUIDetails.age}
+                        <div className="h-10 w-px bg-secondary-grey100/50"></div>
+                        <div className="flex flex-col gap-1 text-sm text-secondary-grey200">
+                          <div className="flex items-center gap-2">
+                            <span className="">Token Number</span>
+                            <span className="bg-blue-primary50 text-blue-primary250 h-[22px] px-[6px] py-[2px] rounded-sm border border-blue-primary250/50 text-center flex items-center justify-center ">{activePatient.token}</span>
+                          </div>
+                          <div className="">Reason for Visit : <span className="text-secondary-grey400">{activePatient.reasonForVisit}</span></div>
                         </div>
                       </div>
-                      <div className="h-10 w-px bg-gray-200" />
-                      <div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-gray-500">Token Number</span>
-                          <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-blue-300 bg-blue-50 text-[11px] font-medium text-blue-700">
-                            {activeUIDetails.token}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-500">
-                          <span>Reason :</span>
-                          <span className="font-xs whitespace-nowrap text-gray-700">
-                            {activeUIDetails.reasonForVisit}
-                          </span>
-                        </div>
-                        {/* Removed ENGAGED status badge from UI as requested */}
-                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 pl-4">
-                    <div className="inline-flex items-center gap-1 rounded-md border border-green-200 bg-green-50 px-2 py-1 text-[12px] font-medium text-green-700">
-                      <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-                      {formatTime(elapsed)}
+                    <div className='flex gap-2 items-center'>
+                      {(activePatient.startedAt || runStartAt) && !isAnimationRunning && activePatient.appointmentStatus !== 'COMPLETED' && (
+                        <div className="flex items-center gap-3">
+                          <SessionTimer startTime={activePatient.startedAt || runStartAt} paused={queuePaused} />
+                        </div>
+                      )}
+
+                      {(activePatient.appointmentStatus === 'COMPLETED' || isAnimationRunning) ? (
+                        <div className="flex items-center gap-2 text-success-300 font-medium text-sm mr-6">
+                          <img src={verified} alt="" className="w-5 h-5" />
+                          <span>Visit Completed</span>
+                        </div>
+                      ) : activePatient.appointmentStatus === 'ADMITTED' ? (
+                        <div className="flex items-center gap-2 text-[#D4AF37] font-medium text-sm mr-6">
+                          <img src={verifiedYellow} alt="" className='w-5 h-5' />
+                          <span>Patient Admitted</span>
+                        </div>
+                      ) : (activePatient.startedAt || polledActivePatient) ? (
+                        // Ongoing or Started
+                        <button
+                          onClick={completeCurrentPatient}
+                          disabled={isEndingPatient}
+                          className="flex items-center gap-2 bg-white border border-secondary-grey200/50 px-4 py-2 rounded-md text-sm font-medium text-secondary-grey400 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isEndingPatient ? (
+                            <UniversalLoader size={12} className="text-secondary-grey200" />
+                          ) : (
+                            <img src={checkRound} alt="" />
+                          )}
+                          <span>{isEndingPatient ? 'Ending...' : 'End Session'}</span>
+                        </button>
+                      ) : (
+                        // Not yet started (Idle on card)
+                        <button
+                          onClick={() => handleStartPatientSession(activePatient.token)}
+                          disabled={isStartingPatient}
+                          className="flex items-center gap-2 bg-blue-primary250 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-primary300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isStartingPatient ? (
+                            <UniversalLoader size={12} className="text-white" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                          <span>{isStartingPatient ? 'Starting...' : 'Start Session'}</span>
+                        </button>
+                      )}
+
+                      {/* Action Menu if not completed/admitted/animating */}
+                      {activePatient.appointmentStatus !== 'COMPLETED' &&
+                        activePatient.appointmentStatus !== 'ADMITTED' &&
+                        !isAnimationRunning && (
+                          <button
+                            onClick={(e) => handleActionMenuClick(e, 'active_patient_card')}
+                            className="px-2 rounded-full transition-colors hover:bg-gray-100"
+                          >
+                            <img src={more} alt="" />
+                          </button>
+                        )}
+                      {activeActionMenuToken === 'active_patient_card' && createPortal(
+                        <div
+                          className="fixed z-[99999] bg-white rounded-lg shadow-xl border border-gray-100 py-1 flex flex-col min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
+                          style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                            onClick={() => setActiveActionMenuToken(null)}
+                          >
+                            <User className="h-4 w-4" /> View Profile
+                          </button>
+                          <button
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                            onClick={() => setActiveActionMenuToken(null)}
+                          >
+                            <Calendar className="h-4 w-4" /> Reschedule
+                          </button>
+                          <button
+                            onClick={() => {
+                              // Mark as Admitted logic if needed
+                              setActiveActionMenuToken(null);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                          >
+                            <BedDouble className="h-4 w-4" /> Mark as Admitted
+                          </button>
+                          <button
+                            onClick={() => {
+                              completeCurrentPatient();
+                              setActiveActionMenuToken(null);
+                            }}
+                            disabled={isEndingPatient}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full disabled:opacity-50"
+                          >
+                            {isEndingPatient ? (
+                              <UniversalLoader size={12} className="text-secondary-grey200" />
+                            ) : (
+                              <CheckCheck className="h-4 w-4" />
+                            )}
+                            <span>End Visit</span>
+                          </button>
+                        </div>,
+                        document.body
+                      )}
                     </div>
-                    {runStartAt ? (
-                      <button
-                        onClick={completeCurrentPatient}
-                        className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        End Session
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setRunStartAt(Date.now());
-                          if (activeUIDetails?.token != null)
-                            pinnedTokenRef.current = activeUIDetails.token;
-                        }}
-                        className="inline-flex items-center rounded-md border border-blue-300 bg-blue-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        Start Session
-                      </button>
-                    )}
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
             <div className="flex items-center justify-between px-1 py-3">
@@ -2135,20 +2165,18 @@ const Queue = () => {
                   <button
                     key={f}
                     onClick={() => setActiveFilter(f)}
-                    className={`px-[6px] py-1 font-medium text-sm transition-colors ${
-                      activeFilter === f
-                        ? "bg-blue-primary50 border border-blue-primary150 text-blue-primary250 shadow-sm"
-                        : "text-secondary-grey300 hover:text-gray-800"
-                    }`}
+                    className={`px-[6px] py-1 font-medium text-sm transition-colors ${activeFilter === f
+                      ? "bg-blue-primary50 border border-blue-primary150 text-blue-primary250 shadow-sm"
+                      : "text-secondary-grey300 hover:text-gray-800"
+                      }`}
                     style={{ borderRadius: "4px" }}
                   >
                     {f}{" "}
                     <span
-                      className={`ml-1 ${
-                        activeFilter === f
-                          ? "border-blue-primary150"
-                          : "border-gray-200"
-                      } border  py-[.15rem] px-[.55rem] bg-white rounded-md text-xs`}
+                      className={`ml-1 ${activeFilter === f
+                        ? "border-blue-primary150"
+                        : "border-gray-200"
+                        } border  py-[.15rem] px-[.55rem] bg-white rounded-md text-xs`}
                       style={{ borderRadius: "4px" }}
                     >
                       {getFilterCount(f)}
@@ -2184,9 +2212,13 @@ const Queue = () => {
                     incomingToken={null}
                     checkedInToken={null}
                     checkedInTokens={new Set()}
-                    onCheckIn={() => {}}
-                    onRevokeCheckIn={() => {}}
+                    onCheckIn={() => { }}
+                    onRevokeCheckIn={() => { }}
                     onMarkNoShow={handleMarkNoShow}
+                    isMarkingNoShowState={isMarkingNoShowState}
+                    onStartSession={handleStartPatientSession}
+                    isStartingPatient={isStartingPatient}
+                    sessionStarted={sessionStarted}
                   />
                 ) : (
                   <div className="flex-1 flex items-center justify-center p-6">
@@ -2233,7 +2265,7 @@ const Queue = () => {
           if (selectedSlotId) {
             try {
               loadAppointmentsForSelectedSlot();
-            } catch {}
+            } catch { }
           }
         }}
       />

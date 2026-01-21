@@ -1,57 +1,12 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import Header from '../../../components/DoctorList/Header'
 import SampleTable from '../../../pages/SampleTable'
 import { doctorColumns } from './columns'
 import { useNavigate } from 'react-router-dom';
 
-// Temporary hardcoded dataset for Hospital doctors
-const SAMPLE_ACTIVE = [
-  {
-    id: 'DOC001',
-    userId: 'u-001',
-    name: 'Dr. Aditi Sharma',
-    gender: 'F',
-    contact: '+91 98765 43210',
-    email: 'aditi.sharma@example.com',
-    location: 'Mumbai, MH',
-    specialization: 'Cardiology',
-    specializationMore: 2,
-    designation: 'Senior Cardiologist, Fortis',
-    exp: '12',
-    status: 'Active',
-  },
-  {
-    id: 'DOC002',
-    userId: 'u-002',
-    name: 'Dr. Rohan Mehta',
-    gender: 'M',
-    contact: '+91 98222 11111',
-    email: 'rohan.mehta@example.com',
-    location: 'Pune, MH',
-    specialization: 'Orthopedics',
-    specializationMore: 0,
-    designation: 'Consultant Orthopedic Surgeon',
-    exp: '8',
-    status: 'Active',
-  },
-]
-
-const SAMPLE_INACTIVE = [
-  {
-    id: 'DOC101',
-    userId: 'u-101',
-    name: 'Dr. Neha Kapoor',
-    gender: 'F',
-    contact: '+91 90000 12345',
-    email: 'neha.kapoor@example.com',
-    location: 'Delhi, DL',
-    specialization: 'Dermatology',
-    specializationMore: 1,
-    designation: 'Consultant Dermatologist',
-    exp: '6',
-    status: 'Inactive',
-  },
-]
+import { getDoctorsForHospital } from '../../../services/doctorService';
+import useHospitalAuthStore from '../../../store/useHospitalAuthStore';
+import UniversalLoader from '../../../components/UniversalLoader';
 
 export default function HDoctors() {
   const navigate = useNavigate();
@@ -59,20 +14,61 @@ export default function HDoctors() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const counts = useMemo(() => ({
-    all: SAMPLE_ACTIVE.length + SAMPLE_INACTIVE.length,
-    active: SAMPLE_ACTIVE.length,
-    inactive: SAMPLE_INACTIVE.length,
-  }), [])
+  const { hospitalId } = useHospitalAuthStore();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const doctorsAll = useMemo(() => ([...SAMPLE_ACTIVE, ...SAMPLE_INACTIVE]), [])
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      if (!hospitalId) {
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await getDoctorsForHospital(hospitalId);
+        if (res.success && res.data && Array.isArray(res.data.doctors)) {
+          // Map API response to UI shape
+          const mapped = res.data.doctors.map(d => {
+            const specsArray = d.specialization ? d.specialization.split(',').map(s => s.trim()) : [];
+            return {
+              id: d.doctorCode,
+              userId: d.doctorId,
+              name: d.name,
+              gender: d.gender === 'MALE' ? 'M' : (d.gender === 'FEMALE' ? 'F' : '-'),
+              contact: d.phone,
+              email: d.email,
+              location: '-', // API response doesn't show location, defaulting to -
+              specialization: specsArray[0] || '-',
+              specializationMore: specsArray.length > 1 ? specsArray.length - 1 : 0,
+              designation: '-', // API response doesn't show designation
+              exp: '-',         // API response doesn't show exp
+              status: (d.status && d.status.toUpperCase() === 'ACTIVE') ? 'Active' : 'Inactive',
+              consultationFee: d.consultationFee,
+            };
+          });
+          setData(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch doctors", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDoctors();
+  }, [hospitalId]);
+
+  const counts = useMemo(() => ({
+    all: data.length,
+    active: data.filter(d => d.status === 'Active').length,
+    inactive: data.filter(d => d.status === 'Inactive').length,
+  }), [data])
 
   const doctors = useMemo(() => {
-    let filtered = doctorsAll;
-    if (selected === 'active') filtered = doctorsAll.filter(d => d.status === 'Active')
-    if (selected === 'inactive') filtered = doctorsAll.filter(d => d.status === 'Inactive')
+    let filtered = data;
+    if (selected === 'active') filtered = data.filter(d => d.status === 'Active')
+    if (selected === 'inactive') filtered = data.filter(d => d.status === 'Inactive')
     return filtered;
-  }, [doctorsAll, selected])
+  }, [data, selected])
 
   const pagedData = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -82,6 +78,14 @@ export default function HDoctors() {
   const handleRowClick = (doc) => {
     navigate(`/hospital/doctor/${encodeURIComponent(doc.userId || doc.id)}`, { state: { doctor: doc } });
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-secondary-grey50">
+        <UniversalLoader size={32} />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-secondary-grey50">

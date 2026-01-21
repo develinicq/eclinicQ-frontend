@@ -40,6 +40,7 @@ const initialState = {
   adminId: '', // Keep for now as it might be used elsewhere, but not for reg
   hospitalId: '',
   documents: [],
+  hasCin: 0,
   schedule: JSON.parse(JSON.stringify(DEFAULT_SCHEDULE)), // Deep copy for initial state
   loading: false,
   error: null,

@@ -1,12 +1,14 @@
 import axiosInstance from '../lib/axios';
 
-// GET /api/doctors/consultation-details?hospitalId=...
-export const getDoctorConsultationDetails = async (hospitalId) => {
-  if (!hospitalId) throw new Error('hospitalId is required');
+// GET /api/doctors/consultation-details?hospitalId=... or ?clinicId=...
+export const getDoctorConsultationDetails = async (params) => {
+  if (!params || (!params.hospitalId && !params.clinicId)) {
+    throw new Error('Either hospitalId or clinicId is required');
+  }
   const response = await axiosInstance.get('/doctors/consultation-details', {
-    params: { hospitalId },
+    params,
   });
-  return response.data; // { success, message, data: { consultationFees, slotTemplates }, ... }
+  return response.data;
 };
 
 // PUT /api/doctors/consultation-details

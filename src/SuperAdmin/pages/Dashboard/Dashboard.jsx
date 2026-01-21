@@ -5,12 +5,27 @@ import Button from '../../../components/Button'
 import { angelDown, calenderArrowLeft, calenderArrowRight } from '../../../../public/index.js'
 import { getPlatformOverview } from '../../../services/superAdminService'
 import UniversalLoader from '../../../components/UniversalLoader'
+import DropdownMenu from '../../../components/GeneralDrawer/DropdownMenu'
 
 const Dashboard = () => {
   const [activeRange, setActiveRange] = useState('Yearly')
   const ranges = ['Daily', 'Weekly', 'Monthly', 'Yearly']
   const [loading, setLoading] = useState(true)
   const [overviewData, setOverviewData] = useState(null)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState("All Months")
+  const [isMonthOpen, setIsMonthOpen] = useState(false)
+  const monthRef = useRef(null)
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (isMonthOpen && monthRef.current && !monthRef.current.contains(e.target)) {
+        setIsMonthOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", onClick)
+    return () => document.removeEventListener("mousedown", onClick)
+  }, [isMonthOpen])
 
   useEffect(() => {
     const fetchOverview = async () => {
@@ -28,45 +43,8 @@ const Dashboard = () => {
     fetchOverview()
   }, [])
 
-  // Month dropdown state
-  const months = [
-    "All Months",
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  const [selectedMonth, setSelectedMonth] = useState("All Months");
-  const [isMonthOpen, setMonthOpen] = useState(false);
-  const monthBtnRef = useRef(null);
-  const monthDropRef = useRef(null);
-
-  useEffect(() => {
-    const onClick = (e) => {
-      const inBtn =
-        monthBtnRef.current && monthBtnRef.current.contains(e.target);
-      const inDrop =
-        monthDropRef.current && monthDropRef.current.contains(e.target);
-      if (isMonthOpen && !inBtn && !inDrop) setMonthOpen(false);
-    };
-    const onKey = (e) => {
-      if (e.key === "Escape") setMonthOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [isMonthOpen]);
+  const handlePrevYear = () => setSelectedYear(prev => prev - 1);
+  const handleNextYear = () => setSelectedYear(prev => prev + 1);
 
   return (
     <>
@@ -76,42 +54,36 @@ const Dashboard = () => {
         {/* Platform Overview using Overview_cards */}
         <div>
           <div className='text-[20px] font-medium text-secondary-grey400 mb-3'>Platform Overview</div>
-          {loading ? (
-            <div className='flex items-center justify-center p-12 '>
-              <UniversalLoader size={30} />
-            </div>
-          ) : (
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-              <Overview_cards
-                title='Total Active Doctors'
-                value={overviewData?.totalActiveDoctors || 0}
-                percent={overviewData?.deltas?.doctors || 0}
-                periodText='from last year'
-                variant={(overviewData?.deltas?.doctors || 0) >= 0 ? 'profit' : 'loss'}
-              />
-              <Overview_cards
-                title='Total Clinics'
-                value={overviewData?.totalClinics || 0}
-                percent={overviewData?.deltas?.clinics || 0}
-                periodText='from last year'
-                variant={(overviewData?.deltas?.clinics || 0) >= 0 ? 'profit' : 'loss'}
-              />
-              <Overview_cards
-                title='Total Active Hospitals'
-                value={overviewData?.totalActiveHospitals || 0}
-                percent={overviewData?.deltas?.hospitals || 0}
-                periodText='from last year'
-                variant={(overviewData?.deltas?.hospitals || 0) >= 0 ? 'profit' : 'loss'}
-              />
-              <Overview_cards
-                title='Total Enrolled Patients'
-                value={overviewData?.totalEnrolledPatients || 0}
-                percent={overviewData?.deltas?.patients || 0}
-                periodText='from last year'
-                variant={(overviewData?.deltas?.patients || 0) >= 0 ? 'profit' : 'loss'}
-              />
-            </div>
-          )}
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+            <Overview_cards
+              title='Total Active Doctors'
+              value={loading ? '00' : (overviewData?.totalActiveDoctors || 0)}
+              percent={loading ? 0 : (overviewData?.deltas?.doctors || 0)}
+              periodText='from last year'
+              variant={loading ? 'neutral' : (overviewData?.deltas?.doctors || 0) >= 0 ? 'profit' : 'loss'}
+            />
+            <Overview_cards
+              title='Total Clinics'
+              value={loading ? '00' : (overviewData?.totalClinics || 0)}
+              percent={loading ? 0 : (overviewData?.deltas?.clinics || 0)}
+              periodText='from last year'
+              variant={loading ? 'neutral' : (overviewData?.deltas?.clinics || 0) >= 0 ? 'profit' : 'loss'}
+            />
+            <Overview_cards
+              title='Total Active Hospitals'
+              value={loading ? '00' : (overviewData?.totalActiveHospitals || 0)}
+              percent={loading ? 0 : (overviewData?.deltas?.hospitals || 0)}
+              periodText='from last year'
+              variant={loading ? 'neutral' : (overviewData?.deltas?.hospitals || 0) >= 0 ? 'profit' : 'loss'}
+            />
+            <Overview_cards
+              title='Total Enrolled Patients'
+              value={loading ? '00' : (overviewData?.totalEnrolledPatients || 0)}
+              percent={loading ? 0 : (overviewData?.deltas?.patients || 0)}
+              periodText='from last year'
+              variant={loading ? 'neutral' : (overviewData?.deltas?.patients || 0) >= 0 ? 'profit' : 'loss'}
+            />
+          </div>
           {/* Controls row: tabs on the left, month/year dropdowns on the right */}
           <div className='mt-6 flex items-center justify-between'>
             <div className='flex items-center gap-2 p-[2px] rounded-sm bg-blue-primary50  h-8 overflow-hidden w-fit'>
@@ -139,81 +111,60 @@ const Dashboard = () => {
             </div>
 
 
-            <div className="flex items-center gap-3 relative">
-              {/* Month dropdown trigger */}
-              <button
-                ref={monthBtnRef}
-                type="button"
-                onClick={() => setMonthOpen((v) => !v)}
-                className={`inline-flex items-center gap-2 px-3 h-8 rounded-md border border-secondary-grey200 bg-white text-sm text-[#424242] ${isMonthOpen ? "ring-1 ring-[#2372EC]/30" : ""
-                  }`}
-                aria-haspopup="listbox"
-                aria-expanded={isMonthOpen}
-              >
-                <span className="text-secondary-grey400  font-medium">
-                  {selectedMonth}
-                </span>
-                <img
-                  src={angelDown}
-                  alt="Dropdown"
-                  className={`w-3 h-3 transition-transform ${isMonthOpen ? "rotate-180" : ""
+            <div className="flex items-center gap-3" ref={monthRef}>
+              <div className="relative ">
+                <button
+                  type="button"
+                  onClick={() => setIsMonthOpen(!isMonthOpen)}
+                  className={`w-full flex items-center gap-4 px-2 h-8 rounded-lg bg-white text-sm transition-colors border ${isMonthOpen ? "border-[#2372EC]/30 ring-1 ring-[#2372EC]/30" : "border-secondary-grey100"
                     }`}
-                />
-              </button>
-
-              <button
-                type="button"
-                className={`inline-flex items-center gap-1 px-2 h-8 rounded-md border border-secondary-grey200 bg-white text-sm text-[#424242]`}
-              >
-                <img src={calenderArrowLeft} alt="Previous" className="w-3 h-3" />
-                <span className="text-secondary-grey400  font-medium">2025</span>
-                <img src={calenderArrowRight} alt="Next" className="w-3 h-3" />
-              </button>
-
-              {/* Month dropdown */}
-              {isMonthOpen && (
-                <div
-                  ref={monthDropRef}
-                  className="absolute z-[1000] right-0 top-10 w-[126px] rounded-lg bg-monochrom-white p-2 overflow-hidden"
-                  style={{
-                    borderWidth: "0.5px",
-                    borderColor: "#D6D6D6",
-                    boxShadow: "0px 12px 60px -15px rgba(0, 0, 0, 0.06)",
-                  }}
-                  role="listbox"
                 >
-                  <div
-                    className="flex flex-col gap-2 overflow-y-auto no-scrollbar"
-                    style={{ maxHeight: "236px" }}
-                  >
-                    {months.map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => {
-                          setSelectedMonth(m);
-                          setMonthOpen(false);
-                        }}
-                        className={`w-[108px] h-8 px-2 py-1 rounded text-secondary-grey400 text-left ${selectedMonth === m
-                          ? "bg-blue-primary50 border-[0.5px] border-blue-primary150"
-                          : "hover:bg-secondary-grey50"
-                          }`}
-                        style={{
-                          fontFamily: "Inter",
-                          fontWeight: 400,
-                          fontSize: "14px",
-                          lineHeight: "120%",
-                          letterSpacing: "0%",
-                          verticalAlign: "middle",
-                        }}
-                        role="option"
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                  <span className="text-secondary-grey400 font-medium">
+                    {selectedMonth}
+                  </span>
+                  <img
+                    src={angelDown}
+                    alt="Dropdown"
+                    className={`w-3 h-3 transition-transform ${isMonthOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {isMonthOpen && (
+                  <DropdownMenu
+                    items={[
+                      "All Months", "January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"
+                    ]}
+                    selectedItem={selectedMonth}
+                    onSelect={(it) => {
+                      setSelectedMonth(typeof it === 'object' ? (it.value ?? it.label) : it)
+                      setIsMonthOpen(false)
+                    }}
+                    width="w-[170px]"
+
+                  />
+                )}
+              </div>
+
+              <div className="inline-flex items-center gap-1 px-2 h-8 rounded-lg border border-secondary-grey100 bg-white text-sm text-[#424242]">
+                <button
+                  type="button"
+                  onClick={handlePrevYear}
+                  className="p-1 hover:bg-gray-100 rounded-sm transition-colors"
+                >
+                  <img src={calenderArrowLeft} alt="Previous" className="w-3 h-3" />
+                </button>
+                <span className="text-secondary-grey400 font-medium px-1">
+                  {selectedYear}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleNextYear}
+                  className="p-1 hover:bg-gray-100 rounded-sm transition-colors"
+                >
+                  <img src={calenderArrowRight} alt="Next" className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -251,7 +202,6 @@ const Dashboard = () => {
 
       </div>
     </>
-
   )
 }
 

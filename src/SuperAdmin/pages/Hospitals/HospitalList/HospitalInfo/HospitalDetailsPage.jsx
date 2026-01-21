@@ -4,7 +4,8 @@ import HospitalBanner from "../../../../../components/HospitalList/HospitalInfo.
 import HospitalNav from "../../../../../components/HospitalList/HospitalInfo.jsx/HospitalNav.jsx";
 import { getHospitalByIdBySuperAdmin } from "../../../../../services/hospitalService";
 import useSuperAdminAuthStore from "../../../../../store/useSuperAdminAuthStore";
-import { getDownloadUrl } from "../../../../../services/uploadsService";
+import useUIStore from "../../../../../store/useUIStore";
+import { getDownloadUrl, getPublicUrl } from "../../../../../services/uploadsService";
 import UniversalLoader from "@/components/UniversalLoader";
 
 const HospitalDetailsPage = () => {
@@ -13,6 +14,9 @@ const HospitalDetailsPage = () => {
   const location = useLocation();
 
   const isAuthed = useSuperAdminAuthStore((s) => Boolean(s.token));
+  const setBreadcrumbName = useUIStore((s) => s.setBreadcrumbEntityName);
+  const clearBreadcrumbName = useUIStore((s) => s.clearBreadcrumbEntityName);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -29,6 +33,12 @@ const HospitalDetailsPage = () => {
   const [documents, setDocuments] = useState([]);
   const [resolvedLogo, setResolvedLogo] = useState("");
   const [resolvedBanner, setResolvedBanner] = useState("");
+
+  useEffect(() => {
+    if (hospital?.name) {
+      setBreadcrumbName(hospital.name);
+    }
+  }, [hospital, setBreadcrumbName]);
 
   useEffect(() => {
     let ignore = false;
@@ -53,12 +63,7 @@ const HospitalDetailsPage = () => {
         // New API Structure: { success: true, data: { hospitalName, hospitalCode, ... } }
         const d = resp?.data || {};
 
-        // Map flat data to component state
-        // Re-construct 'hospital' object to match what UI expects from 'hospital' state if needed, 
-        // OR just map directly to bannerData later. 
-        // The existing code expects 'hospital' state to have nested address object for some parts?
-        // Let's look at bannerData usage.
-        // It uses: hospital.name, hospital.status, hospital.address (string or object components), hospital.type, etc.
+
 
         // We will create a normalized hospital object from the new API
         const normalizedHospital = {
@@ -85,6 +90,7 @@ const HospitalDetailsPage = () => {
         };
 
         setHospital(normalizedHospital);
+        setBreadcrumbName(normalizedHospital.name);
         setSubscriptionName(d.activePackage); // Reuse activePackage
         setSpecialties([]); // Not in sample
         setDocuments([]); // Not in sample
@@ -93,9 +99,10 @@ const HospitalDetailsPage = () => {
         const logoKey = d.logo;
         const bannerKey = d.image;
         try {
+          // Use getPublicUrl for logo (profile image) and possibly banner
           const [logoUrl, bannerUrl] = await Promise.all([
-            getDownloadUrl(logoKey),
-            getDownloadUrl(bannerKey)
+            getPublicUrl(logoKey),
+            getPublicUrl(bannerKey)
           ]);
           if (!ignore) {
             setResolvedLogo(logoUrl || "");
@@ -151,6 +158,7 @@ const HospitalDetailsPage = () => {
       const stateHospital = location?.state?.hospital;
       if (stateHospital) {
         setHospital(stateHospital);
+        setBreadcrumbName(stateHospital.name);
         setSubscriptionName(null);
         setSpecialties([]);
         setDocuments([]);
@@ -158,7 +166,7 @@ const HospitalDetailsPage = () => {
         setResolvedBanner("");
         setError(null);
       } else {
-        setHospital({
+        const dummy = {
           id: id ? decodeURIComponent(String(id)) : 'HO-DUMMY',
           name: 'Sample Hospital',
           address: { street: 'MG Road', city: 'Pune', state: 'MH', pincode: '411001' },
@@ -170,7 +178,9 @@ const HospitalDetailsPage = () => {
           status: 'Active',
           logo: '',
           image: '/hospital-sample.png',
-        });
+        };
+        setHospital(dummy);
+        setBreadcrumbName(dummy.name);
         setSubscriptionName('—');
         setSpecialties([]);
         setDocuments([]);
@@ -180,20 +190,17 @@ const HospitalDetailsPage = () => {
       }
       setLoading(false);
     }
-    return () => { ignore = true; };
-  }, [id, location?.state, isAuthed]);
+    return () => {
+      ignore = true;
+      clearBreadcrumbName();
+    };
+  }, [id, location?.state, isAuthed, setBreadcrumbName, clearBreadcrumbName]);
 
   if (loading && !hospital) {
-    // Only block if we have NO hospital data at all (not even from state)
-    // Actually, we want to try to render the skeleton/layout immediately.
-    // If we have state hospital, we use it. If not, we show loader or just render with empty/skeleton.
-    // But HospitalNav triggers API calls based on hospital ID.
-    // So we need at least an ID.
-    // If no ID is available from URL or state, we must wait or error.
     if (!id && !location?.state?.hospital) {
       return (
         <div className="flex items-center justify-center bg-white h-screen">
-          <UniversalLoader size={32} style={{ background: 'white' }} />
+          <UniversalLoader size={32}  />
         </div>
       );
     }
@@ -206,6 +213,7 @@ const HospitalDetailsPage = () => {
   const bannerData = {
     name: hospital?.name || '-',
     status: statusLabel,
+    experience: hospital?.yearsOfExperience || '-',
     address: typeof hospital?.address === 'string' ? hospital.address : [hospital?.address?.blockNo, hospital?.address?.street, hospital?.address?.landmark, hospital?.city, hospital?.state, hospital?.pincode].filter(Boolean).join(', '),
     type: hospital?.type || '-',
     established: hospital?.establishmentYear || '-',
@@ -230,7 +238,7 @@ const HospitalDetailsPage = () => {
     <div className='flex flex-col gap-6 w-full h-full'>
       <div>
         <HospitalBanner hospitalData={bannerData} isLoading={loading} />
-        {/* Pass hospital object. If loading and we have partial state, it works. If just ID, it works for Nav fetching. */}
+    
         <HospitalNav hospital={{ ...hospital, subscriptionName, specialties, documents }} />
       </div>
     </div>

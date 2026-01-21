@@ -129,7 +129,7 @@ const Doc_list = () => {
 
       {loading && (
         <div className="flex items-center justify-center bg-white h-screen">
-          <UniversalLoader size={32} style={{ background: 'white' }} />
+          <UniversalLoader size={32}  />
         </div>
       )}
       {!loading && error && <div className="p-6 bg-white h-screen text-red-600">{String(error)}</div>}

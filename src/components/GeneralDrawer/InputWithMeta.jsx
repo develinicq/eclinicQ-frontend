@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import DropdownMenu from "./DropdownMenu";
 
 export default function InputWithMeta({
   label,
@@ -59,6 +60,8 @@ export default function InputWithMeta({
   showDivider = false,
   type = "text",
   meta,
+  dropUp = false,
+  dropdownClassName = "",
 }) {
   const truncate = (str, max) => {
     if (!str) return str;
@@ -295,34 +298,22 @@ export default function InputWithMeta({
       {/* External dropdown slot */}
       {dropdown}
 
-      {/* Built-in dropdown menu */}
+      {/* Built-in dropdown menu using reusable DropdownMenu */}
       {dropdownOpen &&
         Array.isArray(dropdownItems) &&
         dropdownItems.length > 0 && (
-          <div className="input-meta-dropdown absolute left-0 top-full mt-1 z-[10000] bg-white border border-gray-200 rounded-xl shadow-2xl w-full max-h-60 overflow-auto">
-            <ul className="py-1">
-              {dropdownItems.map((it, idx) => {
-                const isSelected = selectedValue === (it.value ?? it.label);
-                return (
-                  <li key={it.value ?? idx}>
-                    <button
-                      type="button"
-                      className={`w-full text-left px-3 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 ${isSelected ? "bg-gray-100" : ""
-                        }`}
-                      onClick={() => {
-                        onSelectItem?.(it);
-                        onRequestClose?.();
-                      }}
-                    >
-                      {itemRenderer
-                        ? itemRenderer(it, { isSelected })
-                        : it.label}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <DropdownMenu
+            items={dropdownItems}
+            selectedItem={selectedValue !== undefined ? selectedValue : value}
+            onSelect={(it) => {
+              onSelectItem?.(it);
+              onRequestClose?.();
+            }}
+            width="w-full"
+
+            itemRenderer={itemRenderer}
+            className={`${dropUp ? 'bottom-full mb-1 !top-auto' : 'top-full mt-1'} ${dropdownClassName}`}
+          />
         )}
       {meta && <p className="text-[12px] text-secondary-grey200 leading-tight ">{meta}</p>}
     </div>

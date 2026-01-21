@@ -8,11 +8,39 @@ import Button from '../../../components/Button';
 import { appointement } from '../../../../public/index.js';
 import SampleTable from '../../../pages/SampleTable';
 import PauseQueueModal from '../../../components/PauseQueueModal';
+import TerminateQueueModal from '../../../components/TerminateQueueModal';
 import SessionTimer from '../../../components/SessionTimer';
 import Toggle from '../../../components/FormItems/Toggle';
 import BookAppointmentDrawer from '../../../components/Appointment/BookAppointmentDrawer';
 import useAuthStore from '../../../store/useAuthStore';
+import useToastStore from '../../../store/useToastStore';
+import UniversalLoader from '../../../components/UniversalLoader';
+import useFrontDeskAuthStore from '../../../store/useFrontDeskAuthStore';
+import axiosInstance from '../../../lib/axios';
+import { format } from 'date-fns'; // Assuming date-fns is available, or use native styling if not.
+// Actually, I'll use native Date for now to avoid dependency assumption if not sure, but project likely has it.
+// Checking imports... date-fns is commonly used. Let's stick to native strictly if unsure, or simple helpers.
+// The user has QueueDatePicker which likely passes a Date object.
 
+const getIconForTime = (hour) => {
+	if (hour < 12) return Sunrise;
+	if (hour < 17) return Sun;
+	if (hour < 20) return Sunset;
+	return Moon;
+};
+
+const getLabelForTime = (hour) => {
+	if (hour < 12) return 'Morning';
+	if (hour < 17) return 'Afternoon';
+	if (hour < 20) return 'Evening';
+	return 'Night';
+};
+
+const formatSlotTime = (isoString) => {
+	if (!isoString) return '';
+	const date = new Date(isoString);
+	return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+};
 
 
 const formatTime = (seconds) => {
@@ -34,70 +62,7 @@ const appt = '/fd/appt.svg'
 const CalendarMinimalistic = '/fd/Calendar Minimalistic.svg'
 const ClockCircle = '/fd/Clock Circle.svg'
 
-// PreScreening drawer (same UI)
-const DUMMY_REQUESTS = [
-	{ id: 101, name: 'Alok Verma', gender: 'M', age: '39Y', dob: '12/05/1985', date: 'Mon, 12 June 2024', time: 'Morning, 10:00 am - 12:30 pm', secondary: 'Ask to Reschedule', doctorName: 'Dr. Arvind Mehta', doctorSpecialty: 'General Physician' },
-	{ id: 102, name: 'Bhavna Mehta', gender: 'F', age: '44Y', dob: '08/09/1980', date: 'Tuesday, 13 June 2024', time: 'Afternoon, 1:00 pm - 3:30 pm', secondary: 'Ask to Reschedule', doctorName: 'Dr. Sneha Deshmukh', doctorSpecialty: 'Pediatrician' },
-	{ id: 103, name: 'Chirag Modi', gender: 'M', age: '33Y', dob: '23/11/1990', date: 'Wednesday, 14 June 2024', time: 'Evening, 5:00 pm - 6:30 pm', secondary: 'Ask to Reschedule', doctorName: 'Dr. Arvind Mehta', doctorSpecialty: 'General Physician' },
-	{ id: 104, name: 'Deepa Malhotra', gender: 'F', age: '48Y', dob: '14/07/1976', date: 'Thursday, 15 June 2024', time: 'Morning, 9:00 am - 11:00 am', secondary: 'Ask to Reschedule', doctorName: 'Dr. Sneha Deshmukh', doctorSpecialty: 'Pediatrician' },
-	{ id: 105, name: 'Eshan Mehra', gender: 'M', age: '36Y', dob: '05/02/1988', date: 'Friday, 16 June 2024', time: 'Morning, 10:00 am - 12:30 pm', secondary: 'Ask to Reschedule', doctorName: 'Dr. Arvind Mehta', doctorSpecialty: 'General Physician' }
-];
-
-const DUMMY_ACTIVE_PATIENT = {
-	patientName: 'Priya Mehta',
-	token: 2,
-	gender: 'F',
-	age: '08/09/1992 (31Y)',
-	reasonForVisit: 'Annual Checkup'
-};
-
-const DUMMY_PATIENTS = [
-	{ token: 1, patientName: 'Rahul Sharma', gender: 'M', dob: '12/05/1985', age: '39Y', appointmentType: 'Review Visit', expectedTime: '10:30 AM', bookingType: 'Online', reason: 'Fever & Weakness', status: 'Checked-In' },
-	{ token: 2, patientName: 'Priya Mehta', gender: 'F', dob: '08/09/1992', age: '31Y', appointmentType: 'Follow-up Consultation', expectedTime: '11:00 AM', bookingType: 'Online', reason: 'Annual Checkup', status: 'Checked-In' },
-	{ token: 3, patientName: 'Arjun Verma', gender: 'M', dob: '23/11/1987', age: '36Y', appointmentType: 'New Consultation', expectedTime: '11:45 AM', bookingType: 'Online', reason: 'Back Pain', status: 'Waiting' },
-	{ token: 4, patientName: 'Sneha Deshpande', gender: 'F', dob: '14/07/1998', age: '25Y', appointmentType: 'New Consultation', expectedTime: '12:30 PM', bookingType: 'Walk-In', reason: 'Skin Allergy', status: 'Waiting' },
-	{ token: 5, patientName: 'Kunal Joshi', gender: 'M', dob: '05/02/1990', age: '34Y', appointmentType: 'Second Opinion', expectedTime: '1:30 PM', bookingType: 'Walk-In', reason: 'High BP', status: 'Waiting' },
-	{ token: 6, patientName: 'Neha Iyer', gender: 'F', dob: '30/10/1995', age: '28Y', appointmentType: 'New Consultation', expectedTime: '2:00 PM', bookingType: 'Online', reason: 'Migraine', status: 'Waiting' },
-	{ token: 7, patientName: 'Vikas Gupta', gender: 'M', dob: '19/04/1983', age: '41Y', appointmentType: 'Second Opinion', expectedTime: '2:30 PM', bookingType: 'Walk-In', reason: 'Diabetes Checkup', status: 'Waiting' },
-	{ token: 8, patientName: 'Radhika Nair', gender: 'F', dob: '06/01/1991', age: '33Y', appointmentType: 'Review Visit', expectedTime: '3:15 PM', bookingType: 'Online', reason: 'Pregnancy Consultation', status: 'Waiting' },
-	{ token: 9, patientName: 'Ankit Saxena', gender: 'M', dob: '11/06/1989', age: '35Y', appointmentType: 'Review Visit', expectedTime: '4:15 PM', bookingType: 'Online', reason: 'Heartburn & Acidity', status: 'Waiting' },
-	{ token: 10, patientName: 'Pooja Kulkarni', gender: 'F', dob: '15/08/1993', age: '30Y', appointmentType: 'Second Opinion', expectedTime: '4:45 PM', bookingType: 'Online', reason: 'Thyroid Checkup', status: 'Waiting' },
-	{ token: 11, patientName: 'Manish Choudhary', gender: 'M', dob: '02/12/1986', age: '37Y', appointmentType: 'Follow-up Consultation', expectedTime: '5:45 PM', bookingType: 'Walk-In', reason: 'Anxiety & Stress', status: 'Waiting' },
-	{ token: 12, patientName: 'Kavita Rao', gender: 'F', dob: '20/03/1980', age: '44Y', appointmentType: 'New Consultation', expectedTime: '6:15 PM', bookingType: 'Walk-In', reason: 'Menopause Symptoms', status: 'Waiting' },
-	{ token: 13, patientName: 'Rohan Agarwal', gender: 'M', dob: '07/05/1994', age: '30Y', appointmentType: 'Follow-up Consultation', expectedTime: '10:15 AM', bookingType: 'Online', reason: 'Asthma', status: 'Waiting' },
-	{ token: 14, patientName: 'Deepika Singh', gender: 'F', dob: '09/11/1997', age: '26Y', appointmentType: 'Review Visit', expectedTime: '11:00 AM', bookingType: 'Walk-In', reason: 'PCOD Treatment', status: 'Waiting' },
-	{ token: 15, patientName: 'Anirudh Patel', gender: 'M', dob: '16/07/1982', age: '42Y', appointmentType: 'Review Visit', expectedTime: '12:15 PM', bookingType: 'Online', reason: 'Knee Pain', status: 'Waiting' },
-	{ token: 16, patientName: 'Swati Mishra', gender: 'F', dob: '03/09/1990', age: '33Y', appointmentType: 'Second Opinion', expectedTime: '12:45 PM', bookingType: 'Online', reason: 'Eye Checkup', status: 'Waiting' },
-	{ token: 17, patientName: 'Vikram Singh', gender: 'M', dob: '22/01/1988', age: '36Y', appointmentType: 'New Consultation', expectedTime: '1:00 PM', bookingType: 'Walk-In', reason: 'Stomach Ache', status: 'Waiting' },
-	{ token: 18, patientName: 'Priti Kapoor', gender: 'F', dob: '14/11/1995', age: '28Y', appointmentType: 'Review Visit', expectedTime: '1:45 PM', bookingType: 'Online', reason: 'Skin Rash', status: 'Waiting' },
-	{ token: 19, patientName: 'Amit Shah', gender: 'M', dob: '05/06/1984', age: '40Y', appointmentType: 'Follow-up Consultation', expectedTime: '2:15 PM', bookingType: 'Walk-In', reason: 'Fever', status: 'Waiting' },
-	{ token: 20, patientName: 'Nisha Gupta', gender: 'F', dob: '19/08/1991', age: '32Y', appointmentType: 'New Consultation', expectedTime: '2:45 PM', bookingType: 'Online', reason: 'Headache', status: 'Waiting' },
-	{ token: 21, patientName: 'Suresh Kumar', gender: 'M', dob: '11/02/1979', age: '45Y', appointmentType: 'Second Opinion', expectedTime: '3:30 PM', bookingType: 'Walk-In', reason: 'Joint Pain', status: 'Waiting' },
-	{ token: 22, patientName: 'Meera Reddy', gender: 'F', dob: '25/12/1993', age: '30Y', appointmentType: 'Review Visit', expectedTime: '4:00 PM', bookingType: 'Online', reason: 'Cough & Cold', status: 'Waiting' },
-	{ token: 23, patientName: 'Rajesh Malhotra', gender: 'M', dob: '08/04/1981', age: '43Y', appointmentType: 'Follow-up Consultation', expectedTime: '4:30 PM', bookingType: 'Walk-In', reason: 'Diabetes Follow-up', status: 'Waiting' },
-	{ token: 24, patientName: 'Simran Kaur', gender: 'F', dob: '17/09/1996', age: '27Y', appointmentType: 'New Consultation', expectedTime: '5:00 PM', bookingType: 'Online', reason: 'Allergy', status: 'Waiting' },
-	{ token: 25, patientName: 'Varun Dhawan', gender: 'M', dob: '30/03/1992', age: '32Y', appointmentType: 'Review Visit', expectedTime: '5:30 PM', bookingType: 'Walk-In', reason: 'Injury', status: 'Waiting' },
-	{ token: 26, patientName: 'Pooja Hegde', gender: 'F', dob: '12/10/1994', age: '29Y', appointmentType: 'Second Opinion', expectedTime: '6:00 PM', bookingType: 'Online', reason: 'Throat Pain', status: 'Waiting' },
-	{ token: 27, patientName: 'Aditya Roy', gender: 'M', dob: '01/01/1986', age: '38Y', appointmentType: 'Follow-up Consultation', expectedTime: '6:30 PM', bookingType: 'Walk-In', reason: 'Back Pain', status: 'Waiting' },
-	{ token: 28, patientName: 'Kiara Advani', gender: 'F', dob: '31/07/1992', age: '31Y', appointmentType: 'New Consultation', expectedTime: '7:00 PM', bookingType: 'Online', reason: 'Vitamin Deficiency', status: 'Waiting' },
-	{ token: 29, patientName: 'Sidharth Malhotra', gender: 'M', dob: '16/01/1985', age: '39Y', appointmentType: 'Review Visit', expectedTime: '7:30 PM', bookingType: 'Walk-In', reason: 'Fitness Checkup', status: 'Waiting' },
-	{ token: 30, patientName: 'Alia Bhatt', gender: 'F', dob: '15/03/1993', age: '31Y', appointmentType: 'Follow-up Consultation', expectedTime: '8:00 PM', bookingType: 'Online', reason: 'Routine Checkup', status: 'Waiting' }
-];
-
-const DUMMY_ENGAGED_DATA = [
-	{ token: 1, patientName: 'Rahul Sharma', gender: 'M', dob: '12/05/1985', age: '39Y', appointmentType: 'New', startTime: '11:00 AM', endTime: '11:08 AM', bookingType: 'Online', reason: 'Annual Checkup' }
-];
-
-const DUMMY_NO_SHOW_DATA = [
-	{ isHeader: true, label: "Within Grace Period" },
-	{ token: 11, patientName: 'Manish Choudhary', gender: 'M', dob: '02/12/1986', age: '37Y', appointmentType: 'Follow-up Consultation', expectedTime: '5:45 PM', bookingType: 'Online', reason: 'Anxiety & Stress', isGrace: true },
-	{ isHeader: true, label: "Outside Grace Period" },
-	{ token: 5, patientName: 'Kunal Joshi', gender: 'M', dob: '05/02/1990', age: '34Y', appointmentType: 'Follow-up Consultation', expectedTime: '1:30 PM', bookingType: 'Online', reason: 'Anxiety & Stress', isGrace: false },
-];
-
-const DUMMY_ADMITTED_DATA = [
-	{ token: 1, patientName: 'Rahul Sharma', gender: 'M', dob: '12/05/1985', age: '39Y', appointmentType: 'New', startTime: '11:00 AM', endTime: '11:08 AM', bookingType: 'Online', reason: 'Annual Checkup' }
-];
+// Removed DUMMY_REQUESTS, DUMMY_ACTIVE_PATIENT, DUMMY_PATIENTS, etc.
 
 
 const filters = ['In Waiting', 'Engaged', 'Checked-In', 'No show', 'Admitted'];
@@ -105,127 +70,499 @@ const filters = ['In Waiting', 'Engaged', 'Checked-In', 'No show', 'Admitted'];
 
 
 export default function FDQueue() {
-	const { user } = useAuthStore();
-	const doctorId = user?.id;
+	const { user } = useFrontDeskAuthStore();
+	const { addToast } = useToastStore();
+	// Clinic and Doctor IDs derived from user profile
+	const clinicId = user?.clinicId;
+	const doctorId = user?.doctorId;
 	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Fix: Define dropdownPosition
-	// Dummy Stubs to prevent crash
-	const pauseSlotEta = async () => ({});
 
 	const [activeFilter, setActiveFilter] = useState('In Waiting');
 	const [slotOpen, setSlotOpen] = useState(false);
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [checkedInTokens, setCheckedInTokens] = useState({});
-	const [sessionStarted, setSessionStarted] = useState(true);
+	const [sessionStarted, setSessionStarted] = useState(false);
 	const [queuePaused, setQueuePaused] = useState(false);
-
-	const isToggleOn = sessionStarted && !queuePaused;
-
-	const handleToggleChange = () => {
-		if (isToggleOn) {
-			// Turning OFF -> Pause
-			setPauseMinutes(null);
-			setShowPauseModal(true);
-		} else {
-			// Turning ON -> Start or Resume
-			setSessionStarted(true);
-			setQueuePaused(false);
-		}
-	};
-	// Paused state UI: countdown to auto-resume
+	const [isStartingSession, setIsStartingSession] = useState(false);
+	const [isEndingSession, setIsEndingSession] = useState(false);
+	const [isResumingSlot, setIsResumingSlot] = useState(false);
+	const [isTerminatingQueue, setIsTerminatingQueue] = useState(false);
+	const [startingToken, setStartingToken] = useState(null);
 	const [pauseEndsAt, setPauseEndsAt] = useState(null); // ms timestamp
 	const [pauseRemaining, setPauseRemaining] = useState(0); // seconds
-	const pauseTickerRef = useRef(null);
-	// Pause modal and auto-resume state
 	const [showPauseModal, setShowPauseModal] = useState(false);
+	const [showTerminateModal, setShowTerminateModal] = useState(false);
 	const [pauseMinutes, setPauseMinutes] = useState(null); // in minutes
 	const [pauseSubmitting, setPauseSubmitting] = useState(false);
 	const [pauseError, setPauseError] = useState('');
-	const autoResumeTimerRef = useRef(null);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [sessionStatus, setSessionStatus] = useState('idle'); // 'idle' | 'ongoing' | 'completed'
 	const [removingToken, setRemovingToken] = useState(null);
 	const [incomingToken, setIncomingToken] = useState(null);
-	// Current token reported by backend status, used to focus the engaged patient
 	const [backendCurrentToken, setBackendCurrentToken] = useState(null);
-	// Holds list currently shown in table (derived from active filter)
+	const [polledActivePatient, setPolledActivePatient] = useState(null);
 	const [queueData, setQueueData] = useState([]);
 	const [appointmentRequests, setAppointmentRequests] = useState([]);
 	const [apptLoading, setApptLoading] = useState(false);
 	const [apptError, setApptError] = useState('');
 	const [approvingId, setApprovingId] = useState(null);
 	const [rejectingId, setRejectingId] = useState(null);
-	// Pull doctor context from auth store; fetch if missing
-	// Simplified Dummy Logic: No Backend Sync
-	// Removed backend Start/End/Pause API calls
-	// Removed syncing effects with getSlotEtaStatus
+	const [checkingInId, setCheckingInId] = useState(null);
+	const [timeSlots, setTimeSlots] = useState([]);
+	const [slotValue, setSlotValue] = useState('');
+	const [selectedSlotId, setSelectedSlotId] = useState('');
+	const [appointmentsData, setAppointmentsData] = useState({
+		checkedIn: [],
+		inWaiting: [],
+		engaged: [],
+		noShow: [],
+		admitted: [],
+		all: []
+	});
+	const [appointmentCounts, setAppointmentCounts] = useState({
+		checkedIn: 0,
+		inWaiting: 0,
+		engaged: 0,
+		noShow: 0,
+		admitted: 0,
+		all: 0
+	});
 
-	// Dummy Time Slots
-	const timeSlots = [
-		{ key: 'morning', label: 'Morning', time: '10:00am-12:00pm', Icon: Sunrise, slotId: 'dummy-slot-1' },
-		{ key: 'afternoon', label: 'Afternoon', time: '2:00pm-4:00pm', Icon: Sun, slotId: 'dummy-slot-2' },
-		{ key: 'evening', label: 'Evening', time: '6:00pm-8:00pm', Icon: Sunset, slotId: 'dummy-slot-3' },
-		{ key: 'night', label: 'Night', time: '8:30pm-10:30pm', Icon: Moon, slotId: 'dummy-slot-4' }
-	];
+	const pauseTickerRef = useRef(null);
+	const autoResumeTimerRef = useRef(null);
 
-	const [slotValue, setSlotValue] = useState('morning');
-	const [selectedSlotId, setSelectedSlotId] = useState('dummy-slot-1');
+	const isToggleOn = sessionStarted && !queuePaused;
 
-	// Auto-select first slot
-	useEffect(() => {
-		if (!slotValue) {
-			setSlotValue('morning');
-			setSelectedSlotId('dummy-slot-1');
+	// Helper: Calculate Age
+	const calculateAge = (dob) => {
+		if (!dob) return '';
+		const birthDate = new Date(dob);
+		const today = new Date();
+		let age = today.getFullYear() - birthDate.getFullYear();
+		const m = today.getMonth() - birthDate.getMonth();
+		if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+			age--;
 		}
+		return age >= 0 ? `${age}Y` : '';
+	};
+
+	const fetchPendingAppointments = async () => {
+		if (!clinicId) return;
+		try {
+			const payload = {
+				clinicId: clinicId
+			};
+			const res = await axiosInstance.post('/appointments/pending-appointments-clinic', payload);
+			if (res.data?.success) {
+				const data = res.data.data || [];
+				const mapped = data.map(item => {
+					const p = item.patientDetails || {};
+					const s = item.schedule || {};
+					return {
+						id: item.id,
+						name: `${p.firstName} ${p.lastName}`.trim(),
+						gender: p.gender ? (p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O') : '',
+						dob: p.dob ? new Date(p.dob).toLocaleDateString() : '',
+						age: calculateAge(p.dob),
+						date: s.date ? new Date(s.date).toLocaleDateString() : '',
+						time: s.startTime && s.endTime ? `${formatSlotTime(s.startTime.includes("1970") ? s.startTime : s.startTime)} - ${formatSlotTime(s.endTime.includes("1970") ? s.endTime : s.endTime)}` : '',
+						raw: item
+					};
+				});
+				setAppointmentRequests(mapped);
+			}
+		} catch (error) {
+			console.error("Failed to fetch pending appointments", error);
+		}
+	};
+
+	const fetchSlots = async () => {
+		if (!doctorId || !clinicId) return;
+		try {
+			// Fix: Use local date string instead of UTC
+			const year = currentDate.getFullYear();
+			const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+			const day = String(currentDate.getDate()).padStart(2, '0');
+			const formattedDate = `${year}-${month}-${day}`;
+			const payload = {
+				doctorId: doctorId,
+				clinicId: clinicId,
+				date: formattedDate
+			};
+
+			const res = await axiosInstance.post('/slots/patient/find-slots', payload);
+			if (res.data?.success) {
+				const apiSlots = res.data.data || [];
+				// Sort by startTime
+				apiSlots.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+				const mappedSlots = apiSlots.map(slot => {
+					const startRaw = new Date(slot.startTime);
+					// The user sample is "1970-01-01T03:30:00.000Z". 3:30 UTC is 9:00 AM IST. 
+					// Let's assume we format effectively.
+					// If backend sends 1970 date with Z, we should probably display it in local time or specific timezone? 
+					// Usually this implies time-of-day. Let's use `toLocaleTimeString`.
+
+					// Actually, if it is just time of day, we should rely on the time values.
+
+					return {
+						key: slot.id, // using ID as key
+						label: getLabelForTime(startRaw.getHours()), // Use local time hours for label logic
+						time: `${formatSlotTime(slot.startTime)} - ${formatSlotTime(slot.endTime)}`, // formatting function
+						Icon: getIconForTime(startRaw.getHours()),
+						slotId: slot.id,
+						raw: slot
+					};
+				});
+
+				setTimeSlots(mappedSlots);
+
+				// Auto-select first slot if none selected or list changed significantly? 
+				// Stick to first slot rule for now as per previous logic.
+				if (mappedSlots.length > 0) {
+					// Check if current selection is still valid? 
+					// For simplicity, always select first if switching dates usually implies new slots.
+					// But user said "when landed on page call... and when changed the date re cll it".
+					// Keep it simple: Select first available slot.
+					setSlotValue(mappedSlots[0].key);
+					setSelectedSlotId(mappedSlots[0].slotId);
+				} else {
+					setSlotValue('');
+					setSelectedSlotId('');
+				}
+			}
+		} catch (error) {
+			console.error("Failed to fetch slots", error);
+		}
+	};
+
+	const pollSlotStatus = async () => {
+		if (!selectedSlotId) return;
+		try {
+			const res = await axiosInstance.get(`/eta/slot/${selectedSlotId}/status`);
+			if (res.data?.success) {
+				console.log("Full Poll Response:", res.data);
+				const { slotStatus, currentToken, pauseDurationMinutes, pauseStartedAt, activePatientDetails } = res.data.message || {};
+				console.log("Extracted activePatientDetails:", activePatientDetails);
+
+				// Map backend status to frontend state
+				if (slotStatus === 'CREATED') {
+					setSessionStatus('idle');
+					setSessionStarted(false);
+					setQueuePaused(false);
+				} else if (slotStatus === 'STARTED') {
+					setSessionStatus('ongoing');
+					setSessionStarted(true);
+					setQueuePaused(false);
+				} else if (slotStatus === 'PAUSED') {
+					setSessionStatus('ongoing'); // Still ongoing, just paused
+					setSessionStarted(true);
+					setQueuePaused(true);
+
+					if (pauseStartedAt && pauseDurationMinutes) {
+						const start = new Date(pauseStartedAt).getTime();
+						const ends = start + (pauseDurationMinutes * 60 * 1000);
+						setPauseEndsAt(ends);
+					}
+				} else if (slotStatus === 'COMPLETED') {
+					setSessionStatus('completed');
+					setSessionStarted(false);
+					setQueuePaused(false);
+				}
+
+
+				if (currentToken) {
+					setBackendCurrentToken(currentToken);
+				}
+
+				if (activePatientDetails) {
+					console.log("Setting polled patient:", activePatientDetails);
+					const p = activePatientDetails;
+					setPolledActivePatient({
+						patientName: `${p.firstName} ${p.lastName}`.trim(),
+						token: p.tokenNumber,
+						gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
+						age: calculateAge(p.dob),
+						reasonForVisit: p.reason,
+						// Add other fields if needed by the card
+						patientId: p.patientId,
+						startedAt: p.startedAt // Sync session timer
+					});
+				} else {
+					console.log("No active patient details in poll");
+					setPolledActivePatient(null);
+				}
+			}
+		} catch (error) {
+			console.error("Failed to poll slot status", error);
+		}
+	};
+
+	const mapAppointmentToRow = (appt) => {
+		// Map API response to table column structure
+		const p = appt.patientDetails || {};
+
+		return {
+			token: appt.tokenNo,
+			patientName: p.name || `${p.firstName} ${p.lastName}`.trim(),
+			gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
+			dob: p.dob ? new Date(p.dob).toLocaleDateString() : '',
+			age: p.age ? `${p.age}Y` : calculateAge(p.dob),
+			appointmentType: appt.appointmentType === 'NEW' ? 'New Consultation' : 'Follow-up Consultation', // map types
+			expectedTime: appt.expectedTime ? formatSlotTime(appt.expectedTime) : '',
+			startTime: appt.startTime ? formatSlotTime(appt.startTime) : '',
+			endTime: appt.endTime ? formatSlotTime(appt.endTime) : '',
+			bookingType: appt.bookingMode === 'WALK_IN' ? 'Walk-In' : 'Online',
+			reason: appt.reason,
+			status: appt.status,
+			id: appt.id
+		};
+	};
+
+	const fetchAppointments = async (slotId) => {
+		if (!slotId) return;
+		try {
+			const res = await axiosInstance.get(`/appointments/slot/${slotId}`);
+			if (res.data?.success) {
+				const data = res.data.data;
+				const counts = data.counts || {};
+				const appointments = data.appointments || {};
+
+				setAppointmentCounts({
+					checkedIn: counts.checkedIn || 0,
+					inWaiting: counts.inWaiting || 0,
+					engaged: counts.engaged || 0,
+					noShow: counts.noShow || 0,
+					admitted: counts.admitted || 0,
+					all: counts.all || 0
+				});
+
+				// Map all lists
+				setAppointmentsData({
+					checkedIn: (appointments.checkedIn || []).map(mapAppointmentToRow),
+					inWaiting: (appointments.inWaiting || []).map(mapAppointmentToRow),
+					engaged: (appointments.engaged || []).map(mapAppointmentToRow),
+					noShow: (appointments.noShow || []).map(mapAppointmentToRow),
+					admitted: (appointments.admitted || []).map(mapAppointmentToRow),
+					all: (appointments.all || []).map(mapAppointmentToRow)
+				});
+			}
+		} catch (error) {
+			console.error("Failed to fetch appointments", error);
+		}
+	};
+
+	// Fetch FD profile on mount
+	useEffect(() => {
+		useFrontDeskAuthStore.getState().fetchMe();
 	}, []);
 
-	// Map Dummy Data directly to Queue Data based on activeFilter
+	// Fetch data when IDs become available
 	useEffect(() => {
-		if (sessionStarted) {
-			// If session started, Active Patient + Engaged List
-			// For this dummy implementation, 'Engaged' tab shows DUMMY_ENGAGED_DATA
-			if (activeFilter === 'Engaged') setQueueData(DUMMY_ENGAGED_DATA);
-			else if (activeFilter === 'Checked-In') setQueueData(DUMMY_PATIENTS.filter(p => p.status === 'Checked-In'));
-			else if (activeFilter === 'No show') setQueueData(DUMMY_NO_SHOW_DATA);
-			else if (activeFilter === 'Admitted') setQueueData(DUMMY_ADMITTED_DATA);
-			else setQueueData(DUMMY_PATIENTS);
-		} else {
-			// Session not started
-			if (activeFilter === 'Checking In') setQueueData([]);
-			else if (activeFilter === 'No show') setQueueData(DUMMY_NO_SHOW_DATA);
-			else setQueueData(DUMMY_PATIENTS);
+		if (clinicId && doctorId) {
+			fetchPendingAppointments();
+			fetchSlots();
 		}
-	}, [sessionStarted, activeFilter]);
+	}, [clinicId, doctorId, currentDate]);
+
+	// Dummy Stubs to prevent crash
+	const pauseSlotEta = async () => ({});
+
+	const handleStartPatientSession = async (token) => {
+		if (!selectedSlotId || !token) return;
+		setStartingToken(token);
+		try {
+			const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/session/${token}/start`);
+			if (res.data?.success) {
+				addToast({ title: "Patient Session Started", message: `Session started for Token ${token}`, type: "success" });
+				setSessionStatus('ongoing');
+				pollSlotStatus();
+			}
+		} catch (error) {
+			console.error("Failed to start patient session", error);
+			addToast({ title: "Error", message: "Failed to start patient session", type: "error" });
+		} finally {
+			setStartingToken(null);
+		}
+	};
+
+	const handleToggleChange = async () => {
+		if (isToggleOn) {
+			// Turning OFF -> End Slot (Replaces Pause Modal per request)
+			if (!selectedSlotId) return;
+			setIsEndingSession(true);
+			try {
+				const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/end`);
+				if (res.data?.success) {
+					addToast({ title: "Session Ended", message: "Queue session ended successfully.", type: "success" });
+					setSessionStarted(false);
+					setQueuePaused(false);
+					setPolledActivePatient(null);
+					pollSlotStatus();
+				}
+			} catch (error) {
+				console.error("Failed to end slot session", error);
+				addToast({ title: "Error", message: "Failed to end slot session", type: "error" });
+			} finally {
+				setIsEndingSession(false);
+			}
+		} else {
+			// Turning ON -> Start or Resume
+			if (!selectedSlotId) return;
+			setIsStartingSession(true);
+			try {
+				const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/start`);
+				if (res.data?.success) {
+					addToast({ title: "Session Started", message: "Queue session started.", type: "success" });
+					setSessionStarted(true);
+					setQueuePaused(false);
+
+					// Auto-start first checked-in patient
+					// We need to access the LATEST checkedIn list. 
+					// appointmentsData might be stale if we depend on a previous render cycle, 
+					// but usually it's up to date enough.
+					// We ideally should fetch the list first or trust appointmentsData.
+					// Let's trust appointmentsData for now.
+					// Sort checkedIn by tokenNo just in case (though backend sorting preferred)
+					const checkedInList = appointmentsData.checkedIn || [];
+					// Assuming checkedInList items have tokenNo.
+					// Wait, appointmentsData structure needs verification. 
+					// Previously: appointmentsData = { checkedIn: [], ... }
+					// If list is valid and has items:
+					if (checkedInList.length > 0) {
+						// Find "uppermost" -> usually first index.
+						const firstPatient = checkedInList[0];
+						if (firstPatient?.token) {
+							// Call start session for this patient
+							await handleStartPatientSession(firstPatient.token);
+						}
+					}
+
+					pollSlotStatus();
+				}
+			} catch (error) {
+				console.error("Failed to start session", error);
+				addToast({ title: "Error", message: "Failed to start session", type: "error" });
+			} finally {
+				setIsStartingSession(false);
+			}
+		}
+	};
+
+	const handleResumeQueue = async () => {
+		if (!selectedSlotId) return;
+		setIsResumingSlot(true);
+		try {
+			const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/resume`);
+			if (res.data?.success) {
+				addToast({ title: "Queue Resumed", message: "Queue session resumed successfully.", type: "success" });
+				setQueuePaused(false);
+				pollSlotStatus();
+			}
+		} catch (error) {
+			console.error("Failed to resume slot", error);
+			addToast({ title: "Error", message: "Failed to resume queue", type: "error" });
+		} finally {
+			setIsResumingSlot(false);
+		}
+	};
+	// Paused state UI: countdown to auto-resume
+	// Current token reported by backend status, used to focus the engaged patient
+	// Holds list currently shown in table (derived from active filter)
+	// Replaced Dummy Time Slots with State
+	// Removed redundant fetchSlots effect as it's now handled by the ID-dependent effect
+
+	// Auto-select first slot logic removed/merged into fetch
+	// useEffect(() => {
+	// 	if (!slotValue) {
+	// 		setSlotValue('morning');
+	// 		setSelectedSlotId('dummy-slot-1');
+	// 	}
+	// }, []);
+
+	// Appointments State
+	// Polling and Periodic Refresh Effect
+	useEffect(() => {
+		if (!selectedSlotId || !doctorId || !clinicId) return;
+
+		pollSlotStatus();
+		fetchPendingAppointments();
+		fetchAppointments(selectedSlotId);
+
+		const statusInterval = setInterval(pollSlotStatus, 60000); // Poll status every 1 minute
+		const pendingInterval = setInterval(fetchPendingAppointments, 60000); // Refresh pending every 1 minute
+		const appointmentInterval = setInterval(() => fetchAppointments(selectedSlotId), 60000); // Refresh appointments every 1 minute
+
+		return () => {
+			clearInterval(statusInterval);
+			clearInterval(pendingInterval);
+			clearInterval(appointmentInterval);
+		};
+	}, [selectedSlotId, doctorId, clinicId, currentDate]);
+
+	useEffect(() => {
+		if (selectedSlotId) {
+			fetchAppointments(selectedSlotId);
+		} else {
+			// Clear if no slot
+			setAppointmentCounts({ checkedIn: 0, inWaiting: 0, engaged: 0, noShow: 0, admitted: 0, all: 0 });
+			setAppointmentsData({ checkedIn: [], inWaiting: [], engaged: [], noShow: [], admitted: [], all: [] });
+		}
+	}, [selectedSlotId]);
 
 
-	// Dummy Counts
+	// Map API Data to Queue Data based on activeFilter
+	useEffect(() => {
+		// Map filter names to data keys
+		// filters = ['In Waiting', 'Engaged', 'Checked-In', 'No show', 'Admitted']
+		if (activeFilter === 'Engaged') setQueueData(appointmentsData.engaged);
+		else if (activeFilter === 'Checked-In') setQueueData(appointmentsData.checkedIn);
+		else if (activeFilter === 'No show') setQueueData(appointmentsData.noShow);
+		else if (activeFilter === 'Admitted') setQueueData(appointmentsData.admitted);
+		else setQueueData(appointmentsData.inWaiting);
+	}, [activeFilter, appointmentsData]);
+
+
+	// API Counts
 	const getFilterCount = f => {
-		if (f === 'In Waiting') return DUMMY_PATIENTS.length;
-		if (f === 'Engaged' && sessionStarted) return DUMMY_ENGAGED_DATA.length;
-		if (f === 'No show') return DUMMY_NO_SHOW_DATA.length - 2; // minus headers
-		if (f === 'Admitted') return DUMMY_ADMITTED_DATA.length;
-		if (activeFilter === f) return queueData.length;
+		if (f === 'In Waiting') return appointmentCounts.inWaiting;
+		if (f === 'Engaged') return appointmentCounts.engaged;
+		if (f === 'No show') return appointmentCounts.noShow;
+		if (f === 'Checking In' || f === 'Checked-In') return appointmentCounts.checkedIn;
+		if (f === 'Admitted') return appointmentCounts.admitted;
 		return 0;
 	};
-	// Priority: DUMMY_ACTIVE_PATIENT if session started (to match user request for Priya Mehta), else queue list
+	// Updated Active Patient to use Real Data
+	// Updated Active Patient to use Real Data from Polling
 	const activePatient = useMemo(() => {
-		if (sessionStarted) return DUMMY_ACTIVE_PATIENT;
-		return queueData[currentIndex] || null;
-	}, [sessionStarted, queueData, currentIndex]);
+		// Priority 1: Polled data from slot status is the ONLY source of truth for the Active Card
+		// If polling says null (no active patient), we show nothing, even if the 'engaged' list has items.
+		return polledActivePatient;
+	}, [polledActivePatient]);
 
 
 	// Simplified Dummy Logic: Complete Patient
-	const completeCurrentPatient = async () => {
-		const ANIM_MS = 300;
+	// End Session for Patient
+	const handleEndPatientSession = async () => {
 		const active = activePatient;
-		if (!active) return;
+		if (!active || !selectedSlotId) return;
 
 		setRemovingToken(active.token);
-		// Simulate completion delay
-		setTimeout(() => {
+		try {
+			const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/session/${active.token}/end`);
+			if (res.data?.success) {
+				addToast({ title: "Session Ended", message: "Patient session ended successfully.", type: "success" });
+				setSessionStatus('ongoing'); // Keep session ongoing for queue
+				// Refresh status
+				pollSlotStatus();
+				fetchAppointments(selectedSlotId);
+			}
+		} catch (error) {
+			console.error("Failed to end patient session", error);
+			addToast({ title: "Error", message: "Failed to end patient session", type: "error" });
+		} finally {
 			setRemovingToken(null);
-			// Simple navigation to next patient for demo
-			setCurrentIndex(prev => prev + 1);
-		}, ANIM_MS);
+		}
 	};
 
 	// Dummy Actions for Table
@@ -242,6 +579,106 @@ export default function FDQueue() {
 		setActiveActionMenuToken(activeActionMenuToken === token ? null : token);
 	};
 
+	const [isMarkingNoShow, setIsMarkingNoShow] = useState(false);
+
+	const handleMarkNoShow = async () => {
+		const appointment = queueData.find(item => item.token === activeActionMenuToken);
+		if (!appointment?.id) return;
+
+		setIsMarkingNoShow(true);
+		try {
+			const res = await axiosInstance.put(`/appointments/no-show/${appointment.id}`);
+			if (res.data?.success) {
+				fetchAppointments(selectedSlotId);
+				setActiveActionMenuToken(null);
+				addToast({
+					title: "Marked as No-Show",
+					message: "The patient has been marked as No-Show.",
+					type: "success",
+					duration: 3000
+				});
+			}
+		} catch (error) {
+			console.error("Failed to mark as no-show", error);
+		} finally {
+			setIsMarkingNoShow(false);
+		}
+	};
+
+	const handleCheckIn = async (id) => {
+		if (!id) return;
+		setCheckingInId(id);
+		try {
+			const res = await axiosInstance.put(`/appointments/check-in/${id}`);
+			if (res.data?.success) {
+				fetchAppointments(selectedSlotId);
+
+				addToast({
+					title: "Checked In",
+					message: "Patient checked in successfully.",
+					type: "success",
+					duration: 3000
+				});
+			}
+		} catch (error) {
+			console.error("Failed to check-in", error);
+			addToast({ title: "Error", message: "Failed to check-in", type: "error" });
+		} finally {
+			setCheckingInId(null);
+		}
+	};
+
+	const [isCancellingRequest, setIsCancellingRequest] = useState(false);
+	const handleCancelRequest = async () => {
+		const id = activeActionMenuToken?.toString().replace('req_', '');
+		if (!id) return;
+
+		setIsCancellingRequest(true);
+		try {
+			// specific API for rejection
+			const res = await axiosInstance.put(`/appointments/reject/${id}`);
+			if (res.data?.success) {
+				fetchPendingAppointments();
+				setActiveActionMenuToken(null);
+				addToast({
+					title: "Request Rejected",
+					message: "The appointment request has been rejected.",
+					type: "success",
+					duration: 3000
+				});
+			}
+		} catch (error) {
+			console.error("Failed to reject request", error);
+			addToast({ title: "Error", message: "Failed to reject request", type: "error" });
+		} finally {
+			setIsCancellingRequest(false);
+		}
+	};
+
+	const handleApproveRequest = async (id) => {
+		if (!id) return;
+		setApprovingId(id);
+		try {
+			const res = await axiosInstance.put(`/appointments/approve/${id}`);
+			if (res.data?.success) {
+				fetchPendingAppointments();
+				// Also refresh main list as approved appt moves there
+				fetchAppointments(selectedSlotId);
+				addToast({
+					title: "Request Approved",
+					message: "Appointment request approved successfully.",
+					type: "success",
+					duration: 3000
+				});
+			}
+		} catch (error) {
+			console.error("Failed to approve request", error);
+			addToast({ title: "Error", message: "Failed to approve request", type: "error" });
+		} finally {
+			setApprovingId(null);
+		}
+	};
+
 	const [showWalkIn, setShowWalkIn] = useState(false);
 	// New: On check-in, call API and refresh; do not open pre-screening
 
@@ -249,11 +686,20 @@ export default function FDQueue() {
 	// While paused, tick remaining time every second
 	useEffect(() => {
 		if (!queuePaused || !pauseEndsAt) return;
-		const tick = () => { setPauseRemaining(Math.max(0, Math.floor((pauseEndsAt - Date.now()) / 1000))); };
+		const tick = () => {
+			const rem = Math.max(0, Math.floor((pauseEndsAt - Date.now()) / 1000));
+			setPauseRemaining(rem);
+			if (rem <= 0) {
+				handleResumeQueue(); // Auto-resume API call
+				if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; }
+			}
+		};
 		tick();
 		pauseTickerRef.current = setInterval(tick, 1000);
 		return () => { if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; } };
-	}, [queuePaused, pauseEndsAt]);
+	}, [queuePaused, pauseEndsAt, handleResumeQueue]);
+
+
 	return (
 		<div className='flex h-full w-full bg-gray-50 overflow-hidden'>
 			{/* Middle Column: Queue Content (Table + Header) */}
@@ -277,10 +723,19 @@ export default function FDQueue() {
 						</div>
 						{/* Walk-in */}
 						<div className='flex items-center gap-[10px]'>
-							<div className="flex items-center gap-1 text-sm text-secondary-grey300">
-								<span>Tokens Available</span>
-								<span className="bg-success-100 px-2 text-success-300 rounded-sm h-[22px] text-sm  border border-transparent hover:border-success-300/50 transition-colors cursor-pointer">5 Out of 100</span>
-							</div>
+							{(function () {
+								const activeSlot = timeSlots.find(s => s.key === slotValue);
+								const availableTokens = activeSlot?.raw?.availableTokens || 0;
+								const maxTokens = activeSlot?.raw?.maxTokens || 0;
+								return (
+									<div className="flex items-center gap-1 text-sm text-secondary-grey300">
+										<span>Tokens Available</span>
+										<span className="bg-success-100 px-2 text-success-300 rounded-sm h-[22px] text-sm  border border-transparent hover:border-success-300/50 transition-colors cursor-pointer">
+											{availableTokens} Out of {maxTokens}
+										</span>
+									</div>
+								);
+							})()}
 
 							<div className='bg-secondary-grey100/50 h-5 w-[1px]' ></div>
 
@@ -288,9 +743,24 @@ export default function FDQueue() {
 							<div className='flex items-center gap-2'>
 								<Toggle
 									checked={isToggleOn}
-									onChange={handleToggleChange}
+									onChange={(!isStartingSession && !isEndingSession) ? handleToggleChange : undefined}
+									className={(isStartingSession || isEndingSession) ? "opacity-50 cursor-not-allowed" : ""}
 								/>
-								<span className={`text-sm font-medium ${isToggleOn ? 'text-gray-700' : 'text-secondary-grey300'}`}>Start Session</span>
+								<span className={`text-sm font-medium ${isToggleOn ? 'text-gray-700' : 'text-secondary-grey300'}`}>
+									{isStartingSession ? (
+										<div className="flex items-center gap-1">
+											<UniversalLoader size={14} className="text-secondary-grey300" />
+											<span className="text-secondary-grey300">Starting...</span>
+										</div>
+									) : isEndingSession ? (
+										<div className="flex items-center gap-1">
+											<UniversalLoader size={14} className="text-secondary-grey300" />
+											<span className="text-secondary-grey300">Ending...</span>
+										</div>
+									) : (
+										"Start Session"
+									)}
+								</span>
 							</div>
 
 							<div className='bg-secondary-grey100/50 h-5 w-[1px]' ></div>
@@ -308,8 +778,6 @@ export default function FDQueue() {
 				{/* Queue Content */}
 				<div className='px-0 pt-0 pb-2 flex-1 flex flex-col overflow-hidden'>
 
-					{/* Session Bar - GREEN if session active */}
-					{/* Session Bar - GREEN if session active */}
 					{sessionStarted && (
 						<div className={`w-full ${queuePaused ? 'bg-warning-50 text-warning-400' : 'bg-[#27CA40] text-white'} h-[40px] px-4 flex items-center justify-between relative z-20`}>
 							{/* Centered Token Number */}
@@ -323,7 +791,7 @@ export default function FDQueue() {
 										'--blink-on': '#EC7600',
 										'--blink-off': '#ffffff',
 									}}></span>
-								<span className={`font-bold text-[20px] ${queuePaused ? 'text-warning-400' : 'text-white'}`}>10</span>
+								<span className={`font-bold text-[20px] ${queuePaused ? 'text-warning-400' : 'text-white'}`}>{backendCurrentToken || activePatient?.token || '-'}</span>
 								{queuePaused && (
 									<div className='flex items-center ml-2 border border-warning-400 py-[2px] rounded px-[6px] bg-white gap-1'>
 										<img src={stopwatch} alt="" className='w-[14px] h-[14px]' />
@@ -344,10 +812,16 @@ export default function FDQueue() {
 									</button>
 								) : (
 									<button
-										onClick={() => setQueuePaused(false)}
-										className='bg-blue-primary250 text-white h-[24px] py-1 px-[6px] rounded text-[12px] font-medium flex items-center gap-1.5 hover:bg-blue-primary300 transition-colors '
+										onClick={handleResumeQueue}
+										disabled={isResumingSlot}
+										className='bg-blue-primary250 text-white h-[24px] py-1 px-[6px] rounded text-[12px] font-medium flex items-center gap-1.5 hover:bg-blue-primary300 transition-colors disabled:opacity-50'
 									>
-										<RotateCcw className='w-[14px] h-[14px] -scale-y-100 rotate-180' /> Restart Queue
+										{isResumingSlot ? (
+											<UniversalLoader size={12} className="text-white" />
+										) : (
+											<RotateCcw className='w-[14px] h-[14px] -scale-y-100 rotate-180' />
+										)}
+										{isResumingSlot ? 'Resuming...' : 'Restart Queue'}
 									</button>
 								)}
 							</div>
@@ -399,22 +873,32 @@ export default function FDQueue() {
 											<Button
 												variant="primary"
 												size="small"
-												onClick={() => setSessionStatus('ongoing')}
+												onClick={() => handleStartPatientSession(activePatient.token)}
+												disabled={startingToken === activePatient.token}
 												className=" text-white flex items-center gap-2 px-4 py-2 font-medium"
 											>
-												<Play className="w-3.5 h-3.5 " />
-												Start Session
+												{startingToken === activePatient.token ? (
+													<UniversalLoader size={12} className="text-white" />
+												) : (
+													<Play className="w-3.5 h-3.5 " />
+												)}
+												{startingToken === activePatient.token ? 'Starting...' : 'Start Session'}
 											</Button>
 										)}
 										{sessionStatus === 'ongoing' && (
 											<div className="flex items-center gap-3">
-												<SessionTimer />
+												<SessionTimer startTime={activePatient.startedAt} paused={queuePaused} />
 												<button
-													onClick={() => { setSessionStatus('completed'); completeCurrentPatient(); }}
+													onClick={handleEndPatientSession}
+													disabled={removingToken === activePatient.token}
 													className="flex items-center gap-2 bg-white border border-secondary-grey200/50 px-4 py-2 rounded-md text-sm font-medium text-secondary-grey400 hover:bg-gray-50 transition-colors"
 												>
-													<img src={checkRound} alt="" />
-													<span>End Session</span>
+													{removingToken === activePatient.token ? (
+														<UniversalLoader size={16} className="text-secondary-grey400" />
+													) : (
+														<img src={checkRound} alt="" />
+													)}
+													<span>{removingToken === activePatient.token ? 'Ending...' : 'End Session'}</span>
 												</button>
 											</div>
 										)}
@@ -562,10 +1046,11 @@ export default function FDQueue() {
 															{!isCheckedIn ? (
 																row.isGrace ? (
 																	<button
-																		onClick={() => setCheckedInTokens(prev => ({ ...prev, [row.token]: true }))}
-																		className="w-full px-3 py-1 border border-gray-300 rounded text-sm text-secondary-grey400 hover:bg-gray-50 bg-white"
+																		onClick={() => handleCheckIn(row.id)}
+																		disabled={checkingInId === row.id}
+																		className="w-full px-3 py-1 border border-gray-300 rounded text-sm text-secondary-grey400 hover:bg-gray-50 bg-white flex justify-center items-center h-[30px]"
 																	>
-																		Check-In
+																		{checkingInId === row.id ? <UniversalLoader size={16} className="text-gray-500" /> : 'Check-In'}
 																	</button>
 																) : (
 																	<button
@@ -574,8 +1059,7 @@ export default function FDQueue() {
 																	>
 																		Reschedule
 																	</button>
-																)
-															) : (
+																)) : (
 																<button className='w-full inline-flex justify-center items-center gap-2 h-[32px] min-w-[32px] p-2 rounded-sm border-[1px] text-sm font-medium border-[#BFD6FF] bg-[#F3F8FF] text-[#2372EC] hover:bg-[#2372EC] hover:text-white transition-colors'>
 																	Add Pre-screening
 																</button>
@@ -673,15 +1157,17 @@ export default function FDQueue() {
 														<div className="flex items-center justify-between">
 															{!isCheckedIn ? (
 																<button
-																	onClick={() => setCheckedInTokens(prev => ({ ...prev, [row.token]: true }))}
-																	className="w-full px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 bg-white"
+																	onClick={() => handleCheckIn(row.id)}
+																	disabled={checkingInId === row.id}
+																	className="w-full px-3 py-1 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50 bg-white flex justify-center items-center h-[30px]"
 																>
-																	Check-In
+																	{checkingInId === row.id ? <UniversalLoader size={16} className="text-gray-500" /> : 'Check-In'}
 																</button>
 															) : (
-																<button className='w-full inline-flex justify-center items-center gap-2 h-[32px] min-w-[32px] p-2 rounded-sm border-[1px] text-sm font-medium border-[#BFD6FF] bg-[#F3F8FF] text-[#2372EC] hover:bg-[#2372EC] hover:text-white transition-colors'>
-																	Add Pre-screening
-																</button>
+																// <button className='w-full inline-flex justify-center items-center gap-2 h-[32px] min-w-[32px] p-2 rounded-sm border-[1px] text-sm font-medium border-[#BFD6FF] bg-[#F3F8FF] text-[#2372EC] hover:bg-[#2372EC] hover:text-white transition-colors'>
+																// 	Add Pre-screening
+																// </button>
+																<span className="text-success-500 font-medium text-sm flex justify-center w-full">Checked In</span>
 															)}
 															<button
 																onClick={(e) => handleActionMenuClick(e, row.token)}
@@ -694,11 +1180,21 @@ export default function FDQueue() {
 												}
 											}
 										]}
-										data={activeFilter === 'Engaged' ? DUMMY_ENGAGED_DATA : activeFilter === 'No show' ? DUMMY_NO_SHOW_DATA : activeFilter === 'Admitted' ? DUMMY_ADMITTED_DATA : DUMMY_PATIENTS}
+										// Conditional rendering for empty state
+										data={queueData}
 										hideSeparators={false}
 										stickyLeftWidth={280}
 										stickyRightWidth={210}
 									/>
+									{queueData.length === 0 && (
+										<div className="absolute inset-0 top-[40px] bg-white flex flex-col items-center justify-center text-secondary-grey400 z-10">
+											<div className="bg-gray-50 p-4 rounded-full mb-3">
+												<UserX className="h-8 w-8 text-gray-300" />
+											</div>
+											<p className="text-lg font-medium">No Patients Found</p>
+											<p className="text-sm text-gray-400">There are no patients in this list.</p>
+										</div>
+									)}
 								</div>
 							</div>
 
@@ -711,7 +1207,8 @@ export default function FDQueue() {
 									</div>
 								</div>
 								<div className='flex-1 overflow-y-auto  flex flex-col gap-3 no-scrollbar'>
-									{DUMMY_REQUESTS.map((request, index) => (
+									{/* DUMMY_REQUESTS replaced with state or empty array for now */}
+									{appointmentRequests.map((request, index) => (
 										<div key={request.id || index} className="border-b border-gray-100 flex flex-col gap-3 last:border-0 p-3 bg-white  transition-colors">
 
 											{/* Patient Header */}
@@ -726,8 +1223,11 @@ export default function FDQueue() {
 														<div className="text-[12px] text-secondary-grey300">{request.gender} | {request.dob} ({request.age})</div>
 													</div>
 												</div>
-												<button className="text-gray-400 hover:bg-secondary-grey50">
-													<img src={more} alt="" />
+												<button
+													onClick={(e) => handleActionMenuClick(e, `req_${request.id}`)}
+													className={`text-gray-400 hover:bg-secondary-grey50 rounded-full p-1 transition-colors ${activeActionMenuToken === `req_${request.id}` ? 'bg-secondary-grey50 text-gray-600' : ''}`}
+												>
+													<img src={more} alt="" className='w-4 h-4' />
 												</button>
 											</div>
 
@@ -746,7 +1246,7 @@ export default function FDQueue() {
 													)}
 												</div>
 
-												
+
 
 											</div>
 
@@ -754,43 +1254,34 @@ export default function FDQueue() {
 
 											{/* Buttons */}
 											<div className="flex gap-3">
-												<Button size='small' variant='primary' className='flex-1 h-9 text-xs font-medium' onClick={async () => {
-													try {
-														if (!request?.id) return; // Fix: use request.id from dummy
-														setApprovingId(request.id);
-														// await approveAppointment(request.id); // Dummy: simulate async
-														await new Promise(r => setTimeout(r, 1000));
-														setAppointmentRequests(prev => prev.filter(r => r.id !== request.id));
-														// if (selectedSlotId) { await loadAppointmentsForSelectedSlot(); }
-													} catch (e) {
-														console.error('Approve failed', e);
-													} finally {
-														setApprovingId(null);
-													}
-												}} disabled={approvingId === request.id}>
-													{approvingId === request.id ? 'Accepting...' : 'Accept'}
+												<Button
+													size='small'
+													variant='primary'
+													className='flex-1 h-9 text-sm font-medium'
+													onClick={() => handleApproveRequest(request.id)}
+													disabled={approvingId === request.id}
+												>
+													{approvingId === request.id ? (
+														<div className="flex items-center justify-center gap-2">
+															<UniversalLoader size={16} className="text-white" style={{ width: 'auto', height: 'auto' }} />
+															<span>Accepting...</span>
+														</div>
+													) : 'Accept'}
 												</Button>
-												<button className='flex-1 h-9 text-xs font-medium border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap px-1'>
+												<button className='flex-1 h-9 text-sm font-medium border border-secondary-grey200 rounded-md text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap px-1'>
 													Ask to Reschedule
 												</button>
 											</div>
 										</div>
 									))}
 								</div>
-								
+
 							</div>
 						</div>
-					</div></div></div>
-			{/* PreScreeningDrawer disabled for now per requirement */}
-			{/* Walk-in Drawer: Fix undefined props */}
-			<BookAppointmentDrawer
-				open={showWalkIn}
-				onClose={() => setShowWalkIn(false)}
-				doctorId={doctorId}
-			/>
+					</div>
+				</div>
+			</div>
 
-
-			{/* Pause Queue Modal */}
 			{/* Pause Queue Modal */}
 
 			<PauseQueueModal
@@ -804,31 +1295,68 @@ export default function FDQueue() {
 				pauseSubmitting={pauseSubmitting}
 				pauseError={pauseError}
 				onConfirm={async () => {
+					if (!selectedSlotId || !pauseMinutes) return;
 					setPauseSubmitting(true);
 					setPauseError('');
 					try {
-						await new Promise(r => setTimeout(r, 500));
-						setQueuePaused(true);
-						setShowPauseModal(false);
+						const res = await axiosInstance.post(`/eta/slot/${selectedSlotId}/pause`, {
+							durationMinutes: pauseMinutes.toString()
+						});
+						if (res.data?.success) {
+							addToast({ title: "Queue Paused", message: `Queue paused for ${pauseMinutes} minutes.`, type: "success" });
+							setQueuePaused(true);
+							setShowPauseModal(false);
 
-						// Setup countdown and auto-resume
-						const ends = Date.now() + (pauseMinutes || 0) * 60 * 1000;
-						setPauseEndsAt(ends);
-						const initialRemaining = Math.max(0, Math.floor((ends - Date.now()) / 1000));
-						setPauseRemaining(initialRemaining);
+							const ends = Date.now() + (pauseMinutes || 0) * 60 * 1000;
+							setPauseEndsAt(ends);
 
-						if (autoResumeTimerRef.current) { clearTimeout(autoResumeTimerRef.current); }
-						autoResumeTimerRef.current = setTimeout(() => {
-							setQueuePaused(false);
-							if (pauseTickerRef.current) { clearInterval(pauseTickerRef.current); pauseTickerRef.current = null; }
-							setPauseEndsAt(null); setPauseRemaining(0);
-							autoResumeTimerRef.current = null;
-						}, (pauseMinutes || 0) * 60 * 1000);
-
+							pollSlotStatus();
+						}
 					} catch (err) {
-						setPauseError(err.message || 'Failed to pause');
+						console.error("Failed to pause slot", err);
+						setPauseError(err.response?.data?.message || 'Failed to pause');
+						addToast({ title: "Error", message: "Failed to pause queue", type: "error" });
 					} finally {
 						setPauseSubmitting(false);
+					}
+				}}
+			/>
+
+			<TerminateQueueModal
+				show={showTerminateModal}
+				onClose={() => setShowTerminateModal(false)}
+				isSubmitting={isTerminatingQueue}
+				sessions={timeSlots.map(slot => ({
+					id: slot.slotId,
+					label: `${slot.label} (${slot.time})`
+				}))}
+				onConfirm={async (data) => {
+					setIsTerminatingQueue(true);
+					try {
+						const res = await axiosInstance.post('/slots/queue/terminate', {
+							slotIds: data.sessions,
+							cancellationReason: data.reason
+						});
+
+						if (res.data?.success || res.status === 200) {
+							addToast({
+								title: "Queue Terminated",
+								message: "Selected sessions have been terminated successfully.",
+								type: "success"
+							});
+							setShowTerminateModal(false);
+							pollSlotStatus();
+							fetchPendingAppointments();
+						}
+					} catch (error) {
+						console.error("Failed to terminate queue", error);
+						addToast({
+							title: "Error",
+							message: error.response?.data?.message || "Failed to terminate queue",
+							type: "error"
+						});
+					} finally {
+						setIsTerminatingQueue(false);
 					}
 				}}
 			/>
@@ -843,8 +1371,27 @@ export default function FDQueue() {
 						onClick={(e) => e.stopPropagation()}
 					>
 						{activeActionMenuToken === 'slot_dropdown' ? (
-							<div className="py-1">
-								{/* Slot dropdown logic here if needed separate from top-left */}
+							<div className="py-1 min-w-[300px]">
+								{timeSlots.map((slot) => {
+									const isSelected = slotValue === slot.key;
+									return (
+										<button
+											key={slot.key}
+											onClick={() => {
+												setSlotValue(slot.key);
+												setSelectedSlotId(slot.slotId);
+												setActiveActionMenuToken(null);
+											}}
+											className={`flex items-center gap-3 px-4 py-3 text-sm text-left w-full transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+										>
+											<slot.Icon className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-gray-500'}`} />
+											<span className="flex-1">
+												<span className="font-medium mr-1">{slot.label}</span>
+												<span className={`${isSelected ? 'text-blue-100' : 'text-gray-500'}`}>({slot.time})</span>
+											</span>
+										</button>
+									);
+								})}
 							</div>
 						) : activeActionMenuToken === 'queue_actions_dropdown' ? (
 							<>
@@ -856,7 +1403,13 @@ export default function FDQueue() {
 									<CalendarMinus className="h-4 w-4" /> Set Doctor Out of Office
 								</button>
 								<div className="my-1 border-t border-gray-100"></div>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
+								<button
+									onClick={() => {
+										setShowTerminateModal(true);
+										setActiveActionMenuToken(null);
+									}}
+									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+								>
 									<CalendarX className="h-4 w-4" /> Terminate Queue
 								</button>
 							</>
@@ -929,6 +1482,32 @@ export default function FDQueue() {
 								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
 									<User className="h-4 w-4" /> View Profile
 								</button>
+								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
+									<RotateCcw className="h-4 w-4" /> Revoke Check-In
+								</button>
+							</>
+						) : activeActionMenuToken?.toString().startsWith('req_') ? (
+							<>
+								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+									<User className="h-4 w-4" /> View Profile
+								</button>
+								<div className="my-1 border-t border-gray-100"></div>
+								<button
+									onClick={handleCancelRequest}
+									disabled={isCancellingRequest}
+									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+								>
+									{isCancellingRequest ? (
+										<div className="flex items-center gap-2">
+											<UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
+											<span>Rejecting...</span>
+										</div>
+									) : (
+										<>
+											<CalendarX className="h-4 w-4" /> Cancel Appointment
+										</>
+									)}
+								</button>
 							</>
 						) : (
 							<>
@@ -947,8 +1526,21 @@ export default function FDQueue() {
 									<CalendarPlus className="h-4 w-4" /> Schedule Follow-up
 								</button>
 								<div className="my-1 border-t border-gray-100"></div>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
-									<UserX className="h-4 w-4" /> Mark as No-Show
+								<button
+									onClick={handleMarkNoShow}
+									disabled={isMarkingNoShow}
+									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+								>
+									{isMarkingNoShow ? (
+										<div className="flex items-center gap-2">
+											<UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
+											<span>Marking...</span>
+										</div>
+									) : (
+										<>
+											<UserX className="h-4 w-4" /> Mark as No-Show
+										</>
+									)}
 								</button>
 								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
 									<RotateCcw className="h-4 w-4" /> Revoke Check-In
@@ -959,6 +1551,17 @@ export default function FDQueue() {
 					document.body
 				)
 			}
+			<BookAppointmentDrawer
+				open={showWalkIn}
+				onClose={() => setShowWalkIn(false)}
+				doctorId={doctorId}
+				clinicId={clinicId}
+				hospitalId={undefined}
+				onBookedRefresh={() => {
+					fetchAppointments(selectedSlotId);
+					fetchPendingAppointments();
+				}}
+			/>
 		</div >
 	);
 }

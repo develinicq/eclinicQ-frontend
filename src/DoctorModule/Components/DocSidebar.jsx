@@ -33,37 +33,68 @@ import {
   helpWhite,
 } from "../../../public/index.js";
 import AvatarCircle from "../../components/AvatarCircle";
+import useDoctorAuthStore from "../../store/useDoctorAuthStore";
+import useHospitalAuthStore from "../../store/useHospitalAuthStore";
 
 const DocSidebar = () => {
   const location = useLocation();
   const isSettingsRoute = location.pathname.startsWith("/doc/settings");
   const [openSettings, setOpenSettings] = useState(isSettingsRoute);
+
+  // Get doctor data
+  const { user: doctorData } = useDoctorAuthStore();
+
+  // Check for dual role
+  const { roleNames: hospitalRoles } = useHospitalAuthStore();
+  const isDualRole = hospitalRoles?.includes("HOSPITAL_ADMIN") && hospitalRoles?.includes("DOCTOR");
+
   // Switch account popover state
   const [showSwitch, setShowSwitch] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState("chauhan");
+  const [selectedAccount, setSelectedAccount] = useState(null);
   const switchRef = useRef(null);
   const triggerRef = useRef(null);
   const popoverRef = useRef(null);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
 
-  const accounts = [
-    {
-      id: "chauhan",
-      name: "Chauhan Clinic",
+  // Build accounts from API data
+  const accounts = [];
+
+  // Add clinic if available
+  if (doctorData?.associatedWorkplaces?.clinic) {
+    const clinic = doctorData.associatedWorkplaces.clinic;
+    accounts.push({
+      id: clinic.id,
+      name: clinic.name,
       type: "Clinic",
-      location: "Baner, Pune",
+      location: "",
       isSelf: true,
       color: "orange",
-    },
-    {
-      id: "manipal",
-      name: "Manipal Hospitals Life's On",
-      type: "Hospital",
-      location: "",
-      isSelf: false,
-      color: "blue",
-    },
-  ];
+    });
+  }
+
+  // Add hospitals if available
+  if (doctorData?.associatedWorkplaces?.hospitals?.length > 0) {
+    doctorData.associatedWorkplaces.hospitals.forEach(hospital => {
+      accounts.push({
+        id: hospital.id,
+        name: hospital.name,
+        type: hospital.type === "HOSPITAL" ? "Hospital" : "Clinic",
+        location: "",
+        isSelf: false,
+        color: "blue",
+      });
+    });
+  }
+
+  // Set default selected account
+  useEffect(() => {
+    if (accounts.length > 0 && !selectedAccount) {
+      setSelectedAccount(accounts[0].id);
+    }
+  }, [accounts.length]);
+
+  // Get currently selected account details
+  const currentAccount = accounts.find(acc => acc.id === selectedAccount) || accounts[0];
 
   useEffect(() => {
     // Auto open when user navigates to a settings page
@@ -151,7 +182,7 @@ const DocSidebar = () => {
     },
   ];
 
-  const settingsSubItems = [
+  const allSettingsSubItems = [
     { label: "My Account", to: "/doc/settings/account" },
     { label: "Consultation Details", to: "/doc/settings/consultation" },
     { label: "Clinics Details", to: "/doc/settings/clinics" },
@@ -159,6 +190,10 @@ const DocSidebar = () => {
     { label: "Security Settings", to: "/doc/settings/security" },
      { label: "Subscriptions/Billing", to: "/doc/settings/billing" },
   ];
+
+  const settingsSubItems = isDualRole
+    ? allSettingsSubItems.filter(item => ["/doc/settings/account", "/doc/settings/consultation"].includes(item.to))
+    : allSettingsSubItems;
 
   return (
     <div className="sidebar flex flex-col justify-between min-h-screen w-[210px] bg-white border-r border-secondary-grey100/50">
@@ -169,38 +204,37 @@ const DocSidebar = () => {
           <img src={logo} alt="logo" className="w-[128px] h-auto" />
         </div>
 
-        {/* Hospital selector card (below logo) + Switch Account popover */}
+        {/* Hospital/Clinic selector card (below logo) + Switch Account popover */}
         <div className="px-3 pb-2 mb-3 mt-2 relative" ref={switchRef}>
           <button
             type="button"
             onClick={() => setShowSwitch((v) => !v)}
-            className={`w-full border-[0.5px] border-[#B8B8B8] rounded-md px-2 py-2 bg-white flex items-center gap-2 hover:bg-gray-50 ${
-              showSwitch ? "ring-1 ring-[#2372EC]/30" : ""
-            }`}
+            className={`w-full border-[0.5px] border-[#B8B8B8] rounded-md px-2 py-2 bg-white flex items-center gap-2 hover:bg-gray-50 ${showSwitch ? "ring-1 ring-[#2372EC]/30" : ""
+              }`}
             ref={triggerRef}
             aria-haspopup="true"
             aria-expanded={showSwitch}
+            disabled={accounts.length === 0}
           >
             <AvatarCircle
-              name="Manipal Hospital"
+              name={currentAccount?.name || doctorData?.name || "Doctor"}
               size="s"
-              color="orange"
+              color={currentAccount?.color || "orange"}
               icon={<Building2 size={14} />}
               className="shrink-0"
             />
             <div className="flex-1 min-w-0 text-left">
               <div className="text-[13px] font-medium text-gray-900 truncate">
-                Manipal Hospit...
+                {currentAccount?.name || "No workplace"}
               </div>
               <div className="text-[11px] text-gray-500 leading-tight">
-                Hospital
+                {currentAccount?.type || "—"}
               </div>
             </div>
             <ChevronDown
               size={16}
-              className={`text-gray-500 transition-transform ${
-                showSwitch ? "rotate-180" : ""
-              }`}
+              className={`text-gray-500 transition-transform ${showSwitch ? "rotate-180" : ""
+                }`}
             />
           </button>
 
@@ -224,19 +258,17 @@ const DocSidebar = () => {
                     <button
                       type="button"
                       onClick={() => setSelectedAccount(acc.id)}
-                      className={`w-full flex items-center gap-3 px-2 py-2 rounded text-left ${
-                        selectedAccount === acc.id
-                          ? "bg-[#F7FAFF] border border-blue-200"
-                          : "hover:bg-gray-50"
-                      }`}
+                      className={`w-full flex items-center gap-3 px-2 py-2 rounded text-left ${selectedAccount === acc.id
+                        ? "bg-[#F7FAFF] border border-blue-200"
+                        : "hover:bg-gray-50"
+                        }`}
                     >
                       {/* custom radio */}
                       <span
-                        className={`shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${
-                          selectedAccount === acc.id
-                            ? "border-[#2372EC] bg-[#2372EC]"
-                            : "border-gray-400 bg-white"
-                        }`}
+                        className={`shrink-0 w-4 h-4 rounded-full border flex items-center justify-center ${selectedAccount === acc.id
+                          ? "border-[#2372EC] bg-[#2372EC]"
+                          : "border-gray-400 bg-white"
+                          }`}
                       >
                         {selectedAccount === acc.id && (
                           <span className="w-1.5 h-1.5 rounded-full bg-white" />
@@ -244,9 +276,9 @@ const DocSidebar = () => {
                       </span>
                       <span className="shrink-0 w-5 h-5 rounded-sm bg-[#F3F8FF] border border-[#BFD6FF] flex items-center justify-center">
                         <AvatarCircle
-                          name="Manipal Hospital"
+                          name={acc.name}
                           size="s"
-                          color="orange"
+                          color={acc.color}
                           icon={<Building2 size={14} />}
                           className="shrink-0"
                         />
@@ -292,10 +324,9 @@ const DocSidebar = () => {
                   to={item.path}
                   end={item.path === "/doc"}
                   className={({ isActive }) =>
-                    `flex items-center gap-[6px] py-3 px-4 h-[44px] w-full text-left transition-colors ${
-                      isActive
-                        ? "  bg-gradient-to-r from-[#2372EC] via-[#68A3FF] to-[#2373EC] hover:from-[#1760cd] hover:via-[#1760cd] hover:to-[#1760cd] text-white border-l-[3px] border-[#96BFFF] "
-                        : "text-gray-800 hover:bg-gray-100"
+                    `flex items-center gap-[6px] py-3 px-4 h-[44px] w-full text-left transition-colors ${isActive
+                      ? "  bg-gradient-to-r from-[#2372EC] via-[#68A3FF] to-[#2373EC] hover:from-[#1760cd] hover:via-[#1760cd] hover:to-[#1760cd] text-white border-l-[3px] border-[#96BFFF] "
+                      : "text-gray-800 hover:bg-gray-100"
                     }`
                   }
                 >
@@ -319,11 +350,10 @@ const DocSidebar = () => {
                 <button
                   type="button"
                   onClick={() => setOpenSettings((v) => !v)}
-                  className={`w-full flex items-center justify-between py-3 px-4 h-[44px] transition-colors ${
-                    isSettingsRoute
-                      ? "bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF]"
-                      : "text-gray-800 hover:bg-gray-100"
-                  }`}
+                  className={`w-full flex items-center justify-between py-3 px-4 h-[44px] transition-colors ${isSettingsRoute
+                    ? "bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF]"
+                    : "text-gray-800 hover:bg-gray-100"
+                    }`}
                 >
                   <span className="inline-flex items-center gap-[6px]">
                     <img
@@ -348,10 +378,9 @@ const DocSidebar = () => {
                           <NavLink
                             to={s.to}
                             className={({ isActive }) =>
-                              `block text-sm px-3 py-2 my-[2px] rounded-sm ${
-                                isActive
-                                  ? "bg-blue-50 text-gray-900"
-                                  : "text-gray-700 hover:bg-gray-50"
+                              `block text-sm px-3 py-2 my-[2px] rounded-sm ${isActive
+                                ? "bg-blue-50 text-gray-900"
+                                : "text-gray-700 hover:bg-gray-50"
                               }`
                             }
                           >
@@ -363,10 +392,9 @@ const DocSidebar = () => {
                                 key={sub.to}
                                 to={sub.to}
                                 className={({ isActive }) =>
-                                  `block text-xs px-3 py-1 my-[2px] rounded-sm ${
-                                    isActive
-                                      ? "bg-blue-100 text-gray-900"
-                                      : "text-gray-700 hover:bg-gray-50"
+                                  `block text-xs px-3 py-1 my-[2px] rounded-sm ${isActive
+                                    ? "bg-blue-100 text-gray-900"
+                                    : "text-gray-700 hover:bg-gray-50"
                                   }`
                                 }
                               >
@@ -380,10 +408,9 @@ const DocSidebar = () => {
                           key={s.to}
                           to={s.to}
                           className={({ isActive }) =>
-                            `block text-sm px-3 py-2 my-[2px] rounded-sm ${
-                              isActive
-                                ? "bg-blue-50 text-gray-900"
-                                : "text-gray-700 hover:bg-gray-50"
+                            `block text-sm px-3 py-2 my-[2px] rounded-sm ${isActive
+                              ? "bg-blue-50 text-gray-900"
+                              : "text-gray-700 hover:bg-gray-50"
                             }`
                           }
                         >

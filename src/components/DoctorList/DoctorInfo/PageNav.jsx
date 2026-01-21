@@ -11,7 +11,7 @@ const PageNav = ({ doctor, selectedClinicId }) => {
   // Simple per-doctor cache to prevent repeat API calls on tab switches
   const cacheRef = useRef({
     info: {},
-  clinical: {},
+    clinical: {},
     consultationByClinic: {}, // { [clinicId]: consultationDetails }
   });
 
@@ -49,7 +49,7 @@ const PageNav = ({ doctor, selectedClinicId }) => {
           <Consultation
             doctor={doctor}
             onLoadingChange={setPageLoading}
-      clinicId={selectedClinicId}
+            clinicId={selectedClinicId}
             cache={cacheRef.current.consultationByClinic[selectedClinicId]}
             updateCache={(details) => {
               const cid = selectedClinicId;
@@ -59,11 +59,11 @@ const PageNav = ({ doctor, selectedClinicId }) => {
           />
         );
       case "staff":
-  // No universal loader for staff for now
-  return <Staff doctor={doctor} />;
+        // No universal loader for staff for now
+        return <Staff doctor={doctor} />;
       case "billing":
-  // No universal loader for billing for now
-  return <div className="p-4 text-gray-500">Billing & Subscription (Coming Soon)</div>;
+        // No universal loader for billing for now
+        return <div className="p-4 text-gray-500">Billing & Subscription (Coming Soon)</div>;
       default:
         return null;
     }
@@ -93,9 +93,9 @@ const PageNav = ({ doctor, selectedClinicId }) => {
                     setPageLoading(false);
                   }
                 }}
-    className={`whitespace-nowrap px-[6px] py-1 pb-2 border-b-2 transition-colors ${active
-                    ? "border-blue-600 text-blue-primary250"
-                    : "border-transparent text-secondary-grey300 hover:text-gray-900"
+                className={`whitespace-nowrap px-[6px] py-1 pb-2 border-b-2 transition-colors ${active
+                  ? "border-blue-600 text-blue-primary250"
+                  : "border-transparent text-secondary-grey300 hover:text-gray-900"
                   }`}
               >
                 {t.label}
@@ -107,7 +107,7 @@ const PageNav = ({ doctor, selectedClinicId }) => {
 
       {/* Content */}
       <div className=" bg-secondary-grey50 relative min-h-[200px]">
-  {pageLoading && (activeTab === 'personal' || activeTab === 'consultation' || activeTab === 'clinical') && (
+        {pageLoading && (activeTab === 'personal' || activeTab === 'consultation' || activeTab === 'clinical') && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70 z-10">
             <UniversalLoader size={28} />
           </div>

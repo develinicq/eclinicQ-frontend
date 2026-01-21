@@ -116,7 +116,7 @@ function HospitalList() {
 
       {loading && (
         <div className="flex items-center justify-center bg-white h-full">
-          <UniversalLoader size={30} className='bg-white' />
+          <UniversalLoader size={30}  />
         </div>
       )}
 

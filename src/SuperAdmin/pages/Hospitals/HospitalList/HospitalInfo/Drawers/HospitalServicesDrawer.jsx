@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 const trash = '/trash_red.png'
 
 const defaultServices = [
-    "24x7 Pharmacy","Ambulance Service","Blood Bank","Cafeteria","CT Scan","Diagnostic Lab","Emergency Room","ICU","MRI Scan","NICU","Operation Theater","Parking","Physiotherapy","Private Rooms","Ultrasound","Ventilator","Waiting Area","Wheelchair Access","X-Ray","WiFi"
+    "24x7 Pharmacy", "Ambulance Service", "Blood Bank", "Cafeteria", "CT Scan", "Diagnostic Lab", "Emergency Room", "ICU", "MRI Scan", "NICU", "Operation Theater", "Parking", "Physiotherapy", "Private Rooms", "Ultrasound", "Ventilator", "Waiting Area", "Wheelchair Access", "X-Ray", "WiFi"
 ];
 
 export default function HospitalServicesDrawer({ open, onClose, selectedItems = [], onSave }) {
@@ -14,12 +14,14 @@ export default function HospitalServicesDrawer({ open, onClose, selectedItems = 
     const [isAddingString, setIsAddingString] = useState(false);
     const [newItemValue, setNewItemValue] = useState("");
     const inputRef = useRef(null);
-    useEffect(() => { if (open) {
-        setSelected(selectedItems || []);
-        const unknownItems = (selectedItems || []).filter(s => !defaultServices.includes(s));
-        setCustomServices(prev => Array.from(new Set([...prev, ...unknownItems])));
-        setIsAddingString(false); setNewItemValue("");
-    } }, [open, selectedItems]);
+    useEffect(() => {
+        if (open) {
+            setSelected(selectedItems || []);
+            const unknownItems = (selectedItems || []).filter(s => !defaultServices.includes(s));
+            setCustomServices(prev => Array.from(new Set([...prev, ...unknownItems])));
+            setIsAddingString(false); setNewItemValue("");
+        }
+    }, [open, selectedItems]);
     useEffect(() => { if (isAddingString && inputRef.current) inputRef.current.focus(); }, [isAddingString]);
     const toggleItem = (item) => setSelected(sel => sel.includes(item) ? sel.filter(i => i !== item) : [...sel, item]);
     const handleSave = () => { onSave?.(selected); onClose?.(); };

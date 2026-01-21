@@ -187,7 +187,9 @@ const Layout_registration_new = () => {
           setFooterLoading(true);
           try {
             const success = await step2Ref.current.submit();
+            console.log("Layout: Step 2 submit returned", success);
             if (success) {
+              console.log("Layout: Calling nextStep()");
               nextStep();
             }
           } catch (error) {
@@ -545,10 +547,10 @@ const Layout_registration_new = () => {
         } finally {
           setFooterLoading(false);
         }
-      } else if (currentStep === 7) {
+      } else if (currentStep === (formData.isDoctor === 'no' ? 6 : 7)) {
         // Navigate to hospital profile/dashboard
         navigate('/hospitals');
-      } else if (currentStep < 7) {
+      } else {
         nextStep();
       }
     }
@@ -751,12 +753,12 @@ const Layout_registration_new = () => {
             return formData.hosTermsAccepted && formData.hosPrivacyAccepted ? "Save & Activate" : "Accept Terms to Continue";
           }
         }
-      } else if (currentStep === 6) {
-        // Package & Payment step - only when user is a doctor
-        return "Send Payment Link";
-      } else if (currentStep === 7) {
-        // Profile completion page
+      } else if (currentStep === (formData.isDoctor === 'no' ? 6 : 7)) {
+        // Profile completion page (Hos_7)
         return "Go to Profile";
+      } else if (currentStep === 6 && formData.isDoctor === 'yes') {
+        // Package & Payment step (Hos_6) - only when user is a doctor
+        return "Send Payment Link";
       }
       return "Save & Next →";
     }
@@ -765,11 +767,11 @@ const Layout_registration_new = () => {
   };
 
   const nextLabel = getNextButtonLabel();
-  const maxSteps = registrationType === 'doctor' ? 6 : 7;
+  const maxSteps = registrationType === 'doctor' ? 6 : (formData.isDoctor === 'no' ? 6 : 7);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <div className="flex-none z-30 bg-white">
+      <div className="flex-none z-[110] bg-white">
         <Navbar />
       </div>
       <div className="flex-1 flex bg-gray-100 p-3 gap-3 overflow-hidden">
@@ -832,7 +834,11 @@ const Layout_registration_new = () => {
             nextLabel={nextLabel}
             disablePrev={
               (registrationType === 'doctor' && (currentStep === 1 || currentStep === 2 || currentStep === 6)) ||
-              (registrationType === 'hospital' && currentStep === 2 && ((formData.hosStep3SubStep || 1) === 1))
+              (registrationType === 'hospital' && (
+                currentStep === 1 ||
+                (currentStep === 2 && (formData.hosStep3SubStep || 1) === 1) ||
+                (currentStep === maxSteps)
+              ))
             }
             loading={footerLoading}
           />

@@ -23,6 +23,17 @@ export const getDoctorDetailsByIdBySuperAdmin = async (userId) => {
   }
 };
 
+// Get all doctors for Hospital Admin
+export const getDoctorsForHospital = async (hospitalId) => {
+  if (!hospitalId) throw new Error("hospitalId is required");
+  try {
+    const res = await axios.get(`/doctors/for-hospital-admin/${hospitalId}/doctors-list`);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Get patient overview and demographics for a doctor view
 export const getPatientOverviewForDoctor = async (patientId) => {
   if (!patientId) throw new Error('patientId is required');
@@ -281,6 +292,33 @@ export const updateDoctorProfessionalDetailsForSuperAdmin = async (doctorId, pay
   try {
     const res = await axios.put(`/doctors/forSuperAdmin/doctorDetails/personalInfo/professionalDetails/${encodeURIComponent(doctorId)}`, payload);
     return res.data; // { success, message, data: { ... } }
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Update Super Admin view: consultation details
+export const updateDoctorConsultationDetailsForSuperAdmin = async (doctorId, payload, params) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  if (!payload || typeof payload !== 'object') throw new Error("payload is required");
+  try {
+    const res = await axios.put(`/doctors/forSuperAdmin/doctorDetails/consultationDetails/${encodeURIComponent(doctorId)}`, payload, {
+      params,
+    });
+    return res.data; // { success, message, data: { ... } }
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Get dashboard analytics for Doctor
+ * @param {Object} params - { clinicId, aggregationType: 'daily'|'weekly'|'monthly'|'yearly' }
+ */
+export const getDoctorDashboardAnalytics = async (params = {}) => {
+  try {
+    const res = await axios.get('/doctors/dashboard/analytics', { params });
+    return res.data;
   } catch (error) {
     throw error;
   }

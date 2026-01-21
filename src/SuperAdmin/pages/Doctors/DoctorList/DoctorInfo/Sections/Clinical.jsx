@@ -264,7 +264,7 @@ const Clinical = ({ doctor, onLoadingChange, cache = {}, updateCache }) => {
   if (clinicalLoading) {
     return (
       <div className="relative min-h-[320px]">
-        <div className="absolute inset-0 flex items-center justify-center bg-white">
+        <div className="absolute inset-0 flex items-center justify-center ">
           <UniversalLoader size={28} />
         </div>
       </div>

@@ -1,5 +1,5 @@
 // HAccount.jsx
-import React, { useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Phone,
   Mail,
@@ -19,7 +19,9 @@ import MedicalSpecialtiesDrawer from './Drawers/MedicalSpecialtiesDrawer'
 import HospitalServicesDrawer from './Drawers/HospitalServicesDrawer'
 import AddAwardDrawer from './Drawers/AddAwardDrawer'
 import AccreditationDrawer from './Drawers/AccreditationDrawer'
-
+import { getHospitalAccountSettings } from '../../../services/hospitalService'
+import useHospitalAuthStore from '../../../store/useHospitalAuthStore'
+import UniversalLoader from '../../../components/UniversalLoader'
 
 // Custom Images Import (matching Doc_settings)
 import {
@@ -34,6 +36,7 @@ import {
   publication,
   award
 } from '../../../../public/index.js'
+import { getPublicUrl } from '../../../services/uploadsService'
 
 
 // --- Components from Doc_settings.jsx (EXACT COPY) ---
@@ -227,39 +230,164 @@ const ProfileItemCard = ({
 };
 // --- End Exact Copies ---
 
-export default function HAccount({ profile }) {
-  if (!profile) return null
+export default function HAccount({ profile: initialProfile }) {
+  const { hospitalId } = useHospitalAuthStore();
 
   // State for Add Menu Toggle (matching Doc_settings)
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [hospitalInfoOpen, setHospitalInfoOpen] = useState(false);
   const [specialtiesOpen, setSpecialtiesOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
-
   const [awardOpen, setAwardOpen] = useState(false);
   const [awardEditMode, setAwardEditMode] = useState("add");
   const [awardEditData, setAwardEditData] = useState(null);
-
   const [accreditationOpen, setAccreditationOpen] = useState(false);
   const [accreditationEditMode, setAccreditationEditMode] = useState("add");
   const [accreditationEditData, setAccreditationEditData] = useState(null);
 
-  // Dummy awards data if none provided
-  const awards = profile.awards || [
-    { id: 1, awardName: "Best Plasticene Award", issuerName: "Manipal hospital", issueDate: "May 2017", awardUrl: "#" },
-    { id: 2, awardName: "Best Plasticene Award", issuerName: "Manipal hospital", issueDate: "May 2017", awardUrl: "#" },
-    { id: 3, awardName: "NABH - National Accreditation Board", issuerName: "Manipal hospital", issueDate: "May 2017", awardUrl: "#" },
-    { id: 4, awardName: "ISO Certifications", issuerName: "Manipal hospital", issueDate: "May 2017", awardUrl: "#" },
-    { id: 5, awardName: "JCI - Joint Commission International", issuerName: "Manipal hospital", issueDate: "May 2017", awardUrl: "#" }
-  ]
+  const [settingsData, setSettingsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const publications = profile.publications || [];
+  useEffect(() => {
+    let ignore = false;
+    const fetchSettings = async () => {
+      if (!hospitalId) {
+        setLoading(false);
+        return;
+      }
+      if (!settingsData) setLoading(true);
+      setError(null);
+      try {
+        const res = await getHospitalAccountSettings(hospitalId);
+        if (res && res.success && res.data && !ignore) {
+          setSettingsData(res.data);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(err?.response?.data?.message || err.message || "Failed to load account settings");
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+    fetchSettings();
+    return () => { ignore = true; };
+  }, [hospitalId, refreshTrigger]);
+  const [resolvedPhotos, setResolvedPhotos] = useState([]);
+
+  useEffect(() => {
+    if (!settingsData) return;
+    const loadPhotos = async () => {
+      const p = settingsData.hospitalPhotos || {};
+      // Order: Cover Image, then Logo
+      const sources = [p.coverImage, p.logo].filter(Boolean);
+
+      if (sources.length === 0) {
+        setResolvedPhotos([]);
+        return;
+      }
+
+      try {
+        // Resolve all URLs
+        const urls = await Promise.all(sources.map(s => getPublicUrl(s)));
+        setResolvedPhotos(urls);
+      } catch (e) {
+        console.error("Failed to resolve photo URLs", e);
+        setResolvedPhotos([]);
+      }
+    };
+    loadPhotos();
+  }, [settingsData]);
+
+  // Move data destructuring and hooks BEFORE any conditional returns
+  const data = settingsData || {};
+  const hInfo = data.hospitalInfo || {};
+  const hAddr = data.hospitalAddress || {};
+  const admin = data.primaryAdminDetails || {};
+  const photos = data.hospitalPhotos || {};
+  const specialties = data.medicalSpecialties || [];
+  const services = data.hospitalServices || [];
+
+  // Awards & Accreditations
+  const awardsList = data.awards || [];
+  const accreditationsList = data.accreditations || [];
+
+  // Documents
+  const gst = data.gstDetails || {};
+  const cin = data.cinDetails || {};
+  const shr = data.stateHealthRegistration || {};
+
+  const profileForDrawers = useMemo(() => ({
+    hospitalName: hInfo.name,
+    type: hInfo.type || "Multi-Speciality",
+    phone: hInfo.mobile,
+    email: hInfo.emailId,
+    estDate: hInfo.establishmentDate,
+    website: hInfo.website,
+    emergencyPhone: hInfo.emergencyContactNo,
+    beds: hInfo.noOfBeds,
+    icuBeds: hInfo.noOfIcuBeds,
+    ambulances: hInfo.noOfAmbulances,
+    ambulancePhone: hInfo.ambulanceContactNo,
+    bloodBank: hInfo.hasBloodBank,
+    bloodBankPhone: hInfo.bloodBankContactNo,
+    about: hInfo.about,
+    address: {
+      block: hAddr.blockNo,
+      road: hAddr.street,
+      landmark: hAddr.landmark,
+      pincode: hAddr.pincode
+    },
+    city: hAddr.city,
+    state: hAddr.state,
+    latitude: hAddr.latitude,
+    longitude: hAddr.longitude,
+    photos: [photos.coverImage, photos.logo].filter(Boolean),
+    admin: {
+      firstName: admin.firstName,
+      lastName: admin.lastName,
+      mobileNumber: admin.mobile,
+      email: admin.emailId,
+      gender: admin.gender,
+      city: admin.city
+    }
+  }), [hInfo, hAddr, photos, admin]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-80 flex items-center justify-center">
+        <UniversalLoader size={40} />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="w-full p-6 text-center text-error-500 bg-error-50 border border-error-100 rounded-lg">
+        {error}
+      </div>
+    )
+  }
 
   // Helpers
   const formatMonthYear = (dateStr) => {
-    // Mock formatting/returning already formatted string for dummy data
-    return dateStr;
+    if (!dateStr) return "-";
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    } catch { return dateStr; }
   }
+
+  const formatAddress = () => {
+    if (hAddr.fullAddress) {
+      const { blockNo, street, landmark } = hAddr.fullAddress;
+      return [blockNo, street, landmark].filter(Boolean).join(", ");
+    }
+    return [hAddr.blockNo, hAddr.street, hAddr.landmark].filter(Boolean).join(", ");
+  }
+
 
   // Verified Badge Component
   const VerifiedBadge = () => (
@@ -268,6 +396,7 @@ export default function HAccount({ profile }) {
       Verified
     </span>
   )
+
 
   return (
     <>
@@ -284,36 +413,36 @@ export default function HAccount({ profile }) {
             onIconClick={() => setHospitalInfoOpen(true)}
           >
             <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-              <InfoField label="Hospital Name" value={profile.hospitalName || "Manipal Hospital"} />
-              <InfoField label="Hospital Type" value={profile.type || "Multi-Speciality Hospital"} />
-              <InfoField label="Mobile Number" value={profile.phone} right={<VerifiedBadge />} />
-              <InfoField label="Email" value={profile.email} right={<VerifiedBadge />} />
-              <InfoField label="Establishment Date" value={profile.estDate || "10/09/2005"} />
+              <InfoField label="Hospital Name" value={hInfo.name} />
+              <InfoField label="Hospital Type" value={hInfo.type} />
+              <InfoField label="Mobile Number" value={hInfo.mobile || "-"} right={<VerifiedBadge />} />
+              <InfoField label="Email" value={hInfo.emailId || "-"} right={<VerifiedBadge />} />
+              <InfoField label="Establishment Date" value={hInfo.establishmentDate || "-"} />
 
               {/* Establishment Proof using InputWithMeta */}
               <div>
                 <div className="text-[14px] text-secondary-grey200 mb-1">Establishment Proof</div>
                 <InputWithMeta
                   imageUpload={true}
-                  fileName={"Establishment.pdf"}
+                  fileName={hInfo.establishmentProof ? "Establishment.pdf" : "No file"} // Enhance real logic if URL processing needed
                   onFileView={(f) => console.log('view', f)}
                   showInput={false}
                 />
               </div>
 
-              <InfoField label="Website" value={profile.website} />
-              <InfoField label="Emergency Contact Number" value={profile.emergencyPhone || profile.phone} />
-              <InfoField label="Number of Beds" value={profile.beds || "600"} />
-              <InfoField label="Number of ICU Beds" value={profile.icuBeds || "126"} />
-              <InfoField label="Number of Ambulances" value={profile.ambulances || "5"} />
-              <InfoField label="Ambulance Contact Number" value={profile.ambulancePhone || profile.phone} />
-              <InfoField label="Do you have Blood Bank" value={profile.bloodBank ? "Yes" : "No"} />
-              <InfoField label="Blood Bank Contact Number" value={profile.bloodBankPhone || profile.phone} />
+              <InfoField label="Website" value={hInfo.website} />
+              <InfoField label="Emergency Contact Number" value={hInfo.emergencyContactNo} />
+              <InfoField label="Number of Beds" value={hInfo.noOfBeds} />
+              <InfoField label="Number of ICU Beds" value={hInfo.noOfIcuBeds} />
+              <InfoField label="Number of Ambulances" value={hInfo.noOfAmbulances} />
+              <InfoField label="Ambulance Contact Number" value={hInfo.ambulanceContactNo} />
+              <InfoField label="Do you have Blood Bank" value={hInfo.hasBloodBank ? "Yes" : "No"} />
+              <InfoField label="Blood Bank Contact Number" value={hInfo.bloodBankContactNo} />
             </div>
 
             <div className="pt-4 pb-4">
               <div className="text-sm text-secondary-grey200 mb-1">About</div>
-              <p className="text-sm leading-relaxed text-secondary-grey400">{profile.about || "Dr. Milind Chauhan practices Gynaecologist and Obstetrician in Andheri East, Mumbai and has 13 years of experience in this field..."}</p>
+              <p className="text-sm leading-relaxed text-secondary-grey400">{hInfo.about || "-"}</p>
             </div>
 
             <InputWithMeta
@@ -323,9 +452,13 @@ export default function HAccount({ profile }) {
             >
             </InputWithMeta>
             <div className="flex gap-4 overflow-x-auto pb-1">
-              {(profile.photos && profile.photos.length > 0 ? profile.photos : ['/placeholder_clinic.jpg', '/placeholder_clinic.jpg']).map((src, i) => (
-                <img key={i} src={src} alt="hospital" className="w-[120px] h-[120px] rounded-md object-cover border border-gray-100" />
-              ))}
+              {resolvedPhotos.length > 0 ? (
+                resolvedPhotos.map((src, i) => (
+                  <img key={i} src={src} alt="hospital" className="w-[120px] h-[120px] rounded-md object-cover border border-gray-100" />
+                ))
+              ) : (
+                <div className="text-sm text-gray-400">No photos uploaded</div>
+              )}
             </div>
           </SectionCard>
 
@@ -334,24 +467,24 @@ export default function HAccount({ profile }) {
           {/* Medical Specialties */}
           <SectionCard title="Medical Specialties" subtitle="Visible to Patient" Icon={pencil} onIconClick={() => setSpecialtiesOpen(true)}>
             <div className="flex flex-wrap gap-2">
-              {(profile.specialties || ['Anaesthesiology', 'Cardiology', 'Dermatology', 'Orthopedics']).map((s, i) => (
-                <span key={i} className="px-1 rounded-[2px] border border-gray-100 bg-gray-50 text-sm text-secondary-grey400 hover:border-blue-primary150 hover:text-blue-primary250 cursor-pointer">{s}</span>
-              ))}
+              {specialties.length > 0 ? specialties.map((s, i) => (
+                <span key={i} className="px-1 rounded-[2px] border border-gray-100 bg-gray-50 text-sm text-secondary-grey400 hover:border-blue-primary150 hover:text-blue-primary250 cursor-pointer">{s.name || s}</span>
+              )) : <span className="text-sm text-gray-400">No specialties listed</span>}
             </div>
           </SectionCard>
 
           {/* Services & Facilities */}
           <SectionCard title="Hospital Services & Facilities" subtitle="Visible to Patient" Icon={pencil} onIconClick={() => setServicesOpen(true)}>
             <div className="flex flex-wrap gap-3">
-              {(profile.services || ['MRI Scan', 'CT Scan', 'Blood Bank', 'Parking']).map((s, i) => (
+              {services.length > 0 ? services.map((s, i) => (
                 <span key={i} className="px-1 rounded-[2px] border border-gray-100 bg-gray-50 text-sm text-secondary-grey400 hover:border-blue-primary150 hover:text-blue-primary250 cursor-pointer">{s}</span>
-              ))}
+              )) : <span className="text-sm text-gray-400">No services listed</span>}
             </div>
           </SectionCard>
 
           {/* Awards & Publications (EXACT FROM DOC SETTINGS) */}
           <SectionCard
-            title="Awards & Publications"
+            title="Awards & Settings"
             subtitle="Visible to Patient"
             Icon={add}
             onIconClick={() => setShowAddMenu((v) => !v)}
@@ -381,8 +514,8 @@ export default function HAccount({ profile }) {
               )}
             </div>
             <div className="space-y-2">
-              {Array.isArray(awards) &&
-                awards.map((aw) => (
+              {awardsList.length > 0 &&
+                awardsList.map((aw) => (
                   <ProfileItemCard
                     key={aw.id}
                     icon={award}
@@ -402,16 +535,16 @@ export default function HAccount({ profile }) {
                   />
                 ))}
 
-              {Array.isArray(publications) &&
-                publications.map((pub) => (
+              {accreditationsList.length > 0 &&
+                accreditationsList.map((pub) => (
                   <ProfileItemCard
                     key={pub.id}
                     icon={publication}
-                    title={pub.title}
-                    subtitle={pub.publisher || pub.associatedWith}
-                    date={pub.publicationDate ? formatMonthYear(pub.publicationDate) : undefined}
-                    linkLabel="Publication ↗"
-                    linkUrl={pub.publicationUrl}
+                    title={pub.accreditationName}
+                    subtitle={pub.accreditingBody}
+                    date={pub.issueDate ? formatMonthYear(pub.issueDate) : undefined}
+                    linkLabel="Certificate ↗"
+                    linkUrl={pub.certificateUrl}
                     description={pub.description}
                     rightActions={
                       <button
@@ -428,6 +561,9 @@ export default function HAccount({ profile }) {
                     }
                   />
                 ))}
+              {awardsList.length === 0 && accreditationsList.length === 0 && (
+                <div className="text-sm text-gray-400 italic">No awards or accreditations added</div>
+              )}
             </div>
           </SectionCard>
 
@@ -449,16 +585,16 @@ export default function HAccount({ profile }) {
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div className="grid grid-cols-2 gap-8">
-                <InfoField label="Block no./Shop no./House no." value={profile.address?.block || "Survey No 111/11/1"} />
-                <InfoField label="Road/Area/Street" value={profile.address?.road || "Veerbhadra Nagar Road, Mhalunge Main Road, Baner"} />
+                <InfoField label="Block no./Shop no./House no." value={hAddr.blockNo || "-"} />
+                <InfoField label="Road/Area/Street" value={hAddr.street || "-"} />
               </div>
               <div className="grid grid-cols-2 gap-8">
-                <InfoField label="Landmark" value={profile.address?.landmark || "Near Chowk"} />
-                <InfoField label="Pincode" value={profile.address?.pincode || "444001"} />
+                <InfoField label="Landmark" value={hAddr.landmark || "-"} />
+                <InfoField label="Pincode" value={hAddr.pincode || "-"} />
               </div>
               <div className="grid grid-cols-2 gap-8">
-                <InfoField label="City" value={profile.city || "Akola"} />
-                <InfoField label="State" value={profile.state || "Maharashtra"} />
+                <InfoField label="City" value={hAddr.city || "-"} />
+                <InfoField label="State" value={hAddr.state || "-"} />
               </div>
             </div>
           </SectionCard>
@@ -466,14 +602,14 @@ export default function HAccount({ profile }) {
           {/* Primary Admin */}
           <SectionCard title="Primary Admin Account Details" subo="To Change Admin Details" headerRight={<></>}>
             <div className="grid grid-cols-2 gap-x-7 gap-y-3">
-              <InfoField label="First Name" value={profile.admin?.firstName || "Milind"} />
-              <InfoField label="Last Name" value={profile.admin?.lastName || "Chauhan"} />
-              <InfoField label="Mobile Number" value={profile.admin?.phone || "91753 67487"} right={<VerifiedBadge />} />
-              <InfoField label="Email" value={profile.admin?.email || "milindchachun.gmail.com"} right={<VerifiedBadge />} />
-              <InfoField label="Gender" value={profile.admin?.gender || "Male"} />
-              <InfoField label="City" value={profile.admin?.city || "Akola, Maharashtra"} />
-              <InfoField label="Designation" value={profile.admin?.designation || "Business Owner"} />
-              <InfoField label="Role" value={profile.admin?.role || "Super Admin"} />
+              <InfoField label="First Name" value={admin.firstName || "-"} />
+              <InfoField label="Last Name" value={admin.lastName || "-"} />
+              <InfoField label="Mobile Number" value={admin.mobile || "-"} right={<VerifiedBadge />} />
+              <InfoField label="Email" value={admin.emailId || "-"} right={<VerifiedBadge />} />
+              <InfoField label="Gender" value={admin.gender || "-"} />
+              <InfoField label="City" value={admin.city || "-"} />
+              <InfoField label="Designation" value={admin.designation || "-"} />
+              <InfoField label="Role" value={"Hospital Admin"} />
             </div>
           </SectionCard>
 
@@ -492,10 +628,10 @@ export default function HAccount({ profile }) {
 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
-                  <div><InfoField label="GST Number" value={profile.gst?.number || "27AAECA1234F1Z5"} /></div>
+                  <div><InfoField label="GST Number" value={gst.gstNumber || "-"} /></div>
                   <div>
                     <div className="text-[14px] text-secondary-grey200 mb-1">Proof of GST Registration</div>
-                    <InputWithMeta imageUpload={true} fileName="GST Proof.pdf" showInput={false} />
+                    <InputWithMeta imageUpload={true} fileName={gst.proofUrl ? "GST Proof.pdf" : "No File"} showInput={false} />
                   </div>
                 </div>
               </div>
@@ -509,21 +645,15 @@ export default function HAccount({ profile }) {
                   </span>
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-7 gap-y-4">
-                  <InfoField label="CIN Number" value={profile.cin?.number || "27AAECA1234F1Z5"} />
-                  <InfoField label="Registered Company Name" value={profile.cin?.company || "Manipal Hospital Pvt. Ltd."} />
-                  <InfoField label="Company Type" value={profile.cin?.type || "Private Limited"} />
-                  <InfoField label="Date of Incorporation" value={profile.cin?.incorporation || "02/05/2015"} />
-                  <InfoField label="Registered Office Address" value={profile.cin?.address || "101, FC Road, Pune"} />
-                  <InfoField label="State and ROC Code" value={profile.cin?.stateCode || "PN (Maharashtra)"} />
-                  <InfoField label="Authorized Director" value={profile.cin?.director || "Dr. R. Mehta"} />
-                  <InfoField label="Registration Number" value="012345" />
-                  <InfoField label="Authorized Email (From MCA)" value="info@manipalhospital.in" />
+                  <InfoField label="CIN Number" value={cin.cinNumber || "-"} />
+                  {/* Additional CIN fields not in current API response for view, simplifying display or using placeholders if strictly needed */}
+
                   <div>
 
 
                     <div>
                       <div className="text-[14px] text-secondary-grey200 mb-">Proof of CIN Registration</div>
-                      <InputWithMeta imageUpload={true} fileName="CIN Proof.pdf" showInput={false} />
+                      <InputWithMeta imageUpload={true} fileName={cin.proofUrl ? "CIN Proof.pdf" : "No File"} showInput={false} />
                     </div>
 
                   </div>
@@ -539,63 +669,34 @@ export default function HAccount({ profile }) {
                   </span>
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
-                  <InfoField label="State Health Registartion Number" value="27AAECA1234F1Z5" />
+                  <InfoField label="State Health Registartion Number" value={shr.registrationNumber || "-"} />
                   <div>
                     <div className="text-[14px] text-secondary-grey200 ">Proof of State Health Registration</div>
-                    <InputWithMeta imageUpload={true} fileName="SHR Proof.pdf" showInput={false} />
+                    <InputWithMeta imageUpload={true} fileName={shr.proofUrl ? "SHR Proof.pdf" : "No File"} showInput={false} />
                   </div>
                 </div>
               </div>
 
-              {/* PAN Card */}
-              <div className="pt-2 gap-2 flex flex-col">
-                <h4 className="text-sm font-semibold text-secondary-grey400">
-                  <span className="relative inline-block pb-2">
-                    PAN Card Details
-                    <span className="absolute left-1/2 bottom-0 h-[2px] w-full -translate-x-3/4 scale-x-50 bg-blue-primary150/50"></span>
-                  </span>
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
-                  <InfoField label="Pan Card Number" value="27AAECA1234F1Z5" />
-                  <div>
-                    <div className="text-[14px] text-secondary-grey200 ">Proof of Pan Card</div>
-                    <InputWithMeta imageUpload={true} fileName="PAN Proof.pdf" showInput={false} />
+              {/* PAN Card - Placeholder if not in API yet */}
+              {/* 
+                  <div className="pt-2 gap-2 flex flex-col">
+                    ... (PAN UI)
                   </div>
-                </div>
-              </div>
+               */}
 
-              {/* Rohini */}
-              <div className="pt-2 gap-2 flex flex-col">
-                <h4 className="text-sm font-semibold text-secondary-grey400">
-                  <span className="relative inline-block pb-2">
-                    Rohini Details
-                    <span className="absolute left-1/2 bottom-0 h-[2px] w-full -translate-x-3/4 scale-x-50 bg-blue-primary150/50"></span>
-                  </span>
-                </h4>              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InfoField label="Rohini ID" value="27AAECA1234F1Z5" />
-                  <div>
-                    <div className="text-[14px] text-secondary-grey200 mb-1">Proof of Rohini</div>
-                    <InputWithMeta imageUpload={true} fileName="Rohini Proof.pdf" showInput={false} />
-                  </div>
+              {/* Rohini - Placeholder if not in API yet */}
+              {/* 
+                <div className="pt-2 gap-2 flex flex-col">
+                   ... (Rohini UI)
                 </div>
-              </div>
+              */}
 
-              {/* NABH */}
-              <div className="pt-2 flex flex-col gap-2">
-                <h4 className="text-sm font-semibold text-secondary-grey400">
-                  <span className="relative inline-block pb-2">
-                    NABH Accreditation Details
-                    <span className="absolute left-1/2 bottom-0 h-[2px] w-full -translate-x-3/4 scale-x-50 bg-blue-primary150/50"></span>
-                  </span>
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InfoField label="NABH Number" value="27AAECA1234F1Z5" />
-                  <div>
-                    <div className="text-[14px] text-secondary-grey200 mb-1">Proof of NABH</div>
-                    <InputWithMeta imageUpload={true} fileName="NABH Proof.pdf" showInput={false} />
-                  </div>
-                </div>
-              </div>
+              {/* NABH - Placeholder if not in API yet */}
+              {/* 
+                 <div className="pt-2 flex flex-col gap-2">
+                  ... (NABH UI)
+                 </div>
+              */}
 
             </div>
           </SectionCard>
@@ -606,37 +707,34 @@ export default function HAccount({ profile }) {
       <HospitalInfoDrawer
         open={hospitalInfoOpen}
         onClose={() => setHospitalInfoOpen(false)}
-        initial={profile}
-        onSave={(updatedData) => {
-          console.log("Updated Hospital Info:", updatedData);
-          // Here you would typically call an API to update the profile
-        }}
+        initial={profileForDrawers}
+        onSave={() => setRefreshTrigger(prev => prev + 1)}
       />
       <MedicalSpecialtiesDrawer
         open={specialtiesOpen}
         onClose={() => setSpecialtiesOpen(false)}
-        selectedItems={profile.specialties || ['Anaesthesiology', 'Cardiology', 'Dermatology', 'Orthopedics']}
-        onSave={(items) => console.log('Updated Specialties:', items)}
+        selectedItems={specialties.map(s => s.name || s) || []}
+        onSave={() => setRefreshTrigger(prev => prev + 1)}
       />
       <HospitalServicesDrawer
         open={servicesOpen}
         onClose={() => setServicesOpen(false)}
-        selectedItems={profile.services || ['MRI Scan', 'CT Scan', 'Blood Bank', 'Parking']}
-        onSave={(items) => console.log('Updated Services:', items)}
+        selectedItems={services || []}
+        onSave={() => setRefreshTrigger(prev => prev + 1)}
       />
       <AddAwardDrawer
         open={awardOpen}
         onClose={() => setAwardOpen(false)}
         mode={awardEditMode}
         initial={awardEditData || {}}
-        onSave={(data) => console.log("Saved Award:", data)}
+        onSuccess={() => setRefreshTrigger(prev => prev + 1)}
       />
       <AccreditationDrawer
         open={accreditationOpen}
         onClose={() => setAccreditationOpen(false)}
         mode={accreditationEditMode}
         initial={accreditationEditData || {}}
-        onSave={(data) => console.log("Saved Accreditation:", data)}
+        onSuccess={() => setRefreshTrigger(prev => prev + 1)}
       />
     </>
   )

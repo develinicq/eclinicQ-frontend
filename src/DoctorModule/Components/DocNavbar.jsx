@@ -11,10 +11,15 @@ import {
   whiteLogout,
   searchIcon,
 } from "../../../public/index.js";
-import useAuthStore from "../../store/useAuthStore";
+// import useAuthStore from "../../store/useAuthStore";
+import useDoctorAuthStore from "@/store/useDoctorAuthStore";
+import useHospitalAuthStore from "@/store/useHospitalAuthStore";
+import useSuperAdminAuthStore from "@/store/useSuperAdminAuthStore";
+import useUIStore from "@/store/useUIStore";
 import AvatarCircle from "../../components/AvatarCircle";
 import SearchInput from "../../components/SearchInput";
 import { getDoctorMe } from "../../services/authService";
+import { getPublicUrl } from "@/services/uploadsService";
 import {
   Mail,
   Phone,
@@ -87,32 +92,91 @@ const ProfileMenuItem = ({
   );
 };
 
-const DocNavbar = ({ moduleSwitcher }) => {
+const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) => {
   const navigate = useNavigate();
   const searchRef = useRef(null);
-  // default switcher state if none provided
-  const [activeModule, setActiveModule] = useState("doctor");
-  useEffect(() => {
-    const path = window.location.pathname.toLowerCase();
-    if (path.includes("hospital")) setActiveModule("hospital");
-    else setActiveModule("doctor");
-  }, []);
 
-  const switchToHospital = () => {
-    setActiveModule("hospital");
-    navigate("/hospital");
-  };
-  const switchToDoctor = () => {
-    setActiveModule("doctor");
-    navigate("/doc");
-  };
+  // Use new doctor auth store
   const {
-    doctorDetails,
-    doctorLoading,
-    doctorError,
-    fetchDoctorDetails,
-    _doctorFetchPromise,
-  } = useAuthStore();
+    user: singleDoctorUser,
+    loading: singleDoctorLoading,
+    // We don't have error or promise exposed directly in the simple store yet, but user object is enough
+  } = useDoctorAuthStore();
+
+  // Fallback legacy logic if needed (optional) or just rely on hospital/doctor store
+
+  // Hospital Store
+  const { roleNames: hospitalRoles, user: storeHospitalUser } = useHospitalAuthStore();
+
+  const [copied, setCopied] = useState(false);
+  const [internalHospitalPhoto, setInternalHospitalPhoto] = useState("");
+  const [doctorProfilePhoto, setDoctorProfilePhoto] = useState("");
+
+  const effectiveHospitalData = hospitalAdminData || storeHospitalUser;
+
+  // Distinguish scenarios
+  const isDualRole = (hospitalRoles?.includes("HOSPITAL_ADMIN") && hospitalRoles?.includes("DOCTOR")) || (effectiveHospitalData?.isDoctor);
+
+  // ALWAYS use doctor data from useDoctorAuthStore in doctor module
+  // Even for dual-role users, doctor module should show doctor details from /doctors/me
+  const doctorDetails = singleDoctorUser;
+  const doctorLoading = singleDoctorLoading;
+  const doctorError = ""; // Simplified for now
+
+
+  const effectiveHospitalPhoto = hospitalAdminPhoto || internalHospitalPhoto;
+
+  useEffect(() => {
+    const fetchHospitalImage = async () => {
+      if (effectiveHospitalData?.profilePhoto && !hospitalAdminPhoto) {
+        const url = await getPublicUrl(effectiveHospitalData.profilePhoto);
+        setInternalHospitalPhoto(url);
+      }
+    };
+    fetchHospitalImage();
+  }, [effectiveHospitalData?.profilePhoto, hospitalAdminPhoto]);
+
+  // Fetch doctor profile photo
+  useEffect(() => {
+    const fetchDoctorImage = async () => {
+      if (doctorDetails?.profilePhoto) {
+        const url = await getPublicUrl(doctorDetails.profilePhoto);
+        setDoctorProfilePhoto(url);
+      }
+    };
+    fetchDoctorImage();
+  }, [doctorDetails?.profilePhoto]);
+  const currentPath = window.location.pathname.toLowerCase();
+  const activeModule = currentPath.startsWith('/hospital') ? 'hospital' : 'doctor';
+
+  const switchToHospital = () => { navigate('/hospital'); };
+  const switchToDoctor = () => { navigate('/doc'); };
+
+  const internalSwitcher = isDualRole ? (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={switchToHospital}
+        className={`flex items-center justify-center h-8 w-8 rounded-[6px] border ${activeModule === 'hospital' ? 'bg-[#2372EC] border-[#2372EC]' : 'bg-white border-[#D6D6D6]'} hover:bg-blue-50 transition-colors`}
+        aria-label="Hospital Module"
+        title="Hospital"
+      >
+        <img src={hospitalIcon} alt="Hospital" className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={switchToDoctor}
+        className={`flex items-center justify-center h-8 w-8 rounded-[6px] border ${activeModule === 'doctor' ? 'bg-[#2372EC] border-[#2372EC]' : 'bg-white border-[#D6D6D6]'} hover:bg-blue-50 transition-colors`}
+        aria-label="Doctor Module"
+        title="Doctor"
+      >
+        <img src={stethoscopeBlue} alt="Doctor" className="w-4 h-4" />
+      </button>
+    </div>
+  ) : null;
+
+  const finalSwitcher = moduleSwitcher || internalSwitcher;
+
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const profileRef = useRef(null);
@@ -121,7 +185,6 @@ const DocNavbar = ({ moduleSwitcher }) => {
   const [addPatientOpen, setAddPatientOpen] = useState(false);
   const [bookApptOpen, setBookApptOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   // Focus search when pressing Ctrl+/
   useEffect(() => {
@@ -157,12 +220,24 @@ const DocNavbar = ({ moduleSwitcher }) => {
     };
   }, []);
 
-  // Ensure doctor details are loaded even if user hit /doc directly (bypassing SignIn component fetch)
+  // Ensure doctor details are loaded - fetch when in doctor module for doctors or dual-role users
   useEffect(() => {
-    if (!doctorDetails && !doctorLoading && !_doctorFetchPromise) {
-      fetchDoctorDetails?.(getDoctorMe);
+    const { isAuthenticated, fetchMe, user } = useDoctorAuthStore.getState();
+    const { token: hToken, roleNames: hRoles } = useHospitalAuthStore.getState();
+
+    // Check if user should have access to doctor data:
+    // 1. Single doctor: authenticated in doctor store
+    // 2. Dual-role: authenticated in hospital store with DOCTOR role
+    const isSingleDoctor = isAuthenticated();
+    const isDualRoleDoctor = hToken && hRoles?.includes("DOCTOR");
+
+    // Only fetch doctor data if we're in the doctor module AND user has doctor access AND data not cached
+    const shouldFetchDoctorData = activeModule === 'doctor' && (isSingleDoctor || isDualRoleDoctor) && !user;
+
+    if (shouldFetchDoctorData) {
+      fetchMe();
     }
-  }, [doctorDetails, doctorLoading, fetchDoctorDetails, _doctorFetchPromise]);
+  }, [activeModule]);
 
   const handleCopyProfileLink = async () => {
     try {
@@ -178,7 +253,21 @@ const DocNavbar = ({ moduleSwitcher }) => {
     }
   };
 
-  // Derive displayable doctor name without the 'Dr.' prefix
+  const handleLogout = () => {
+    useUIStore.getState().setIsLoggingOut(true);
+    useDoctorAuthStore.getState().clearAuth();
+    useHospitalAuthStore.getState().clearAuth();
+    useSuperAdminAuthStore.getState().clearAuth();
+
+    // Redirect based on current active module
+    if (activeModule === 'hospital') {
+      navigate("/hospital/signin", { replace: true });
+    } else {
+      navigate("/signin", { replace: true });
+    }
+  };
+
+  // Derive displayable name: two words max, no 'Dr.' prefix
   const getDoctorDisplayName = (details) => {
     if (!details) return "";
     const nameFromFields = [details?.firstName, details?.lastName]
@@ -189,7 +278,9 @@ const DocNavbar = ({ moduleSwitcher }) => {
     if (!raw) return "";
     // Remove leading titles like Dr, Dr., Doctor (case-insensitive)
     const cleaned = raw.replace(/^(?:dr\.?|doctor)\s+/i, "").trim();
-    return cleaned || nameFromFields || "";
+    // Limit to two words
+    const twoWords = cleaned.split(/\s+/).slice(0, 2).join(" ");
+    return twoWords || cleaned;
   };
   const displayName = doctorLoading ? "" : getDoctorDisplayName(doctorDetails);
 
@@ -207,6 +298,49 @@ const DocNavbar = ({ moduleSwitcher }) => {
     return `Dr. ${raw}`;
   };
   const titledName = doctorLoading ? "" : getDoctorNameWithTitle(doctorDetails);
+
+  // Context-aware data selection based on active module
+  // In hospital module: show hospital admin data
+  // In doctor module: show doctor data (even for dual-role users)
+  const isInHospitalModule = activeModule === 'hospital';
+
+  const formatHospitalEducation = (edu) => {
+    if (!Array.isArray(edu)) return "";
+    const sorted = [...edu].sort((a, b) => {
+      if (a.graduationType === 'UG') return -1;
+      if (b.graduationType === 'UG') return 1;
+      return 0;
+    });
+    return sorted.map(e => e.degree).join(", ");
+  };
+
+  const finalDisplayName = isInHospitalModule && effectiveHospitalData
+    ? getDoctorDisplayName(effectiveHospitalData)
+    : displayName;
+  const finalTitledName = isInHospitalModule && effectiveHospitalData
+    ? (effectiveHospitalData?.name || "")
+    : titledName;
+  const finalAvatar = isInHospitalModule && effectiveHospitalData
+    ? effectiveHospitalPhoto
+    : doctorProfilePhoto; // Show doctor profile photo in doctor module
+  const finalEmail = isInHospitalModule && effectiveHospitalData
+    ? effectiveHospitalData?.emailId
+    : doctorDetails?.emailId;
+  const finalPhone = isInHospitalModule && effectiveHospitalData
+    ? effectiveHospitalData?.phone
+    : doctorDetails?.contactNumber;
+  const finalCode = isInHospitalModule && effectiveHospitalData
+    ? (effectiveHospitalData?.adminCode || effectiveHospitalData?.doctorCode)
+    : (doctorDetails?.doctorCode || doctorDetails?.userId);
+  const finalDesignation = isInHospitalModule && effectiveHospitalData
+    ? (effectiveHospitalData?.medicalPracticeType || (effectiveHospitalData?.isDoctor ? "General Physician" : "Hospital Admin"))
+    : (doctorDetails?.designation || doctorDetails?.specializations?.[0]);
+  const finalEducation = isInHospitalModule && effectiveHospitalData
+    ? formatHospitalEducation(effectiveHospitalData?.education)
+    : (doctorDetails?.education?.join(" - ") || "—");
+  const finalLoading = isInHospitalModule
+    ? !effectiveHospitalData
+    : doctorLoading;
 
   return (
     <div className="w-full h-12 border-b-[0.5px] border-secondary-grey100/50 flex items-center py-2 px-4 gap-3">
@@ -227,36 +361,13 @@ const DocNavbar = ({ moduleSwitcher }) => {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
-        {/* Optional Hospital/Doctor module switcher injected by Hospital header */}
-        {/* {(moduleSwitcher || true) && (
+        {/* Module Switcher (Hospital Admin <-> Doctor) */}
+        {finalSwitcher && (
           <>
-            {moduleSwitcher ? (
-              moduleSwitcher
-            ) : (
-              <div className='flex items-center gap-1'>
-                <button
-                  type='button'
-                  onClick={switchToHospital}
-                  className={`flex items-center justify-center h-8 w-8 rounded-[6px] border ${activeModule==='hospital' ? 'bg-[#2372EC] border-[#2372EC]' : 'bg-white border-[#D6D6D6]'} hover:bg-blue-50 transition-colors`}
-                  aria-label='Hospital Module'
-                  title='Hospital'
-                >
-                  <img src={hospitalIcon} alt='Hospital' className='w-4 h-4' />
-                </button>
-                <button
-                  type='button'
-                  onClick={switchToDoctor}
-                  className={`flex items-center justify-center h-8 w-8 rounded-[6px] border ${activeModule==='doctor' ? 'bg-[#2372EC] border-[#2372EC]' : 'bg-white border-[#D6D6D6]'} hover:bg-blue-50 transition-colors`}
-                  aria-label='Doctor Module'
-                  title='Doctor'
-                >
-                  <img src={stethoscopeBlue} alt='Doctor' className='w-4 h-4' />
-                </button>
-              </div>
-            )}
+            {finalSwitcher}
             <Partition />
           </>
-        )} */}
+        )}
         {/* Add New dropdown */}
         <div className="relative" ref={addMenuRef}>
           <button
@@ -377,23 +488,24 @@ const DocNavbar = ({ moduleSwitcher }) => {
 
         <div className="relative flex items-center gap-2" ref={profileRef}>
           <span className="font-semibold text-base text-[#424242]">
-            {doctorLoading
+            {finalLoading
               ? "Loading…"
-              : doctorError
+              : doctorError && !hospitalAdminData
                 ? "Error"
-                : displayName || "—"}
+                : finalDisplayName || "—"}
           </span>
           <button
             type="button"
             onClick={() => setShowProfile((v) => !v)}
             className="cursor-pointer"
           >
+            {/* User wants ONLY AvatarCircle in outer navbar */}
             <AvatarCircle
               name={
-                doctorLoading ? "?" : displayName || (doctorError ? "!" : "?")
+                finalLoading ? "?" : finalDisplayName || (doctorError ? "!" : "?")
               }
               size="s"
-              color={doctorError ? "grey" : "orange"}
+              color={doctorError && !hospitalAdminData ? "grey" : "orange"}
             />
           </button>
           {showProfile && (
@@ -401,34 +513,40 @@ const DocNavbar = ({ moduleSwitcher }) => {
               {/* Header */}
               <div className="p-4 flex flex-col items-start gap-[10px] border-b border-gray-200">
                 <div className="flex gap-3">
-                  <AvatarCircle
-                    name={
-                      doctorLoading
-                        ? "?"
-                        : displayName || (doctorError ? "!" : "?")
-                    }
-                    size="f4"
-                    color={doctorError ? "grey" : "orange"}
-                  />
+                  {/* User wants profile image in dropdown if available */}
+                  {finalAvatar ? (
+                    <div className="w-[50px] h-[50px] rounded-full overflow-hidden border border-secondary-grey100/50">
+                      <img src={finalAvatar} alt={finalDisplayName} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <AvatarCircle
+                      name={
+                        finalLoading
+                          ? "?"
+                          : finalDisplayName || (doctorError ? "!" : "?")
+                      }
+                      size="f4"
+                      color={doctorError && !hospitalAdminData ? "grey" : "orange"}
+                    />
+                  )}
                   <div className="flex flex-col">
                     <div className="text-[16px] leading-[22px] font-semibold text-secondary-grey400">
-                      {doctorLoading
+                      {finalLoading
                         ? "Loading…"
-                        : doctorError
+                        : doctorError && !hospitalAdminData
                           ? "Failed to load"
-                          : titledName || "—"}
+                          : finalTitledName || "—"}
                     </div>
                     <div className="text-[14px] leading-[18px] text-secondary-grey300">
-                      {doctorLoading
+                      {finalLoading
                         ? "Please wait"
-                        : doctorDetails?.designation ||
-                        doctorDetails?.specializations?.[0] ||
+                        : finalDesignation ||
                         "—"}
                     </div>
                     <div className="text-[14px] leading-[19px] text-secondary-grey300">
-                      {doctorLoading
+                      {finalLoading
                         ? ""
-                        : doctorDetails?.education.join(" - ") || "—"}
+                        : finalEducation || "—"}
                     </div>
                   </div>
                 </div>
@@ -437,17 +555,16 @@ const DocNavbar = ({ moduleSwitcher }) => {
                   <div className="flex flex-col gap-1 text-[14px] leading-[22px] border-gray-200">
                     <div className="flex items-center gap-2 text-gray-700">
                       <img src={blueMail} className="w-4" alt="" />
-                      <span className="">{doctorDetails?.emailId || "—"}</span>
+                      <span className="">{finalEmail || "—"}</span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-700">
                       <img src={blueCall} className="w-4" alt="" />
-                      <span>{doctorDetails?.contactNumber || "—"}</span>
+                      <span>{finalPhone || "—"}</span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-700">
                       <img src={blueId} className="w-4" alt="" />
                       <span>
-                        {doctorDetails?.doctorCode ||
-                          doctorDetails?.userId?.slice(0, 8) + "…" ||
+                        {finalCode?.slice(0, 15) + (finalCode?.length > 15 ? "…" : "") ||
                           "—"}
                       </span>
                     </div>
@@ -462,9 +579,10 @@ const DocNavbar = ({ moduleSwitcher }) => {
                   <div className="font-medium">Profile load failed.</div>
                   <div className="text-red-500">{doctorError}</div>
                   <button
-                    onClick={() =>
-                      fetchDoctorDetails?.(getDoctorMe, { force: true })
-                    }
+                    onClick={() => {
+                      // Retry fetch logic if needed
+                      if (isSingleDoctor) useDoctorAuthStore.getState().fetchMe();
+                    }}
                     className="h-8 px-3 rounded bg-red-50 border border-red-300 text-red-700 text-xs hover:bg-red-100"
                   >
                     Retry
@@ -510,10 +628,7 @@ const DocNavbar = ({ moduleSwitcher }) => {
                 <ProfileMenuItem
                   icon={whiteLogout}
                   label="Logout"
-                  onClick={() => {
-                    setShowProfile(false);
-                    // TODO: logout
-                  }}
+                  onClick={handleLogout}
                 />
               </div>
 

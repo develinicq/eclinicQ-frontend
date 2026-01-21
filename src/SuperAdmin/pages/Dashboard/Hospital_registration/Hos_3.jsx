@@ -80,18 +80,38 @@ function Hos3Inner(props, ref) {
     switch (name) {
       case 'name':
       case 'type':
-      case 'emailId':
-      case 'phone':
+      case 'establishmentYear':
       case 'blockNo':
       case 'street':
       case 'landmark':
       case 'city':
       case 'state':
+        if (!value) return 'Required';
+        return '';
+      case 'emailId':
+        if (!value) return 'Required';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Invalid email format';
+        return '';
+      case 'phone':
+        if (!value) return 'Required';
+        if (!/^\d{10}$/.test(value)) return 'Must be 10 digits';
+        return '';
       case 'pincode':
         if (!value) return 'Required';
+        if (!/^\d{6}$/.test(value)) return 'Must be 6 digits';
         return '';
       case 'noOfBeds':
         if (value && isNaN(value)) return 'Must be a number';
+        if (value && Number(value) < 0) return 'Cannot be negative';
+        return '';
+      case 'url':
+        if (!value) return 'Required';
+        if (!/^(https?:\/\/)?[a-zA-Z0-9.-]+$/.test(value)) return 'Invalid URL format';
+        return '';
+      case 'website':
+        if (!value) return ''; // Optional
+        // Basic URL check (http/https optional)
+        if (!/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(value)) return 'Invalid URL';
         return '';
       default: return '';
     }
@@ -266,6 +286,7 @@ function Hos3Inner(props, ref) {
           <div className='w-full'>
             <InputWithMeta
               label="Established Year"
+              requiredDot
               value={establishmentYear}
               placeholder="Select Year"
               RightIcon={ChevronDown}
@@ -279,6 +300,7 @@ function Hos3Inner(props, ref) {
                 closeDropdown('year');
               }}
             />
+            {formErrors.establishmentYear && <span className="text-red-500 text-xs">{formErrors.establishmentYear}</span>}
           </div>
           <div className='w-full'>
             <InputWithMeta
@@ -287,6 +309,7 @@ function Hos3Inner(props, ref) {
               onChange={(v) => updateField('website', v)}
               placeholder="Paste Website Link"
             />
+            {formErrors.website && <span className="text-red-500 text-xs">{formErrors.website}</span>}
           </div>
           <div className='w-full'>
             <InputWithMeta
@@ -437,6 +460,7 @@ function Hos3Inner(props, ref) {
               value={url}
               onChange={(val) => updateField('url', val)}
             />
+            {formErrors.url && <span className="text-red-500 text-xs">{formErrors.url}</span>}
           </div>
           <div className="w-full">
             <CustomUpload
@@ -475,6 +499,7 @@ function Hos3Inner(props, ref) {
       const missing = [];
       if (!name) missing.push('Hospital Name');
       if (!type) missing.push('Hospital Type');
+      if (!establishmentYear) missing.push('Established Year');
       if (!emailId) missing.push('Email');
       if (!phone) missing.push('Contact Number');
       if (!city) missing.push('City');

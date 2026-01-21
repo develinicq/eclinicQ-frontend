@@ -4,11 +4,12 @@ import PasswordRequirements from '../../../components/FormItems/PasswordRequirem
 import PopupSmall from '../../../components/PopupSmall'
 import DetailPopup from '../../../components/DetailPopup'
 import UniversalLoader from '../../../components/UniversalLoader'
-import { Phone, RefreshCw } from 'lucide-react'
+import { ChevronDown, Phone, RefreshCw } from 'lucide-react'
 import useSuperAdminAuthStore from '../../../store/useSuperAdminAuthStore'
 import useToastStore from '../../../store/useToastStore'
 const phone = '/phone2.png'
 const mail = '/mail.png'
+
 
 const Settings = () => {
   const { user, requestVerificationOtp, verifyExistingOtp, sendNewOtp, verifyNewContact, requestPasswordChange, confirmPasswordChange } = useSuperAdminAuthStore();
@@ -92,12 +93,18 @@ const Settings = () => {
     }
   };
 
-  const handleMobileRequestOtp = async () => {
-    setIsRequestingMobileOtp(true);
+  const handleMobileRequestOtp = async (isResend = false) => {
+    if (isResend) {
+      setResending(prev => ({ ...prev, mobileResend: true }));
+    } else {
+      setIsRequestingMobileOtp(true);
+    }
     try {
       const res = await requestVerificationOtp('mobile');
       if (res?.success) {
-        addToast({ message: res.message || 'OTP sent successfully', type: 'success' });
+        if (isResend) {
+          addToast({ message: "OTP Resent successfully", type: "success" });
+        }
         setVerificationData(res.data);
         setShowMobilePopup(false);
         setShowVerifyPopup(true);
@@ -106,16 +113,25 @@ const Settings = () => {
       addToast({ message: error.message || 'Failed to send OTP', type: 'error' });
     } finally {
       setIsRequestingMobileOtp(false);
+      setResending(prev => ({ ...prev, mobileResend: false }));
     }
   };
 
-  const handleAddMobileVerify = async () => {
-    setIsVerifying(true);
+  const handleAddMobileVerify = async (isResend = false) => {
+    if (isResend) {
+      setResending(prev => ({ ...prev, newMobileResend: true }));
+    } else {
+      setIsVerifying(true);
+    }
     try {
       const payload = { type: 'mobile', newContact: newMobileNumber };
       const res = await sendNewOtp(payload);
       if (res?.success) {
-        addToast({ message: res.message || 'OTP sent to new mobile number', type: 'success' });
+        if (isResend) {
+          addToast({ message: "OTP Resent successfully", type: "success" });
+        } else {
+          addToast({ message: res.message || 'OTP sent to new mobile number', type: 'success' });
+        }
         setVerificationData(res.data);
         setShowAddMobilePopup(false);
         setShowNewMobileVerifyPopup(true);
@@ -125,6 +141,7 @@ const Settings = () => {
       addToast({ message: error.message || 'Failed to send OTP', type: 'error' });
     } finally {
       setIsVerifying(false);
+      setResending(prev => ({ ...prev, newMobileResend: false }));
     }
   }
 
@@ -176,6 +193,52 @@ const Settings = () => {
       element.nextSibling.focus();
     }
   };
+  const maskPhone = (num) => {
+    if (!num) return "*******487";
+    const s = String(num);
+    if (s.length <= 4) return s;
+    return "*".repeat(s.length - 4) + s.slice(-4);
+  };
+
+  const maskEmail = (email) => {
+    if (!email) return "******@*****";
+    const [name, domain] = email.split("@");
+    const visible = name.slice(0, 6);
+    return visible + "*".repeat(Math.max(0, name.length - 6)) + "@" + "*".repeat(domain.length);
+  };
+
+  // Timer States for Resend OTP
+  const [resendTimers, setResendTimers] = useState({
+    mobileResend: 0,
+    emailResend: 0,
+    newMobileResend: 0,
+    newEmailResend: 0,
+    authMobileResend: 0, // For dual OTP popups
+    authEmailResend: 0,  // For dual OTP popups
+  });
+
+  const [resending, setResending] = useState({
+    mobileResend: false,
+    emailResend: false,
+    newMobileResend: false,
+    newEmailResend: false,
+    authMobileResend: false,
+    authEmailResend: false,
+  });
+
+  const startTimer = (timerKey) => {
+    setResendTimers(prev => ({ ...prev, [timerKey]: 60 }));
+    const interval = setInterval(() => {
+      setResendTimers(prev => {
+        if (prev[timerKey] <= 1) {
+          clearInterval(interval);
+          return { ...prev, [timerKey]: 0 };
+        }
+        return { ...prev, [timerKey]: prev[timerKey] - 1 };
+      });
+    }, 1000);
+  };
+
 
   const createKeyDownHandler = (curOtp, refs) => (e, index) => {
     if (e.key === 'Backspace' && !curOtp[index] && index > 0) {
@@ -207,12 +270,20 @@ const Settings = () => {
     }
   };
 
-  const handleEmailRequestOtp = async () => {
-    setIsRequestingEmailOtp(true);
+  const handleEmailRequestOtp = async (isResend = false, resendKey = 'authMobileResend') => {
+    if (isResend) {
+      setResending(prev => ({ ...prev, [resendKey]: true }));
+    } else {
+      setIsRequestingEmailOtp(true);
+    }
     try {
       const res = await requestVerificationOtp('email');
       if (res?.success) {
-        addToast({ message: res.message || 'OTP sent successfully', type: 'success' });
+        if (isResend) {
+          addToast({ message: "OTP Resent successfully", type: "success" });
+        } else {
+          addToast({ message: res.message || 'OTP sent successfully', type: 'success' });
+        }
         setVerificationData(res.data);
         setShowEmailPopup(false);
         setShowEmailAuthPopup(true);
@@ -221,16 +292,27 @@ const Settings = () => {
       addToast({ message: error.message || 'Failed to send OTP', type: 'error' });
     } finally {
       setIsRequestingEmailOtp(false);
+      if (isResend) {
+        setResending(prev => ({ ...prev, [resendKey]: false }));
+      }
     }
   };
 
-  const handleAddEmailVerify = async () => {
-    setIsVerifying(true);
+  const handleAddEmailVerify = async (isResend = false) => {
+    if (isResend) {
+      setResending(prev => ({ ...prev, newEmailResend: true }));
+    } else {
+      setIsVerifying(true);
+    }
     try {
       const payload = { type: 'email', newContact: newEmailAddress };
       const res = await sendNewOtp(payload);
       if (res?.success) {
-        addToast({ message: res.message || 'OTP sent to new email address', type: 'success' });
+        if (isResend) {
+          addToast({ message: "OTP Resent successfully", type: "success" });
+        } else {
+          addToast({ message: res.message || 'OTP sent to new email address', type: 'success' });
+        }
         setVerificationData(res.data);
         setShowAddEmailPopup(false);
         setShowNewEmailVerifyPopup(true);
@@ -240,6 +322,7 @@ const Settings = () => {
       addToast({ message: error.message || 'Failed to send OTP', type: 'error' });
     } finally {
       setIsVerifying(false);
+      setResending(prev => ({ ...prev, newEmailResend: false }));
     }
   }
 
@@ -262,20 +345,31 @@ const Settings = () => {
     }
   }
 
-  const handlePasswordVerifyClick = async () => {
-    setIsRequestingPasswordChange(true);
+  const handlePasswordVerifyClick = async (isResend = false, resendKey = 'authMobileResend') => {
+    if (isResend) {
+      setResending(prev => ({ ...prev, [resendKey]: true }));
+    } else {
+      setIsRequestingPasswordChange(true);
+    }
     try {
       const res = await requestPasswordChange(currentPwd);
       if (res?.success) {
-        setVerificationData(res.data);
-        setOtpAuthMobile(new Array(6).fill(""));
-        setOtpAuthEmail(new Array(6).fill(""));
-        setShowPasswordAuthPopup(true);
+        if (isResend) {
+          addToast({ message: "OTP Resent successfully", type: "success" });
+        } else {
+          setVerificationData(res.data);
+          setOtpAuthMobile(new Array(6).fill(""));
+          setOtpAuthEmail(new Array(6).fill(""));
+          setShowPasswordAuthPopup(true);
+        }
       }
     } catch (error) {
       addToast({ message: error.message || 'Failed to request password change', type: 'error' });
     } finally {
       setIsRequestingPasswordChange(false);
+      if (isResend) {
+        setResending(prev => ({ ...prev, [resendKey]: false }));
+      }
     }
   }
 
@@ -369,7 +463,7 @@ const Settings = () => {
               label: "Yes",
               variant: "blue",
               loading: isRequestingMobileOtp,
-              onClick: handleMobileRequestOtp
+              onClick: () => handleMobileRequestOtp(false)
             }
           ]}
         />
@@ -381,7 +475,7 @@ const Settings = () => {
           subHeading={
             <>
               For your security, please verify your existing account information. <br />
-              OTP sent to <span className="font-semibold text-gray-800">{verificationData?.contact || mobile}</span>
+              <span className="text-secondary-grey400">OTP sent to <span className="font-medium">+91 {verificationData?.contact || mobile}</span></span>
             </>
           }
           onCancel={() => setShowVerifyPopup(false)}
@@ -389,15 +483,15 @@ const Settings = () => {
           isVerifying={isVerifying}
           isVerifyDisabled={!isOtpFilled}
         >
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-2">
             <label className="text-sm font-medium text-gray-700">
               Enter Mobile Verification Code
             </label>
             <div className="flex gap-3 justify-center">
               {otp.map((data, index) => (
                 <input
-                  className="w-10 h-10 border border-secondary-grey150 rounded-md text-center text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                  type="text"
+                  className=" h-[40px] p-2 w-[40px] border border-secondary-grey150 rounded-md text-center text-base focus:border-blue-primary150 focus:ring-1 focus:ring-blue-primary150 outline-none transition-all"
+                  type="password"
                   name="otp"
                   maxLength="1"
                   key={index}
@@ -409,8 +503,20 @@ const Settings = () => {
                 />
               ))}
             </div>
-            <div className="text-sm text-gray-500">
-              Haven’t Received Your Code yet? <button className="text-blue-600 font-medium hover:underline">Resend</button>
+            <div className="text-xs text-secondary-grey200">
+              Haven’t Received Your Code yet?{" "}
+              {resending.mobileResend ? (
+                <span className="text-sm text-secondary-grey300">Resending...</span>
+              ) : resendTimers.mobileResend > 0 ? (
+                <span className="text-sm text-secondary-grey300">Resend after {resendTimers.mobileResend}s</span>
+              ) : (
+                <button
+                  onClick={() => { handleMobileRequestOtp(true); startTimer('mobileResend'); }}
+                  className="text-sm text-blue-primary250 hover:underline"
+                >
+                  Resend
+                </button>
+              )}
             </div>
           </div>
         </DetailPopup>
@@ -426,9 +532,9 @@ const Settings = () => {
           isVerifyDisabled={!isNewMobileValid}
           verifyBtnText="Confirm & Verify"
         >
-          <div className="flex items-center border border-secondary-grey150 rounded-md h-12 w-full max-w-[400px] mx-auto overflow-hidden">
-            <div className="flex items-center gap-1 px-3 border-r border-secondary-grey150 h-full text-secondary-grey400 font-medium bg-secondary-grey50/50">
-              +91 <span className="text-secondary-grey200 text-xs">▼</span>
+          <div className="flex items-center border border-secondary-grey300/50 rounded-md h-12 w-full max-w-[400px] mx-auto overflow-hidden">
+            <div className="flex items-center gap-1 px-3 border-r border-secondary-grey100/50 h-full text-secondary-grey400 text-[18px]">
+              +91 <ChevronDown size={18} className='ml-1' />
             </div>
             <input
               type="text"
@@ -447,7 +553,8 @@ const Settings = () => {
           subHeading={
             <>
               Please Verify your new  account information. <br />
-              OTP sent to <span className="font-semibold text-gray-800">+91 {verificationData?.contact || newMobileNumber}</span>
+              <span className="text-secondary-grey400">OTP sent to</span>
+              <span className="font-medium">+91 {verificationData?.contact || newMobileNumber}</span>
             </>
           }
           onCancel={() => setShowNewMobileVerifyPopup(false)}
@@ -455,15 +562,15 @@ const Settings = () => {
           isVerifying={isVerifying}
           isVerifyDisabled={!isNewOtpFilled}
         >
-          <div className="flex flex-col items-center gap-4">
-            <label className="text-sm font-medium text-gray-700">
+          <div className="flex flex-col items-center gap-2">
+            <label className="text-sm font-medium text-secondary-grey400">
               Enter Mobile Verification Code
             </label>
             <div className="flex gap-3 justify-center">
               {newOtp.map((data, index) => (
                 <input
-                  className="w-10 h-10 border border-secondary-grey150 rounded-md text-center text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                  type="text"
+                  className=" h-[40px] p-2 w-[40px] border border-secondary-grey150 rounded-md text-center text-base focus:border-blue-primary150 focus:ring-1 focus:ring-blue-primary150 outline-none transition-all"
+                  type="password"
                   name="newOtp"
                   maxLength="1"
                   key={index}
@@ -475,8 +582,20 @@ const Settings = () => {
                 />
               ))}
             </div>
-            <div className="text-sm text-gray-500">
-              Haven’t Received Your Code yet? <button className="text-blue-600 font-medium hover:underline">Resend</button>
+            <div className="text-xs text-secondary-grey200">
+              Haven’t Received Your Code yet?{" "}
+              {resending.newMobileResend ? (
+                <span className="text-sm text-secondary-grey300">Resending...</span>
+              ) : resendTimers.newMobileResend > 0 ? (
+                <span className="text-sm text-secondary-grey300">Resend after {resendTimers.newMobileResend}s</span>
+              ) : (
+                <button
+                  onClick={() => { handleAddMobileVerify(true); startTimer('newMobileResend'); }}
+                  className="text-sm text-blue-primary250 hover:underline"
+                >
+                  Resend
+                </button>
+              )}
             </div>
           </div>
         </DetailPopup>
@@ -492,7 +611,7 @@ const Settings = () => {
               label: "Yes",
               variant: "blue",
               loading: isRequestingEmailOtp,
-              onClick: handleEmailRequestOtp
+              onClick: () => handleEmailRequestOtp(false)
             }
           ]}
         />
@@ -503,7 +622,12 @@ const Settings = () => {
           subHeading={
             <>
               For your security, please verify your existing account information. <br />
-              Enter 6-digit OTP sent on your mobile number ({verificationData?.mobile || '*******487'}) and email ({verificationData?.email || '*******@*****'})
+              <span className="text-secondary-grey300">
+                Enter 6-digit OTP sent on your mobile number
+              </span>
+              <span>({maskPhone(verificationData?.mobile)})</span>
+              <span> and email </span>
+              <span>({maskEmail(verificationData?.email)})</span>
             </>
           }
           onCancel={() => setShowEmailAuthPopup(false)}
@@ -511,21 +635,36 @@ const Settings = () => {
           isVerifying={isVerifying}
           isVerifyDisabled={!isEmailAuthValid}
         >
-          <div className="flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-4">
             {/* Mobile OTP */}
             <div className="flex flex-col items-center gap-2">
               <label className="text-sm font-medium text-gray-700">Enter Mobile Verification Code</label>
               <div className="flex gap-3 justify-center">
                 {otpAuthMobile.map((data, index) => (
                   <input
-                    className="w-10 h-10 border border-secondary-grey150 rounded-md text-center text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                    type="text" maxLength="1" key={index} value={data}
+                    className="h-[40px] p-2 w-[40px] border border-secondary-grey150 rounded-md text-center text-base focus:border-blue-primary150 focus:ring-1 focus:ring-blue-primary150 outline-none transition-all"
+                    type="password" maxLength="1" key={index} value={data}
                     ref={el => otpAuthMobileRefs.current[index] = el}
                     onChange={e => createOtpHandler(setOtpAuthMobile, otpAuthMobile, otpAuthMobileRefs)(e.target, index)}
                     onKeyDown={e => createKeyDownHandler(otpAuthMobile, otpAuthMobileRefs)(e, index)}
                     onFocus={e => e.target.select()}
                   />
                 ))}
+              </div>
+              <div className="text-xs text-secondary-grey200">
+                Haven’t Received Your Code yet?{" "}
+                {resending.authMobileResend ? (
+                  <span className="text-sm text-secondary-grey300">Resending...</span>
+                ) : resendTimers.authMobileResend > 0 ? (
+                  <span className="text-sm text-secondary-grey300">Resend after {resendTimers.authMobileResend}s</span>
+                ) : (
+                  <button
+                    onClick={() => { handleEmailRequestOtp(true, 'authMobileResend'); startTimer('authMobileResend'); }}
+                    className="text-sm text-blue-primary250 hover:underline"
+                  >
+                    Resend
+                  </button>
+                )}
               </div>
             </div>
             {/* Email OTP */}
@@ -534,8 +673,8 @@ const Settings = () => {
               <div className="flex gap-3 justify-center">
                 {otpAuthEmail.map((data, index) => (
                   <input
-                    className="w-10 h-10 border border-secondary-grey150 rounded-md text-center text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                    type="text" maxLength="1" key={index} value={data}
+                    className="h-[40px] p-2 w-[40px] border border-secondary-grey150 rounded-md text-center text-base focus:border-blue-primary150 focus:ring-1 focus:ring-blue-primary150 outline-none transition-all"
+                    type="password" maxLength="1" key={index} value={data}
                     ref={el => otpAuthEmailRefs.current[index] = el}
                     onChange={e => createOtpHandler(setOtpAuthEmail, otpAuthEmail, otpAuthEmailRefs)(e.target, index)}
                     onKeyDown={e => createKeyDownHandler(otpAuthEmail, otpAuthEmailRefs)(e, index)}
@@ -543,9 +682,21 @@ const Settings = () => {
                   />
                 ))}
               </div>
-            </div>
-            <div className="text-sm text-gray-500">
-              Haven’t Received Your Code yet? <button className="text-blue-600 font-medium hover:underline">Resend</button>
+              <div className="text-xs text-secondary-grey200">
+                Haven’t Received Your Code yet?{" "}
+                {resending.authEmailResend ? (
+                  <span className="text-sm text-secondary-grey300">Resending...</span>
+                ) : resendTimers.authEmailResend > 0 ? (
+                  <span className="text-sm text-secondary-grey300">Resend after {resendTimers.authEmailResend}s</span>
+                ) : (
+                  <button
+                    onClick={() => { handleEmailRequestOtp(true, 'authEmailResend'); startTimer('authEmailResend'); }}
+                    className="text-sm text-blue-primary250 hover:underline"
+                  >
+                    Resend
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </DetailPopup>
@@ -555,12 +706,12 @@ const Settings = () => {
           heading="Add New Email"
           subHeading="Enter a new email, and we will send an OTP for verification."
           onCancel={() => setShowAddEmailPopup(false)}
-          onVerify={handleAddEmailVerify}
+          onVerify={() => handleAddEmailVerify(false)}
           isVerifying={isVerifying}
           isVerifyDisabled={!isNewEmailValid}
           verifyBtnText="Confirm & Verify"
         >
-          <div className="flex items-center border border-secondary-grey150 rounded-md h-12 w-full max-w-[400px] mx-auto overflow-hidden px-3 bg-white">
+          <div className="flex items-center border border-secondary-grey300/50 rounded-md h-12 w-full max-w-[400px] mx-auto overflow-hidden px-3 bg-white">
             <input
               type="email"
               placeholder="Enter Email"
@@ -577,7 +728,8 @@ const Settings = () => {
           subHeading={
             <>
               Please Verify your new account information. <br />
-              OTP sent to <span className="font-semibold text-gray-800">{verificationData?.contact || newEmailAddress}</span>
+              <span className="text-secondary-grey400">OTP sent to</span>
+              <span className="font-medium">{verificationData?.contact || newEmailAddress}</span>
             </>
           }
           onCancel={() => setShowNewEmailVerifyPopup(false)}
@@ -585,13 +737,13 @@ const Settings = () => {
           isVerifying={isVerifying}
           isVerifyDisabled={!isNewEmailFilled}
         >
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-2">
             <label className="text-sm font-medium text-gray-700">Enter Email Verification Code</label>
             <div className="flex gap-3 justify-center">
               {otpVerifyNewEmail.map((data, index) => (
                 <input
-                  className="w-10 h-10 border border-secondary-grey150 rounded-md text-center text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                  type="text" maxLength="1" key={index} value={data}
+                  className="h-[40px] p-2 w-[40px] border border-secondary-grey150 rounded-md text-center text-base focus:border-blue-primary150 focus:ring-1 focus:ring-blue-primary150 outline-none transition-all"
+                  type="password" maxLength="1" key={index} value={data}
                   ref={el => otpVerifyNewEmailRefs.current[index] = el}
                   onChange={e => createOtpHandler(setOtpVerifyNewEmail, otpVerifyNewEmail, otpVerifyNewEmailRefs)(e.target, index)}
                   onKeyDown={e => createKeyDownHandler(otpVerifyNewEmail, otpVerifyNewEmailRefs)(e, index)}
@@ -599,8 +751,20 @@ const Settings = () => {
                 />
               ))}
             </div>
-            <div className="text-sm text-gray-500">
-              Haven’t Received Your Code yet? <button className="text-blue-600 font-medium hover:underline">Resend</button>
+            <div className="text-xs text-secondary-grey200 mt-2">
+              Haven’t Received Your Code yet?{" "}
+              {resending.newEmailResend ? (
+                <span className="text-sm text-secondary-grey300">Resending...</span>
+              ) : resendTimers.newEmailResend > 0 ? (
+                <span className="text-sm text-secondary-grey300">Resend after {resendTimers.newEmailResend}s</span>
+              ) : (
+                <button
+                  onClick={() => { handleAddEmailVerify(true); startTimer('newEmailResend'); }}
+                  className="text-sm text-blue-primary250 hover:underline"
+                >
+                  Resend
+                </button>
+              )}
             </div>
           </div>
         </DetailPopup>
@@ -663,7 +827,7 @@ const Settings = () => {
         {/* Actions */}
         <div className="flex items-center">
           <button
-            onClick={handlePasswordVerifyClick}
+            onClick={() => handlePasswordVerifyClick(false)}
             disabled={!isPasswordChangeValid || isRequestingPasswordChange}
             className={`h-8 px-4 rounded-sm text-sm font-medium bg-blue-primary250 text-white hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center gap-2 ${(!isPasswordChangeValid || isRequestingPasswordChange) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
@@ -690,7 +854,12 @@ const Settings = () => {
           subHeading={
             <>
               For your security, please verify your existing account information. <br />
-              Enter 6-digit OTP sent on your mobile number ({verificationData?.mobile || '*******487'}) and email ({verificationData?.email || '*******@*****'})
+              <span className="text-secondary-grey300">
+                Enter 6-digit OTP sent on your mobile number
+              </span>
+              <span>({maskPhone(verificationData?.mobile)})</span>
+              <span> and email </span>
+              <span>({maskEmail(verificationData?.email)})</span>
             </>
           }
           onCancel={() => setShowPasswordAuthPopup(false)}
@@ -698,21 +867,36 @@ const Settings = () => {
           isVerifying={isVerifying}
           isVerifyDisabled={!isEmailAuthValid}
         >
-          <div className="flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-4">
             {/* Mobile OTP */}
             <div className="flex flex-col items-center gap-2">
               <label className="text-sm font-medium text-gray-700">Enter Mobile Verification Code</label>
               <div className="flex gap-3 justify-center">
                 {otpAuthMobile.map((data, index) => (
                   <input
-                    className="w-10 h-10 border border-secondary-grey150 rounded-md text-center text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                    type="text" maxLength="1" key={index} value={data}
+                    className="h-[40px] p-2 w-[40px] border border-secondary-grey150 rounded-md text-center text-base focus:border-blue-primary150 focus:ring-1 focus:ring-blue-primary150 outline-none transition-all"
+                    type="password" maxLength="1" key={index} value={data}
                     ref={el => otpAuthMobileRefs.current[index] = el}
                     onChange={e => createOtpHandler(setOtpAuthMobile, otpAuthMobile, otpAuthMobileRefs)(e.target, index)}
                     onKeyDown={e => createKeyDownHandler(otpAuthMobile, otpAuthMobileRefs)(e, index)}
                     onFocus={e => e.target.select()}
                   />
                 ))}
+              </div>
+              <div className="text-xs text-secondary-grey200">
+                Haven’t Received Your Code yet?{" "}
+                {resending.authMobileResend ? (
+                  <span className="text-sm text-secondary-grey300">Resending...</span>
+                ) : resendTimers.authMobileResend > 0 ? (
+                  <span className="text-sm text-secondary-grey300">Resend after {resendTimers.authMobileResend}s</span>
+                ) : (
+                  <button
+                    onClick={() => { handlePasswordVerifyClick(true, 'authMobileResend'); startTimer('authMobileResend'); }}
+                    className="text-sm text-blue-primary250 hover:underline"
+                  >
+                    Resend
+                  </button>
+                )}
               </div>
             </div>
             {/* Email OTP */}
@@ -721,8 +905,8 @@ const Settings = () => {
               <div className="flex gap-3 justify-center">
                 {otpAuthEmail.map((data, index) => (
                   <input
-                    className="w-10 h-10 border border-secondary-grey150 rounded-md text-center text-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
-                    type="text" maxLength="1" key={index} value={data}
+                    className="h-[40px] p-2 w-[40px] border border-secondary-grey150 rounded-md text-center text-base focus:border-blue-primary150 focus:ring-1 focus:ring-blue-primary150 outline-none transition-all"
+                    type="password" maxLength="1" key={index} value={data}
                     ref={el => otpAuthEmailRefs.current[index] = el}
                     onChange={e => createOtpHandler(setOtpAuthEmail, otpAuthEmail, otpAuthEmailRefs)(e.target, index)}
                     onKeyDown={e => createKeyDownHandler(otpAuthEmail, otpAuthEmailRefs)(e, index)}
@@ -730,9 +914,21 @@ const Settings = () => {
                   />
                 ))}
               </div>
-            </div>
-            <div className="text-sm text-gray-500">
-              Haven’t Received Your Code yet? <button className="text-blue-600 font-medium hover:underline">Resend</button>
+              <div className="text-xs text-secondary-grey200">
+                Haven’t Received Your Code yet?{" "}
+                {resending.authEmailResend ? (
+                  <span className="text-sm text-secondary-grey300">Resending...</span>
+                ) : resendTimers.authEmailResend > 0 ? (
+                  <span className="text-sm text-secondary-grey300">Resend after {resendTimers.authEmailResend}s</span>
+                ) : (
+                  <button
+                    onClick={() => { handlePasswordVerifyClick(true, 'authEmailResend'); startTimer('authEmailResend'); }}
+                    className="text-sm text-blue-primary250 hover:underline"
+                  >
+                    Resend
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </DetailPopup>

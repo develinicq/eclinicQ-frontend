@@ -51,11 +51,11 @@ const Step3 = forwardRef((props, ref) => {
         return "";
       case "email":
         if (!value) return "Required";
-        // if (!/^\S+@\S+\.\S+$/.test(value)) return "Invalid email format";
+        if (!/^\S+@\S+\.\S+$/.test(value)) return "Invalid email format";
         return "";
       case "phone":
         if (!value) return "Required";
-        // if (!/^\d{10}$/.test(value)) return "Phone must be 10 digits";
+        if (!/^\d{10}$/.test(value)) return "Phone must be 10 digits";
         return "";
       case "blockNo":
       case "areaStreet":
@@ -67,6 +67,9 @@ const Step3 = forwardRef((props, ref) => {
       case "pincode":
         if (!value) return "Required";
         if (!/^\d{6}$/.test(value)) return "Pincode must be 6 digits";
+        return "";
+      case "proof":
+        if (!value) return "Required";
         return "";
       default:
         return "";
@@ -85,13 +88,19 @@ const Step3 = forwardRef((props, ref) => {
       landmark: clinicData.landmark,
       city: clinicData.city,
       state: clinicData.state,
-      pincode: clinicData.pincode
+      pincode: clinicData.pincode,
+      proof: clinicData.proof
     };
     const newErrors = {};
     Object.entries(fieldsToValidate).forEach(([key, val]) => {
       const err = validateField(key, val);
       if (err) newErrors[key] = err;
     });
+
+    if (!Number(clinicData.latitude) || !Number(clinicData.longitude)) {
+      newErrors.mapLocation = "Location required";
+    }
+
     setFormErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -103,21 +112,21 @@ const Step3 = forwardRef((props, ref) => {
     // Based on prompt "setup-clinic" is the endpoint. 
     // If hasClinic is false, maybe we don't call anything or call with empty data?
     // User requirement implies valid clinic setup. Let's assume hasClinic=true flow.
-    
+
     if (!hasClinic) {
-       // If specific behavior for "No Clinic" is needed (e.g. skip content), return true.
-       return true;
+      // If specific behavior for "No Clinic" is needed (e.g. skip content), return true.
+      return true;
     }
 
     if (!validateAll()) return false;
-    
+
     if (!userId) {
-       addToast({ title: 'Error', message: 'User ID missing', type: 'error' });
-       return false;
+      addToast({ title: 'Error', message: 'User ID missing', type: 'error' });
+      return false;
     }
 
     try {
-        const payload = {
+      const payload = {
         doctorId: userId,
         clinicData: {
           name: clinicData.name,
@@ -259,26 +268,25 @@ const Step3 = forwardRef((props, ref) => {
                       type="tel"
                       value={clinicData.phone}
                       onChange={(val) => handleInputChange({ target: { name: 'phone', value: val } })}
-                      placeholder="Enter Work Email"
+                      placeholder="Enter Work Number"
                       {...commonFieldProps}
                       meta="Visible to Patient"
                     />
                     {formErrors.phone && <span className="text-red-500 text-xs">{formErrors.phone}</span>}
                   </div>
-                  <CustomUpload
-                    label="Upload Establishment Proof"
-                    compulsory={true}
-                    onUpload={(key, name) => {
-                      setClinicField('proof', key);
-                      // Assuming we might want to store filename somewhere if needed, 
-                      // but Step3 store assumes flat structure for proof.
-                      // The CustomUpload handles filename display if we pass it back.
-                      // For now, let's just update proof key.
-                    }}
-                    meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
-                    uploadedKey={clinicData.proof}
-                  // fileName={...} // Need to check if filenames are stored for clinic
-                  />
+                  <div className="w-full">
+                    <CustomUpload
+                      label="Upload Establishment Proof"
+                      compulsory={true}
+                      onUpload={(key, name) => {
+                        setClinicField('proof', key);
+                        setFormErrors(prev => ({ ...prev, proof: "" }));
+                      }}
+                      meta="Support Size upto 1MB in .png, .jpg, .svg, .webp"
+                      uploadedKey={clinicData.proof}
+                    />
+                    {formErrors.proof && <span className="text-red-500 text-xs">{formErrors.proof}</span>}
+                  </div>
                 </FormFieldRow>
               </div>
 
@@ -294,17 +302,17 @@ const Step3 = forwardRef((props, ref) => {
                     requiredDot
                     infoIcon
                     placeholder="Search Location"
-                    fileName={clinicData.latitude + ', ' + clinicData.longitude}
-
-
+                    fileName={clinicData.latitude && clinicData.longitude ? `${clinicData.latitude}, ${clinicData.longitude}` : ""}
                   />
                   <MapLocation
                     heightClass="h-[100px]"
                     onChange={({ lat, lng }) => {
                       setClinicField('latitude', lat);
                       setClinicField('longitude', lng);
+                      setFormErrors(prev => ({ ...prev, mapLocation: "" }));
                     }}
                   />
+                  {formErrors.mapLocation && <span className="text-red-500 text-xs">{formErrors.mapLocation}</span>}
                 </div>
 
                 {/* Block No and Road/Area/Street Row */}

@@ -5,6 +5,7 @@ import {
     rejectAppointment
 } from '../../../services/authService';
 import useAuthStore from '../../../store/useAuthStore';
+import useHospitalFrontDeskAuthStore from '../../../store/useHospitalFrontDeskAuthStore';
 import { getDoctorMe } from '../../../services/authService';
 
 export function useQueueLogic(selectedDoctorIdOverride) {
@@ -15,15 +16,17 @@ export function useQueueLogic(selectedDoctorIdOverride) {
     const [rejectingId, setRejectingId] = useState(null);
 
     const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
+    const { user: hfdUser } = useHospitalFrontDeskAuthStore();
+
     useEffect(() => {
         if (!doctorDetails && !doctorLoading) {
             fetchDoctorDetails?.(getDoctorMe);
         }
     }, [doctorDetails, doctorLoading, fetchDoctorDetails]);
 
-    // Derive IDs
-    const clinicId = doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId || doctorDetails?.primaryClinicId || null;
-    const doctorId = selectedDoctorIdOverride || doctorDetails?.userId || doctorDetails?.id || null;
+    // Derive IDs - Priority to HFD user clinicId, then doctor details
+    const clinicId = hfdUser?.clinicId || doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId || doctorDetails?.primaryClinicId || null;
+    const doctorId = selectedDoctorIdOverride || hfdUser?.doctorId || doctorDetails?.userId || doctorDetails?.id || null;
     const hospitalId = (Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) && doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id) || undefined;
 
     // Helpers

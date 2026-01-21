@@ -3,7 +3,7 @@ import GeneralDrawer from "@/components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
-import { addHospitalAccreditationForSuperAdmin } from "@/services/hospitalService";
+import { addHospitalAccreditationForSuperAdmin, updateHospitalAccreditationForSuperAdmin } from "@/services/hospitalService";
 import useToastStore from "@/store/useToastStore";
 import UniversalLoader from "@/components/UniversalLoader";
 
@@ -35,37 +35,85 @@ export default function AddAccreditationDrawer({ open, onClose, onSuccess, hospi
         setLoading(false);
     }, [open]); // Only reset when opening
 
-    const canSave = Boolean(name.trim() && body.trim() && issueDate && !loading);
+    const hasChanges = React.useMemo(() => {
+        if (mode !== "edit") return true;
+        const initialName = initial?.accreditationName || "";
+        const initialBody = initial?.accreditingBody || "";
+        const initialCertNo = initial?.certificateNumber || "";
+        const initialIssueDate = initial?.issueDate ? initial.issueDate.split("T")[0] : "";
+        const initialExpiryDate = initial?.expiryDate ? initial.expiryDate.split("T")[0] : "";
+        const initialUrl = initial?.certificateUrl || "";
+        const initialStatus = initial?.status || "ACTIVE";
+        const initialDesc = initial?.description || "";
+
+        return (
+            name.trim() !== initialName ||
+            body.trim() !== initialBody ||
+            certNo.trim() !== initialCertNo ||
+            issueDate !== initialIssueDate ||
+            expiryDate !== initialExpiryDate ||
+            url.trim() !== initialUrl ||
+            status !== initialStatus ||
+            desc.trim() !== initialDesc
+        );
+    }, [mode, initial, name, body, certNo, issueDate, expiryDate, url, status, desc]);
+
+    const canSave = Boolean(name.trim() && body.trim() && issueDate && hasChanges && !loading);
 
     const save = async () => {
         if (!canSave || !hospitalId) return;
         setLoading(true);
         try {
-            const payload = {
-                accreditationName: name.trim(),
-                accreditingBody: body.trim(),
-                certificateNumber: certNo.trim(),
-                issueDate,
-                expiryDate: expiryDate || null,
-                certificateUrl: url.trim(),
-                status,
-                description: desc.trim()
-            };
-            const res = await addHospitalAccreditationForSuperAdmin(hospitalId, payload);
+            let res;
+            if (mode === "edit" && initial?.id) {
+                const partialPayload = {};
+                const initialName = initial?.accreditationName || "";
+                const initialBody = initial?.accreditingBody || "";
+                const initialCertNo = initial?.certificateNumber || "";
+                const initialIssueDate = initial?.issueDate ? initial.issueDate.split("T")[0] : "";
+                const initialExpiryDate = initial?.expiryDate ? initial.expiryDate.split("T")[0] : "";
+                const initialUrl = initial?.certificateUrl || "";
+                const initialStatus = initial?.status || "ACTIVE";
+                const initialDesc = initial?.description || "";
+
+                if (name.trim() !== initialName) partialPayload.accreditationName = name.trim();
+                if (body.trim() !== initialBody) partialPayload.accreditingBody = body.trim();
+                if (certNo.trim() !== initialCertNo) partialPayload.certificateNumber = certNo.trim();
+                if (issueDate !== initialIssueDate) partialPayload.issueDate = issueDate;
+                if (expiryDate !== initialExpiryDate) partialPayload.expiryDate = expiryDate || null;
+                if (url.trim() !== initialUrl) partialPayload.certificateUrl = url.trim();
+                if (status !== initialStatus) partialPayload.status = status;
+                if (desc.trim() !== initialDesc) partialPayload.description = desc.trim();
+
+                res = await updateHospitalAccreditationForSuperAdmin(hospitalId, initial.id, partialPayload);
+            } else {
+                const payload = {
+                    accreditationName: name.trim(),
+                    accreditingBody: body.trim(),
+                    certificateNumber: certNo.trim(),
+                    issueDate,
+                    expiryDate: expiryDate || null,
+                    certificateUrl: url.trim(),
+                    status,
+                    description: desc.trim()
+                };
+                res = await addHospitalAccreditationForSuperAdmin(hospitalId, payload);
+            }
+
             if (res.success) {
                 addToast({
                     title: "Success",
-                    message: "Accreditation added successfully",
+                    message: mode === "edit" ? "Accreditation updated successfully" : "Accreditation added successfully",
                     type: "success"
                 });
                 onSuccess?.();
                 onClose?.();
             }
         } catch (error) {
-            console.error("Failed to add accreditation:", error);
+            console.error(`Failed to ${mode} accreditation:`, error);
             addToast({
                 title: "Error",
-                message: error?.response?.data?.message || "Failed to add accreditation",
+                message: error?.response?.data?.message || `Failed to ${mode} accreditation`,
                 type: "error"
             });
         } finally {

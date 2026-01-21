@@ -3,11 +3,7 @@ import React, { createContext, useContext, useState } from 'react';
 const RegistrationContext = createContext();
 
 export const useRegistration = () => {
-  const context = useContext(RegistrationContext);
-  if (!context) {
-    throw new Error('useRegistration must be used within a RegistrationProvider');
-  }
-  return context;
+  return useContext(RegistrationContext);
 };
 
 export const RegistrationProvider = ({ children }) => {
@@ -23,7 +19,11 @@ export const RegistrationProvider = ({ children }) => {
   });
 
   const nextStep = () => {
-    setCurrentStep(prev => prev + 1);
+    console.log("RegistrationContext: nextStep called, current is", currentStep);
+    setCurrentStep(prev => {
+      console.log("RegistrationContext: updating step from", prev, "to", prev + 1);
+      return prev + 1;
+    });
   };
 
   const prevStep = () => {

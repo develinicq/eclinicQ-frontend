@@ -4,6 +4,7 @@ import { ProgressBar, ReviewBanner, AgreementBox, ActionButton, RegistrationHead
 import useHospitalRegistrationStore from '../../../../store/useHospitalRegistrationStore';
 import useHospitalStep1Store from '../../../../store/useHospitalStep1Store';
 import UniversalLoader from '../../../../components/UniversalLoader';
+import { getPublicUrl } from '../../../../services/uploadsService';
 
 const verified2 = '/verified-tick.svg';
 
@@ -27,6 +28,10 @@ const Hos_5 = () => {
   const [termsAccepted, setTermsAccepted] = useState(formData.hosTermsAccepted || false);
   const [privacyAccepted, setPrivacyAccepted] = useState(formData.hosPrivacyAccepted || false);
   const [formError, setFormError] = useState("");
+
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [imagesLoading, setImagesLoading] = useState(false);
 
   // Fetch review data on mount or when hospitalId becomes available
   useEffect(() => {
@@ -56,6 +61,31 @@ const Hos_5 = () => {
       });
     }
   }, [termsAccepted, privacyAccepted, formData.hosTermsAccepted, formData.hosPrivacyAccepted, updateFormData]);
+
+  // Fetch Public URLs for Images
+  useEffect(() => {
+    const fetchImages = async () => {
+      const coverKey = reviewData?.hospitalInformation?.coverImage;
+      const profileKey = reviewData?.hospitalInformation?.profileImage;
+
+      if (!coverKey && !profileKey) return;
+
+      setImagesLoading(true);
+      try {
+        const [coverUrl, profileUrl] = await Promise.all([
+          coverKey ? getPublicUrl(coverKey) : Promise.resolve(""),
+          profileKey ? getPublicUrl(profileKey) : Promise.resolve("")
+        ]);
+        setCoverImageUrl(coverUrl);
+        setProfileImageUrl(profileUrl);
+      } catch (error) {
+        console.error("Hos_5: Failed to fetch image URLs", error);
+      } finally {
+        setImagesLoading(false);
+      }
+    };
+    fetchImages();
+  }, [reviewData?.hospitalInformation?.coverImage, reviewData?.hospitalInformation?.profileImage]);
 
   const handleTermsChange = () => {
     const newValue = !termsAccepted;
@@ -222,9 +252,32 @@ const Hos_5 = () => {
 
       {/* Image Banner */}
       <div className='relative' >
-        <img className='h-[140px] w-full object-cover rounded-xl ' src={hospitalInfo.profileImage || "/images/hospital.png"} alt="" />
-        <div className='absolute  w-12 h-12 right-1/2 bottom-5 border-[2px] border-[#2372EC] rounded-md translate-x-1/2'>
-          <img src={hospitalInfo.profileLogo || "/images/hospital_logo.png"} className='w-full rounded-md h-full object-cover' alt="" />
+        <div className="h-[140px] w-full bg-secondary-grey50 rounded-xl overflow-hidden">
+          {imagesLoading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <UniversalLoader size={24} />
+            </div>
+          ) : (
+            <img
+              className='h-full w-full object-cover'
+              src={coverImageUrl || "/images/hospital.png"}
+              alt="Hospital Cover"
+            />
+          )}
+        </div>
+
+        <div className='absolute w-12 h-12 right-1/2 -bottom-1 border-[1px] border-[#2372EC] rounded-md translate-x-1/2 bg-white overflow-hidden'>
+          {imagesLoading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <UniversalLoader size={12} />
+            </div>
+          ) : (
+            <img
+              src={profileImageUrl || "/images/hospital_logo.png"}
+              className='w-full h-full object-cover rounded-md'
+              alt="Hospital Profile"
+            />
+          )}
         </div>
         <div className='bg-white h-5'></div>
       </div>

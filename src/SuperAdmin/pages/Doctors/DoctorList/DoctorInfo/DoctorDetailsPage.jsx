@@ -4,6 +4,7 @@ import DoctorBanner from "../../../../../components/DoctorList/DoctorInfo/Doctor
 import PageNav from "../../../../../components/DoctorList/DoctorInfo/PageNav";
 import { getDoctorDetailsByIdBySuperAdmin } from "../../../../../services/doctorService";
 import useAuthStore from "../../../../../store/useAuthStore";
+import useUIStore from "../../../../../store/useUIStore";
 
 import UniversalLoader from "@/components/UniversalLoader";
 
@@ -11,10 +12,19 @@ const DoctorDetailsPage = () => {
   const { id } = useParams();
   const location = useLocation();
   const isAuthed = useAuthStore((s) => Boolean(s.token));
+  const setBreadcrumbName = useUIStore((s) => s.setBreadcrumbEntityName);
+  const clearBreadcrumbName = useUIStore((s) => s.clearBreadcrumbEntityName);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [doctor, setDoctor] = useState(null);
+  const [doctor, setDoctor] = useState(() => location.state?.doctor || null);
   const [selectedClinicId, setSelectedClinicId] = useState(undefined);
+
+  useEffect(() => {
+    if (doctor?.name) {
+      setBreadcrumbName(doctor.name);
+    }
+  }, [doctor, setBreadcrumbName]);
 
   useEffect(() => {
     let ignore = false;
@@ -69,6 +79,7 @@ const DoctorDetailsPage = () => {
         };
         console.log("DoctorDetailsPage: Mapped doctor object:", mapped);
         setDoctor(mapped);
+        setBreadcrumbName(mapped.name);
         // Initialize selected clinic from API data if available
         setSelectedClinicId(mapped.clinicId);
       } catch (e) {
@@ -104,7 +115,7 @@ const DoctorDetailsPage = () => {
       // Not authed: allow viewing from route state if present
       const stateDoc = location.state?.doctor;
       if (stateDoc) {
-        setDoctor({
+        const mapped = {
           id: stateDoc.id || stateDoc.docId,
           userId: stateDoc.userId,
           name: stateDoc.name,
@@ -113,7 +124,9 @@ const DoctorDetailsPage = () => {
           exp: stateDoc.exp,
           status: stateDoc.status || 'Active',
           avatar: '',
-        });
+        };
+        setDoctor(mapped);
+        setBreadcrumbName(mapped.name);
         setSelectedClinicId(stateDoc?.workplace?.clinics?.[0]?.id);
         setError(null);
       } else {
@@ -121,13 +134,16 @@ const DoctorDetailsPage = () => {
       }
       setLoading(false);
     }
-    return () => { ignore = true; };
-  }, [id, isAuthed, location.state]);
+    return () => {
+      ignore = true;
+      clearBreadcrumbName();
+    };
+  }, [id, isAuthed, location.state, setBreadcrumbName, clearBreadcrumbName]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center bg-white h-screen">
-        <UniversalLoader size={32} style={{ background: 'white' }} />
+        <UniversalLoader size={32}  />
       </div>
     );
   }

@@ -3,7 +3,7 @@ import GeneralDrawer from '@/components/GeneralDrawer/GeneralDrawer';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const allSpecialties = [
-    "Anesthesiology","Cardiology","Dermatology","Endocrinology","Gastroenterology","Hematology","Infectious Diseases","Internal Medicine","Nephrology","Neurology","Obstetrics & Gynecology","Oncology","Ophthalmology","Orthopedics","Pediatrics","Plastic Surgery","Psychiatry","Pulmonology","Radiology","Rheumatology","Surgery","Urology"
+    "Anesthesiology", "Cardiology", "Dermatology", "Endocrinology", "Gastroenterology", "Hematology", "Infectious Diseases", "Internal Medicine", "Nephrology", "Neurology", "Obstetrics & Gynecology", "Oncology", "Ophthalmology", "Orthopedics", "Pediatrics", "Plastic Surgery", "Psychiatry", "Pulmonology", "Radiology", "Rheumatology", "Surgery", "Urology"
 ];
 
 export default function MedicalSpecialtiesDrawer({ open, onClose, selectedItems = [], onSave }) {

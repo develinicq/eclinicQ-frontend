@@ -1,11 +1,12 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
-  
+
 } from "lucide-react";
 import React from "react";
-import {userAvatar,  calenderCheck
-  
+import {
+  userAvatar, calenderCheck
+
 } from "../../../public/index.js";
 const Overview_cards = ({
   title = "Title",
@@ -17,18 +18,25 @@ const Overview_cards = ({
   className = "",
 }) => {
   const isProfit = variant === "profit";
+  const isNeutral = variant === "neutral";
 
-  const gradient = isProfit
-    ? "linear-gradient(to right, rgba(255,255,255,1) 70%, rgba(109,219,114,0.15) 100%)"
-    : "linear-gradient(to right, rgba(255,255,255,1) 70%, rgba(240,68,56,0.12) 100%)";
+  const gradient = isNeutral
+    ? "none"
+    : isProfit
+      ? "linear-gradient(to right, rgba(255,255,255,1) 70%, rgba(109,219,114,0.15) 100%)"
+      : "linear-gradient(to right, rgba(255,255,255,1) 70%, rgba(240,68,56,0.12) 100%)";
 
-  const borderClass = isProfit
-    ? "border-[rgba(109,219,114,0.5)]"
-    : "border-[rgba(235,139,133,0.5)]";
+  const borderClass = isNeutral
+    ? "border-secondary-grey100" // using grey100 as per user request for grey border (assuming grey100 is appropriate, or I can use a safe default)
+    : isProfit
+      ? "border-[rgba(109,219,114,0.5)]"
+      : "border-[rgba(235,139,133,0.5)]";
   const BadgeIcon = isProfit ? ArrowUpRight : ArrowDownRight;
-  const badgeTone = isProfit
-    ? "text-green-600 bg-green-50"
-    : "text-red-500 bg-red-50";
+  const badgeTone = isNeutral
+    ? "text-secondary-grey400 bg-secondary-grey50"
+    : isProfit
+      ? "text-green-600 bg-green-50"
+      : "text-red-500 bg-red-50";
 
   const RightIcon = ({ className = "" }) => (
     <div
@@ -36,6 +44,8 @@ const Overview_cards = ({
     >
       {icon ? (
         icon
+      ) : isNeutral ? (
+        <img src={calenderCheck} alt="neutral" className="opacity-0" /> // Hiding icon or showing generic for neutral if needed, keeping simple for now
       ) : isProfit ? (
         <img src={userAvatar} alt="user-avatar" />
       ) : (
@@ -54,9 +64,11 @@ const Overview_cards = ({
       <div
         className="absolute inset-0 rounded-[12px]"
         style={{
-          background: isProfit
-            ? 'linear-gradient(45deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 65.54%, rgba(109,219,114,0.25) 100%)'
-            : 'linear-gradient(45deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 65.54%, rgba(240,68,56,0.25) 100%)',
+          background: isNeutral
+            ? 'transparent'
+            : isProfit
+              ? 'linear-gradient(45deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 65.54%, rgba(109,219,114,0.25) 100%)'
+              : 'linear-gradient(45deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 65.54%, rgba(240,68,56,0.25) 100%)',
         }}
       ></div>
       <div className="relative z-10 flex items-stretch justify-between gap-6">

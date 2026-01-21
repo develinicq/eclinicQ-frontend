@@ -280,9 +280,13 @@ export default function PatientDetailsDrawer({
                                         <div className="flex items-center gap-1 text-sm text-secondary-grey300 ">
                                             <span>{dob} ({age})</span>
                                             <span className="h-4 mx-1 w-px bg-gray-300"></span>
-                                            <span className="flex items-center gap-1 text-sm text-secondary-grey300"><User size={14} className="text-blue-500" /> {gender}</span>
+                                            <span className="flex items-center gap-1 text-sm text-secondary-grey300">
+                                                <img src="/superAdmin/patient_list/gender.svg" alt="" className="w-[14px]" /> {gender}
+                                            </span>
                                             <span className="h-4 mx-1 w-px bg-gray-300"></span>
-                                            <span className="flex items-center gap-1 text-sm text-secondary-grey300"><Droplet size={14} className="text-blue-500 fill-blue-500" /> {bloodGroup}</span>
+                                            <span className="flex items-center gap-1 text-sm text-secondary-grey300">
+                                                <img src="/superAdmin/patient_list/blood.svg" alt="" className="w-[14px]" /> {bloodGroup}
+                                            </span>
                                             <span className="h-4 mx-1 w-px bg-gray-300"></span>
                                             <span className="bg-secondary-grey50 px-1 py-0.5 rounded text-xs text-secondary-grey400">MRN: {mrn}</span>
                                         </div>
@@ -293,7 +297,7 @@ export default function PatientDetailsDrawer({
                                     className="p-2 ml-1 mb-4 hover:bg-gray-100 rounded-lg text-gray-500"
                                     onClick={() => setIsScheduleDrawerOpen(true)}
                                 >
-                                    <img src='/reschedule.png' alt="" className="w-[18px]" />
+                                    <img src='/superAdmin/patient_list/reschedule.svg' alt="" className="w-[18px]" />
                                 </button>
                                 <span className="h-4 mb-[14px] mx-[2px] w-px bg-gray-300"></span>
                                 <div className="relative" ref={actionMenuRef}>
@@ -388,28 +392,28 @@ export default function PatientDetailsDrawer({
                                             {isContactOpen && (
                                                 <div className="border-t border-secondary-grey100/50 pt-2 flex flex-col gap-2">
                                                     <div className="flex items-center gap-2 text-sm">
-                                                        <Phone size={16} className="text-gray-400" />
+                                                        <img src="/superAdmin/patient_list/contact.svg" alt="" className="w-5 h-5" />
                                                         <span className="text-secondary-grey300">{contact}</span>
                                                         <span className="min-w-[18px] px-1 py-0.5 rounded-sm text-xs border border-warning2-50 text-xs text-warning2-400 bg-warning2-50 hover:border-warning2-400/50 cursor-pointer">Primary</span>
                                                         <CheckCircle2 size={14} className="ml-auto text-green-500" />
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm">
-                                                        <Phone size={16} className="text-gray-400" />
+                                                        <img src="/superAdmin/patient_list/contact.svg" alt="" className="w-5 h-5" />
                                                         <span className="text-secondary-grey300">{secondaryPhone}</span>
                                                         <span className="min-w-[18px] px-1 py-0.5 rounded-sm border text-xs border-secondary-grey50 bg-secondary-grey50 hover:border-secondary-grey400/50 cursor-pointer text-secondary-grey400">Secondary</span>
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm">
-                                                        <Mail size={16} className="text-gray-400" />
+                                                        <img src="/superAdmin/patient_list/email.svg" alt="" className="w-5 h-5" />
                                                         <span className="text-secondary-grey300">{emailAddr}</span>
                                                         <CheckCircle2 size={14} className="ml-auto text-green-500" />
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm">
-                                                        <MapPin size={16} className="text-gray-400" />
+                                                        <img src="/superAdmin/patient_list/location.svg" alt="" className="w-5 h-5" />
                                                         <span className="text-secondary-grey300">{fullAddress}</span>
                                                         <CheckCircle2 size={14} className="ml-auto text-green-500" />
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm">
-                                                        <Globe size={16} className="text-gray-400" />
+                                                        <img src="/superAdmin/patient_list/website.svg" alt="" className="w-5 h-5" />
                                                         <span className="text-secondary-grey300">{languages}</span>
                                                     </div>
                                                 </div>
@@ -602,14 +606,14 @@ export default function PatientDetailsDrawer({
                     </>
                 )}
             </aside>
-                {isScheduleDrawerOpen && (
-                    <ScheduleAppointmentDrawer
-                        open={isScheduleDrawerOpen}
-                        onClose={() => setIsScheduleDrawerOpen(false)}
-                        patient={patient || { name, dob, age, gender, contact }}
-                        zIndex={6000}
-                    />
-                )}
+            {isScheduleDrawerOpen && (
+                <ScheduleAppointmentDrawer
+                    open={isScheduleDrawerOpen}
+                    onClose={() => setIsScheduleDrawerOpen(false)}
+                    patient={patient || { name, dob, age, gender, contact }}
+                    zIndex={6000}
+                />
+            )}
         </div>
     );
 }

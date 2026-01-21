@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   ArrowRight,
@@ -19,6 +19,7 @@ const search = '/superAdmin/Doctors/SearchIcon.svg'
 import { useQueueLogic } from './useQueueLogic';
 const appt = '/fd/appt.svg'
 const active = '/fd/active.svg'
+import useHospitalFrontDeskAuthStore from '../../../store/useHospitalFrontDeskAuthStore';
 
 const toggle_open = '/fd/toggle_open.svg'
 
@@ -37,6 +38,10 @@ export default function HFDQueue() {
   const [selectedDoctorId, setSelectedDoctorId] = useState(1);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('appt_request'); // 'active_sessions' or 'appt_request'
+
+  useEffect(() => {
+    useHospitalFrontDeskAuthStore.getState().fetchMe();
+  }, []);
 
   // Hook for Queue Logic (Requests, Approvals)
   const {

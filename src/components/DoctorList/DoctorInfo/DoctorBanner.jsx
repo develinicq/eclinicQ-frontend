@@ -18,6 +18,12 @@ const clinic = '/superAdmin/Doctors/Medical Kit.svg'
 
 
 const hospital = '/icons/Sidebar/MainSidebar/hospital_unselect.png'
+const calendarReschedule = '/superAdmin/doctor_list_dropdown/Calendar Reschedule.svg';
+const bin = '/superAdmin/doctor_list_dropdown/bin.svg';
+const inactiveIcon = '/superAdmin/doctor_list_dropdown/inactive.svg';
+const linkIconLocal = '/superAdmin/doctor_list_dropdown/link.svg';
+const outOfOffice = '/superAdmin/doctor_list_dropdown/out_of_office.svg';
+
 const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
   const { id } = useParams();
   const [doctor, setDoctor] = useState(initialDoctor);
@@ -46,25 +52,43 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
         console.log("DoctorBanner: Fetched Data:", resp);
         if (resp?.data) {
           const d = resp.data;
+          const workplace = d?.workplace || { clinics: [], hospitals: [] };
+          const clinicHospitalName = d?.clinicHospitalName || initialDoctor?.clinicHospitalName;
+
+          let foundId = null;
+          // Try to find the ID that match the name
+          const allFacilities = [...(workplace.clinics || []), ...(workplace.hospitals || [])];
+          const match = allFacilities.find(f => f.name === clinicHospitalName);
+          if (match) {
+            foundId = String(match.id || match._id);
+          }
+
           const mapped = {
             ...initialDoctor,
             ...d,
             id: d?.doctorCode || userId,
             userId: userId,
             name: d?.doctorName || initialDoctor?.name,
-            workplace: d?.workplace || { clinics: [], hospitals: [] },
+            workplace,
             designation: d?.qualification || initialDoctor?.designation,
             specialization: d?.specialization || initialDoctor?.specialization,
-            medicalPracticeType: d?.medicalPracticeType || d?.medicalPracticeType, // Map medicalPracticeType
+            medicalPracticeType: d?.medicalPracticeType,
             exp: d?.experienceOverall != null ? `${d.experienceOverall} yrs exp` : initialDoctor?.exp,
             status: d?.status || initialDoctor?.status,
             rating: d?.rating || initialDoctor?.rating,
             activePackage: d?.activePackage || initialDoctor?.activePackage,
-            clinicHospitalName: d?.clinicHospitalName || initialDoctor?.clinicHospitalName,
+            clinicHospitalName,
             noOfPatientsManaged: d?.noOfPatientsManaged,
             noOfAppointmentsBooked: d?.noOfAppointmentsBooked,
           };
+
           setDoctor(mapped);
+          if (foundId) {
+            setSelectedId(foundId);
+            if (typeof onClinicChange === 'function') {
+              onClinicChange(foundId);
+            }
+          }
         }
       } catch (error) {
         console.error("DoctorBanner: API Error", error);
@@ -99,11 +123,38 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
   const isActive = (doctor?.status || '').toLowerCase() === 'active'
 
   const [isClinicOpen, setIsClinicOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState(1);
+  const [selectedId, setSelectedId] = useState(null);
   const [openMenu, setOpenMenu] = useState(null); // Track which menu is open by name or id
   const [showActionMenu, setShowActionMenu] = useState(false);
   const clinicRef = useRef(null);
   const actionMenuRef = useRef(null);
+
+  // Auto-selection logic: Prioritize Clinic over Hospital if both are present
+  useEffect(() => {
+    if (!doctor?.workplace || selectedId !== null) return;
+
+    const clinics = doctor.workplace.clinics || [];
+    const hospitals = doctor.workplace.hospitals || [];
+
+    let priorityFacility = null;
+    if (clinics.length > 0) {
+      priorityFacility = clinics[0];
+    } else if (hospitals.length > 0) {
+      priorityFacility = hospitals[0];
+    }
+
+    if (priorityFacility) {
+      const pid = String(priorityFacility.id || priorityFacility._id);
+      setSelectedId(pid);
+      setDoctor(prev => ({
+        ...prev,
+        clinicHospitalName: priorityFacility.name
+      }));
+      if (typeof onClinicChange === 'function') {
+        onClinicChange(pid);
+      }
+    }
+  }, [doctor?.workplace, selectedId, onClinicChange]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -129,7 +180,7 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
   if (loading) {
     return (
       <div className="w-full h-[125px] flex items-center justify-center bg-white border rounded-lg">
-        <UniversalLoader size={30} className='bg-white' />
+        <UniversalLoader size={30}  />
       </div>
     );
   }
@@ -263,7 +314,7 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
             onClick={() => setIsClinicOpen(!isClinicOpen)}
             className={`bg-secondary-grey50 flex items-center px-[6px] py-[2px] gap-1 border hover:border-blue-primary150 rounded-sm  transition-colors hover:text-blue-primary250 relative cursor-pointer select-none ${isClinicOpen ? ' border-blue-primary150 text-blue-primary250' : 'border-transparent text-secondary-grey400'}`}
           >
-            <img src={hospital} alt="" className='h-4 w-4' />
+            <img src={selectedId && doctor?.workplace?.hospitals?.find(h => String(h.id || h._id) === String(selectedId)) ? hospital2 : clinic} alt="" className='h-4 w-4' />
             <span className=" text-sm font-normal">
               {doctor?.clinicHospitalName || '-'}
             </span>
@@ -276,21 +327,24 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
             </div>
 
             {isClinicOpen && (
-              <div className="absolute top-full left-0 mt-1 p-2  bg-white shadow-lg rounded-lg border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute top-full  left-0 mt-1 p-2 min-w-[300px] bg-white shadow-lg rounded-lg border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className='flex flex-col gap-1'>
                   <span className='text-secondary-grey300 px-2 font-medium text-[12px]'>SWITCH ACCOUNT</span>
 
                   {/* render clinics */}
                   {(doctor?.workplace?.clinics || []).map((clinic, idx) => (
                     <FacilityCard
-                      key={clinic.id || `clinic-${idx}`}
+                      key={clinic.id || clinic._id || `clinic-${idx}`}
                       name={clinic.name || "-"}
                       location={clinic.city || clinic.location || ""}
                       variant="clinic"
-                      selected={selectedId === clinic.id}
+                      selected={String(selectedId) === String(clinic.id || clinic._id)}
                       onClick={() => {
-                        setSelectedId(clinic.id);
-                        if (typeof onClinicChange === 'function') onClinicChange(clinic.id);
+                        const cId = String(clinic.id || clinic._id);
+                        setSelectedId(cId);
+                        setDoctor(prev => ({ ...prev, clinicHospitalName: clinic.name }));
+                        if (typeof onClinicChange === 'function') onClinicChange(cId);
+                        setIsClinicOpen(false);
                       }}
                     />
                   ))}
@@ -314,14 +368,17 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
                   {/* render hospitals */}
                   {(doctor?.workplace?.hospitals || []).map((hosp, idx) => (
                     <FacilityCard
-                      key={hosp.id || `hosp-${idx}`}
+                      key={hosp.id || hosp._id || `hosp-${idx}`}
                       name={hosp.name || "-"}
                       location={hosp.city || hosp.location || ""}
                       variant="hospital"
-                      selected={selectedId === hosp.id}
+                      selected={String(selectedId) === String(hosp.id || hosp._id)}
                       onClick={() => {
-                        setSelectedId(hosp.id);
-                        if (typeof onClinicChange === 'function') onClinicChange(hosp.id);
+                        const hId = String(hosp.id || hosp._id);
+                        setSelectedId(hId);
+                        setDoctor(prev => ({ ...prev, clinicHospitalName: hosp.name }));
+                        if (typeof onClinicChange === 'function') onClinicChange(hId);
+                        setIsClinicOpen(false);
                       }}
                     />
                   ))}
@@ -371,32 +428,32 @@ const DoctorBanner = ({ doctor: initialDoctor, onClinicChange }) => {
         <div className="relative" ref={actionMenuRef}>
           <button
             onClick={() => setShowActionMenu(!showActionMenu)}
-            className="p-2 text-gray-500 hover:text-gray-700 mr-2 ml-1 mt-2 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-700 mr-2 ml-1 mt-2  hover:bg-gray-100 transition-colors"
             aria-label="More options"
           >
             <img src={horizontal} alt="" />
           </button>
           {showActionMenu && (
-            <div className="absolute right-0 top-full mt-1 w-56 bg-white shadow-lg rounded-lg border border-gray-100 z-50 py-2 animate-in fade-in zoom-in-95 duration-100">
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center gap-3">
-                <Calendar size={16} className="text-gray-500" />
+            <div className="absolute right-0 top-full mt-1 w-[245px] bg-white shadow-[0px_4px_20px_rgba(0,0,0,0.1)] rounded-[10px] border border-gray-100 z-50 py-2 animate-in fade-in zoom-in-95 duration-100">
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={calendarReschedule} alt="" className="w-5 h-5" />
                 Update Availability Timing
               </button>
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center gap-3">
-                <CalendarOff size={16} className="text-gray-500" />
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={outOfOffice} alt="" className="w-5 h-5" />
                 Set Out of Office
               </button>
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center gap-3">
-                <Link size={16} className="text-gray-500" />
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={linkIconLocal} alt="" className="w-5 h-5" />
                 Send Magic Link
               </button>
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-gray-50 flex items-center gap-3">
-                <UserX size={16} className="text-gray-500" />
+              <button className="w-full text-left px-[18px] py-2 text-secondary-grey400 font-normal text-sm hover:bg-gray-50 flex items-center gap-2">
+                <img src={inactiveIcon} alt="" className="w-5 h-5" />
                 Mark as Inactive
               </button>
-              <div className="h-[1px] bg-gray-100 my-1 mx-2" />
-              <button className="w-full text-left px-4 py-2.5 text-[13px] text-red-500 hover:bg-red-50 flex items-center gap-3">
-                <Trash2 size={16} />
+              <div className="mx-2 h-[0.5px] bg-[#E0E7FF] my-1.5" />
+              <button className="w-full text-left px-[18px] py-2 text-[#F04438] font-normal text-sm hover:bg-red-50 flex items-center gap-2">
+                <img src={bin} alt="" className="w-5 h-5" />
                 Delete Profile
               </button>
             </div>

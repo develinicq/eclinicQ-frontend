@@ -65,27 +65,19 @@ const Patients = () => {
         gender: p.gender || '-',
         dob: formattedDob,
         age: formattedAge,
-        status: '-'
+        isActive: p.isActive,
+        status: p.isActive ? 'Active' : 'Inactive'
       }
     })
   }, [patientsRaw])
 
 
-  // Filter logic (placeholder since status is missing)
+  // Filter logic based on isActive
   const patientsFiltered = useMemo(() => {
-    // If we had status, we would filter here.
-    // Since API doesn't return status, we just return all for 'active'/'inactive' placeholders or empty.
-    // For now, let's just show all patients for 'all' tab, and maybe nothing for others to avoid confusion, 
-    // OR just show all for everything since we can't distinguish.
-    // User request said: "no precoded or hardcoded values", so if data is missing show -
-
-    // However, the UI has tabs. If I show all for 'Active', it might be misleading if they aren't active.
-    // But returning empty array might look like a bug.
-    // Let's assume for now we only show list on 'All'.
-
     if (selected === 'all') return patientsMapped;
-    // For other tabs, we have no data to filter by.
-    return [];
+    if (selected === 'active') return patientsMapped.filter(p => p.isActive === true);
+    if (selected === 'inactive') return patientsMapped.filter(p => p.isActive === false);
+    return patientsMapped;
   }, [selected, patientsMapped]);
 
   const pagedData = useMemo(() => {
@@ -95,9 +87,8 @@ const Patients = () => {
 
   const counts = useMemo(() => ({
     all: patientsMapped.length,
-    active: 0,
-    inactive: 0,
-    draft: 0
+    active: patientsMapped.filter(p => p.isActive === true).length,
+    inactive: patientsMapped.filter(p => p.isActive === false).length,
   }), [patientsMapped])
 
   const handleOpenLog = useCallback((row) => {
@@ -134,7 +125,7 @@ const Patients = () => {
           counts={counts}
           selected={selected}
           onChange={setSelected}
-          tabs={[{ key: 'all', label: 'All' }, { key: 'active', label: 'Active' }, { key: 'inactive', label: 'Inactive' }, { key: 'draft', label: 'Draft' }]}
+          tabs={[{ key: 'all', label: 'All' }, { key: 'active', label: 'Active' }, { key: 'inactive', label: 'Inactive' }]}
           showCounts={true}
           addLabel="Add New Patient"
           addPath={() => setAddOpen(true)} // Keep drawer capability if needed, or null

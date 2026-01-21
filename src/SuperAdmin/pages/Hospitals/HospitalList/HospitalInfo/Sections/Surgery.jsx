@@ -79,7 +79,7 @@ export default function Surgery({ hospital }) {
     if (loading) {
         return (
             <div className="w-full h-64 flex items-center justify-center">
-                <UniversalLoader size={40} />
+                <UniversalLoader size={28} />
             </div>
         )
     }
@@ -92,7 +92,7 @@ export default function Surgery({ hospital }) {
             </div>
 
             {surgeries.length === 0 ? (
-                <div className="py-12 flex flex-col items-center justify-center border border-dashed border-secondary-grey200 rounded-lg bg-white">
+                <div className="py-12 flex flex-col items-center justify-center rounded-lg bg-white">
                     <p className="text-secondary-grey300 text-sm">No surgeries added yet.</p>
                 </div>
             ) : (
@@ -148,7 +148,7 @@ export default function Surgery({ hospital }) {
                                                 title="Edit"
                                                 onClick={() => handleEdit(s)}
                                             >
-                                                <img src={pencil} alt="Edit" className="w-6 h-6 grayscale opacity-60 hover:grayscale-0 hover:opacity-100" />
+                                                <img src={pencil} alt="Edit" className="w-6 h-6" />
                                             </button>
                                             <div className="h-4 w-[1px] bg-gray-200" aria-hidden="true" />
                                             <button

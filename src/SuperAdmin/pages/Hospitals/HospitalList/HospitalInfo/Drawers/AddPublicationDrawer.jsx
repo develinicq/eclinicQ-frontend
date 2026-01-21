@@ -95,7 +95,7 @@ export default function AddPublicationDrawer({ open, onClose, onSuccess, hospita
                 <InputWithMeta label="Publisher" requiredDot value={publisher} onChange={setPublisher} placeholder="Enter Publisher" />
                 <div className="relative">
                     <InputWithMeta label="Type" value={type} onChange={setType} placeholder="Select Type" RightIcon={ChevronDown} onFieldOpen={() => setTypeOpen((o) => !o)} dropdownOpen={typeOpen} onRequestClose={() => setTypeOpen(false)} readonlyWhenIcon={false} />
-                    <Dropdown open={typeOpen} onClose={() => setTypeOpen(false)} items={typeOptions.map((a) => ({ label: a, value: a }))} selectedValue={type} onSelect={(it) => { setType(it.value); setTypeOpen(false); }} anchorClassName="w-full h-0" className="input-meta-dropdown w-full" direction="down" />
+                    <Dropdown open={typeOpen} onClose={() => setTypeOpen(false)} items={typeOptions.map((a) => ({ label: a, value: a }))} selectedValue={type} onSelect={(it) => { setType(it.value); setTypeOpen(false); }} anchorClassName="absolute bottom-0 left-0 w-full h-0" className="input-meta-dropdown w-full" direction="down" />
                 </div>
                 <div className="relative">
                     <InputWithMeta label="Date" requiredDot value={date} onChange={setDate} placeholder="Select Date" RightIcon='/Doctor_module/settings/calendar.png' onIconClick={() => setShowCalendar((v) => !v)} dropdownOpen={showCalendar} onRequestClose={() => setShowCalendar(false)} readonlyWhenIcon={true} />

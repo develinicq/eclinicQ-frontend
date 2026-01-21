@@ -20,12 +20,34 @@ const axiosInstance = axios.create({
 
 // Attach token to every request if available
 axiosInstance.interceptors.request.use(
-  (config) => {
+  async (config) => {
     try {
-      // Prefer Super Admin token, fallback to general auth store, then localStorage
+      // Token Priority: SuperAdmin → Hospital → Doctor → Legacy
       const saToken = (() => {
         try { return useSuperAdminAuthStore.getState().token; } catch { return null; }
       })();
+
+      let hToken = null;
+      try {
+        // Dynamic import to avoid circular dependency if store imports axios
+        const store = (await import('../store/useHospitalAuthStore')).default;
+        hToken = store.getState().token;
+      } catch (e) { /* ignore */ }
+
+      let dToken = null;
+      try {
+        // Dynamic import for doctor auth store
+        const store = (await import('../store/useDoctorAuthStore')).default;
+        dToken = store.getState().token;
+      } catch (e) { /* ignore */ }
+
+      let fdToken = null;
+      try {
+        // Dynamic import for front desk auth store
+        const store = (await import('../store/useFrontDeskAuthStore')).default;
+        fdToken = store.getState().token;
+      } catch (e) { /* ignore */ }
+
       const genericToken = (() => {
         try { return useAuthStore.getState().token; } catch { return null; }
       })();
@@ -33,12 +55,40 @@ axiosInstance.interceptors.request.use(
         try { return localStorage.getItem('superAdminToken'); } catch { return null; }
       })();
 
-      const token = saToken || genericToken || lsToken;
+      // Priority logic based on current route/path to support multi-role users
+      const path = typeof window !== 'undefined' ? window.location.pathname : '';
+      let token = null;
+
+      // Disambiguate between modules using specific segment checks
+      const isDoctorModule = path.startsWith('/doc/') || path === '/doc';
+      const isHospitalModule = path.startsWith('/hospital/') || path === '/hospital';
+      const isHospitalFDModule = path.startsWith('/hfd/') || path === '/hfd';
+      const isFrontDeskModule = path.startsWith('/fd/') || path === '/fd';
+
+      // Disambiguate SuperAdmin: /doctor (SA) vs /doc (Doctor), /hospitals (SA) vs /hospital (Hospital)
+      const isSuperAdminRoute = path === '/' || path.startsWith('/doctor') || path.startsWith('/hospitals') ||
+        path.startsWith('/patients') || path.startsWith('/dashboard') ||
+        path.startsWith('/settings');
+
+      if (isSuperAdminRoute) {
+        // SuperAdmin routes should NOT fall back to hospital or doctor tokens
+        token = saToken || lsToken || genericToken;
+      } else if (isDoctorModule) {
+        token = dToken || fdToken || saToken || hToken || genericToken || lsToken;
+      } else if (isHospitalModule || isHospitalFDModule) {
+        token = hToken || saToken || dToken || genericToken || lsToken;
+      } else if (isFrontDeskModule) {
+        token = fdToken || genericToken || saToken || hToken || dToken || lsToken;
+      } else {
+        // Universal fallback
+        token = saToken || hToken || dToken || genericToken || lsToken;
+      }
+
       if (token) {
         config.headers = config.headers || {};
-        const raw = String(token).trim();
-        const hasBearer = /^Bearer\s+/i.test(raw);
-        config.headers.Authorization = hasBearer ? raw : `Bearer ${raw}`;
+        const rawToken = String(token).trim();
+        const hasBearer = /^Bearer\s+/i.test(rawToken);
+        config.headers.Authorization = hasBearer ? rawToken : `Bearer ${rawToken}`;
       }
     } catch (e) {
       // ignore
@@ -55,6 +105,20 @@ axiosInstance.interceptors.response.use(
     if (error?.response?.status === 401) {
       try {
         useAuthStore.getState().clearAuth();
+        useSuperAdminAuthStore.getState().clearAuth();
+        localStorage.removeItem('superAdminToken');
+
+        // Dynamic import for hospital auth store to clear it too
+        import('../store/useHospitalAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
+
+        // Dynamic import for doctor auth store to clear it too
+        import('../store/useDoctorAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
+
+        // Dynamic import for front desk auth store to clear it too
+        import('../store/useFrontDeskAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
+
+        // Note: useToastStore might need to be imported or accessed similarly
+        // For now, keeping the 401 logic minimal to avoid breaking more things
       } catch (e) {
         // ignore
       }

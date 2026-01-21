@@ -4,9 +4,10 @@ import UniversalLoader from "@/components/UniversalLoader";
 import { Checkbox } from "@/components/ui/checkbox";
 import axios from "../../lib/axios";
 import useSuperAdminAuthStore from "../../store/useSuperAdminAuthStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
+import useUIStore from "../../store/useUIStore";
 
 import useToastStore from "../../store/useToastStore";
 
@@ -23,12 +24,37 @@ export default function SuperAdminSignIn() {
     const [identifierMeta, setIdentifierMeta] = useState("");
     const [passwordMeta, setPasswordMeta] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [maskedEmail, setMaskedEmail] = useState("");
+    const [maskedPhone, setMaskedPhone] = useState("");
 
     // OTP State
     const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' | 'otp'
     const [otp, setOtp] = useState(new Array(6).fill(""));
     const [challengeId, setChallengeId] = useState(null);
+    const [resendTimer, setResendTimer] = useState(0);
+    const [resending, setResending] = useState(false);
     const otpInputRefs = useRef([]);
+
+    const location = useLocation();
+    const hasToasted = useRef(false);
+
+    // Show toast if redirected from a protected route
+    React.useEffect(() => {
+        // Reset the explicit logout flag so future unauthorized accesses (e.g. manual URL navigation) 
+        // will correctly show the toast.
+        useUIStore.getState().setIsLoggingOut(false);
+
+        if (location.state?.fromGuard && !hasToasted.current) {
+            addToast({
+                title: "Access Denied",
+                message: "Please login first to access this page.",
+                type: "error",
+            });
+            hasToasted.current = true;
+            // Clear state so toast doesn't re-appear on refresh/manual landing
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, addToast]);
 
     const canLogin = identifier.trim().length > 0 && password.trim().length > 0;
     const isOtpFilled = otp.every(val => val !== "");
@@ -48,7 +74,20 @@ export default function SuperAdminSignIn() {
         }
     };
 
-    const handleLogin = async () => {
+    const startResendTimer = () => {
+        setResendTimer(60);
+        const interval = setInterval(() => {
+            setResendTimer(prev => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const handleLogin = async (isResend = false) => {
         // reset meta
         setIdentifierMeta("");
         setPasswordMeta("");
@@ -58,7 +97,12 @@ export default function SuperAdminSignIn() {
             if (!password.trim()) setPasswordMeta("Please enter password.");
             return;
         }
-        setSubmitting(true);
+
+        if (isResend) {
+            setResending(true);
+        } else {
+            setSubmitting(true);
+        }
         setErrorMsg("");
 
         try {
@@ -71,6 +115,11 @@ export default function SuperAdminSignIn() {
                 const challengeId = res.data.data?.data?.challengeId;
                 if (challengeId) {
                     setChallengeId(challengeId);
+
+                    const responseData = res.data.data?.data;
+                    setMaskedEmail(responseData?.maskedEmail || "");
+                    setMaskedPhone(responseData?.maskedPhone || "");
+
                     addToast({
                         title: "OTP Sent",
                         message: "OTP sent successfully to your registered mobile/email.",
@@ -96,6 +145,7 @@ export default function SuperAdminSignIn() {
             });
         } finally {
             setSubmitting(false);
+            setResending(false);
         }
     };
 
@@ -119,10 +169,8 @@ export default function SuperAdminSignIn() {
                     if (remember) {
                         try {
                             localStorage.setItem('superAdminToken', token);
-                        } catch {}
+                        } catch { }
                     }
-                    // You might want to set user details here if returned, or fetch /me
-                    // setUser(res.data.data.user); 
 
                     addToast({
                         title: "Login Successful",
@@ -250,7 +298,7 @@ export default function SuperAdminSignIn() {
                                     readonlyWhenIcon={false}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && canLogin)
-                                            handleLogin();
+                                            handleLogin(false);
                                     }}
                                     meta={passwordMeta}
                                     metaClassName="text-red-500"
@@ -296,7 +344,7 @@ export default function SuperAdminSignIn() {
                                     </button>
                                 ) : (
                                     <button
-                                        onClick={handleLogin}
+                                        onClick={() => handleLogin(false)}
                                         disabled={!canLogin}
                                         className={`w-full h-[32px] rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2
                                             ${!canLogin
@@ -316,7 +364,7 @@ export default function SuperAdminSignIn() {
                         ) : (
                             <div className="flex flex-col items-center  gap-4 w-full animate-in fade-in slide-in-from-right-4 duration-300">
                                 <div className="text-[14px] text-secondary-grey300 ">
-                                    We have sent a 6 digit OTP on <span className="font-semibold">{identifier.replace(/(\+?91)?(\d{2}).*(\d{4})/, '*******$3')}</span> and registered email Id <span className="font-semibold"> {identifier.includes('@') ? identifier.replace(/^(.{2}).*(@.*)$/, '$1*****$2') : 'ke*****@gmail.com'}</span>, please sign up if you are a new user
+                                    We have sent a 6 digit OTP on <span className="font-semibold">{maskedPhone}</span> and registered email Id <span className="font-semibold"> {maskedEmail}</span>, please sign up if you are a new user
                                 </div>
 
                                 <div className="flex flex-col items-center gap-3 w-full">
@@ -344,7 +392,23 @@ export default function SuperAdminSignIn() {
                                         ))}
                                     </div>
                                     <div className="text-[12px] text-secondary-grey200 flex items-center gap-2">
-                                        Haven’t Received Your Code yet? <button type="button" onClick={() => { setOtp(new Array(6).fill("")); alert("OTP Resent"); }} className="text-blue-primary250 text-[14px] hover:underline">Resend</button>
+                                        Haven’t Received Your Code yet? {resending ? (
+                                            <span className="text-secondary-grey300 text-[14px]">Resending...</span>
+                                        ) : resendTimer > 0 ? (
+                                            <span className="text-secondary-grey300 text-[14px]">Resend after {resendTimer}s</span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setOtp(new Array(6).fill(""));
+                                                    handleLogin(true);
+                                                    startResendTimer();
+                                                }}
+                                                className="text-blue-primary250 text-[14px] hover:underline"
+                                            >
+                                                Resend
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -364,7 +428,7 @@ export default function SuperAdminSignIn() {
                                                     minWidth: 0
                                                 }}
                                             />
-                                            Verify OTP
+                                            Verifying...
                                         </button>
                                     ) : (
                                         <button

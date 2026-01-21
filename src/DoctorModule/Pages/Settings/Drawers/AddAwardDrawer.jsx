@@ -6,6 +6,9 @@ import { ChevronDown } from "lucide-react";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import calendarWhite from "/Doctor_module/sidebar/calendar_white.png";
 import RichTextBox from "@/components/GeneralDrawer/RichTextBox";
+import { addAward, updateAward } from "@/services/settings/awardsPublicationsService";
+import useToastStore from "@/store/useToastStore";
+import UniversalLoader from "@/components/UniversalLoader";
 
 /**
  * AddAwardDrawer — Add/Edit Award form matching provided design
@@ -22,6 +25,7 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
   const [date, setDate] = useState("");
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [assocOpen, setAssocOpen] = useState(false);
   const [showIssueCalendar, setShowIssueCalendar] = useState(false);
@@ -51,10 +55,62 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
     []
   );
 
-  const save = () => {
+  const isDirty = useMemo(() => {
+    const norm = (v) => (v ?? "");
+    return (
+      norm(title) !== norm(initial?.awardName) ||
+      norm(issuer) !== norm(initial?.issuerName) ||
+      norm(assoc) !== norm(initial?.associatedWith) ||
+      norm(date) !== (initial?.issueDate ? initial.issueDate.split("T")[0] : "") ||
+      norm(url) !== norm(initial?.awardUrl) ||
+      norm(desc) !== norm(initial?.description)
+    );
+  }, [title, issuer, assoc, date, url, desc, initial]);
+
+  const save = async () => {
     if (!canSave) return;
-    onSave?.({ title, issuer, with: assoc, date, url, desc });
-    onClose?.();
+    const { addToast } = useToastStore.getState();
+    const payload = {
+      awardName: title,
+      issuerName: issuer,
+      associatedWith: assoc || "",
+      issueDate: date,
+      awardUrl: url,
+      description: desc,
+    };
+
+    try {
+      setSaving(true);
+      if (mode === "edit" && initial?.id) {
+        // Build diff
+        const diff = {};
+        const pushIf = (k, n, o) => { if ((n ?? "") !== (o ?? "")) diff[k] = n; };
+        pushIf("awardName", payload.awardName, initial.awardName);
+        pushIf("issuerName", payload.issuerName, initial.issuerName);
+        pushIf("associatedWith", payload.associatedWith, initial.associatedWith);
+        pushIf("issueDate", payload.issueDate, initial.issueDate ? initial.issueDate.split("T")[0] : "");
+        pushIf("awardUrl", payload.awardUrl, initial.awardUrl);
+        pushIf("description", payload.description, initial.description);
+
+        if (Object.keys(diff).length === 0) {
+          onClose?.();
+          return;
+        }
+
+        const res = await updateAward({ id: initial.id, ...diff });
+        addToast({ title: "Updated", message: res?.message || "Award updated successfully", type: "success" });
+        onSave?.(res?.data || { ...initial, ...diff });
+      } else {
+        const res = await addAward(payload);
+        addToast({ title: "Added", message: res?.message || "Award added successfully", type: "success" });
+        onSave?.(res?.data || payload);
+      }
+      onClose?.();
+    } catch (e) {
+      addToast({ title: "Error", message: e?.message || "Failed to save award", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -62,9 +118,14 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
       isOpen={open}
       onClose={onClose}
       title={mode === "edit" ? "Edit Award" : "Add Award"}
-      primaryActionLabel="Save"
+      primaryActionLabel={saving ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} style={{ width: 'auto', height: 'auto' }} />
+          <span>{mode === 'edit' ? 'Updating...' : 'Saving...'}</span>
+        </div>
+      ) : (mode === 'edit' ? "Update" : "Save")}
       onPrimaryAction={save}
-      primaryActionDisabled={!canSave}
+      primaryActionDisabled={saving || !canSave || (mode === 'edit' && !isDirty)}
       width={600}
     >
       <div className="flex flex-col gap-4">
@@ -119,8 +180,8 @@ export default function AddAwardDrawer({ open, onClose, onSave, mode = "add", in
             onChange={setDate}
             placeholder="Select Date"
             RightIcon=
-             '/Doctor_module/settings/calendar.png'
-            
+            '/Doctor_module/settings/calendar.png'
+
             onIconClick={() => setShowIssueCalendar((v) => !v)}
             dropdownOpen={showIssueCalendar}
             onRequestClose={() => setShowIssueCalendar(false)}
