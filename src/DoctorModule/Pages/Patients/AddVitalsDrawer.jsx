@@ -1,167 +1,198 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useState } from "react";
+import GeneralDrawer from "../../../components/GeneralDrawer/GeneralDrawer";
+import InputWithMeta from "../../../components/GeneralDrawer/InputWithMeta";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function AddVitalsDrawer({ open, onClose, onSave, patient }) {
   const [form, setForm] = useState({
-    bpSys: '',
-    bpDia: '',
-    oxygenSaturation: '',
-    pulse: '',
-    respiratoryRate: '',
-    temperature: '',
-    bloodGlucose: '',
-    heightFt: '',
-    heightIn: '',
-    weight: '',
-    waist: '',
-    bmi: '',
-    notes: '',
+    bpSys: "",
+    bpDia: "",
+    oxygenSaturation: "",
+    pulse: "",
+    respiratoryRate: "",
+    temperature: "",
+    bloodGlucose: "",
+    heightFt: "",
+    heightIn: "",
+    weight: "",
+    waist: "",
+    bmi: "",
+    notes: "",
   });
 
   const [vitalsOpen, setVitalsOpen] = useState(true);
   const [biometricsOpen, setBiometricsOpen] = useState(true);
 
-  if (!open) return null;
-
-  const handleChange = (e) => setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
-
-  const hasAnyValue = Object.values(form).some((v) => v !== '' && v !== null && v !== undefined);
-
-  const handleSave = () => {
-    if (!hasAnyValue) return;
-    if (onSave) onSave(form);
-    onClose && onClose();
+  const handleChange = (field, value) => {
+    setForm((s) => ({ ...s, [field]: value }));
   };
 
+  const handleSave = () => {
+    onSave?.(form);
+    onClose?.();
+  };
+
+  const SectionToggle = ({ title, isOpen, onToggle }) => (
+    <button
+      onClick={onToggle}
+      className="flex items-center gap-1 text-sm font-semibold text-secondary-grey400 mb-1"
+    >
+      {title} {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+    </button>
+  );
+
   return (
-    <div className="fixed inset-0 z-50">
-      <div onClick={onClose} className="absolute inset-0 bg-black/40 animate-[fadeIn_.18s_ease-out_forwards]" />
-      <aside className="absolute top-16 right-5 bottom-5 w-full max-w-[560px] bg-white rounded shadow-lg overflow-auto animate-[slideIn_.28s_ease-out_forwards]" role="dialog" aria-modal="true">
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="text-lg font-semibold">Add Vitals & Biometrics</div>
-          <button onClick={onClose} className="p-2 rounded hover:bg-gray-100"><X className="h-5 w-5" /></button>
-        </div>
+    <GeneralDrawer
+      isOpen={open}
+      onClose={onClose}
+      title="Add Vitals & Biometrics"
+      primaryActionLabel="Save"
+      onPrimaryAction={handleSave}
+      width={560}
+    >
+      <div className="flex flex-col gap-4">
+        {/* Vitals Section */}
+        <div className="">
+          <SectionToggle
+            title="Vitals"
+            isOpen={vitalsOpen}
+            onToggle={() => setVitalsOpen(!vitalsOpen)}
+          />
 
-        <div className="p-4 space-y-4">
-          {/* Vitals section */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-semibold text-gray-800">Vitals</div>
-              <button onClick={() => setVitalsOpen((s) => !s)} className="text-sm text-gray-500">{vitalsOpen ? '▾' : '▸'}</button>
-            </div>
-
-            {vitalsOpen && (
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="col-span-2">
-                  <div className="text-[12px] text-gray-600 mb-1">Blood Pressure</div>
-                  <div className="flex gap-2 items-center">
-                    <input name="bpSys" value={form.bpSys} onChange={handleChange} placeholder="Systolic" className="w-24 border rounded px-2 py-2 text-sm" />
-                    <input name="bpDia" value={form.bpDia} onChange={handleChange} placeholder="Diastolic" className="w-24 border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2">mmHg</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">Oxygen Saturation</div>
-                  <div className="flex items-center">
-                    <input name="oxygenSaturation" value={form.oxygenSaturation} onChange={handleChange} placeholder="Value" className="w-full border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2">%</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">Pulse Rate</div>
-                  <div className="flex items-center">
-                    <input name="pulse" value={form.pulse} onChange={handleChange} placeholder="Value" className="w-full border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2">bpm</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">Respiratory Rate</div>
-                  <div className="flex items-center">
-                    <input name="respiratoryRate" value={form.respiratoryRate} onChange={handleChange} placeholder="Value" className="w-full border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2">rpm</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">Body Temperature</div>
-                  <div className="flex items-center">
-                    <input name="temperature" value={form.temperature} onChange={handleChange} placeholder="Value" className="w-full border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2">°F</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">Blood Glucose Level</div>
-                  <div className="flex items-center">
-                    <input name="bloodGlucose" value={form.bloodGlucose} onChange={handleChange} placeholder="Value" className="w-full border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2">mg/dl</div>
-                  </div>
+          {vitalsOpen && (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 border border-secondary-grey100/80 rounded-lg p-3">
+              {/* Blood Pressure - Grouped in 1 column */}
+              <div>
+                <label className="text-sm text-secondary-grey300 flex items-center gap-1">
+                  Blood Pressure
+                  <button type="button" className="text-secondary-grey200 w-3 h-3 hover:text-secondary-grey300 cursor-pointer">
+                    <img src="/Doctor_module/text_box/info.png" alt="info" className="h-3 w-3" />
+                  </button>
+                </label>
+                <div className="flex gap-2">
+                  <InputWithMeta
+                    placeholder="Value"
+                    suffix="Sys"
+                    value={form.bpSys}
+                    onChange={(val) => handleChange("bpSys", val)}
+                    className="flex-1"
+                  />
+                  <InputWithMeta
+                    placeholder="Value"
+                    suffix="Dia"
+                    value={form.bpDia}
+                    onChange={(val) => handleChange("bpDia", val)}
+                    className="flex-1"
+                  />
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Biometrics section */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-semibold text-gray-800">Biometrics</div>
-              <button onClick={() => setBiometricsOpen((s) => !s)} className="text-sm text-gray-500">{biometricsOpen ? '▾' : '▸'}</button>
+              <InputWithMeta
+                label="Oxygen Saturation"
+                infoIcon
+                placeholder="Value"
+                suffix="%"
+                value={form.oxygenSaturation}
+                onChange={(val) => handleChange("oxygenSaturation", val)}
+              />
+
+              <InputWithMeta
+                label="Pulse Rate"
+                infoIcon
+                placeholder="Value"
+                suffix="bpm"
+                value={form.pulse}
+                onChange={(val) => handleChange("pulse", val)}
+              />
+
+              <InputWithMeta
+                label="Respiratory Rate"
+                infoIcon
+                placeholder="Value"
+                suffix="rpm"
+                value={form.respiratoryRate}
+                onChange={(val) => handleChange("respiratoryRate", val)}
+              />
+
+              <InputWithMeta
+                label="Body Temperature"
+                infoIcon
+                placeholder="Value"
+                suffix="F"
+                value={form.temperature}
+                onChange={(val) => handleChange("temperature", val)}
+              />
+
+              <InputWithMeta
+                label="Blood Glucose Level"
+                infoIcon
+                placeholder="Value"
+                suffix="mg/dl"
+                value={form.bloodGlucose}
+                onChange={(val) => handleChange("bloodGlucose", val)}
+              />
             </div>
+          )}
+        </div>
 
-            {biometricsOpen && (
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">Height</div>
-                  <div className="flex items-center gap-2">
-                    <input name="heightFt" value={form.heightFt} onChange={handleChange} placeholder="ft" className="w-20 border rounded px-2 py-2 text-sm" />
-                    <input name="heightIn" value={form.heightIn} onChange={handleChange} placeholder="in" className="w-20 border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2">ft in</div>
-                  </div>
-                </div>
+        {/* Biometrics Section */}
+        <div className="">
+          <SectionToggle
+            title="Biometrics"
+            isOpen={biometricsOpen}
+            onToggle={() => setBiometricsOpen(!biometricsOpen)}
+          />
 
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">Weight</div>
-                  <div className="flex items-center">
-                    <input name="weight" value={form.weight} onChange={handleChange} placeholder="Value" className="w-full border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2">kg</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">Waist Circumference</div>
-                  <div className="flex items-center">
-                    <input name="waist" value={form.waist} onChange={handleChange} placeholder="Value" className="w-full border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2">cm</div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-[12px] text-gray-600 mb-1">BMI</div>
-                  <div className="flex items-center">
-                    <input name="bmi" value={form.bmi} onChange={handleChange} placeholder="Value" className="w-full border rounded px-2 py-2 text-sm" />
-                    <div className="text-xs text-gray-500 ml-2"> </div>
-                  </div>
+          {biometricsOpen && (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 border border-secondary-grey100/80 rounded-lg p-3">
+              {/* Height - Grouped in 1 column */}
+              <div>
+                <label className="text-sm text-secondary-grey300 flex items-center gap-1 ">Height</label>
+                <div className="flex gap-2">
+                  <InputWithMeta
+                    placeholder="Value"
+                    suffix="ft"
+                    value={form.heightFt}
+                    onChange={(val) => handleChange("heightFt", val)}
+                    className="flex-1"
+                  />
+                  <InputWithMeta
+                    placeholder="Value"
+                    suffix="in"
+                    value={form.heightIn}
+                    onChange={(val) => handleChange("heightIn", val)}
+                    className="flex-1"
+                  />
                 </div>
               </div>
-            )}
-          </div>
 
-          <label className="block text-xs text-gray-600">Notes
-            <textarea name="notes" value={form.notes} onChange={handleChange} className="mt-1 block w-full border rounded px-2 py-2 text-sm" rows={4} />
-          </label>
+              <InputWithMeta
+                label="Weight"
+                placeholder="Value"
+                suffix="kg"
+                value={form.weight}
+                onChange={(val) => handleChange("weight", val)}
+              />
 
-          <div className="flex items-center justify-end gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded border text-sm">Cancel</button>
-            <button onClick={handleSave} disabled={!hasAnyValue} className={`px-4 py-2 rounded text-sm ${hasAnyValue ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>Save</button>
-          </div>
+              <InputWithMeta
+                label="Waist Circumference"
+                placeholder="Value"
+                suffix="cm"
+                value={form.waist}
+                onChange={(val) => handleChange("waist", val)}
+              />
+
+              <InputWithMeta
+                label="BMI"
+                placeholder="Value"
+                value={form.bmi}
+                onChange={(val) => handleChange("bmi", val)}
+              />
+            </div>
+          )}
         </div>
-  </aside>
 
-  <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0%); } }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
-    </div>
+      </div>
+    </GeneralDrawer>
   );
 }

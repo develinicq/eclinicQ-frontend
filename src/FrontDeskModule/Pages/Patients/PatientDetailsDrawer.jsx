@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { X, Calendar, MoreHorizontal, ChevronDown, CheckCircle2, Phone, Mail, MapPin, Globe, Droplet, User, ArrowRight, ArrowUp, Pencil, Plus, AlertTriangle, Heart, Meh, Syringe, Trash2, Users } from "lucide-react";
+import { drawerCross } from "../../../../public/index.js";
 import AvatarCircle from "../../../components/AvatarCircle";
-
+import Badge from "../../../components/Badge.jsx";
 import ScheduleAppointmentDrawer from "../../../components/PatientList/ScheduleAppointmentDrawer";
+import { getPatientDetailsForDoctor } from "../../../services/patientService";
+import UniversalLoader from "../../../components/UniversalLoader";
 
 function Row({ label, value }) {
     return (
@@ -20,7 +23,6 @@ function SectionCard({ title, children, editButtonGroup }) {
                 <div>{title}</div>
                 {editButtonGroup ? <div>{editButtonGroup}</div> : null}
             </div>
-            {/* horizontal line */}
             <div className="border-b border-secondary-grey100/50 mt-1" />
             <div className="flex flex-col gap-2 mt-2">{children}</div>
         </div>
@@ -77,13 +79,10 @@ function AppointmentCard({ title, date, type, reason, status, statusColor = "gre
     );
 }
 
-import { getPatientDetailsForSuperAdmin } from "../../../services/patientService";
-import UniversalLoader from "../../../components/UniversalLoader";
-
 export default function PatientDetailsDrawer({
     isOpen,
     onClose,
-    patient, // The patient data object from table
+    patient,
 }) {
     const panelRef = useRef(null);
     const [mounted, setMounted] = useState(false);
@@ -110,19 +109,18 @@ export default function PatientDetailsDrawer({
         };
     }, []);
 
-    // Fetch details when drawer opens
     useEffect(() => {
-        const idToFetch = patient?.userId || patient?.id;
+        const idToFetch = patient?.patientId || patient?.id;
         if (isOpen && idToFetch) {
             setLoadingDetails(true);
-            getPatientDetailsForSuperAdmin(idToFetch)
+            getPatientDetailsForDoctor(idToFetch)
                 .then(res => {
                     if (res && res.success && res.data) {
                         setDetails(res.data);
                     }
                 })
                 .catch(err => {
-                    console.error("Failed to fetch patient details", err);
+                    console.error("Failed to fetch patient details in FD", err);
                 })
                 .finally(() => {
                     setLoadingDetails(false);
@@ -133,7 +131,6 @@ export default function PatientDetailsDrawer({
     }, [isOpen, patient]);
 
 
-    // Animations from GeneralDrawer
     const requestClose = () => {
         setClosing(true);
         setTimeout(() => {
@@ -179,12 +176,9 @@ export default function PatientDetailsDrawer({
 
     if (!mounted && !closing) return null;
 
-    // Derived Data
     const pInfo = details?.personalInfo || {};
-    // Fallback to prop or empty
     const name = pInfo.firstName ? `${pInfo.firstName} ${pInfo.lastName || ''}`.trim() : (patient?.name || "-");
 
-    // Date formatting helper
     const formatDate = (d) => {
         if (!d) return '-';
         const date = new Date(d);
@@ -195,20 +189,18 @@ export default function PatientDetailsDrawer({
     const dob = pInfo.dob ? formatDate(pInfo.dob) : (patient?.dob || "-");
     const age = (pInfo.age !== undefined && pInfo.age !== null) ? `${pInfo.age}Y` : (patient?.age || "-");
     const gender = pInfo.gender ? (pInfo.gender.charAt(0).toUpperCase() + pInfo.gender.slice(1).toLowerCase()) : (patient?.gender || "-");
-    const mrn = pInfo.patientCode || patient?.id || "-";
-    const bloodGroup = pInfo.bloodGroup ? pInfo.bloodGroup.replace('_', ' ') : "B+"; // Defaulting or formatting
+    const mrn = pInfo.patientCode || patient?.patientCode || "-";
+    const bloodGroup = pInfo.bloodGroup ? pInfo.bloodGroup.replace('_', ' ') : "B+";
 
     const contact = pInfo.phone || patient?.contact || "-";
     const secondaryPhone = pInfo.secondaryPhone || "-";
     const emailAddr = pInfo.email || patient?.email || "-";
 
-    // Address
     const addr = pInfo.address || {};
     const street = [addr.blockNo, addr.areaStreet, addr.landmark].filter(Boolean).join(', ');
     const cityState = [addr.city, addr.state, addr.pincode].filter(Boolean).join(', ');
     const fullAddress = [street, cityState].filter(Boolean).join(', ') || (patient?.location || "-");
 
-    // Languages
     const primaryLang = pInfo.languages?.primary || "-";
     const secondaryLangs = pInfo.languages?.secondary?.join(', ') || "";
     const languages = [primaryLang, secondaryLangs].filter(Boolean).join('/') || "-";
@@ -217,15 +209,11 @@ export default function PatientDetailsDrawer({
     const recentAppointments = details?.recentAppointments || [];
     const lastVisitData = recentAppointments.length > 0 ? recentAppointments[0] : null;
 
-    // Helper for time
     const formatTime = (t) => {
         if (!t) return '';
         return new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    const lastVisitDate = lastVisitData ? formatDate(lastVisitData.date) : (patient?.lastVisit ? patient.lastVisit.split(',')[0] : "-"); // crude split if needed
-    // Actually patient.lastVisit in prop is already formatted string.
-    // If we have API data, use it.
     const lastVisitFull = lastVisitData ? `${formatDate(lastVisitData.date)} at ${formatTime(lastVisitData.time)}` : (patient?.lastVisit || "-");
     const lastVisitReason = lastVisitData?.reason || "-";
     const lastVisitDoctor = lastVisitData?.doctor || "-";
@@ -243,7 +231,6 @@ export default function PatientDetailsDrawer({
         @keyframes fadeOut { from { opacity: .3; } to { opacity: 0; } }
       `}</style>
 
-            {/* Backdrop */}
             <div
                 className={`absolute inset-0 bg-black/40 ${closing
                     ? "animate-[fadeOut_.2s_ease-in_forwards]"
@@ -253,7 +240,6 @@ export default function PatientDetailsDrawer({
                 style={{ zIndex: 5001 }}
             />
 
-            {/* Drawer Panel */}
             <aside
                 className={`absolute top-2 right-2 bottom-2  bg-blue-primary50 shadow-2xl border border-gray-200 rounded-lg overflow-hidden flex flex-col ${closing
                     ? "animate-[drawerOut_.22s_ease-in_forwards]"
@@ -268,7 +254,6 @@ export default function PatientDetailsDrawer({
                     </div>
                 ) : (
                     <>
-                        {/* Header Section */}
                         <div className="">
                             <div className="flex bg-white p-3 gap-[10px] items-center border-b border-secondary-grey100">
                                 <div className="flex gap-3">
@@ -346,7 +331,6 @@ export default function PatientDetailsDrawer({
 
                             </div>
 
-                            {/* Tabs */}
                             <div className="flex gap-2 px-3">
                                 {tabs.map(tab => (
                                     <button
@@ -363,19 +347,16 @@ export default function PatientDetailsDrawer({
                             </div>
                         </div>
 
-                        {/* Content Section */}
                         <div className=" overflow-y-auto bg-white  no-scrollbar">
 
                             {activeTab === "Overview" && (
                                 <>
-                                    {/* Sticky Note */}
                                     <div className="bg-warning2-50 p-[10px] border-t border-b border-warning2-400/50 text-sm text-secondary-grey150">
                                         Add Sticky Notes of Patient's Quick Updates
                                     </div>
 
                                     <div className="flex flex-col gap-4 pt-3 px-3 pb-3">
 
-                                        {/* Contact Info */}
                                         <div className="flex flex-col gap-1">
                                             <div
                                                 className="flex items-center gap-2 text-sm font-medium text-secondary-grey400 cursor-pointer group select-none"
@@ -418,7 +399,6 @@ export default function PatientDetailsDrawer({
                                             )}
                                         </div>
 
-                                        {/* Last Visit */}
                                         <div className="flex flex-col gap-1 pb-1">
                                             <div
                                                 className="flex items-center gap-2 text-sm font-medium text-secondary-grey400 cursor-pointer group select-none"
@@ -483,8 +463,7 @@ export default function PatientDetailsDrawer({
                                         title="Basic Info"
                                         editButtonGroup={
                                             <button
-                                                className="font-inter text-xs font-normal leading-[1.2] tracking-normal align-middle
-            text-[#2372EC] flex items-center gap-1"
+                                                className="font-inter text-xs font-normal leading-[1.2] tracking-normal align-middle text-[#2372EC] flex items-center gap-1"
                                             >
                                                 <img
                                                     src="/icons/Pen.svg"
@@ -530,8 +509,7 @@ export default function PatientDetailsDrawer({
                                         editButtonGroup={
                                             <div className="flex items-center justify-end">
                                                 <button
-                                                    className=" text-[#2372EC] font-inter text-xs font-normal leading-[1.2] tracking-normal align-middle
-"
+                                                    className=" text-[#2372EC] font-inter text-xs font-normal leading-[1.2] tracking-normal align-middle"
                                                 >
                                                     + Add New
                                                 </button>
@@ -575,7 +553,6 @@ export default function PatientDetailsDrawer({
                             {activeTab === "Past Visits" && (
 
                                 <div className="">
-                                    {/* Appointment 3 */}
                                     <div className="bg-warning2-50 p-[10px] border-t border-b border-warning2-400/50 text-sm text-secondary-grey150">
                                         Add Sticky Notes of Patient's Quick Updates
                                     </div>
@@ -589,8 +566,8 @@ export default function PatientDetailsDrawer({
                                                 type={appt.type ? appt.type.replace('_', ' ') : "-"}
                                                 reason={appt.reason || "-"}
                                                 status={appt.status || "Completed"}
-                                                statusColor={appt.status === "ENGAGED" ? "green" : "gray"} // Simplified
-                                                hasPrescription={false} // API doesn't seem to have this field yet
+                                                statusColor={appt.status === "ENGAGED" ? "green" : "gray"}
+                                                hasPrescription={false}
                                             />
                                         )) : (
                                             <div className="text-sm text-gray-400 p-2 text-center">No past visits found</div>

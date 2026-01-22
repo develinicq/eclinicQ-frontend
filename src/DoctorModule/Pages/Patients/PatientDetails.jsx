@@ -36,23 +36,27 @@ export default function PatientDetails() {
         // or it may already be the inner data payload depending on service implementation.
         const pdata =
           resp && (resp.patientId || resp.overview) ? resp : resp?.data || {};
-        console.log(pdata + "hello");
 
         // flatten overview data into patient object for existing UI
         const overview = pdata.overview || {};
         const contactInfo = overview.contactInfo || {};
         const phone = contactInfo.phone || {};
         const lastVisit = overview.lastVisit || {};
+        const vitalsAndBiometrics = overview.lastRecordedVitalsAndBiometrics || {};
+
         setPatient((prev) => ({
           ...prev,
           patientId: pdata.patientId || prev.patientId,
           // prefer name from overview if present, otherwise keep existing
-          name: overview.name || prev.name || "",
-          contact: phone.primary || prev.contact || "",
-          secondaryContact:
-            phone.secondary || prev.secondaryContact || "+91 0123456789",
-          email: contactInfo.emailId || prev.email || "",
+          name: overview.name || prev.name || "-",
+          contact: phone.primary || prev.contact || "-",
+          secondaryContact: phone.secondary || "-",
+          email: contactInfo.emailId || prev.email || "-",
           address: contactInfo.address || prev.address || null,
+          gender: overview.gender ? (overview.gender.charAt(0).toUpperCase() + overview.gender.slice(1).toLowerCase()) : (prev.gender || "-"),
+          dob: overview.dob ? new Date(overview.dob).toLocaleDateString("en-GB") : (prev.dob || "-"),
+          age: overview.age !== undefined ? `${overview.age}y` : (prev.age || "-"),
+          blood: overview.bloodGroup ? overview.bloodGroup.replace('_', ' ') : (prev.blood || "-"),
           lastVisit:
             lastVisit.date && (lastVisit.time || lastVisit.time === null)
               ? `${new Date(lastVisit.date).toLocaleDateString("en-GB")} | ${lastVisit.time
@@ -62,22 +66,20 @@ export default function PatientDetails() {
                 })
                 : ""
               }`
-              : prev.lastVisit || "",
+              : "-",
           // accept either nested doctor object or a direct doctorName field
           lastVisitDoctor:
             lastVisit.doctor?.name ||
             lastVisit.doctorName ||
-            prev.lastVisitDoctor ||
-            "",
-          lastVisitReason: lastVisit.reason || prev.lastVisitReason || "",
-          demographics: overview.demographics || prev.demographics || {},
+            "-",
+          lastVisitReason: lastVisit.reason || "-",
+          demographics: overview.demographics || {},
           // last recorded vitals payload (if any) and dependents list
           lastRecordedVitals:
             overview.lastRecordedVitalsAndBiometrics ||
-            prev.lastRecordedVitals ||
             null,
           dependants:
-            overview.dependents || pdata.dependents || prev.dependants || [],
+            overview.dependents || pdata.dependents || [],
           raw: pdata,
         }));
       } catch (e) {
@@ -92,11 +94,11 @@ export default function PatientDetails() {
     };
   }, [id]);
 
-  const name = patient.name || "Rahul Sharma";
-  const mrn = patient.patientId || "P654321";
-  const gender = patient.gender || "M";
-  const dob = patient.dob || "12/05/1985 (39y, 7m)";
-  const blood = patient.blood || "B+";
+  const name = patient.name || "-";
+  const mrn = patient.patientId || "-";
+  const gender = patient.gender || "-";
+  const dob = patient.dob || "-";
+  const blood = patient.blood || "-";
 
   // leftTab controls the left fixed panel (overview, demographics)
   // rightTab controls the right flexible panel (vitals, appointment, medical, documents)
@@ -104,13 +106,14 @@ export default function PatientDetails() {
   const [rightTab, setRightTab] = useState("vitals");
   const [vitalsDrawerOpen, setVitalsDrawerOpen] = useState(false);
   const [vitalsHistory, setVitalsHistory] = useState([]);
+  const [biometricsHistory, setBiometricsHistory] = useState([]);
   const [vitalsLoading, setVitalsLoading] = useState(false);
   const [vitalsError, setVitalsError] = useState(null);
 
   // load vitals history when viewing vitals tab or when patient id changes
   useEffect(() => {
     let mounted = true;
-    const loadVitals = async () => {
+    const loadVitalsData = async () => {
       if (!id) return;
       setVitalsLoading(true);
       setVitalsError(null);
@@ -118,7 +121,9 @@ export default function PatientDetails() {
         const resp = await getPatientVitalsForDoctor(id);
         if (!mounted) return;
         const vdata = resp?.data?.vitals || resp?.vitals || [];
+        const bdata = resp?.data?.biometrics || resp?.biometrics || [];
         setVitalsHistory(vdata);
+        setBiometricsHistory(bdata);
       } catch (e) {
         setVitalsError(e?.message || "Failed to load vitals");
       } finally {
@@ -126,7 +131,7 @@ export default function PatientDetails() {
       }
     };
     // only auto-load when the vitals tab is active — this keeps UX snappy
-    if (rightTab === "vitals") loadVitals();
+    if (rightTab === "vitals") loadVitalsData();
     return () => {
       mounted = false;
     };
@@ -141,13 +146,8 @@ export default function PatientDetails() {
     setVitalsDrawerOpen(false);
   };
   const [stickyNote, setStickyNote] = useState("");
-  const activeProblems = patient.activeProblems || [
-    { title: "High Blood Pressure", label: "Slightly High" },
-    { title: "Type 2 Diabetes", label: "Under Controlled" },
-  ];
-  const dependants = patient.dependants || [
-    { name: "Rashmi Sharma", relation: "Wife", phone: "+91 91753 67487" },
-  ];
+  const activeProblems = patient.activeProblems || [];
+  const dependants = patient.dependants || [];
   return (
     <>
       {/* Header row */}
@@ -180,7 +180,7 @@ export default function PatientDetails() {
             </div>
             <div className="flex items-center text-xs text-gray-500 mt-1">
               <span className="flex items-center gap-1">
-                03/14/1990 (33y, 7m)
+                {dob} {patient.age ? `(${patient.age})` : ""}
               </span>
               {/* Vertical line */}
               <div className="h-6 w-[1.2px] bg-gray-300 mx-2"></div>
@@ -202,7 +202,7 @@ export default function PatientDetails() {
                     fill="#626060"
                   />
                 </svg>
-                {gender === "M" ? "Male" : gender === "F" ? "Female" : gender}
+                {gender === "MALE" ? "Male" : gender === "FEMALE" ? "Female" : gender}
               </span>
 
               {/* Vertical line */}
@@ -223,7 +223,7 @@ export default function PatientDetails() {
                   <path
                     d="M5.30304 7.99992C4.24292 9.29174 4.52992 10.9381 6.00033 11.9999M6.10283 2.82945L3.41221 7.0975C2.17013 9.06777 2.50639 11.5788 4.22917 13.1982C6.31192 15.156 9.68873 15.156 11.7715 13.1982C13.4943 11.5788 13.8305 9.06777 12.5884 7.0975L9.89783 2.82945C9.49905 2.19688 9.29966 1.88059 9.08879 1.71108C8.4621 1.20731 7.53855 1.20731 6.91186 1.71108C6.70099 1.88059 6.5016 2.19688 6.10283 2.82945Z"
                     stroke="#626060"
-                    stroke-linecap="round"
+                    strokeLinecap="round"
                   />
                 </svg>{" "}
                 {blood}
@@ -284,7 +284,7 @@ export default function PatientDetails() {
               <path
                 d="M8.1665 16.5H9.32854C9.9835 16.5 10.311 16.5 10.5873 16.6479C10.8637 16.7958 11.0454 17.0683 11.4087 17.6133L11.5418 17.813C11.8941 18.3413 12.0702 18.6055 12.3089 18.5913C12.5476 18.5771 12.6912 18.294 12.9784 17.7277L14.6168 14.4971C14.9154 13.9082 15.0647 13.6138 15.3091 13.604C15.5534 13.5942 15.7258 13.8757 16.0706 14.4387L16.6017 15.3058C16.9591 15.8893 17.1378 16.1811 17.4225 16.3406C17.7071 16.5 18.0493 16.5 18.7336 16.5H19.8332M13.9998 22.3334C10.0715 22.3334 8.10728 22.3334 6.88689 21.113C5.6665 19.8926 5.6665 17.9285 5.6665 14.0001C5.6665 10.0717 5.6665 8.10752 6.88689 6.88714C8.10728 5.66675 10.0715 5.66675 13.9998 5.66675C17.9282 5.66675 19.8924 5.66675 21.1128 6.88714C22.3332 8.10752 22.3332 10.0717 22.3332 14.0001C22.3332 17.9285 22.3332 19.8926 21.1128 21.113C19.8924 22.3334 17.9282 22.3334 13.9998 22.3334Z"
                 stroke="#424242"
-                stroke-linecap="round"
+                strokeLinecap="round"
               />
             </svg>
             <span className="text-xs text-gray-500">Add Vitals</span>
@@ -316,17 +316,17 @@ export default function PatientDetails() {
               <path
                 d="M9.83333 13.9999C9.83333 14.9204 9.08714 15.6666 8.16667 15.6666C7.24619 15.6666 6.5 14.9204 6.5 13.9999C6.5 13.0794 7.24619 12.3333 8.16667 12.3333C9.08714 12.3333 9.83333 13.0794 9.83333 13.9999Z"
                 stroke="#424242"
-                stroke-linecap="round"
+                strokeLinecap="round"
               />
               <path
                 d="M15.6667 13.9999C15.6667 14.9204 14.9205 15.6666 14 15.6666C13.0795 15.6666 12.3333 14.9204 12.3333 13.9999C12.3333 13.0794 13.0795 12.3333 14 12.3333C14.9205 12.3333 15.6667 13.0794 15.6667 13.9999Z"
                 stroke="#424242"
-                stroke-linecap="round"
+                strokeLinecap="round"
               />
               <path
                 d="M21.5 13.9999C21.5 14.9204 20.7538 15.6666 19.8333 15.6666C18.9129 15.6666 18.1667 14.9204 18.1667 13.9999C18.1667 13.0794 18.9129 12.3333 19.8333 12.3333C20.7538 12.3333 21.5 13.0794 21.5 13.9999Z"
                 stroke="#424242"
-                stroke-linecap="round"
+                strokeLinecap="round"
               />
             </svg>
           </button>
@@ -410,12 +410,10 @@ export default function PatientDetails() {
                                 Primary
                               </Badge>
                             ) : (
-                              <Badge size="s" type="ghost" color="yellow">
-                                Primary
-                              </Badge>
+                              "-"
                             )}
                           </div>
-                          {patient.contact ? (
+                          {patient.contact !== "-" ? (
                             <img
                               src="/check_circle.svg"
                               width="14"
@@ -423,12 +421,7 @@ export default function PatientDetails() {
                               alt="Primary contact verified"
                             />
                           ) : (
-                            <img
-                              src="/check_circle.svg"
-                              width="14"
-                              height="14"
-                              alt="Primary contact verified"
-                            />
+                            "-"
                           )}
                         </div>
                         {patient.secondaryContact ? (
@@ -446,10 +439,12 @@ export default function PatientDetails() {
                                   fill="#626060"
                                 />
                               </svg>
-                              {patient.secondaryContact || "+91 0123456789"}{" "}
-                              <Badge size="s" type="ghost" color="grey">
-                                Secondary
-                              </Badge>
+                              {patient.secondaryContact || "-"}{" "}
+                              {patient.secondaryContact && (
+                                <Badge size="s" type="ghost" color="grey">
+                                  Secondary
+                                </Badge>
+                              )}
                             </div>
                           </div>
                         ) : (
@@ -467,10 +462,12 @@ export default function PatientDetails() {
                                   fill="#626060"
                                 />
                               </svg>
-                              {patient.secondaryContact || "+91 0123456789"}{" "}
-                              <Badge size="s" type="ghost" color="grey">
-                                Secondary
-                              </Badge>
+                              {patient.secondaryContact || "-"}{" "}
+                              {patient.secondaryContact && (
+                                <Badge size="s" type="ghost" color="grey">
+                                  Secondary
+                                </Badge>
+                              )}
                             </div>
                           </div>
                         )}
@@ -486,12 +483,12 @@ export default function PatientDetails() {
                               <path
                                 d="M5.00033 6.66659L6.79941 8.16582C8.32993 9.44126 9.0952 10.079 10.0003 10.079C10.9055 10.079 11.6707 9.44126 13.2012 8.16582L15.0003 6.66659M8.33366 16.6666H11.667C14.8097 16.6666 16.381 16.6666 17.3573 15.6903C18.3337 14.714 18.3337 13.1426 18.3337 9.99992C18.3337 6.85722 18.3337 5.28587 17.3573 4.30956C16.381 3.33325 14.8097 3.33325 11.667 3.33325H8.33366C5.19096 3.33325 3.61961 3.33325 2.6433 4.30956C1.66699 5.28587 1.66699 6.85722 1.66699 9.99992C1.66699 13.1426 1.66699 14.714 2.6433 15.6903C3.61961 16.6666 5.19096 16.6666 8.33366 16.6666Z"
                                 stroke="#626060"
-                                stroke-linecap="round"
+                                strokeLinecap="round"
                               />
                             </svg>
-                            {patient.email || "test@gmail.com"}
+                            {patient.email || "-"}
                           </div>
-                          {patient.email ? (
+                          {patient.email !== "-" ? (
                             <img
                               src="/check_circle.svg"
                               width="14"
@@ -499,12 +496,7 @@ export default function PatientDetails() {
                               alt="Primary contact verified"
                             />
                           ) : (
-                            <img
-                              src="/check_circle.svg"
-                              width="14"
-                              height="14"
-                              alt="Primary contact verified"
-                            />
+                            "-"
                           )}
                         </div>
                         <div className="flex items-center justify-between text-gray-600">
@@ -534,7 +526,7 @@ export default function PatientDetails() {
                                 ? " - " + patient.address.state
                                 : ""
                               }`
-                              : "Jawahar Nagar , Jaipur - Rajasthan"}
+                              : "-"}
                           </div>
                           {patient.address && patient.address.city ? (
                             <img
@@ -544,12 +536,7 @@ export default function PatientDetails() {
                               alt="Primary contact verified"
                             />
                           ) : (
-                            <img
-                              src="/check_circle.svg"
-                              width="14"
-                              height="14"
-                              alt="Primary contact verified"
-                            />
+                            "-"
                           )}
                         </div>
                         <div className="flex items-center justify-between text-gray-600">
@@ -564,7 +551,7 @@ export default function PatientDetails() {
                               <path
                                 d="M18.3337 10.0001C18.3337 11.0944 18.1181 12.1781 17.6993 13.1891C17.2805 14.2002 16.6667 15.1188 15.8929 15.8926C15.1191 16.6665 14.2004 17.2803 13.1894 17.6991C12.1783 18.1179 11.0947 18.3334 10.0003 18.3334M18.3337 10.0001C18.3337 8.90573 18.1181 7.8221 17.6993 6.81105C17.2805 5.80001 16.6667 4.88135 15.8929 4.10753C15.1191 3.3337 14.2004 2.71988 13.1894 2.30109C12.1783 1.8823 11.0947 1.66675 10.0003 1.66675M18.3337 10.0001L1.66699 10.0001M10.0003 18.3334C8.90598 18.3334 7.82234 18.1179 6.8113 17.6991C5.80025 17.2803 4.88159 16.6665 4.10777 15.8926C3.33395 15.1188 2.72012 14.2002 2.30133 13.1891C1.88254 12.1781 1.66699 11.0944 1.66699 10.0001M10.0003 18.3334C10.4381 18.3334 10.8715 18.1179 11.2759 17.6991C11.6804 17.2803 12.0478 16.6665 12.3573 15.8926C12.6669 15.1188 12.9124 14.2002 13.0799 13.1891C13.2474 12.1781 13.3337 11.0944 13.3337 10.0001C13.3337 8.90573 13.2474 7.8221 13.0799 6.81105C12.9124 5.80001 12.6669 4.88135 12.3573 4.10753C12.0478 3.3337 11.6804 2.71988 11.2759 2.30109C10.8715 1.8823 10.4381 1.66675 10.0003 1.66675M10.0003 18.3334C9.56259 18.3334 9.12913 18.1179 8.72471 17.6991C8.3203 17.2803 7.95283 16.6665 7.6433 15.8926C7.33377 15.1188 7.08824 14.2002 6.92073 13.1891C6.75321 12.1781 6.66699 11.0944 6.66699 10.0001C6.66699 8.90573 6.75321 7.8221 6.92073 6.81105C7.08824 5.80001 7.33377 4.88135 7.6433 4.10752C7.95283 3.3337 8.3203 2.71987 8.72471 2.30108C9.12913 1.8823 9.56259 1.66675 10.0003 1.66675M1.66699 10.0001C1.66699 8.90573 1.88254 7.8221 2.30133 6.81105C2.72012 5.80001 3.33395 4.88135 4.10777 4.10752C4.88159 3.3337 5.80025 2.71987 6.8113 2.30108C7.82234 1.8823 8.90598 1.66675 10.0003 1.66675"
                                 stroke="#626060"
-                                stroke-linecap="round"
+                                strokeLinecap="round"
                               />
                             </svg>
                             {(patient.demographics &&
@@ -574,7 +561,7 @@ export default function PatientDetails() {
                                   patient.demographics.contactDetails
                                     ?.secondaryLanguages || []
                                 ).join("/"))) ||
-                              "English/Hindi/Marathi"}
+                              "-"}
                           </div>
                           {patient.demographics &&
                             patient.demographics.contactDetails ? (
@@ -596,13 +583,13 @@ export default function PatientDetails() {
                     <div className="flex items-center justify-between">
                       <div className="text-gray-500">Date:</div>
                       <div className="col-span-2">
-                        {patient.lastVisit || "28 dec 2023 at 2:30 PM"}
+                        {patient.lastVisit || "-"}
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-gray-500">Doctor:</div>
                       <div className="col-span-2">
-                        {patient.lastVisitDoctor || "Dr Milind Chauhan"}
+                        {patient.lastVisitDoctor || "-"}
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
@@ -612,13 +599,13 @@ export default function PatientDetails() {
                           patient.raw.overview &&
                           patient.raw.overview.lastVisit &&
                           patient.raw.overview.lastVisit.type) ||
-                          "Consultation"}
+                          "-"}
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-gray-500">Reason:</div>
                       <div className="col-span-2">
-                        {patient.lastVisitReason || "Hypertension Evaluation"}
+                        {patient.lastVisitReason || "-"}
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
@@ -628,7 +615,7 @@ export default function PatientDetails() {
                           patient.raw.overview &&
                           patient.raw.overview.lastVisit &&
                           patient.raw.overview.lastVisit.status) ||
-                          "Completed 5:30 PM"}
+                          "-"}
                       </div>
                     </div>
                     <div className="col-span-3 text-xs text-blue-600">
@@ -658,104 +645,33 @@ export default function PatientDetails() {
                           : ""}
                       </div>
                       <div className="text-sm text-gray-700 space-y-1">
-                        {/** handle a few possible shapes: entries array, measurements object, or flat key-values */}
-                        {Array.isArray(patient.lastRecordedVitals.entries) &&
-                          patient.lastRecordedVitals.entries.length > 0
-                          ? patient.lastRecordedVitals.entries.map((e, i) => (
-                            <div key={i} className="flex justify-between">
-                              <span>{e.name || e.label || e.key}:</span>{" "}
-                              <span>
-                                {e.value}
-                                {e.unit ? ` ${e.unit}` : ""}
-                              </span>
+                        {(() => {
+                          const vObj = patient.lastRecordedVitals.vitals || {};
+                          const bObj = patient.lastRecordedVitals.biometrics || {};
+
+                          const items = [
+                            { label: "Blood Pressure", value: vObj.bloodPressure ? `${vObj.bloodPressure.systolic}/${vObj.bloodPressure.diastolic} mmHg` : null },
+                            { label: "Oxygen Saturation", value: vObj.oxygenSaturation ? `${vObj.oxygenSaturation}%` : null },
+                            { label: "Temperature", value: vObj.temperature ? `${vObj.temperature} °F` : null },
+                            { label: "Heart Rate", value: vObj.heartRate ? `${vObj.heartRate} bpm` : null },
+                            { label: "Respiratory Rate", value: vObj.respiratoryRate ? `${vObj.respiratoryRate} bpm` : null },
+                            { label: "Weight", value: bObj.weight ? `${bObj.weight} Kg` : null },
+                            { label: "Height", value: bObj.height ? `${bObj.height} cm` : null },
+                            { label: "BMI", value: bObj.bmi || null },
+                          ].filter(i => i.value !== null);
+
+                          return items.length > 0 ? items.map((item, idx) => (
+                            <div key={idx} className="flex justify-between py-0.5">
+                              <span className="text-gray-600">{item.label}:</span>
+                              <span className="font-medium text-gray-800">{item.value}</span>
                             </div>
-                          ))
-                          : // iterate over object keys excluding metadata
-                          Object.keys(patient.lastRecordedVitals)
-                            .filter(
-                              (k) =>
-                                ![
-                                  "recordedOn",
-                                  "recordedBy",
-                                  "entries",
-                                ].includes(k)
-                            )
-                            .map((k) => {
-                              const v = patient.lastRecordedVitals[k];
-                              // if nested object has value/unit
-                              if (
-                                v &&
-                                typeof v === "object" &&
-                                ("value" in v || "unit" in v)
-                              ) {
-                                return (
-                                  <div
-                                    key={k}
-                                    className="flex justify-between"
-                                  >
-                                    <span>
-                                      {k.replace(/([A-Z])/g, " $1")}:
-                                    </span>
-                                    <span>
-                                      {v.value}
-                                      {v.unit ? ` ${v.unit}` : ""}
-                                    </span>
-                                  </div>
-                                );
-                              }
-                              // primitive
-                              if (v !== null && v !== undefined && v !== "") {
-                                return (
-                                  <div
-                                    key={k}
-                                    className="flex justify-between"
-                                  >
-                                    <span>
-                                      {k.replace(/([A-Z])/g, " $1")}:
-                                    </span>
-                                    <span>{String(v)}</span>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })}
+                          )) : <div className="text-xs text-gray-400 italic">No specific vitals recorded in this session.</div>;
+                        })()}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-sm text-gray-700 space-y-3">
-                      <div className="text-xs text-gray-500 mb-1 bg-gray-100 px-2 py-1 rounded-sm">
-                        Recorded on 06/01/2025 by Dr. Milind Chauhan
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Blood Pressure:</span>{" "}
-                        <div className="flex items-center text-red-500 gap-[4px]">
-                          130/85{" "}
-                          <img
-                            className="text-red-500 text-[12px] h-[16px] w-[16px]"
-                            src="/icons/Arrow Up.svg"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">
-                          Oxygen Saturation:
-                        </span>{" "}
-                        <span>98%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Temperature:</span>{" "}
-                        <div className="flex items-center text-red-500 gap-[4px]">
-                          103 F
-                          <img
-                            className="text-red-500 text-[12px] h-[16px] w-[16px]"
-                            src="/icons/Arrow Up.svg"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Weight:</span>{" "}
-                        <span>75 Kgs</span>
-                      </div>
+                    <div className="text-sm text-gray-400 p-4 text-center border rounded-md italic">
+                      No vitals recorded recently.
                     </div>
                   )}
 
@@ -768,7 +684,7 @@ export default function PatientDetails() {
 
 
                   <div className="flex flex-col gap-2 mb-2 text-sm text-gray-600">
-                    {activeProblems.map((p, idx) => (
+                    {activeProblems.length > 0 ? activeProblems.map((p, idx) => (
                       <div
                         key={idx}
                         className="flex items-center justify-between"
@@ -787,7 +703,9 @@ export default function PatientDetails() {
                           </Badge>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-xs text-gray-400 italic">No active problems reported.</div>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between mt-5">
@@ -842,7 +760,7 @@ export default function PatientDetails() {
                 </div>
               )}
 
-              {leftTab === "demographics" && <PatientDemographics />}
+              {leftTab === "demographics" && <PatientDemographics overview={patient.raw?.overview} patientId={patient.patientId} />}
             </div>
 
             {/* Right flexible column with its own nav */}
@@ -894,6 +812,7 @@ export default function PatientDetails() {
                       embedded
                       onAdd={handleOpenAddVitals}
                       history={vitalsHistory}
+                      biometricsHistory={biometricsHistory}
                       loading={vitalsLoading}
                       error={vitalsError}
                     />
@@ -901,12 +820,12 @@ export default function PatientDetails() {
                 )}
                 {rightTab === "appointment" && (
                   <div>
-                    <PatientAppointments />
+                    <PatientAppointments patientId={patient.patientId} />
                   </div>
                 )}
                 {rightTab === "medical" && (
                   <div>
-                    <PatientMedicalHistory />
+                    <PatientMedicalHistory patientId={patient.patientId} />
                   </div>
                 )}
                 {rightTab === "documents" && (

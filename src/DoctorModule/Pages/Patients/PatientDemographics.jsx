@@ -1,4 +1,5 @@
 import React from "react";
+import AvatarCircle from "../../../components/AvatarCircle";
 
 function Row({ label, value }) {
   return (
@@ -23,7 +24,37 @@ function SectionCard({ title, children, editButtonGroup }) {
   );
 }
 
-export default function PatientDemographics() {
+export default function PatientDemographics({ overview, patientId }) {
+  if (!overview) return <div className="p-4 text-center text-gray-500 italic">No demographics data available.</div>;
+
+  const basicInfo = {
+    name: overview.name || "-",
+    dob: overview.dob ? new Date(overview.dob).toLocaleDateString("en-GB") : "-",
+    age: overview.age !== undefined ? `${overview.age} Years` : "-",
+    gender: overview.gender ? (overview.gender.charAt(0).toUpperCase() + overview.gender.slice(1).toLowerCase()) : "-",
+    bloodGroup: overview.bloodGroup ? overview.bloodGroup.replace('_', ' ') : "-",
+    maritalStatus: overview.maritalStatus || "-"
+  };
+
+  const contactInfo = overview.contactInfo || {};
+  const phone = contactInfo.phone || {};
+  const contactDetails = {
+    primaryPhone: phone.primary || "-",
+    secondaryPhone: phone.secondary || "-",
+    email: contactInfo.emailId || "-",
+    emergencyContact: "-", // Emergency contact field not explicitly in overview, keeping as -
+    primaryLanguage: overview.demographics?.contactDetails?.primaryLanguage || "-",
+    secondaryLanguage: overview.demographics?.contactDetails?.secondaryLanguages?.length > 0
+      ? overview.demographics.contactDetails.secondaryLanguages.join("/")
+      : "-"
+  };
+
+  const addressDetails = overview.demographics?.addressDetails?.permanentAddress || {};
+  const address = addressDetails.address || {};
+  const formattedAddress = [address.blockNo, address.areaStreet, address.landmark].filter(Boolean).join(", ") || "-";
+
+  const dependents = overview.dependents || [];
+
   return (
     <div className="w-[100%] gap-4 pt-4 px-3 pb-3 opacity-100">
       <div className="">
@@ -44,21 +75,21 @@ export default function PatientDemographics() {
             </button>
           }
         >
-          <Row label="Name:" value="Rahul Sharma" />
-          <Row label="Date Of Birth:" value="02 Feb 1996" />
-          <Row label="Age:" value="29 Years" />
-          <Row label="Gender:" value="Male" />
-          <Row label="Blood Group:" value="B+" />
-          <Row label="Marital Status:" value="Married" />
+          <Row label="Name:" value={basicInfo.name} />
+          <Row label="Date Of Birth:" value={basicInfo.dob} />
+          <Row label="Age:" value={basicInfo.age} />
+          <Row label="Gender:" value={basicInfo.gender} />
+          <Row label="Blood Group:" value={basicInfo.bloodGroup} />
+          <Row label="Marital Status:" value={basicInfo.maritalStatus} />
         </SectionCard>
 
         <SectionCard title="Contact Details">
-          <Row label="Primary Phone:" value="+91 98765 43210" />
-          <Row label="Secondary Phone:" value="+91 87654 32109" />
-          <Row label="Email Address:" value="rahul.sharma@email.com" />
-          <Row label="Emergency Contact:" value="+91 98765 43211 (Wife)" />
-          <Row label="Primary Language:" value="Hindi" />
-          <Row label="Secondary Language:" value="English/Marathi" />
+          <Row label="Primary Phone:" value={contactDetails.primaryPhone} />
+          <Row label="Secondary Phone:" value={contactDetails.secondaryPhone} />
+          <Row label="Email Address:" value={contactDetails.email} />
+          <Row label="Emergency Contact:" value={contactDetails.emergencyContact} />
+          <Row label="Primary Language:" value={contactDetails.primaryLanguage} />
+          <Row label="Secondary Language:" value={contactDetails.secondaryLanguage} />
         </SectionCard>
 
         <SectionCard title="Address Details">
@@ -67,14 +98,14 @@ export default function PatientDemographics() {
           >
             Permanent Address
           </div>
-          <Row label="Address:" value="Jawahar Nagar Gokul Colony" />
-          <Row label="City:" value="Akola" />
-          <Row label="State:" value="Maharashtra" />
-          <Row label="Zip Code:" value="444001" />
+          <Row label="Address:" value={formattedAddress} />
+          <Row label="City:" value={addressDetails.city || "-"} />
+          <Row label="State:" value={addressDetails.state || "-"} />
+          <Row label="Zip Code:" value={addressDetails.pincode || "-"} />
         </SectionCard>
 
         <SectionCard
-          title="Dependant"
+          title={`Dependant (${dependents.length})`}
           editButtonGroup={
             <div className="flex items-center justify-end">
               <button
@@ -86,30 +117,34 @@ export default function PatientDemographics() {
             </div>
           }
         >
-          <div className="flex items-center gap-3 py-2">
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold">
-              R
-            </div>
-            <div>
-              <div className="text-gray-800">
-                Rashmi Sharma{" "}
-                <span className="text-xs text-gray-500">Dependant</span>
+          {dependents.length > 0 ? dependents.map((d, idx) => (
+            <div key={d.id || idx} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+              <AvatarCircle name={d.name} size="s" />
+              <div>
+                <div className="text-gray-800">
+                  {d.name}{" "}
+                  <span className="text-xs text-gray-500">
+                    {d.relation ? (d.relation.charAt(0).toUpperCase() + d.relation.slice(1).toLowerCase()) : "Dependant"}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {d.phone || "-"}
+                </div>
               </div>
-              <div className="text-xs text-gray-500">
-                Wife · +91 91753 67487
+              <div className="ml-auto">
+                <button className="p-1.5 rounded hover:bg-gray-100">
+                  <img
+                    src="/icons/Menu Dots.svg"
+                    alt="options"
+                    width={16}
+                    height={16}
+                  />
+                </button>
               </div>
             </div>
-            <div className="ml-auto">
-              <button className="p-1.5 rounded hover:bg-gray-100">
-                <img
-                  src="/icons/Menu Dots.svg"
-                  alt="options"
-                  width={16}
-                  height={16}
-                />
-              </button>
-            </div>
-          </div>
+          )) : (
+            <div className="py-2 text-xs text-gray-400 italic">No dependents found.</div>
+          )}
         </SectionCard>
       </div>
     </div>

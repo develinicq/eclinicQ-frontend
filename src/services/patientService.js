@@ -39,3 +39,13 @@ export const getPatientDetailsForHospital = async (hospitalId, patientId) => {
         throw error;
     }
 };
+
+// Get patient details for Doctor/Staff
+export const getPatientDetailsForDoctor = async (patientId) => {
+    try {
+        const res = await axios.get(`/patients/for-doctor/patient-details/${patientId}`);
+        return res.data;
+    } catch (error) {
+        throw error;
+    }
+};

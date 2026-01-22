@@ -56,6 +56,28 @@ export const getPatientVitalsForDoctor = async (patientId) => {
   }
 };
 
+// Get appointments for a specific patient (doctor view)
+export const getPatientAppointmentsForDoctor = async (patientId) => {
+  if (!patientId) throw new Error('patientId is required');
+  try {
+    const res = await axios.get(`/patients/for-doctor/patient-details/appointments/${encodeURIComponent(patientId)}`);
+    return res.data; // { success, data: [...] }
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get medical history summary for a patient (doctor view)
+export const getPatientMedicalHistoryForDoctor = async (patientId) => {
+  if (!patientId) throw new Error('patientId is required');
+  try {
+    const res = await axios.get(`/patients/get-patient-details-for-doctor/medicalHistory/${encodeURIComponent(patientId)}`);
+    return res.data; // { success, data: { problems: [], allergies: [], ... } }
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Register a new doctor
 export const registerDoctor = async (payload) => {
   try {

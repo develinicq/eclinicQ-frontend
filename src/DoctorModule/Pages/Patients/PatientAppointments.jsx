@@ -1,234 +1,217 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import AvatarCircle from "../../../components/AvatarCircle";
 import Badge from "../../../components/Badge";
 import { Eye, MoreVertical, Filter } from "lucide-react";
-
-const upcoming = [
-  {
-    date: "20/02/2025 | 12:30 PM",
-    doctor: { name: "Milind Chauhan", title: "General Physician" },
-    type: "Follow-Up",
-    reason: "High Blood Pressure",
-    status: "Confirmed",
-  },
-];
-
-const past = [
-  {
-    date: "02/02/2025 | 12:30 PM",
-    doctor: { name: "Milind Chauhan", title: "General Physician" },
-    type: "New",
-    reason: "Fever & Weakness",
-    status: "Completed",
-  },
-  {
-    date: "12/02/2025 | 12:30 PM",
-    doctor: { name: "Milind Chauhan", title: "General Physician" },
-    type: "Follow-Up",
-    reason: "Fever & Weakness",
-    status: "Completed",
-  },
-  {
-    date: "03/02/2025 | 02:00 PM",
-    doctor: { name: "Milind Chauhan", title: "General Physician" },
-    type: "New",
-    reason: "Headache & Fatigue",
-    status: "Completed",
-  },
-  {
-    date: "05/02/2025 | 11:00 AM",
-    doctor: { name: "Milind Chauhan", title: "General Physician" },
-    type: "Follow-Up",
-    reason: "Headache & Fatigue",
-    status: "Declined",
-  },
-  {
-    date: "09/02/2025 | 09:30 AM",
-    doctor: { name: "Milind Chauhan", title: "General Physician" },
-    type: "New",
-    reason: "Abdominal Pain",
-    status: "Cancelled",
-  },
-];
+import { useParams } from "react-router-dom";
+import { getPatientAppointmentsForDoctor } from "../../../services/doctorService";
+import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
 
 function StatusBadge({ status }) {
-  const color =
-    status === "Confirmed" || status === "Completed"
-      ? status === "Confirmed"
-        ? "green"
-        : "gray"
-      : "red";
+  const s = (status || "").toUpperCase();
+  let color = "gray";
+  let label = status || "-";
+
+  if (s === "CONFIRMED") {
+    color = "green";
+    label = "Confirmed";
+  } else if (s === "CANCELLED" || s === "DECLINED") {
+    color = "red";
+    label = s.charAt(0) + s.slice(1).toLowerCase();
+  } else if (s === "COMPLETED") {
+    color = "gray";
+    label = "Completed";
+  }
+
   return (
     <Badge size="s" type="ghost" color={color}>
-      {status}
+      {label}
     </Badge>
   );
 }
 
-function AppointmentsTable({ rows }) {
+function AppointmentsTable({ rows, loading }) {
+  const { user: doctorDetails } = useDoctorAuthStore();
+
+  if (loading) {
+    return (
+      <div className="py-8 text-center text-gray-500">
+        <div className="h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        Loading appointments...
+      </div>
+    );
+  }
+
+  if (!rows || rows.length === 0) {
+    return <div className="py-8 text-center text-gray-500 italic border rounded-md">No appointments found.</div>;
+  }
+
   return (
     <table className="min-w-full h-8 min-h-8 max-h-8 border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6]">
-      <colgroup>
-        <col className="w-[200px] xxl:w-[260px]" />
-        <col className="w-[220px] xxl:w-[280px]" />
-        <col className="w-[140px] xxl:w-[160px]" />
-        <col />
-        <col className="w-[140px]" />
-        <col className="w-[64px]" />
-      </colgroup>
-
       <thead className="font-medium text-gray-500 border-b">
         <tr className="h-[32px]">
-          <th className="px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">
-            <div className="flex items-center">
-              <div>Date</div>
-              <button>
-                <img
-                  src="/Action Button.svg"
-                  width={24}
-                  height={24}
-                  alt="sort button"
-                />
-              </button>
-            </div>
-          </th>
-          <th className="px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">
-            <div className="flex items-center">
-              <div>Doctor</div>
-              <button>
-                <img
-                  src="/Action Button.svg"
-                  width={24}
-                  height={24}
-                  alt="sort button"
-                />
-              </button>
-            </div>
-          </th>
-          <th className="font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">
-            <div className="flex items-center">
-              <div>Type</div>
-              <button>
-                <img
-                  src="/Action Button.svg"
-                  width={24}
-                  height={24}
-                  alt="sort button"
-                />
-              </button>
-            </div>
-          </th>
-          <th className="px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">
-            <div className="flex items-center">
-              <div>Reason For Visit</div>
-              <button>
-                <img
-                  src="/Action Button.svg"
-                  width={24}
-                  height={24}
-                  alt="sort button"
-                />
-              </button>
-            </div>
-          </th>
-          <th className="px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">
-            <div className="flex items-center">
-              <div>Status</div>
-              <button>
-                <img
-                  src="/Action Button.svg"
-                  width={24}
-                  height={24}
-                  alt="sort button"
-                />
-              </button>
-            </div>
-          </th>
-          {/* <th className="px-[8px] text-right font-inter font-medium text-sm leading-[120%] tracking-normal text-[#424242]">
-            {" "}
-          </th> */}
+          <th className="px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">Date</th>
+          <th className="px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">Doctor</th>
+          <th className="px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">Type</th>
+          <th className="px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">Reason For Visit</th>
+          <th className="px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]">Status</th>
+          <th className="px-[8px] text-right"></th>
         </tr>
       </thead>
       <tbody>
-        {rows.map((r, i) => (
-          <tr key={i} className="border-b border-gray-200">
-            <td className="pl-1 py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.date}
-            </td>
-            <td className="py-2">
-              <div className="flex items-center gap-2">
-                <AvatarCircle name={r.doctor.name} size="xs" />
-                <div className="leading-tight">
-                  <div className="py-1 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-gray-800">
-                    {r.doctor.name}
-                  </div>
-                  <div className="py-1 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-                    {r.doctor.title}
+        {rows.map((r, i) => {
+          const docName =
+            r.doctorName ||
+            r.doctor?.name ||
+            doctorDetails?.name ||
+            (doctorDetails?.firstName ? `${doctorDetails.firstName} ${doctorDetails.lastName || ""}`.trim() : null) ||
+            doctorDetails?.fullName ||
+            "-";
+
+          const docSpecialization =
+            r.doctorSpecialization ||
+            r.doctor?.specialization ||
+            doctorDetails?.designation ||
+            (Array.isArray(doctorDetails?.specializations) ? doctorDetails?.specializations[0] : null) ||
+            "-";
+
+          return (
+            <tr key={r.id || i} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+              <td className="pl-1 py-3 font-inter font-normal text-sm leading-[120%] tracking-normal text-gray-800">
+                {r.displayDate}
+              </td>
+              <td className="px-[8px] py-3">
+                <div className="flex items-center gap-2">
+                  <AvatarCircle
+                    name={docName !== "-" ? docName : "Doctor"}
+                    size='s'
+                    fontSize={14}
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-inter font-medium text-sm leading-[120%] tracking-normal text-gray-800">
+                      {docName}
+                    </span>
+                    <span className="font-inter font-normal text-xs leading-[120%] tracking-normal text-gray-500">
+                      {docSpecialization}
+                    </span>
                   </div>
                 </div>
-              </div>
-            </td>
-            <td className="py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.type}
-            </td>
-            <td className="py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.reason}
-            </td>
-            <td className="py-2 px-2">
-              <StatusBadge status={r.status} />
-            </td>
-            <td className="py-2 pr-2">
-              <div className="flex items-center justify-end gap-2 text-gray-600">
-                <button
-                  className=""
-                  aria-label="View"
-                >
-                  <img src="/Eye.svg" width={24} height={24} className="h-[24px] w-[24px]" alt="view" />
-                </button>
-                <button
-                  className="p-1.5 rounded hover:bg-gray-100"
-                  aria-label="More"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
+              </td>
+              <td className="py-3 font-inter font-normal text-sm leading-[120%] tracking-normal text-[#424242]">
+                {r.bookingType ? (r.bookingType.charAt(0) + r.bookingType.slice(1).toLowerCase()) : "-"}
+              </td>
+              <td className="py-3 font-inter font-normal text-sm leading-[120%] tracking-normal text-[#424242]">
+                {r.reason || "-"}
+              </td>
+              <td className="py-3 px-2">
+                <StatusBadge status={r.status} />
+              </td>
+              <td className="py-3 pr-2">
+                <div className="flex items-center justify-end gap-2 text-gray-600">
+                  <button aria-label="View">
+                    <img src="/Eye.svg" width={24} height={24} className="h-6 w-6" alt="view" />
+                  </button>
+                  <button className="p-1.5 rounded hover:bg-gray-100" aria-label="More">
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
 }
 
-export default function PatientAppointments({ embedded = true }) {
+export default function PatientAppointments({ patientId: propPatientId }) {
+  const { id: urlPatientId } = useParams();
+  const patientId = propPatientId || urlPatientId;
+
+  const { user: doctorDetails } = useDoctorAuthStore();
+  const [upcoming, setUpcoming] = useState([]);
+  const [past, setPast] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!patientId) return;
+
+    const fetchAppointments = async () => {
+      setLoading(true);
+      try {
+        const res = await getPatientAppointmentsForDoctor(patientId);
+        if (res?.success && Array.isArray(res.data)) {
+          const now = new Date();
+          const upcomingArr = [];
+          const pastArr = [];
+
+          res.data.forEach((appt) => {
+            const apptDate = appt.date ? new Date(appt.date) : null;
+            const apptTime = appt.time ? new Date(appt.time) : null;
+
+            // Format for display
+            const displayDate = apptDate
+              ? `${apptDate.toLocaleDateString("en-GB")} | ${apptTime ? apptTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}`
+              : "-";
+
+            const processed = { ...appt, displayDate };
+
+            // Categorization
+            // If date is today or future, it's upcoming
+            if (apptDate && apptDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+              upcomingArr.push(processed);
+            } else {
+              pastArr.push(processed);
+            }
+          });
+
+          // Sort upcoming: closest first
+          upcomingArr.sort((a, b) => new Date(a.date) - new Date(b.date));
+          // Sort past: most recent first
+          pastArr.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+          setUpcoming(upcomingArr);
+          setPast(pastArr);
+        }
+      } catch (err) {
+        console.error("Error fetching appointments:", err);
+        setError("Failed to load appointments.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAppointments();
+  }, [patientId]);
+
   return (
     <div className="flex flex-col gap-[24px]">
+      {error && (
+        <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm border border-red-200">
+          {error}
+        </div>
+      )}
+
       <div>
-        {/* Top right actions */}
         <div className="flex items-center justify-between text-sm mb-2">
           <div className="text-sm font-semibold text-gray-800">
-            Upcoming Appointment
+            Upcoming Appointment ({upcoming.length})
           </div>
           <div className="flex items-center gap-3">
-            <button className="text-blue-600 hover:underline">
-              + Schedule
-            </button>
-            <button
-              className="p-1.5 rounded hover:bg-gray-100"
-              aria-label="Filter"
-            >
+            <button className="text-blue-600 hover:underline font-medium">+ Schedule</button>
+            <button className="p-1.5 rounded hover:bg-gray-100" aria-label="Filter">
               <Filter className="h-4 w-4 text-gray-600" />
             </button>
           </div>
         </div>
-        <AppointmentsTable rows={upcoming} />
+        <AppointmentsTable rows={upcoming} loading={loading} />
       </div>
 
-      <div className="mb-2">
+      <div>
         <div className="text-sm font-semibold text-gray-800 mb-2">
-          Past Appointments
+          Past Appointments ({past.length})
         </div>
-        <AppointmentsTable rows={past} />
+        <AppointmentsTable rows={past} loading={loading} />
       </div>
     </div>
   );

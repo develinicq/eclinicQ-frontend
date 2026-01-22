@@ -387,8 +387,8 @@ export default function DocSignIn() {
       {/* Right form */}
       <div className=" flex flex-col gap-16  bg-white px-3 p-3 w-1/2">
         <div className=" flex flex-col items-start gap-1 px-3">
-          <img src="/logo.svg" alt="eClinic-Q" className="h-7" />
-          <div className="bg-warning-50 px-1 w-fit py-[2px] min-w-[18px] text-warning-400 text-[12px]">For Doctor</div>
+          <img src="/logo.svg" alt="upchar-Q" className="h-7" />
+          <div className="bg-warning-50 px-1 w-fit py-[2px] min-w-[18px] text-warning-400 text-[12px]">For Doctors / Clinics</div>
         </div>
 
         <div className="flex items-center justify-center">

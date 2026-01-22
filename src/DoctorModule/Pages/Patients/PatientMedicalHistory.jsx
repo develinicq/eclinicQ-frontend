@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Badge from "../../../components/Badge";
 import AvatarCircle from "../../../components/AvatarCircle";
 import { Filter, MoreVertical } from "lucide-react";
+import { getPatientMedicalHistoryForDoctor } from "../../../services/doctorService";
+import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
 
 const SUB_TABS = [
   "Problems",
@@ -19,11 +21,10 @@ function SubTabs({ value, onChange }) {
         <button
           key={t}
           onClick={() => onChange(t)}
-          className={`group flex items-center gap-[2px] p-1 rounded-md border text-nowrap ${
-            value === t
-              ? "bg-blue-50 text-blue-700 border-blue-200"
-              : "text-gray-700 border-none hover:bg-gray-50"
-          }`}
+          className={`group flex items-center gap-[2px] p-1 rounded-md border text-nowrap ${value === t
+            ? "bg-blue-50 text-blue-700 border-blue-200"
+            : "text-gray-700 border-none hover:bg-gray-50"
+            }`}
         >
           <img
             src={`/${t}.svg`}
@@ -40,914 +41,380 @@ function SubTabs({ value, onChange }) {
 }
 
 function statusColor(s) {
-  if (s === "Resolved" || s === "Completed") return "green";
-  if (s === "Active") return "red";
-  if (s === "Current") return "green";
-  if (s === "Former" || s === "Former ") return "gray";
+  const status = (s || "").toUpperCase();
+  if (status === "RESOLVED" || status === "COMPLETED" || status === "MANAGED" || status === "ALIVE") return "green";
+  if (status === "ACTIVE" || status === "CURRENT") return "red";
+  if (status === "FORMER" || status === "DECEASED") return "gray";
   if (
-    s === "Pending" ||
-    s === "Inactive" ||
-    s === "In-Active" ||
-    s === "Entered in Error" ||
-    s === "Historical"
+    status === "PENDING" ||
+    status === "INACTIVE" ||
+    status === "IN-ACTIVE" ||
+    status === "ENTERED IN ERROR" ||
+    status === "HISTORICAL"
   )
     return "yellow";
   return "gray";
 }
 
 function severityColor(s) {
-  if (s === "Severe") return "red";
-  if (s === "High" || s === "Moderate") return "yellow";
-  if (s === "Low") return "gray";
+  const sev = (s || "").toUpperCase();
+  if (sev === "SEVERE" || sev === "HIGH") return "red";
+  if (sev === "MODERATE") return "yellow";
+  if (sev === "LOW" || sev === "MILD") return "gray";
   return "gray";
 }
 
-const problemsRows = [
-  {
-    problem: "Pain after surgery",
-    since: "02/02/2025",
-    severity: "High",
-    status: "Active",
-    by: "Milind Chauhan",
-  },
-  {
-    problem: "Chronic back pain",
-    since: "10/01/2025",
-    severity: "Low",
-    status: "Active",
-    by: "Milind Chauhan",
-  },
-  {
-    problem: "Migraine episodes",
-    since: "08/20/2025",
-    severity: "Low",
-    status: "Resolved",
-    by: "Milind Chauhan",
-  },
-  {
-    problem: "Post-surgery fatigue",
-    since: "05/14/2025",
-    severity: "Severe",
-    status: "Active",
-    by: "Milind Chauhan",
-  },
-  {
-    problem: "Joint stiffness",
-    since: "03/10/2025",
-    severity: "Low",
-    status: "Entered in Error",
-    by: "Milind Chauhan",
-  },
-  {
-    problem: "Anxiety attacks",
-    since: "01/25/2025",
-    severity: "Low",
-    status: "Pending",
-    by: "Sarah Connors",
-  },
-  {
-    problem: "Post-operative nausea",
-    since: "12/15/2024",
-    severity: "Moderate",
-    status: "Inactive",
-    by: "Sarah Connors",
-  },
-  {
-    problem: "Insomnia",
-    since: "11/30/2024",
-    severity: "Moderate",
-    status: "Inactive",
-    by: "Milind Chauhan",
-  },
-];
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  try {
+    return new Date(dateStr).toLocaleDateString("en-GB");
+  } catch (e) {
+    return "-";
+  }
+}
 
-function ProblemsTable() {
+function ProblemsTable({ rows }) {
+  const { user: doctorDetails } = useDoctorAuthStore();
+  if (!rows || rows.length === 0) return <NoData category="Problems" />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6]">
-      <colgroup>
-        <col className="w-[200px]" />
-        <col className="w-[200px]" />
-        <col className="w-[200px]" />
-        <col className="w-[180px]" />
-        <col className="w-[220px]" />
-        <col className="w-[64px]" />
-      </colgroup>
-
-      {/* HEADER */}
       <thead className="border-b border-[#D6D6D6]">
         <tr className="h-[32px]">
-          {["Problem", "Since", "Severity", "Status", "Created by", ""].map(
-            (h, i) => (
-              <th
-                key={i}
-                className={`px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242] ${
-                  i === 5 ? "text-right" : ""
-                }`}
-              >
-                <div className="flex items-center">
-                  <div>{h}</div>
-                  {h === "" ? null : (
-                    <img
-                      src="/Action Button.svg"
-                      alt="sort icon"
-                      width={24}
-                      height={24}
-                    />
-                  )}
+          {["Problem", "Since", "Severity", "Status", "Created by", ""].map((h, i) => (
+            <th key={i} className={`px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242]`}>
+              <div className="flex items-center">
+                <div>{h}</div>
+                {h && <img src="/Action Button.svg" alt="sort" width={24} height={24} />}
+              </div>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => {
+          const docName = r.createdBy || r.doctorName || r.doctor?.name || doctorDetails?.name || "-";
+          return (
+            <tr key={i} className="border-b border-gray-200 hover:bg-gray-50">
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{r.problemName || "-"}</td>
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{formatDate(r.onsetDate)}</td>
+              <td className="px-[8px] py-2">
+                <Badge size="s" type="ghost" color={severityColor(r.severity)}>{r.severity || "-"}</Badge>
+              </td>
+              <td className="px-[8px] py-2">
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+              </td>
+              <td className="px-[8px] py-2">
+                <div className="flex items-center gap-2">
+                  <AvatarCircle name={docName !== "-" ? docName : "Dr"} size="s" />
+                  <span className="text-sm text-[#424242]">{docName}</span>
                 </div>
-              </th>
-            )
-          )}
-        </tr>
-      </thead>
-
-      {/* BODY */}
-      <tbody>
-        {problemsRows.map((r, i) => (
-          <tr key={i} className="border-b border-gray-200">
-            {/* Problem */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.problem}
-            </td>
-
-            {/* Since */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.since}
-            </td>
-
-            {/* Severity */}
-            <td className="px-[8px] py-2">
-              <p className="text-xs text-gray-600">{r.severity}</p>
-            </td>
-
-            {/* Status */}
-            <td className="px-[8px] py-2">
-              <Badge size="s" type="ghost" color={statusColor(r.status)}>
-                {r.status}
-              </Badge>
-            </td>
-
-            {/* Created by */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center gap-2">
-                <AvatarCircle name={r.by} size="xs" />
-                <span className="font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-                  {r.by}
-                </span>
-              </div>
-            </td>
-
-            {/* Actions */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center justify-end">
-                <button
-                  className="p-1.5 rounded hover:bg-gray-100"
-                  aria-label="More"
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-600" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
+              </td>
+              <td className="px-[8px] py-2 text-right">
+                <button className="p-1.5 rounded hover:bg-gray-100"><MoreVertical className="h-4 w-4 text-gray-600" /></button>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
 }
 
-const conditionsRows = [
-  {
-    condition: "Type 2 Diabetes Mellitus",
-    onset: "02/02/2025",
-    severity: "Low",
-    type: "Chronic",
-    status: "Active",
-    by: "Milind Chauhan",
-  },
-  {
-    condition: "Common Cold",
-    onset: "12/02/2025",
-    severity: "Moderate",
-    type: "Acute",
-    status: "Active",
-    by: "Milind Chauhan",
-  },
-  {
-    condition: "Hypertension",
-    onset: "15/03/2025",
-    severity: "High",
-    type: "Chronic",
-    status: "In-Active",
-    by: "Milind Chauhan",
-  },
-  {
-    condition: "Seasonal Allergies",
-    onset: "01/04/2025",
-    severity: "Moderate",
-    type: "Acute",
-    status: "Resolved",
-    by: "Milind Chauhan",
-  },
-];
-
-function ConditionsTable() {
+function ConditionsTable({ rows }) {
+  const { user: doctorDetails } = useDoctorAuthStore();
+  if (!rows || rows.length === 0) return <NoData category="Conditions" />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
-      <colgroup>
-        <col className="w-[200px]" />
-        <col className="w-[200px]" />
-        <col className="w-[200px]" />
-        <col className="w-[180px]" />
-        <col className="w-[200px]" />
-        <col className="w-[220px]" />
-        <col className="w-[64px]" />
-      </colgroup>
-
-      {/* HEADER */}
       <thead className="border-b border-[#D6D6D6]">
         <tr className="h-[32px]">
-          {[
-            "Condition",
-            "Onset Date",
-            "Severity",
-            "Type",
-            "Status",
-            "Created by",
-            "",
-          ].map((h, i) => (
-            <th
-              key={i}
-              className={`px-[8px] text-nowrap font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242] ${
-                i === 6 ? "text-right" : ""
-              }`}
-            >
+          {["Condition", "Onset Date", "Severity", "Type", "Status", "Created by", ""].map((h, i) => (
+            <th key={i} className="px-[8px] text-sm font-medium text-left text-[#424242]">
               <div className="flex items-center">
                 <div>{h}</div>
-                {h === "" ? null : (
-                  <img
-                    src="/Action Button.svg"
-                    alt="sort icon"
-                    width={24}
-                    height={24}
-                  />
-                )}
+                {h && <img src="/Action Button.svg" alt="sort" width={24} height={24} />}
               </div>
             </th>
           ))}
         </tr>
       </thead>
-
-      {/* BODY */}
       <tbody>
-        {conditionsRows.map((r, i) => (
-          <tr key={i} className="border-b border-gray-200">
-            {/* Condition */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.condition}
-            </td>
-
-            {/* Onset Date */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.onset}
-            </td>
-
-            {/* Severity */}
-            <td className="px-[8px] py-2">
-              <Badge size="s" type="ghost" color={severityColor(r.severity)}>
-                {r.severity}
-              </Badge>
-            </td>
-
-            {/* Type */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.type}
-            </td>
-
-            {/* Status */}
-            <td className="px-[8px] py-2">
-              <Badge size="s" type="ghost" color={statusColor(r.status)}>
-                {r.status}
-              </Badge>
-            </td>
-
-            {/* Created by */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center gap-2">
-                <AvatarCircle name={r.by} size="xs" />
-                <span className="font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-                  {r.by}
-                </span>
-              </div>
-            </td>
-
-            {/* Actions */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center justify-end">
-                <button
-                  className="p-1.5 rounded hover:bg-gray-100"
-                  aria-label="More"
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-600" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
+        {rows.map((r, i) => {
+          const docName = r.createdBy || r.doctorName || r.doctor?.name || doctorDetails?.name || "-";
+          return (
+            <tr key={i} className="border-b border-gray-200 hover:bg-gray-50">
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{r.conditionName || "-"}</td>
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{formatDate(r.onsetDate)}</td>
+              <td className="px-[8px] py-2">
+                <Badge size="s" type="ghost" color={severityColor(r.severity)}>{r.severity || "-"}</Badge>
+              </td>
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{r.type || r.category || "-"}</td>
+              <td className="px-[8px] py-2">
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+              </td>
+              <td className="px-[8px] py-2">
+                <div className="flex items-center gap-2">
+                  <AvatarCircle name={docName !== "-" ? docName : "Dr"} size="s" />
+                  <span className="text-sm text-[#424242]">{docName}</span>
+                </div>
+              </td>
+              <td className="px-[8px] py-2 text-right">
+                <button className="p-1.5 rounded hover:bg-gray-100"><MoreVertical className="h-4 w-4 text-gray-600" /></button>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
 }
 
-const allergiesRows = [
-  {
-    allergen: "Penicillin",
-    reaction: "Skin rash, difficulty breathing",
-    since: "02/02/2025",
-    severity: "Mild",
-    type: "Drug",
-    status: "Active",
-    by: "Milind Chauhan",
-  },
-  {
-    allergen: "Peanuts",
-    reaction: "Nausea",
-    since: "02/02/2025",
-    severity: "Severe",
-    type: "Food",
-    status: "Resolved",
-    by: "Milind Chauhan",
-  },
-  {
-    allergen: "Shellfish",
-    reaction: "Hives, swelling of the lips",
-    since: "02/03/2025",
-    severity: "Moderate",
-    type: "Food",
-    status: "Active",
-    by: "Milind Chauhan",
-  },
-  {
-    allergen: "Gluten",
-    reaction: "Abdominal pain, bloating",
-    since: "02/04/2025",
-    severity: "Mild",
-    type: "Food",
-    status: "Entered in Error",
-    by: "Milind Chauhan",
-  },
-];
-
-function AllergiesTable() {
+function AllergiesTable({ rows }) {
+  const { user: doctorDetails } = useDoctorAuthStore();
+  if (!rows || rows.length === 0) return <NoData category="Allergies" />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
-      <colgroup>
-        <col className="w-[220px]" />
-        <col className="w-[360px]" />
-        <col className="w-[120px]" />
-        <col className="w-[120px]" />
-        <col className="w-[120px]" />
-        <col className="w-[140px]" />
-        <col className="w-[160px]" />
-        <col className="w-[64px]" />
-      </colgroup>
-
-      {/* HEADER */}
       <thead className="border-b border-[#D6D6D6]">
         <tr className="h-[32px]">
-          {[
-            "Allergen",
-            "Reaction",
-            "Since",
-            "Severity",
-            "Type",
-            "Status",
-            "Created by",
-            "",
-          ].map((h, i) => (
-            <th
-              key={i}
-              className={`px-[8px] text-nowrap font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242] ${
-                i === 7 ? "text-right" : ""
-              }`}
-            >
+          {["Allergen", "Reaction", "Since", "Severity", "Type", "Status", "Created by", ""].map((h, i) => (
+            <th key={i} className="px-[8px] text-sm font-medium text-left text-[#424242]">
               <div className="flex items-center">
                 <div>{h}</div>
-                {h === "" ? null : (
-                  <img
-                    src="/Action Button.svg"
-                    alt="sort icon"
-                    width={24}
-                    height={24}
-                  />
-                )}
+                {h && <img src="/Action Button.svg" alt="sort" width={24} height={24} />}
               </div>
             </th>
           ))}
         </tr>
       </thead>
-
-      {/* BODY */}
       <tbody>
-        {allergiesRows.map((r, i) => (
-          <tr key={i} className="border-b border-gray-200">
-            {/* Allergen */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.allergen}
-            </td>
-
-            {/* Reaction */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242] break-words">
-              {r.reaction}
-            </td>
-
-            {/* Since */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.since}
-            </td>
-
-            {/* Severity */}
-            <td className="px-[8px] py-2">
-              <Badge size="s" type="ghost" color={severityColor(r.severity)}>
-                {r.severity}
-              </Badge>
-            </td>
-
-            {/* Type */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.type}
-            </td>
-
-            {/* Status */}
-            <td className="px-[8px] py-2">
-              <Badge size="s" type="ghost" color={statusColor(r.status)}>
-                {r.status}
-              </Badge>
-            </td>
-
-            {/* Created by */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center gap-2">
-                <AvatarCircle name={r.by} size="xs" />
-                <span className="font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-                  {r.by}
-                </span>
-              </div>
-            </td>
-
-            {/* Actions */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center justify-end">
-                <button
-                  className="p-1.5 rounded hover:bg-gray-100"
-                  aria-label="More"
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-600" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
+        {rows.map((r, i) => {
+          const docName = r.createdBy || r.doctorName || r.doctor?.name || doctorDetails?.name || "-";
+          return (
+            <tr key={i} className="border-b border-gray-200 hover:bg-gray-50">
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{r.allergen || "-"}</td>
+              <td className="px-[8px] py-2 text-sm text-[#424242] max-w-[150px] truncate">{r.reactions?.join(", ") || r.notes || "-"}</td>
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{formatDate(r.onsetDate)}</td>
+              <td className="px-[8px] py-2">
+                <Badge size="s" type="ghost" color={severityColor(r.severity)}>{r.severity || "-"}</Badge>
+              </td>
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{r.allergyType || "-"}</td>
+              <td className="px-[8px] py-2">
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+              </td>
+              <td className="px-[8px] py-2">
+                <div className="flex items-center gap-2">
+                  <AvatarCircle name={docName !== "-" ? docName : "Dr"} size="s" />
+                  <span className="text-sm text-[#424242]">{docName}</span>
+                </div>
+              </td>
+              <td className="px-[8px] py-2 text-right">
+                <button className="p-1.5 rounded hover:bg-gray-100"><MoreVertical className="h-4 w-4 text-gray-600" /></button>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
 }
 
-const immunizationsRows = [
-  {
-    name: "COVID-19",
-    date: "02/02/2025",
-    dose: 2,
-    status: "Completed",
-    doctor: "Milind Chauhan",
-    note: "No fever or other adverse effects.",
-  },
-  {
-    name: "Influenza",
-    date: "10/20/2023",
-    dose: 1,
-    status: "Historical",
-    doctor: "Dr. Rajesh Sharma",
-    note: "Annual flu shot administered.",
-  },
-  {
-    name: "Hepatitis B",
-    date: "05/15/2024",
-    dose: 1,
-    status: "Completed",
-    doctor: "Nisha Patel",
-    note: "Completed three-dose series.",
-  },
-  {
-    name: "Tetanus",
-    date: "08/30/2023",
-    dose: 1,
-    status: "Historical",
-    doctor: "Dr. Anil Gupta",
-    note: "Booster received.",
-  },
-];
-
-const socialRows = [
-  {
-    category: "Smoking",
-    since: "02/02/2025",
-    freq: "Daily",
-    status: "Current",
-    source: "Patient",
-    note: "Patient wants to quit. Counseled during last visit.",
-    by: "Milind Chauhan",
-  },
-  {
-    category: "Substance Use",
-    since: "12/02/2024",
-    freq: "Weekly",
-    status: "Former",
-    source: "Patient",
-    note: "Occasional recreational cannabis use in college. Stopped recently.",
-    by: "Milind Chauhan",
-  },
-  {
-    category: "Alcohol Consumption",
-    since: "01/15/2025",
-    freq: "Monthly",
-    status: "Current",
-    source: "Patient",
-    note: "Patient reports drinking socially on weekends, no plans to quit.",
-    by: "Milind Chauhan",
-  },
-];
-
-function SocialTable() {
+function ImmunizationsTable({ rows }) {
+  const { user: doctorDetails } = useDoctorAuthStore();
+  if (!rows || rows.length === 0) return <NoData category="Immunizations" />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
-      <colgroup>
-        <col className="w-[220px]" />
-        <col className="w-[120px]" />
-        <col className="w-[100px]" />
-        <col className="w-[120px]" />
-        <col className="w-[36%]" />
-        <col className="w-[120px]" />
-        <col className="w-[160px]" />
-      </colgroup>
-
-      {/* HEADER */}
       <thead className="border-b border-[#D6D6D6]">
         <tr className="h-[32px]">
-          {[
-            "Category",
-            "Since",
-            "Freq.",
-            "Status",
-            "Note",
-            "Source",
-            "Verified by",
-          ].map((h, i) => (
-            <th
-              key={i}
-              className={`px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242] ${
-                i === 6 ? "text-right" : ""
-              }`}
-            >
+          {["Vaccine Name", "Date", "Dose", "Note", "Doctor", ""].map((h, i) => (
+            <th key={i} className="px-[8px] text-sm font-medium text-left text-[#424242]">
               <div className="flex items-center">
                 <div>{h}</div>
-                <img
-                  src="/Action Button.svg"
-                  alt="sort icon"
-                  width={24}
-                  height={24}
-                />
+                {h && <img src="/Action Button.svg" alt="sort" width={24} height={24} />}
               </div>
             </th>
           ))}
         </tr>
       </thead>
-
-      {/* BODY */}
       <tbody>
-        {socialRows.map((r, i) => (
-          <tr key={i} className="border-b border-gray-200">
-            {/* Category */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.category}
-            </td>
-
-            {/* Since */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.since}
-            </td>
-
-            {/* Freq */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.freq}
-            </td>
-
-            {/* Status */}
-            <td className="px-[8px] py-2">
-              <Badge size="s" type="ghost" color={statusColor(r.status)}>
-                {r.status}
-              </Badge>
-            </td>
-
-            {/* Note */}
-            <td
-              className="px-[8px] py-2
-                  font-inter font-normal
-                  text-xs 2xl:text-sm
-                  leading-[120%]
-                  tracking-normal
-                  text-[#424242]
-                  align-top
-                  whitespace-normal
-                  break-words
-                  sm:line-clamp-2"
-            >
-              {r.note}
-            </td>
-
-            {/* Source */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.source}
-            </td>
-
-            {/* Verified by */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center justify-end gap-2">
-                <AvatarCircle name={r.by} size="xs" />
-                <span className="font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242] truncate max-w-[88px]">
-                  {r.by}
-                </span>
-                <button
-                  className="p-1.5 rounded hover:bg-gray-100"
-                  aria-label="More"
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-600" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
+        {rows.map((r, i) => {
+          const docName = r.createdBy || r.doctorName || r.doctor?.name || doctorDetails?.name || "-";
+          return (
+            <tr key={i} className="border-b border-gray-200 hover:bg-gray-50">
+              <td className="px-[8px] py-3 text-sm text-[#424242]">{r.vaccineName || "-"}</td>
+              <td className="px-[8px] py-3 text-sm text-[#424242]">{formatDate(r.dateAdministered)}</td>
+              <td className="px-[8px] py-3 text-sm text-[#424242]">{r.doseNumber || "-"}</td>
+              <td className="px-[8px] py-3 text-xs text-gray-500">{r.notes || "-"}</td>
+              <td className="px-[8px] py-3">
+                <div className="flex items-center gap-2">
+                  <AvatarCircle name={docName !== "-" ? docName : "Dr"} size="s" />
+                  <span className="text-sm text-[#424242]">{docName}</span>
+                </div>
+              </td>
+              <td className="px-[8px] py-3 text-right">
+                <button className="p-1.5 rounded hover:bg-gray-100"><MoreVertical className="h-4 w-4 text-gray-600" /></button>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
 }
 
-function DoctorCell({ name }) {
+function FamilyHistoryTable({ rows }) {
+  const { user: doctorDetails } = useDoctorAuthStore();
+  if (!rows || rows.length === 0) return <NoData category="Family History" />;
   return (
-    <div className="flex items-center gap-2">
-      <AvatarCircle name={name} size="s" />
-      <span className="text-gray-800">{name}</span>
+    <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
+      <thead className="border-b border-[#D6D6D6]">
+        <tr className="h-[32px]">
+          {["Relationship", "Condition", "Onset Age", "Status", "Created by", ""].map((h, i) => (
+            <th key={i} className="px-[8px] text-sm font-medium text-left text-[#424242]">
+              <div className="flex items-center">
+                <div className="text-nowrap">{h}</div>
+                {h && <img src="/Action Button.svg" alt="sort" width={24} height={24} />}
+              </div>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => {
+          const docName = r.createdBy || r.doctorName || r.doctor?.name || doctorDetails?.name || "-";
+          return (
+            <tr key={i} className="border-b border-gray-200 hover:bg-gray-50 text-sm text-[#424242]">
+              <td className="px-[8px] py-3 font-medium">{r.relationship ? (r.relationship.charAt(0) + r.relationship.slice(1).toLowerCase()) : "-"}</td>
+              <td className="px-[8px] py-3">{r.condition || "-"}</td>
+              <td className="px-[8px] py-3">{r.ageOfOnset || "-"}</td>
+              <td className="px-[8px] py-3">
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+              </td>
+              <td className="px-[8px] py-3">
+                <div className="flex items-center gap-2 text-nowrap">
+                  <AvatarCircle name={docName !== "-" ? docName : "Dr"} size="s" />
+                  <span>{docName}</span>
+                </div>
+              </td>
+              <td className="px-[8px] py-3 text-right">
+                <button className="p-1.5 rounded hover:bg-gray-100"><MoreVertical className="h-4 w-4 text-gray-600" /></button>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function SocialTable({ rows }) {
+  const { user: doctorDetails } = useDoctorAuthStore();
+  if (!rows || rows.length === 0) return <NoData category="Social History" />;
+  return (
+    <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
+      <thead className="border-b border-[#D6D6D6]">
+        <tr className="h-[32px]">
+          {["Category", "Since", "Freq.", "Status", "Source", "Note", "Verified by", ""].map((h, i) => (
+            <th key={i} className="px-[8px] text-sm font-medium text-left text-[#424242]">
+              <div className="flex items-center">
+                <div className="text-nowrap">{h}</div>
+                {h && <img src="/Action Button.svg" alt="sort" width={24} height={24} />}
+              </div>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => {
+          const docName = r.verifiedBy || r.createdBy || r.doctorName || r.doctor?.name || doctorDetails?.name || "-";
+          const category = r.category || (r.smokingStatus ? "Smoking" : r.alcoholConsumption ? "Alcohol" : "-");
+          return (
+            <tr key={i} className="border-b border-gray-200 hover:bg-gray-50 text-sm text-[#424242]">
+              <td className="px-[8px] py-3 font-medium">{category}</td>
+              <td className="px-[8px] py-3 text-nowrap">{formatDate(r.date || r.onsetDate)}</td>
+              <td className="px-[8px] py-3">{r.frequency || r.freq || "-"}</td>
+              <td className="px-[8px] py-3">
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+              </td>
+              <td className="px-[8px] py-3">{r.source || "Patient"}</td>
+              <td className="px-[8px] py-3 max-w-[200px] truncate" title={r.note || r.notes}>{r.note || r.notes || "-"}</td>
+              <td className="px-[8px] py-3">
+                <div className="flex items-center gap-2 text-nowrap">
+                  <AvatarCircle name={docName !== "-" ? docName : "Dr"} size="s" />
+                  <span>{docName}</span>
+                </div>
+              </td>
+              <td className="px-[8px] py-3 text-right">
+                <button className="p-1.5 rounded hover:bg-gray-100"><MoreVertical className="h-4 w-4 text-gray-600" /></button>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+function NoData({ category }) {
+  return <div className="py-12 text-center text-gray-500 italic border rounded-lg mt-2">No {category} data found for this patient.</div>;
+}
+
+export default function PatientMedicalHistory({ patientId }) {
+  const [active, setActive] = useState("Problems");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!patientId) return;
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await getPatientMedicalHistoryForDoctor(patientId);
+        if (res?.success) setData(res.data);
+      } catch (err) {
+        console.error("Error fetching medical history:", err);
+        setError("Failed to load medical history.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [patientId]);
+
+  if (loading) return (
+    <div className="py-20 text-center text-gray-500">
+      <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      Loading medical history...
     </div>
   );
-}
 
-function ImmunizationsTable() {
-  return (
-    <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
-      <colgroup>
-        <col className="w-[30%]" />
-        <col className="w-[14%]" />
-        <col className="w-[8%]" />
-        <col className="w-[30%]" />
-        <col className="w-[20%]" />
-        <col className="w-[64px]" />
-      </colgroup>
+  if (error) return <div className="py-12 text-center text-red-600 font-medium border border-red-100 bg-red-50 rounded-lg">{error}</div>;
 
-      {/* HEADER */}
-      <thead className="border-b border-[#D6D6D6]">
-        <tr className="h-[32px]">
-          {["Vaccine Name", "Date", "Dose", "Note", "Doctor", ""].map(
-            (h, i) => (
-              <th
-                key={i}
-                className={`px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242] ${
-                  i === 5 ? "text-right" : ""
-                }`}
-              >
-                <div className="flex items-center">
-                  <div>{h}</div>
-                  {h === "" ? null : (
-                    <img
-                      src="/Action Button.svg"
-                      alt="sort icon"
-                      width={24}
-                      height={24}
-                    />
-                  )}
-                </div>
-              </th>
-            )
-          )}
-        </tr>
-      </thead>
-
-      {/* BODY */}
-      <tbody>
-        {immunizationsRows.map((r, i) => (
-          <tr key={i} className="border-b border-gray-200">
-            {/* Vaccine Name */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.name}
-            </td>
-
-            {/* Date */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.date}
-            </td>
-
-            {/* Dose */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.dose}
-            </td>
-
-            {/* Note */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242] break-words">
-              {r.note}
-            </td>
-
-            {/* Doctor */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center gap-2">
-                <AvatarCircle name={r.doctor} size="xs" />
-                <span className="font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-                  {r.doctor}
-                </span>
-              </div>
-            </td>
-
-            {/* Actions */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center justify-end">
-                <button
-                  className="p-1.5 rounded hover:bg-gray-100"
-                  aria-label="More"
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-600" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-const familyRows = [
-  {
-    relation: "Father",
-    problems: ["Hypertension"],
-    since: "02/02/2025",
-    status: "Active",
-    note: "Normal From Last 1 Year",
-  },
-  {
-    relation: "Mother",
-    problems: ["High Cholesterol"],
-    since: "02/02/2025",
-    status: "Active",
-    note: "Still This Problems Active",
-  },
-];
-
-function FamilyHistoryTable() {
-  return (
-    <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
-      <colgroup>
-        <col className="w-[160px]" />
-        <col />
-        <col className="w-[140px]" />
-        <col className="w-[120px]" />
-        <col className="w-[260px]" />
-        <col className="w-[64px]" />
-      </colgroup>
-
-      {/* HEADER */}
-      <thead className="border-b border-[#D6D6D6]">
-        <tr className="h-[32px]">
-          {["Relation", "Problems", "Since", "Status", "Note", ""].map(
-            (h, i) => (
-              <th
-                key={i}
-                className={`px-[8px] font-inter font-medium text-sm leading-[120%] tracking-normal text-left text-[#424242] ${
-                  i === 5 ? "text-right" : ""
-                }`}
-              >
-                <div className="flex items-center">
-                  <div>{h}</div>
-                  {h === "" ? null : (
-                    <img
-                      src="/Action Button.svg"
-                      alt="sort icon"
-                      width={24}
-                      height={24}
-                    />
-                  )}
-                </div>
-              </th>
-            )
-          )}
-        </tr>
-      </thead>
-
-      {/* BODY */}
-      <tbody>
-        {familyRows.map((r, i) => (
-          <tr key={i} className="border-b border-gray-200">
-            {/* Relation */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.relation}
-            </td>
-
-            {/* Problems */}
-            <td className="px-[8px] py-2">
-              <div className="flex flex-wrap gap-2">
-                {r.problems.map((p, idx) => (
-                  <Badge key={idx} size="s" type="ghost" color="gray">
-                    {p}
-                  </Badge>
-                ))}
-              </div>
-            </td>
-
-            {/* Since */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242]">
-              {r.since}
-            </td>
-
-            {/* Status */}
-            <td className="px-[8px] py-2">
-              <Badge size="s" type="ghost" color={statusColor(r.status)}>
-                {r.status}
-              </Badge>
-            </td>
-
-            {/* Note */}
-            <td className="px-[8px] py-2 font-inter font-normal text-xs 2xl:text-sm leading-[120%] tracking-normal text-[#424242] break-words">
-              {r.note}
-            </td>
-
-            {/* Actions */}
-            <td className="px-[8px] py-2">
-              <div className="flex items-center justify-end">
-                <button
-                  className="p-1.5 rounded hover:bg-gray-100"
-                  aria-label="More"
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-600" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-export default function PatientMedicalHistory() {
-  const [active, setActive] = useState("Problems");
   const addLabel =
-    active === "Problems"
-      ? "Add Problem"
-      : active === "Conditions"
-      ? "Add Condition"
-      : active === "Family History"
-      ? "Add History"
-      : `Add ${active}`;
+    active === "Problems" ? "Add Problem" :
+      active === "Conditions" ? "Add Condition" :
+        active === "Allergies" ? "Add Allergies" :
+          active === "Immunizations" ? "Add Immunizations" :
+            active === "Family History" ? "Add History" :
+              active === "Social" ? "Add History" : `Add ${active}`;
+
   return (
     <div className="">
       <div className="flex items-center justify-between mb-4">
         <SubTabs value={active} onChange={setActive} />
         <div className="flex items-center gap-3 text-sm">
-          <button className="text-blue-600 hover:underline">
-            + {addLabel}
-          </button>
-          <button
-            className="p-1.5 rounded hover:bg-gray-100"
-            aria-label="Filter"
-          >
-            <Filter className="h-4 w-4 text-gray-600" />
-          </button>
+          <button className="text-blue-600 hover:underline font-medium">+ {addLabel}</button>
+          <button className="p-1.5 rounded hover:bg-gray-100" aria-label="Filter"><Filter className="h-4 w-4 text-gray-600" /></button>
         </div>
       </div>
 
-      {active === "Problems" && <ProblemsTable />}
-      {active === "Conditions" && <ConditionsTable />}
-      {active === "Allergies" && <AllergiesTable />}
-      {active === "Immunizations" && <ImmunizationsTable />}
-      {active === "Family History" && <FamilyHistoryTable />}
-      {active === "Social" && <SocialTable />}
-
-      {active !== "Problems" &&
-        active !== "Conditions" &&
-        active !== "Allergies" &&
-        active !== "Immunizations" &&
-        active !== "Family History" &&
-        active !== "Social" && (
-          <div className="text-sm text-gray-500 border border-dashed border-gray-200 rounded-md p-6">
-            {`${active} section coming soon.`}
-          </div>
-        )}
+      <div className="min-h-[300px]">
+        {active === "Problems" && <ProblemsTable rows={data?.problems} />}
+        {active === "Conditions" && <ConditionsTable rows={data?.conditions} />}
+        {active === "Allergies" && <AllergiesTable rows={data?.allergies} />}
+        {active === "Immunizations" && <ImmunizationsTable rows={data?.immunization} />}
+        {active === "Family History" && <FamilyHistoryTable rows={data?.family_history} />}
+        {active === "Social" && <SocialTable rows={data?.social} />}
+      </div>
     </div>
   );
 }
