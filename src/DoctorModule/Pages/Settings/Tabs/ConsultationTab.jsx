@@ -429,7 +429,7 @@ const ConsultationTab = () => {
                                                     }}
                                                 />
                                                 <div className="text-sm text-secondary-grey300 whitespace-nowrap h-5 w-[8px] opacity-50">|</div>
-                                                <span className="text-sm text-secondary-grey300 whitespace-nowrap">Token:</span>
+                                                <span className="text-sm text-secondary-grey300 whitespace-nowrap">Token Available:</span>
                                                 <input
                                                     className="h-8 w-16 text-sm border border-secondary-grey200 rounded px-2 bg-white text-secondary-grey400 focus:outline-none"
                                                     placeholder="Val"

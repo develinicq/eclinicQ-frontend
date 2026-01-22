@@ -24,3 +24,23 @@ export const updateClinicInfo = async (payload) => {
     throw error.response?.data || error;
   }
 };
+
+// GET Staff Clinic Info
+export const getStaffClinicInfo = async (params) => {
+  try {
+    const res = await axios.get("/doctors/staff/clinic-info", { params });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+// UPDATE Staff Clinic Info
+export const updateStaffClinicInfo = async (payload, params) => {
+  try {
+    const res = await axios.put("/doctors/staff/clinic-info", payload, { params });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};

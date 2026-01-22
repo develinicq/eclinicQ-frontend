@@ -17,4 +17,28 @@ export const putDoctorConsultationDetails = async (payload) => {
   return response.data;
 };
 
-export default { getDoctorConsultationDetails, putDoctorConsultationDetails };
+// GET /api/doctors/staff/consultation-details?clinicId=...&doctorId=...
+export const getStaffConsultationDetails = async (params) => {
+  if (!params || !params.clinicId || !params.doctorId) {
+    throw new Error('Both clinicId and doctorId are required for staff');
+  }
+  const response = await axiosInstance.get('/doctors/staff/consultation-details', {
+    params,
+  });
+  return response.data;
+};
+
+// PUT /api/doctors/staff/consultation-details?doctorId=...
+export const putStaffConsultationDetails = async (payload, params) => {
+  const response = await axiosInstance.put('/doctors/staff/consultation-details', payload, {
+    params,
+  });
+  return response.data;
+};
+
+export default {
+  getDoctorConsultationDetails,
+  putDoctorConsultationDetails,
+  getStaffConsultationDetails,
+  putStaffConsultationDetails
+};

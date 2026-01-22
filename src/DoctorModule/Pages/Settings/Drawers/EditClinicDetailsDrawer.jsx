@@ -12,7 +12,7 @@ import calendarWhite from "/Doctor_module/sidebar/calendar_white.png";
 import { getPublicUrl } from "@/services/uploadsService";
 import useToastStore from "@/store/useToastStore";
 import UniversalLoader from "@/components/UniversalLoader";
-import { updateClinicInfo } from "@/services/settings/clinicalService";
+import { updateClinicInfo, updateStaffClinicInfo } from "@/services/settings/clinicalService";
 const upload = '/Doctor_module/settings/upload.png'
 /**
  * EditClinicDetailsDrawer — unified drawer for Clinic Info + Address.
@@ -27,7 +27,7 @@ const upload = '/Doctor_module/settings/upload.png'
  *     blockNo, areaStreet, landmark, pincode, city, state
  *   }
  */
-export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial = {} }) {
+export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial = {}, params = null }) {
   // Clinic Info
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -291,7 +291,9 @@ export default function EditClinicDetailsDrawer({ open, onClose, onSave, initial
     }
 
     try {
-      const res = await updateClinicInfo(payload);
+      const res = params?.doctorId
+        ? await updateStaffClinicInfo(payload, params)
+        : await updateClinicInfo(payload);
       addToast({ title: "Updated", message: res?.message || "Clinic details updated successfully", type: "success" });
       onSave?.(payload);
       onClose?.();

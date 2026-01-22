@@ -2,6 +2,8 @@ import { create } from "zustand";
 import {
     getDoctorConsultationDetails,
     putDoctorConsultationDetails,
+    getStaffConsultationDetails,
+    putStaffConsultationDetails,
 } from "../../services/doctorConsultationService";
 
 export const DEFAULT_SCHEDULE = [
@@ -31,6 +33,7 @@ export const DEFAULT_CONSULTATION_DETAILS = {
 
 const useConsultationStore = create((set, get) => ({
     consultationDetails: DEFAULT_CONSULTATION_DETAILS,
+    initialConsultationDetails: DEFAULT_CONSULTATION_DETAILS,
     loading: false,
     saving: false,
     fetchError: null,
@@ -45,7 +48,11 @@ const useConsultationStore = create((set, get) => ({
         if (!params || (!params.hospitalId && !params.clinicId)) return;
         set({ loading: true, fetchError: null });
         try {
-            const response = await getDoctorConsultationDetails(params);
+            const hasDoctorId = !!params.doctorId;
+            const response = hasDoctorId
+                ? await getStaffConsultationDetails(params)
+                : await getDoctorConsultationDetails(params);
+
             if (response.success && response.data) {
                 const data = response.data;
 
@@ -62,11 +69,14 @@ const useConsultationStore = create((set, get) => ({
                     }))
                     : DEFAULT_CONSULTATION_DETAILS.consultationFees;
 
+                const details = {
+                    consultationFees: fees,
+                    slotTemplates: { schedule },
+                };
+
                 set({
-                    consultationDetails: {
-                        consultationFees: fees,
-                        slotTemplates: { schedule },
-                    },
+                    consultationDetails: details,
+                    initialConsultationDetails: JSON.parse(JSON.stringify(details)), // Deep copy for comparison
                     loading: false,
                     isDirty: false,
                 });
@@ -86,17 +96,52 @@ const useConsultationStore = create((set, get) => ({
         }
     },
 
-    updateConsultationDetails: async (payload) => {
-        console.log("[useConsultationStore] updateConsultationDetails called with payload:", payload);
+    updateConsultationDetails: async (payload, params = null) => {
+        console.log("[useConsultationStore] updateConsultationDetails called");
+        const { initialConsultationDetails, consultationDetails } = get();
+
         set({ saving: true, saveError: null });
         try {
-            const response = await putDoctorConsultationDetails(payload);
+            const hasDoctorId = !!params?.doctorId;
+
+            // Simple diffing helper
+            const getDiff = (cur, init) => {
+                const diff = {};
+                // Compare consultationFees
+                const curFees = cur.consultationFees || [];
+                const initFees = init.consultationFees || [];
+
+                if (JSON.stringify(curFees) !== JSON.stringify(initFees)) {
+                    diff.consultationFees = payload.consultationFees;
+                }
+
+                // Compare schedule
+                if (JSON.stringify(cur.slotTemplates.schedule) !== JSON.stringify(init.slotTemplates.schedule)) {
+                    diff.slotDetails = payload.slotDetails;
+                }
+                return diff;
+            };
+
+            const finalPayload = getDiff(consultationDetails, initialConsultationDetails);
+
+            let response;
+            if (hasDoctorId) {
+                // For staff, passparams as query params
+                response = await putStaffConsultationDetails(finalPayload, params);
+            } else {
+                response = await putDoctorConsultationDetails(finalPayload);
+            }
+
             console.log("[useConsultationStore] updateConsultationDetails success response:", response);
             if (response.success) {
-                set({ saving: false, isDirty: false });
+                set({
+                    saving: false,
+                    isDirty: false,
+                    initialConsultationDetails: JSON.parse(JSON.stringify(consultationDetails))
+                });
                 return response;
             }
-            throw new Error(response.message || "Update failed");
+            throw new Error(response?.message || "Update failed");
         } catch (error) {
             console.error("[useConsultationStore] updateConsultationDetails ERROR:", error);
             const message = error.response?.data?.message || error.message || "Failed to update consultation details";

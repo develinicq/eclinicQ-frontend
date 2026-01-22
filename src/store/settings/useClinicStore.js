@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { getClinicInfo, updateClinicInfo } from "../../services/settings/clinicalService";
+import {
+  getClinicInfo,
+  updateClinicInfo,
+  getStaffClinicInfo,
+  updateStaffClinicInfo,
+} from "../../services/settings/clinicalService";
 
 const useClinicStore = create((set, get) => ({
   hasClinic: false,
@@ -8,11 +13,14 @@ const useClinicStore = create((set, get) => ({
   error: null,
 
   // Fetch clinic info
-  fetchClinicInfo: async () => {
+  fetchClinicInfo: async (params) => {
     set({ loading: true, error: null });
     try {
-      const response = await getClinicInfo();
-      
+      const hasDoctorId = !!params?.doctorId;
+      const response = hasDoctorId
+        ? await getStaffClinicInfo(params)
+        : await getClinicInfo();
+
       if (response.success && response.data) {
         set({
           hasClinic: response.data.hasClinic || false,
@@ -31,14 +39,17 @@ const useClinicStore = create((set, get) => ({
   },
 
   // Update clinic info
-  updateClinicInfo: async (payload) => {
+  updateClinicInfo: async (payload, params) => {
     set({ loading: true, error: null });
     try {
-      const response = await updateClinicInfo(payload);
-      
+      const hasDoctorId = !!params?.doctorId;
+      const response = hasDoctorId
+        ? await updateStaffClinicInfo(payload, params)
+        : await updateClinicInfo(payload);
+
       if (response.success) {
         // Refetch to get updated data
-        await get().fetchClinicInfo();
+        await get().fetchClinicInfo(params);
         return response;
       }
     } catch (error) {

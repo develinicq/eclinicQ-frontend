@@ -11,6 +11,7 @@ import { fetchAllRoles } from "../../../services/rbac/roleService"
 import { registerStaff } from "../../../services/staff/registerStaffService"
 import InviteStaffDrawer from "../../../DoctorModule/Pages/Settings/Drawers/InviteStaffDrawer.jsx"
 import RoleDrawerShared from "../../../DoctorModule/Pages/Settings/Drawers/RoleDrawer.jsx"
+import SettingsHeader from './SettingsHeader'
 
 const StaffUI = () => {
   const TabBtn = ({ label, active, onClick }) => (
@@ -225,25 +226,13 @@ export default function FDStaffPermissions() {
   const { user } = useFrontDeskAuthStore();
   return (
     <div className="bg-gray-50 min-h-full px-6 pb-10">
-      <div className="-mx-6">
-        <div className="relative">
-          <img src={hospital} alt="cover" className="w-full h-32 object-cover" />
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2">
-            <div className="rounded-full ring-4 ring-white shadow-md">
-              <AvatarCircle name={user?.name} size="l" color="blue" className="w-20 h-20 text-2xl" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-6 pt-10">
-            <nav className="flex items-center gap-6 overflow-x-auto text-sm">
-              <NavLink to="/fd/settings/clinics" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Clinic Details</NavLink>
-              <NavLink to="/fd/settings/consultation" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Consultation Details</NavLink>
-              <NavLink to="/fd/settings/staff-permissions" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Staff Permissions</NavLink>
-            </nav>
-          </div>
-        </div>
-      </div>
+      <SettingsHeader name={user?.name}>
+        <nav className="flex items-center gap-6 overflow-x-auto text-sm">
+          <NavLink to="/fd/settings/clinics" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Clinic Details</NavLink>
+          <NavLink to="/fd/settings/consultation" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Consultation Details</NavLink>
+          <NavLink to="/fd/settings/staff-permissions" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Staff Permissions</NavLink>
+        </nav>
+      </SettingsHeader>
       <div className="mt-6"><StaffUI /></div>
     </div>
   );
