@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, X, Clock, ChevronDown } from "lucide-react";
+import { Calendar, X, Clock, ChevronDown, Info } from "lucide-react";
 import { Morning, Afternoon, Evening, Night } from "../../../components/Icons/SessionIcons";
 import {
   bookWalkInAppointment,
@@ -1049,6 +1049,18 @@ const Queue = () => {
           minute: "2-digit",
         })
         : "";
+      const startTime = appt.appointmentStartTime
+        ? new Date(appt.appointmentStartTime).toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+        })
+        : "";
+      const endTime = appt.appointmentEndTime
+        ? new Date(appt.appointmentEndTime).toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+        })
+        : "";
       const bookingType =
         appt.bookingMode === "ONLINE"
           ? "Online"
@@ -1069,6 +1081,8 @@ const Queue = () => {
         age: ageStr,
         appointmentType,
         expectedTime,
+        startTime,
+        endTime,
         bookingType,
         reasonForVisit: reason,
         status: appt.status || "Waiting",
@@ -1248,46 +1262,21 @@ const Queue = () => {
   }, [selectedSlotId, doctorId, clinicId, sessionStarted, queuePaused]); // Include state deps to refresh closure
 
 
+  const resetLocalQueueState = () => {
+    setSessionStarted(false);
+    setQueuePaused(false);
+    setRunStartAt(null);
+    setBaseElapsed(0);
+    setElapsed(0);
+    wasRunningOnPauseRef.current = false;
+    setCurrentIndex(0);
+    pinnedTokenRef.current = null;
+  };
+
   const handleToggleSession = async () => {
     if (sessionStarted) {
-      // end
-      setSlotEnding(true);
-      setIsEndingSession(true);
-      // Keep toggle ON but disabled while ending
-      // Remove session only after API response
-      try {
-        if (
-          runStartAt &&
-          activePatient &&
-          selectedSlotId &&
-          activePatient.token != null
-        ) {
-          await endPatientSessionEta(selectedSlotId, activePatient.token);
-        }
-      } catch (e) {
-        console.error("End patient ETA failed", e?.response?.data || e.message);
-      }
-      try {
-        if (selectedSlotId) {
-          await endSlotEta(selectedSlotId);
-        }
-        setSessionStarted(false);
-        setQueuePaused(false);
-        setRunStartAt(null);
-        setBaseElapsed(0);
-        setElapsed(0);
-        wasRunningOnPauseRef.current = false;
-        setCurrentIndex(0);
-        pinnedTokenRef.current = null;
-        addToast({ title: "Session Ended", message: "Queue session ended successfully.", type: "success" });
-      } catch (e) {
-        console.error("End slot ETA failed", e?.response?.data || e.message);
-        const msg = e?.response?.data?.message || e.message || "Failed to end session";
-        addToast({ title: "Error", message: msg, type: "error" });
-      } finally {
-        setSlotEnding(false);
-        setIsEndingSession(false);
-      }
+      setPauseMinutes(null);
+      setShowPauseModal(true);
       return;
     }
     if (!selectedSlotId) {
@@ -1581,7 +1570,7 @@ const Queue = () => {
       // For now, just end the session
       if (sessionStarted) {
         // This stops local tracking
-        await handleToggleSession();
+        resetLocalQueueState();
       }
 
       setShowTerminateModal(false);
@@ -1853,101 +1842,141 @@ const Queue = () => {
                   verticalAlign: "middle",
                 }}
               >
-                Tokens available
+                {(() => {
+                  const activeSlot = timeSlots.find((s) => s.key === slotValue);
+                  return activeSlot?.raw?.slotStatus === "COMPLETED"
+                    ? "Tokens Booked"
+                    : "Tokens available";
+                })()}
               </span>
-              <span className="px-2 py-1 rounded bg-success-100 font-inter font-normal text-[14px] leading-[120%] text-center text-success-300 border border-transparent hover:border-success-300 hover:border-[0.5px] transition-colors">
+              <span className={`px-2 py-1 rounded font-inter font-normal text-[14px] leading-[120%] text-center border border-transparent transition-colors ${(() => {
+                const activeSlot = timeSlots.find((s) => s.key === slotValue);
+                return activeSlot?.raw?.slotStatus === "COMPLETED"
+                  ? "bg-secondary-grey50 text-secondary-grey200 "
+                  : "bg-success-100 text-success-300 hover:border-success-300 hover:border-[0.5px]";
+              })()
+                }`}>
                 {(() => {
                   const activeSlot = timeSlots.find((s) => s.key === slotValue);
                   const availableTokens = activeSlot?.raw?.availableTokens || 0;
                   const maxTokens = activeSlot?.raw?.maxTokens || 0;
-                  return `${availableTokens} out of ${maxTokens}`;
+                  const bookedTokens = maxTokens - availableTokens;
+
+                  return activeSlot?.raw?.slotStatus === "COMPLETED"
+                    ? `${bookedTokens} Out of ${maxTokens}`
+                    : `${availableTokens} out of ${maxTokens}`;
                 })()}
               </span>
             </div>
-            <img src={vertical} alt="" className="h-6" />
-            <div className="flex items-center gap-2">
-              <Toggle
-                checked={sessionStarted}
-                onChange={(!isStartingSession && !isEndingSession) ? handleToggleSession : undefined}
-                className={(isStartingSession || isEndingSession) ? "opacity-50 cursor-not-allowed" : ""}
-              />
-              <span className={`text-sm font-medium ${sessionStarted ? 'text-gray-700' : 'text-secondary-grey300'}`}>
-                {isStartingSession ? (
-                  <div className="flex items-center gap-1">
-                    <UniversalLoader size={14} className="text-secondary-grey300" />
-                    <span className="text-secondary-grey300">Starting...</span>
+            {(() => {
+              const activeSlot = timeSlots.find((s) => s.key === slotValue);
+              const isCompleted = activeSlot?.raw?.slotStatus === "COMPLETED";
+              if (isCompleted) return null;
+              return (
+                <>
+                  <img src={vertical} alt="" className="h-6" />
+                  <div className="flex items-center gap-2">
+                    <Toggle
+                      checked={sessionStarted}
+                      onChange={(!isStartingSession && !isEndingSession) ? handleToggleSession : undefined}
+                      className={(isStartingSession || isEndingSession) ? "opacity-50 cursor-not-allowed" : ""}
+                    />
+                    <span className={`text-sm font-medium ${sessionStarted ? 'text-gray-700' : 'text-secondary-grey300'}`}>
+                      {isStartingSession ? (
+                        <div className="flex items-center gap-1">
+                          <UniversalLoader size={14} className="text-secondary-grey300" />
+                          <span className="text-secondary-grey300">Starting...</span>
+                        </div>
+                      ) : isEndingSession ? (
+                        <div className="flex items-center gap-1">
+                          <UniversalLoader size={14} className="text-secondary-grey300" />
+                          <span className="text-secondary-grey300">Ending...</span>
+                        </div>
+                      ) : sessionStarted ? (
+                        "Session Started"
+                      ) : (
+                        "Start Session"
+                      )}
+                    </span>
                   </div>
-                ) : isEndingSession ? (
-                  <div className="flex items-center gap-1">
-                    <UniversalLoader size={14} className="text-secondary-grey300" />
-                    <span className="text-secondary-grey300">Ending...</span>
-                  </div>
-                ) : sessionStarted ? (
-                  "Session Started"
-                ) : (
-                  "Start Session"
-                )}
-              </span>
-            </div>
-            <img src={vertical} alt="" className="h-6" />
-            <button
-              type="button"
-              className="relative w-4 h-6 flex items-center justify-center rounded hover:bg-gray-100"
-              onClick={(e) => handleActionMenuClick(e, "queue_actions_dropdown")}
-            >
-              <img src={action_dot} alt="Actions" className="w-4" />
-            </button>
-            {activeActionMenuToken === "queue_actions_dropdown" &&
-              createPortal(
-                <div
-                  className="fixed z-[9999] bg-white rounded-lg border border-gray-100 shadow-xl overflow-hidden py-1 flex flex-col min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
-                  style={{
-                    top: dropdownPosition.top,
-                    left: dropdownPosition.left,
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
+                  <img src={vertical} alt="" className="h-6" />
                   <button
-                    onClick={() => {
-                      if (selectedSlotId) {
-                        loadAppointmentsForSelectedSlot();
-                      }
-                      setActiveActionMenuToken(null);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                    type="button"
+                    className="relative w-4 h-6 flex items-center justify-center rounded hover:bg-gray-100"
+                    onClick={(e) => handleActionMenuClick(e, "queue_actions_dropdown")}
                   >
-                    <RotateCcw className="h-4 w-4" /> Refresh Queue
+                    <img src={action_dot} alt="Actions" className="w-4" />
                   </button>
+                  {activeActionMenuToken === "queue_actions_dropdown" &&
+                    createPortal(
+                      <div
+                        className="fixed z-[9999] bg-white rounded-lg border border-gray-100 shadow-xl overflow-hidden py-1 flex flex-col min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
+                        style={{
+                          top: dropdownPosition.top,
+                          left: dropdownPosition.left,
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => {
+                            if (selectedSlotId) {
+                              loadAppointmentsForSelectedSlot();
+                            }
+                            setActiveActionMenuToken(null);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                        >
+                          <RotateCcw className="h-4 w-4" /> Refresh Queue
+                        </button>
 
-                  <button
-                    onClick={() => {
-                      setIsOOOOpen(true);
-                      setActiveActionMenuToken(null);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
-                  >
-                    <CalendarMinus className="h-4 w-4" /> Set Doctor Out of Office
-                  </button>
+                        <button
+                          onClick={() => {
+                            setIsOOOOpen(true);
+                            setActiveActionMenuToken(null);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                        >
+                          <CalendarMinus className="h-4 w-4" /> Set Doctor Out of Office
+                        </button>
 
-                  <div className="my-1 border-t border-gray-100"></div>
+                        <div className="my-1 border-t border-gray-100"></div>
 
-                  <button
-                    onClick={() => {
-                      setShowTerminateModal(true);
-                      setActiveActionMenuToken(null);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
-                  >
-                    <CalendarX className="h-4 w-4" /> Terminate Queue
-                  </button>
-                </div>,
-                document.body
-              )}
+                        <button
+                          onClick={() => {
+                            setShowTerminateModal(true);
+                            setActiveActionMenuToken(null);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+                        >
+                          <CalendarX className="h-4 w-4" /> Terminate Queue
+                        </button>
+                      </div>,
+                      document.body
+                    )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
         <div className="px-0 pt-0 pb-2 h-[calc(100vh-100px)] flex flex-col overflow-hidden no-scrollbar">
+          {(() => {
+            const activeSlot = timeSlots.find((s) => s.key === slotValue);
+            const isCompleted = activeSlot?.raw?.slotStatus === "COMPLETED";
+
+            if (isCompleted && !sessionStarted) {
+              return (
+                <div className="w-full bg-error-50 text-error-400 h-[40px] px-4 flex items-center justify-center relative z-20 gap-2">
+                  <img src={terminate} alt="" className="w-4 h-4" />
+                  <span className="font-medium text-[14px]">Queue Terminated</span>
+                  <Info className="w-4 h-4 ml-1" />
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {sessionStarted && (
             <div className={`w-full ${queuePaused ? 'bg-warning-50 text-warning-400' : 'bg-[#27CA40] text-white'} h-[40px] px-4 flex items-center justify-between relative z-20`}>
               <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 ${queuePaused ? 'text-secondary-grey200' : 'text-white'}`}>
@@ -2022,9 +2051,22 @@ const Queue = () => {
                 const admittedCount = Array.isArray(categories.admitted)
                   ? categories.admitted.length
                   : 0;
-                const noShowCount = Array.isArray(categories.noShow)
-                  ? categories.noShow.length
-                  : 0;
+
+                let noShowCount = 0;
+                if (categories.noShow) {
+                  if (Array.isArray(categories.noShow)) {
+                    noShowCount = categories.noShow.length;
+                  } else if (typeof categories.noShow === 'object') {
+                    const totalNoShow = slotAppointments?.counts?.noShow?.total;
+                    if (totalNoShow !== undefined) {
+                      noShowCount = totalNoShow;
+                    } else {
+                      noShowCount = (categories.noShow.withinGracePeriod?.length || 0) +
+                        (categories.noShow.outsideGracePeriod?.length || 0);
+                    }
+                  }
+                }
+
                 // All should exclude inWaiting in doctor queue
                 const allCount =
                   checkedInCount + engagedCount + admittedCount + noShowCount;
@@ -2256,6 +2298,7 @@ const Queue = () => {
                     onStartSession={handleStartPatientSession}
                     isStartingPatient={isStartingPatient}
                     sessionStarted={sessionStarted}
+                    activeFilter={activeFilter}
                   />
                 ) : (
                   <div className="flex-1 flex items-center justify-center p-6">

@@ -307,6 +307,7 @@ const QueueTable = ({
   onStartSession,
   isStartingPatient,
   sessionStarted,
+  activeFilter,
 }) => {
   const [menuRow, setMenuRow] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -336,6 +337,8 @@ const QueueTable = ({
           ),
           apptType: p.appointmentType,
           exptTime: p.expectedTime,
+          startTime: p.startTime,
+          endTime: p.endTime,
           bookingType: p.bookingType,
           reason: p.reasonForVisit,
         };
@@ -351,10 +354,22 @@ const QueueTable = ({
           <colgroup>
             <col style={{ width: COL_W.token }} />
             <col style={{ width: COL_W.patient }} />
-            <col style={{ width: 160 }} />
-            <col style={{ width: 220 }} />
-            <col style={{ width: 140 }} />
-            <col style={{ width: 530 }} />
+            {activeFilter === "Engaged" ? (
+              <>
+                <col style={{ width: 140 }} /> {/* Appt. Type */}
+                <col style={{ width: 120 }} /> {/* Start Time */}
+                <col style={{ width: 120 }} /> {/* End Time */}
+                <col style={{ width: 140 }} /> {/* Booking Type */}
+                <col style={{ width: 430 }} /> {/* Reason For Visit */}
+              </>
+            ) : (
+              <>
+                <col style={{ width: 160 }} />
+                <col style={{ width: 220 }} />
+                <col style={{ width: 140 }} />
+                <col style={{ width: 530 }} />
+              </>
+            )}
             <col style={{ width: COL_W.actions }} />
           </colgroup>
 
@@ -394,54 +409,125 @@ const QueueTable = ({
                   <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
                 </span>
               </th>
-              <th
-                className="px-3 py-2.5 text-left border-r border-b border-gray-200"
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: 500,
-                  fontSize: "14px",
-                  lineHeight: "120%",
-                  color: "rgba(66, 66, 66, 1)",
-                  verticalAlign: "middle",
-                }}
-              >
-                <span className="inline-flex items-center gap-1">
-                  Booking Type{" "}
-                  <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
-                </span>
-              </th>
-              <th
-                className="px-3 py-2.5 text-left border-r border-b border-gray-200"
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: 500,
-                  fontSize: "14px",
-                  lineHeight: "120%",
-                  color: "rgba(66, 66, 66, 1)",
-                  verticalAlign: "middle",
-                }}
-              >
-                <span className="inline-flex items-center gap-1">
-                  Appt. Type{" "}
-                  <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
-                </span>
-              </th>
-              <th
-                className="px-3 py-2.5 text-left border-r border-b border-gray-200"
-                style={{
-                  fontFamily: "Inter",
-                  fontWeight: 500,
-                  fontSize: "14px",
-                  lineHeight: "120%",
-                  color: "rgba(66, 66, 66, 1)",
-                  verticalAlign: "middle",
-                }}
-              >
-                <span className="inline-flex items-center gap-1">
-                  Expt. Time{" "}
-                  <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
-                </span>
-              </th>
+              {activeFilter === "Engaged" ? (
+                <>
+                  <th
+                    className="px-3 py-2.5 text-left border-r border-b border-gray-200"
+                    style={{
+                      fontFamily: "Inter",
+                      fontWeight: 500,
+                      fontSize: "14px",
+                      lineHeight: "120%",
+                      color: "rgba(66, 66, 66, 1)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Appt. Type{" "}
+                      <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
+                    </span>
+                  </th>
+                  <th
+                    className="px-3 py-2.5 text-left border-r border-b border-gray-200"
+                    style={{
+                      fontFamily: "Inter",
+                      fontWeight: 500,
+                      fontSize: "14px",
+                      lineHeight: "120%",
+                      color: "rgba(66, 66, 66, 1)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Start Time{" "}
+                      <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
+                    </span>
+                  </th>
+                  <th
+                    className="px-3 py-2.5 text-left border-r border-b border-gray-200"
+                    style={{
+                      fontFamily: "Inter",
+                      fontWeight: 500,
+                      fontSize: "14px",
+                      lineHeight: "120%",
+                      color: "rgba(66, 66, 66, 1)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      End Time{" "}
+                      <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
+                    </span>
+                  </th>
+                  <th
+                    className="px-3 py-2.5 text-left border-r border-b border-gray-200"
+                    style={{
+                      fontFamily: "Inter",
+                      fontWeight: 500,
+                      fontSize: "14px",
+                      lineHeight: "120%",
+                      color: "rgba(66, 66, 66, 1)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Booking Type{" "}
+                      <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
+                    </span>
+                  </th>
+                </>
+              ) : (
+                <>
+                  <th
+                    className="px-3 py-2.5 text-left border-r border-b border-gray-200"
+                    style={{
+                      fontFamily: "Inter",
+                      fontWeight: 500,
+                      fontSize: "14px",
+                      lineHeight: "120%",
+                      color: "rgba(66, 66, 66, 1)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Booking Type{" "}
+                      <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
+                    </span>
+                  </th>
+                  <th
+                    className="px-3 py-2.5 text-left border-r border-b border-gray-200"
+                    style={{
+                      fontFamily: "Inter",
+                      fontWeight: 500,
+                      fontSize: "14px",
+                      lineHeight: "120%",
+                      color: "rgba(66, 66, 66, 1)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Appt. Type{" "}
+                      <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
+                    </span>
+                  </th>
+                  <th
+                    className="px-3 py-2.5 text-left border-r border-b border-gray-200"
+                    style={{
+                      fontFamily: "Inter",
+                      fontWeight: 500,
+                      fontSize: "14px",
+                      lineHeight: "120%",
+                      color: "rgba(66, 66, 66, 1)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Expt. Time{" "}
+                      <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300" />
+                    </span>
+                  </th>
+                </>
+              )}
               <th
                 className="px-3 py-2.5 text-left border-r border-b border-gray-200"
                 style={{
@@ -534,15 +620,34 @@ const QueueTable = ({
                   </td>
 
                   {/* Middle scrollable columns */}
-                  <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
-                    {row.bookingType || "—"}
-                  </td>
-                  <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
-                    {row.apptType || "—"}
-                  </td>
-                  <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
-                    {row.exptTime || "—"}
-                  </td>
+                  {activeFilter === "Engaged" ? (
+                    <>
+                      <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                        {row.apptType || "—"}
+                      </td>
+                      <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                        {row.startTime || "—"}
+                      </td>
+                      <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                        {row.endTime || "—"}
+                      </td>
+                      <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                        {row.bookingType || "—"}
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                        {row.bookingType || "—"}
+                      </td>
+                      <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                        {row.apptType || "—"}
+                      </td>
+                      <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                        {row.exptTime || "—"}
+                      </td>
+                    </>
+                  )}
                   <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
                     {row.reason}
                   </td>
