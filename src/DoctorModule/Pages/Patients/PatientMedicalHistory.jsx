@@ -382,29 +382,30 @@ export default function PatientMedicalHistory({ patientId }) {
   const [error, setError] = useState(null);
   const [showAddDrawer, setShowAddDrawer] = useState(false);
 
-  useEffect(() => {
+  const fetchData = async () => {
     if (!patientId) return;
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const res = await getPatientMedicalHistoryForDoctor(patientId);
-        if (res?.success) setData(res.data);
-      } catch (err) {
-        console.error("Error fetching medical history:", err);
-        setError("Failed to load medical history.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    const isInitialLoad = !data;
+    if (isInitialLoad) setLoading(true);
+    try {
+      const res = await getPatientMedicalHistoryForDoctor(patientId);
+      if (res?.success) setData(res.data);
+    } catch (err) {
+      console.error("Error fetching medical history:", err);
+      if (isInitialLoad) setError("Failed to load medical history.");
+    } finally {
+      if (isInitialLoad) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [patientId]);
 
-  const handleSaveData = (type, data) => {
-    console.log(`Saving ${type}:`, data);
-    // Refresh data if needed (e.g. by re-fetching or optimistic update)
+  const handleSaveData = () => {
+    fetchData();
   };
 
-  if (loading) return (
+  if (loading && !data) return (
     <div className="py-20 text-center text-gray-500">
       <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
       Loading medical history...
@@ -451,6 +452,7 @@ export default function PatientMedicalHistory({ patientId }) {
         onSave={handleSaveData}
         patientId={patientId}
         initialTab={active}
+        existingData={data}
       />
     </div>
   );

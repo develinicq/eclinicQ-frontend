@@ -6,10 +6,27 @@ import GeneralDrawer from "../../../components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "../../../components/GeneralDrawer/InputWithMeta";
 import RadioButton from "../../../components/GeneralDrawer/RadioButton";
 import Badge from "../../../components/Badge";
+import { addMedicalRecordByDoctor } from "../../../services/doctorService";
+import useToastStore from "@/store/useToastStore";
+import UniversalLoader from "../../../components/UniversalLoader";
 
 const SUB_TABS = ["Problems", "Conditions", "Allergies", "Immunizations", "Family History", "Social"];
 const SEVERITY_OPTIONS = ["High", "Moderate", "Low", "Mild", "Critical"];
 const STATUS_OPTIONS = ["Active", "Inactive", "Resolved", "Enter In Error"];
+const RELATION_OPTIONS = ["Father", "Mother", "Sibling", "Grandparent", "Aunt", "Uncle", "Cousin", "Child", "Other"];
+const FAMILY_STATUS_OPTIONS = ["Alive", "Deceased", "Unknown"];
+const SOCIAL_STATUS_OPTIONS = ["Current", "Former"];
+
+const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "");
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+        return new Date(dateStr).toLocaleDateString("en-GB");
+    } catch (e) {
+        return dateStr;
+    }
+};
 
 function SubTabs({ value, onChange }) {
     return (
@@ -69,7 +86,7 @@ function EntryCard({ title, subtitle, status, onEdit }) {
             </div>
             <div className="flex items-center gap-4">
                 <Badge size="xs" type="ghost" color={status.toLowerCase() === "active" ? "red" : status.toLowerCase() === "resolved" ? "green" : "gray"}>
-                    {status}
+                    {capitalize(status)}
                 </Badge>
                 <div className="h-4 w-[0.5px] bg-gray-200"></div>
                 <button onClick={onEdit} className="text-gray-400 hover:text-gray-600">
@@ -80,11 +97,13 @@ function EntryCard({ title, subtitle, status, onEdit }) {
     );
 }
 
-export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patientId, initialTab = "Problems" }) {
+export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patientId, initialTab = "Problems", existingData = null }) {
     const [activeTab, setActiveTab] = useState(initialTab);
     const [showCalendar, setShowCalendar] = useState(false);
-    const [dropdowns, setDropdowns] = useState({ severity: false, type: false, status: false });
+    const [dropdowns, setDropdowns] = useState({ severity: false, type: false, status: false, relation: false });
     const [isAdding, setIsAdding] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const { addToast } = useToastStore();
     const [savedEntries, setSavedEntries] = useState({
         Problems: [],
         Conditions: [],
@@ -99,8 +118,8 @@ export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patient
         Conditions: { name: "", onsetDate: "", severity: "", type: "Chronic", status: "Active", notes: "" },
         Allergies: { name: "", onsetDate: "", severity: "", type: "", status: "Active", reactions: [], notes: "" },
         Immunizations: { name: "", dateAdministered: "", dose: "", notes: "" },
-        "Family History": { relationship: "", condition: "", ageOfOnset: "", status: "Active", notes: "" },
-        Social: { category: "", date: "", frequency: "", status: "Active", source: "Patient", notes: "" },
+        "Family History": { relationship: "", condition: "", onsetDate: "", status: "Alive", notes: "" },
+        Social: { category: "", date: "", frequency: "", status: "Current", source: "Patient", notes: "" },
     };
 
     // Form states for current draft
@@ -111,8 +130,33 @@ export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patient
             setActiveTab(initialTab);
             setIsAdding(true);
             setFormData(JSON.parse(JSON.stringify(initialFormData)));
+
+            // Sync with existing data from parent when drawer opens
+            if (existingData) {
+                setSavedEntries({
+                    Problems: existingData.problems || [],
+                    Conditions: existingData.conditions || [],
+                    Allergies: existingData.allergies || [],
+                    Immunizations: existingData.immunization || [],
+                    "Family History": existingData.family_history || [],
+                    Social: existingData.social || [],
+                });
+
+                // If there's existing data for the initial tab, don't default to "adding" mode
+                const currentExisting = {
+                    Problems: existingData.problems,
+                    Conditions: existingData.conditions,
+                    Allergies: existingData.allergies,
+                    Immunizations: existingData.immunization,
+                    "Family History": existingData.family_history,
+                    Social: existingData.social
+                };
+                if (currentExisting[initialTab]?.length > 0) {
+                    setIsAdding(false);
+                }
+            }
         }
-    }, [initialTab, open]);
+    }, [initialTab, open, existingData]);
 
     const updateForm = (tab, k, v) => {
         setFormData((prev) => ({
@@ -142,20 +186,148 @@ export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patient
         }
     };
 
-    const handleSaveEntry = () => {
+    const isSaveDisabled = () => {
         const current = formData[activeTab];
-        setSavedEntries(prev => ({
-            ...prev,
-            [activeTab]: [...prev[activeTab], current]
-        }));
-        // Reset form for this tab
-        setFormData(prev => ({
-            ...prev,
-            [activeTab]: initialFormData[activeTab]
-        }));
-        setIsAdding(false);
-        // Also call parent onSave if needed per entry, or wait for finalization
-        onSave?.(activeTab, current);
+        if (saving) return true;
+
+        const hasValue = (v) => typeof v === 'string' ? v.trim().length > 0 : !!v;
+
+        switch (activeTab) {
+            case "Problems":
+                return !hasValue(current.name) || !hasValue(current.onsetDate) || !hasValue(current.severity) || !hasValue(current.status);
+            case "Conditions":
+                return !hasValue(current.name) || !hasValue(current.onsetDate) || !hasValue(current.severity) || !hasValue(current.type) || !hasValue(current.status);
+            case "Allergies":
+                // name is checked in handleSaveEntry to show a specific toast
+                return !hasValue(current.onsetDate) || !hasValue(current.severity) || !hasValue(current.type) || !hasValue(current.status);
+            case "Immunizations":
+                return !hasValue(current.name) || !hasValue(current.dateAdministered) || !hasValue(current.dose);
+            case "Family History":
+                return !hasValue(current.condition) || !hasValue(current.relationship) || !hasValue(current.onsetDate);
+            case "Social":
+                return !hasValue(current.category);
+            default:
+                return false;
+        }
+    };
+
+    const handleSaveEntry = async () => {
+        if (isSaveDisabled()) return;
+
+        const current = formData[activeTab];
+
+        if (activeTab === "Allergies" && !current.name?.trim()) {
+            addToast({ title: "Error", message: "Allergen is required", type: "error" });
+            return;
+        }
+
+        setSaving(true);
+
+        try {
+            const recordTypeMap = {
+                "Problems": "PROBLEMS",
+                "Conditions": "CONDITIONS",
+                "Allergies": "ALLERGIES",
+                "Immunizations": "IMMUNIZATION",
+                "Family History": "FAMILY_HISTORY",
+                "Social": "SOCIAL"
+            };
+
+            const payload = {
+                patientId,
+                recordType: recordTypeMap[activeTab],
+                recordData: {}
+            };
+
+            // Common field mapping with uppercase conversion
+            const formatValue = (v) => v?.toUpperCase() || "";
+
+            if (activeTab === "Problems") {
+                payload.recordData = {
+                    problemName: current.name,
+                    onsetDate: current.onsetDate,
+                    severity: formatValue(current.severity),
+                    status: formatValue(current.status),
+                    notes: current.notes
+                };
+            } else if (activeTab === "Conditions") {
+                payload.recordData = {
+                    conditionName: current.name,
+                    onsetDate: current.onsetDate,
+                    severity: formatValue(current.severity),
+                    type: formatValue(current.type),
+                    status: formatValue(current.status),
+                    notes: current.notes
+                };
+            } else if (activeTab === "Allergies") {
+                payload.recordData = {
+                    allergen: current.name,
+                    onsetDate: current.onsetDate,
+                    severity: formatValue(current.severity),
+                    allergyType: formatValue(current.type),
+                    status: formatValue(current.status),
+                    reactions: current.reactions,
+                    notes: current.notes
+                };
+            } else if (activeTab === "Immunizations") {
+                payload.recordData = {
+                    vaccineName: current.name,
+                    dateAdministered: current.dateAdministered,
+                    dose: current.dose,
+                    notes: current.notes
+                };
+            } else if (activeTab === "Family History") {
+                payload.recordData = {
+                    relationship: formatValue(current.relationship),
+                    condition: current.condition,
+                    onsetDate: current.onsetDate,
+                    status: formatValue(current.status),
+                    notes: current.notes
+                };
+            } else if (activeTab === "Social") {
+                payload.recordData = {
+                    category: current.category,
+                    date: current.date,
+                    frequency: current.frequency,
+                    source: current.source,
+                    status: current.status?.toLowerCase() || "",
+                    notes: current.notes
+                };
+            }
+
+            await addMedicalRecordByDoctor(payload);
+
+            addToast({
+                title: "Success",
+                message: `${activeTab} recorded successfully`,
+                type: "success"
+            });
+
+            // Update local saved entries for display in drawer
+            setSavedEntries(prev => ({
+                ...prev,
+                [activeTab]: [...prev[activeTab], current]
+            }));
+
+            // Reset form for this tab but keep isAdding true for batch entry
+            setFormData(prev => ({
+                ...prev,
+                [activeTab]: JSON.parse(JSON.stringify(initialFormData[activeTab]))
+            }));
+
+            // Call parent onSave to refresh main list
+            onSave?.();
+
+        } catch (error) {
+            console.error(`Error saving ${activeTab}:`, error);
+            addToast({
+                title: "Error",
+                message: error?.response?.data?.message || `Failed to save ${activeTab}`,
+                type: "error"
+            });
+        } finally {
+            setSaving(false);
+        }
     };
 
     const renderForm = () => {
@@ -327,11 +499,11 @@ export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patient
                 return (
                     <div className="flex flex-col gap-4">
                         <InputWithMeta
-                            label="Allergy"
+                            label="Allergen"
                             requiredDot
                             value={current.name}
                             onChange={(v) => updateForm("Allergies", "name", v)}
-                            placeholder="Search or Enter Allergy Name"
+                            placeholder="Search or Enter Allergen Name"
                         />
                         <div className="grid grid-cols-3 gap-3">
                             <div className="relative">
@@ -504,40 +676,62 @@ export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patient
             case "Family History":
                 return (
                     <div className="flex flex-col gap-4">
+                        <InputWithMeta
+                            label="Enter Problem or Conditions"
+                            requiredDot
+                            value={current.condition}
+                            onChange={(v) => updateForm("Family History", "condition", v)}
+                            placeholder="Enter Problem"
+                        />
                         <div className="grid grid-cols-2 gap-4">
                             <InputWithMeta
-                                label="Relationship"
+                                label="Relation"
                                 requiredDot
                                 value={current.relationship}
-                                onChange={(v) => updateForm("Family History", "relationship", v)}
-                                placeholder="Enter Relationship"
-                            />
-                            <InputWithMeta
-                                label="Condition"
-                                requiredDot
-                                value={current.condition}
-                                onChange={(v) => updateForm("Family History", "condition", v)}
-                                placeholder="Enter Condition"
-                            />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <InputWithMeta
-                                label="Onset Age"
-                                value={current.ageOfOnset}
-                                onChange={(v) => updateForm("Family History", "ageOfOnset", v)}
-                                placeholder="Enter Age"
-                            />
-                            <InputWithMeta
-                                label="Status"
-                                value={current.status}
-                                placeholder="Select Status"
+                                placeholder="Select Relation"
                                 RightIcon={ChevronDown}
-                                dropdownOpen={dropdowns.status}
-                                onFieldOpen={() => toggleDD("status")}
+                                dropdownOpen={dropdowns.relation}
+                                onFieldOpen={() => toggleDD("relation")}
                                 onRequestClose={closeDDs}
-                                dropdownItems={["Alive", "Deceased"]}
-                                onSelectItem={(v) => updateForm("Family History", "status", v)}
+                                dropdownItems={RELATION_OPTIONS}
+                                onSelectItem={(v) => updateForm("Family History", "relationship", v)}
                             />
+                            <div className="relative">
+                                <InputWithMeta
+                                    label="Sinces"
+                                    requiredDot
+                                    value={current.onsetDate}
+                                    placeholder="Select Date"
+                                    RightIcon={() => <img src={calendarMinimalistic} className="w-4 h-4" alt="cal" />}
+                                    onIconClick={() => setShowCalendar(!showCalendar)}
+                                    dropdownOpen={showCalendar}
+                                    onRequestClose={() => setShowCalendar(false)}
+                                />
+                                {showCalendar && (
+                                    <div className="shadcn-calendar-dropdown absolute z-[10000] bg-white border border-gray-200 rounded-xl shadow-2xl p-2 top-full mt-1">
+                                        <ShadcnCalendar
+                                            mode="single"
+                                            selected={current.onsetDate ? new Date(current.onsetDate) : undefined}
+                                            onSelect={handleDateSelect}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-secondary-grey300 flex items-center gap-1">
+                                Select Status<span className="bg-red-500 w-1 h-1 rounded-full"></span>
+                            </label>
+                            <div className="flex items-center gap-4">
+                                {FAMILY_STATUS_OPTIONS.map(opt => (
+                                    <RadioButton
+                                        key={opt}
+                                        label={opt}
+                                        checked={current.status === opt}
+                                        onChange={() => updateForm("Family History", "status", opt)}
+                                    />
+                                ))}
+                            </div>
                         </div>
                         <div className="flex flex-col gap-1">
                             <label className="text-sm text-secondary-grey300">Note</label>
@@ -596,17 +790,21 @@ export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patient
                                 onChange={(v) => updateForm("Social", "source", v)}
                                 placeholder="e.g. Patient"
                             />
-                            <InputWithMeta
-                                label="Status"
-                                value={current.status}
-                                placeholder="Select Status"
-                                RightIcon={ChevronDown}
-                                dropdownOpen={dropdowns.status}
-                                onFieldOpen={() => toggleDD("status")}
-                                onRequestClose={closeDDs}
-                                dropdownItems={["Current", "Former", "Never"]}
-                                onSelectItem={(v) => updateForm("Social", "status", v)}
-                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm text-secondary-grey300 flex items-center gap-1">
+                                Select Status<span className="bg-red-500 w-1 h-1 rounded-full"></span>
+                            </label>
+                            <div className="flex items-center gap-4">
+                                {SOCIAL_STATUS_OPTIONS.map(opt => (
+                                    <RadioButton
+                                        key={opt}
+                                        label={opt}
+                                        checked={current.status === opt}
+                                        onChange={() => updateForm("Social", "status", opt)}
+                                    />
+                                ))}
+                            </div>
                         </div>
                         <div className="flex flex-col gap-1">
                             <label className="text-sm text-secondary-grey300">Note</label>
@@ -625,28 +823,25 @@ export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patient
         }
     };
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return "";
-        const parts = dateStr.split("-");
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        return dateStr;
-    };
-
     const getEntryTitle = (entry, tab) => {
-        if (tab === "Problems" || tab === "Conditions" || tab === "Allergies" || tab === "Immunizations") return entry.name;
-        if (tab === "Family History") return `${entry.relationship}: ${entry.condition}`;
-        if (tab === "Social") return entry.category;
+        if (tab === "Problems") return capitalize(entry.name || entry.problemName);
+        if (tab === "Conditions") return capitalize(entry.name || entry.conditionName);
+        if (tab === "Allergies") return capitalize(entry.name || entry.allergen);
+        if (tab === "Immunizations") return capitalize(entry.name || entry.vaccineName);
+        if (tab === "Family History") return `${capitalize(entry.relationship)}: ${capitalize(entry.condition)}`;
+        if (tab === "Social") return capitalize(entry.category);
         return "";
     };
 
     const getEntrySubtitle = (entry, tab) => {
-        const date = formatDate(entry.onsetDate || entry.dateAdministered || entry.date);
+        const dateStr = entry.onsetDate || entry.dateAdministered || entry.date;
+        const date = formatDate(dateStr);
         const parts = [];
         if (date) parts.push(`Since ${date}`);
-        if (tab === "Allergies" && entry.reactions?.length > 0) parts.push("+ Reactions");
-        if (entry.type) parts.push(entry.type);
+        if (tab === "Allergies" && (entry.reactions?.length > 0 || entry.notes)) parts.push("+ Reactions");
+        if (entry.type || entry.allergyType) parts.push(entry.type || entry.allergyType);
         if (entry.severity) parts.push(entry.severity);
-        if (entry.dose) parts.push(`${entry.dose} Dose`);
+        if (entry.dose || entry.doseNumber) parts.push(`${entry.dose || entry.doseNumber} Dose`);
         return parts.join(" | ");
     };
 
@@ -668,7 +863,7 @@ export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patient
                 </div>
 
                 <div className="flex-1 overflow-y-auto no-scrollbar pb-20 px-1">
-                    {!isAdding && savedEntries[activeTab].length > 0 && (
+                    {savedEntries[activeTab].length > 0 && (
                         <div className="mb-4">
                             {savedEntries[activeTab].map((entry, idx) => (
                                 <EntryCard
@@ -692,16 +887,16 @@ export default function AddMedicalHistoryDrawer({ open, onClose, onSave, patient
                             <div className="flex items-center gap-3 mt-6 border-t pt-4">
                                 <button
                                     onClick={handleSaveEntry}
-                                    disabled={activeTab === "Problems" ? !formData.Problems.name :
-                                        activeTab === "Conditions" ? !formData.Conditions.name :
-                                            activeTab === "Allergies" ? !formData.Allergies.name :
-                                                activeTab === "Immunizations" ? !formData.Immunizations.name :
-                                                    activeTab === "Family History" ? !formData["Family History"].relationship :
-                                                        activeTab === "Social" ? !formData.Social.category : false}
-                                    className="h-8 px-4 bg-blue-primary250 text-white rounded-md text-sm font-medium hover:bg-blue-primary300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    disabled={isSaveDisabled()}
+                                    className="h-8 px-4 bg-blue-primary250 text-white rounded-md text-sm font-medium hover:bg-blue-primary300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center min-w-[70px]"
                                     style={{ backgroundColor: "#2372EC" }}
                                 >
-                                    Save
+                                    {saving ? (
+                                        <div className="flex items-center gap-2">
+                                            <UniversalLoader size={16} color="white" style={{ width: 'auto', height: 'auto' }} />
+                                            <span>Saving...</span>
+                                        </div>
+                                    ) : "Save"}
                                 </button>
                                 <button
                                     onClick={() => {
