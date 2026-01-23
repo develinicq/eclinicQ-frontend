@@ -168,15 +168,17 @@ const VITAL_CONFIGS = [
   { name: "Blood Glucose", unit: "mg/dL", key: "bloodGlucose", chartType: "single", normalRange: "70-100" },
 ];
 
-function SectionHeader({ title, actionLabel, hideActions = false }) {
+function SectionHeader({ title, actionLabel, onAdd, hideActions = false }) {
   return (
     <div className="flex items-center justify-between mb-2">
       <div className="text-sm font-semibold text-secondary-grey900">{title}</div>
       {!hideActions && (
         <div className="flex items-center gap-2 text-sm">
-          <button className="text-blue-600 hover:underline flex items-center gap-1">+ {actionLabel}</button>
-          <button className="p-1.5 rounded hover:bg-secondary-grey100" aria-label="Columns">
-            <ChevronDown className="h-4 w-4 text-secondary-grey200" />
+          <button
+            onClick={onAdd}
+            className="text-blue-600 hover:underline flex items-center gap-1"
+          >
+            + {actionLabel}
           </button>
         </div>
       )}
@@ -201,44 +203,44 @@ const VitalsTable = ({ configs }) => {
     <div className="w-full overflow-x-auto border-t-[0.5px] border-border">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="h-8 border-b-[0.5px] border-border">
-            <th className="text-left text-sm w-[180px] px-1 font-medium text-secondary-grey900">Name</th>
-            <th className="text-left text-sm px-1 font-medium text-secondary-grey900">Last 3 Recorded Values</th>
-            <th className="text-left text-sm w-[150px] px-1 font-medium text-secondary-grey900">Status</th>
-            <th className="text-left text-sm w-[180px] px-1 font-medium text-secondary-grey900">Normal Range</th>
+          <tr className="h-8 border-b-[0.5px] border-border text-secondary-grey400">
+            <th className="text-left text-sm w-[180px] px-1 font-medium ">Name</th>
+            <th className="text-left text-sm px-1 font-medium ">Last 3 Recorded Values</th>
+            <th className="text-left text-sm w-[150px] px-1 font-medium ">Status</th>
+            <th className="text-left text-sm w-[180px] px-1 font-medium ">Normal Range</th>
           </tr>
         </thead>
         <tbody>
           {configs.map((vital, idx) => (
             <tr key={idx} className="h-[54px] border-t-[0.5px] border-border hover:bg-gray-50">
               <td className="py-2 px-1">
-                <div className="font-medium text-sm text-secondary-grey900">{vital.name}</div>
-                <div className="text-xs text-secondary-grey300">{vital.unit}</div>
+                <div className="font-medium text-sm text-secondary-grey400">{vital.name}</div>
+                <div className="text-xs text-secondary-grey200">{vital.unit}</div>
               </td>
               <td className="py-2 px-1">
-                <div className="flex gap-8">
+                <div className="flex gap-14">
                   {vital.tableValues?.map((val, vidx) => (
                     <div key={vidx} className="flex flex-col w-[70px]">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs font-medium text-secondary-grey900">{val.reading}</span>
-                        {val.trend === "up" && <ArrowUp className="w-3 h-3 text-error-400" />}
-                        {val.trend === "down" && <ArrowDown className="w-3 h-3 text-success-400" />}
+                        <span className={`text-sm  ${val.trend === "up" ? "text-success-300" : val.trend === "down" ? "text-error-400" : "text-secondary-grey400"}`}>{val.reading}</span>
+                        {val.trend === "up" && <ArrowUp className="w-3 h-3 text-success-300" />}
+                        {val.trend === "down" && <ArrowDown className="w-3 h-3 text-error-400" />}
                       </div>
-                      <div className="text-[10px] text-secondary-grey300">{val.date}</div>
+                      <div className="text-[12px] text-secondary-grey200">{val.date}</div>
                     </div>
                   ))}
                   {(!vital.tableValues || vital.tableValues.length === 0) && <span className="text-xs text-secondary-grey400 italic">No records</span>}
                 </div>
               </td>
               <td className="py-2 px-1">
-                <div className={`w-fit px-2 py-0.5 rounded text-xs flex items-center ${vital.tableValues?.[0]?.trend ? (vital.tableValues[0].trend === "up" ? "bg-error-50 text-error-400" : "bg-success-50 text-success-400") : "bg-gray-50 text-gray-400"}`}>
-                  {vital.tableValues?.[0]?.trend === "up" ? "Increasing" : vital.tableValues?.[0]?.trend === "down" ? "Decreasing" : "Stable"}
+                <div className={`w-fit px-2 py-0.5 rounded text-xs flex items-center ${vital.tableValues?.[0]?.trend ? (vital.tableValues[0].trend === "up" ? "bg-success-100 text-success-300" : "bg-error-50 text-error-400") : "bg-gray-50 text-secondary-grey400"}`}>
+                  {vital.tableValues?.[0]?.trend === "up" ? "Improved" : vital.tableValues?.[0]?.trend === "down" ? "Worse" : "Stabled"}
                   {getStatusIcon(vital.tableValues?.[0]?.trend)}
                 </div>
               </td>
               <td className="py-2 px-1 text-right sm:text-left">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-secondary-grey200 bg-secondary-grey50 px-1.5 py-0.5 rounded">{vital.normalRange}</span>
+                  <span className="text-xs text-secondary-grey400 bg-secondary-grey50 px-1.5 py-0.5 rounded">{vital.normalRange}</span>
                   <button className="text-gray-400 hover:text-blue-500"><img src="/Eye.svg" className="w-5 h-5" /></button>
                 </div>
               </td>
@@ -269,26 +271,41 @@ function BiometricsTable({ history }) {
     <div className="mt-2 border-t-[1px] border-border">
       <table className="min-w-full table-fixed text-sm text-left text-gray-700">
         <colgroup><col className="w-[180px]" /><col /><col className="w-[64px]" /></colgroup>
-        <thead className="text-[12px] uppercase font-medium text-secondary-grey300 border-b">
-          <tr className="h-8"><th>Name</th><th>Last 5 Recorded Values</th><th className="text-right"></th></tr>
+        <thead className="text-[14px] font-medium text-secondary-grey400 border-b">
+          <tr className="h-8"><th className="font-medium">Name</th><th className="font-medium">Last 5 Recorded Values</th><th className="text-right"></th></tr>
         </thead>
         <tbody>
           {categories.map((cat, i) => (
             <tr key={i} className="border-b border-border hover:bg-gray-50">
               <td className="py-3">
                 <div className="flex flex-col">
-                  <span className="font-medium text-secondary-grey900">{cat.name}</span>
-                  <span className="text-xs text-secondary-grey300">{cat.unit}</span>
+                  <span className="font-medium text-sm text-secondary-grey400">{cat.name}</span>
+                  <span className="text-xs text-secondary-grey200">{cat.unit}</span>
                 </div>
               </td>
               <td>
                 <div className="grid grid-cols-5 gap-4">
                   {descSorted.map((entry, idx) => {
                     const val = entry.data?.[cat.key];
+                    let trend = null;
+                    if (idx < descSorted.length - 1) {
+                      const prevVal = descSorted[idx + 1].data?.[cat.key];
+                      if (val && prevVal) {
+                        if (val > prevVal) trend = "up";
+                        else if (val < prevVal) trend = "down";
+                      }
+                    }
+
                     return (
                       <div key={idx} className="flex flex-col">
-                        <span className="text-sm text-secondary-grey900">{val || "-"}</span>
-                        <span className="text-[10px] text-secondary-grey300">{formatDate(entry.recordedAt)}</span>
+                        <div className="flex items-center gap-1">
+                          <span className={`text-sm ${trend === "up" ? "text-success-300" : trend === "down" ? "text-error-400" : "text-secondary-grey400"}`}>
+                            {val || "-"}
+                          </span>
+                          {trend === "up" && <ArrowUp className="w-3 h-3 text-success-300" />}
+                          {trend === "down" && <ArrowDown className="w-3 h-3 text-error-400" />}
+                        </div>
+                        <div className="text-[12px] text-secondary-grey200">{formatFullDate(entry.recordedAt)}</div>
                       </div>
                     );
                   })}
@@ -376,7 +393,7 @@ export default function PatientVitals({ embedded = false, onAdd, history = [], b
         </div>
 
         <div className="py-3">
-          <SectionHeader title="Biometrics" actionLabel="Add Biometrics" />
+          <SectionHeader title="Biometrics" actionLabel="Add Biometrics" onAdd={onAdd} />
           <BiometricsTable history={biometricsHistory} />
         </div>
       </>
@@ -386,10 +403,10 @@ export default function PatientVitals({ embedded = false, onAdd, history = [], b
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-white p-4 rounded-md border border-border">
-        <SectionHeader title="Vitals Summary" actionLabel="Add Vitals" />
+        <SectionHeader title="Vitals Summary" actionLabel="Add Vitals" onAdd={onAdd} />
         <VitalsTable configs={mappedConfigs} />
         <div className="mt-6">
-          <SectionHeader title="Biometrics History" actionLabel="Add Biometrics" />
+          <SectionHeader title="Biometrics History" actionLabel="Add Biometrics" onAdd={onAdd} />
           <BiometricsTable history={biometricsHistory} />
         </div>
       </div>

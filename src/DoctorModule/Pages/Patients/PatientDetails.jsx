@@ -22,6 +22,9 @@ export default function PatientDetails() {
   );
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [vitalsVersion, setVitalsVersion] = useState(0);
+
+  const refreshVitals = () => setVitalsVersion((v) => v + 1);
 
   useEffect(() => {
     let mounted = true;
@@ -92,7 +95,7 @@ export default function PatientDetails() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [id, vitalsVersion]);
 
   const name = patient.name || "-";
   const mrn = patient.patientId || "-";
@@ -109,7 +112,6 @@ export default function PatientDetails() {
   const [biometricsHistory, setBiometricsHistory] = useState([]);
   const [vitalsLoading, setVitalsLoading] = useState(false);
   const [vitalsError, setVitalsError] = useState(null);
-
   // load vitals history when viewing vitals tab or when patient id changes
   useEffect(() => {
     let mounted = true;
@@ -135,14 +137,12 @@ export default function PatientDetails() {
     return () => {
       mounted = false;
     };
-  }, [id, rightTab]);
+  }, [id, rightTab, vitalsVersion]);
 
   const handleOpenAddVitals = () => setVitalsDrawerOpen(true);
   const handleCloseAddVitals = () => setVitalsDrawerOpen(false);
-  const handleSaveVitals = (data) => {
-    // TODO: integrate with backend POST endpoint; for now just log and close drawer
-    console.log("Saving vitals for", patient.patientId || id, data);
-    // show a toast or temporary confirmation could be added here
+  const handleSaveVitals = () => {
+    refreshVitals();
     setVitalsDrawerOpen(false);
   };
   const [stickyNote, setStickyNote] = useState("");

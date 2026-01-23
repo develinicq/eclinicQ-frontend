@@ -1,9 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import GeneralDrawer from "../../../components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "../../../components/GeneralDrawer/InputWithMeta";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { addMedicalRecordByDoctor } from "../../../services/doctorService";
+import useToastStore from "../../../store/useToastStore";
+import UniversalLoader from "../../../components/UniversalLoader";
 
 export default function AddVitalsDrawer({ open, onClose, onSave, patient }) {
+  const patientId = patient?.patientId || patient?.id;
+  const { addToast } = useToastStore();
+
   const [form, setForm] = useState({
     bpSys: "",
     bpDia: "",
@@ -22,14 +28,90 @@ export default function AddVitalsDrawer({ open, onClose, onSave, patient }) {
 
   const [vitalsOpen, setVitalsOpen] = useState(true);
   const [biometricsOpen, setBiometricsOpen] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (field, value) => {
     setForm((s) => ({ ...s, [field]: value }));
   };
 
-  const handleSave = () => {
-    onSave?.(form);
-    onClose?.();
+  const hasData = useMemo(() => {
+    const fields = [
+      "bpSys", "bpDia", "oxygenSaturation", "pulse", "respiratoryRate",
+      "temperature", "bloodGlucose", "heightFt", "heightIn", "weight",
+      "waist", "bmi"
+    ];
+    return fields.some(f => String(form[f]).trim() !== "");
+  }, [form]);
+
+  const handleSave = async () => {
+    if (!hasData || saving) return;
+    setSaving(true);
+
+    try {
+      const vitalsPayload = {
+        patientId,
+        recordType: "VITALS",
+        recordData: {}
+      };
+
+      if (form.bpSys || form.bpDia) {
+        vitalsPayload.recordData.bloodPressure = {
+          systolic: Number(form.bpSys) || 0,
+          diastolic: Number(form.bpDia) || 0
+        };
+      }
+      if (form.temperature) vitalsPayload.recordData.temperature = Number(form.temperature);
+      if (form.pulse) vitalsPayload.recordData.heartRate = Number(form.pulse);
+      if (form.respiratoryRate) vitalsPayload.recordData.respiratoryRate = Number(form.respiratoryRate);
+      if (form.oxygenSaturation) vitalsPayload.recordData.oxygenSaturation = Number(form.oxygenSaturation);
+      // bloodGlucose is not in the example but good to have if supported or just omit if unsure
+      if (form.bloodGlucose) vitalsPayload.recordData.bloodGlucose = Number(form.bloodGlucose);
+
+      const biometricsPayload = {
+        patientId,
+        recordType: "BIOMETRICS",
+        recordData: {}
+      };
+
+      if (form.heightFt || form.heightIn) {
+        const ft = Number(form.heightFt) || 0;
+        const inch = Number(form.heightIn) || 0;
+        // Convert to cm: (ft * 30.48) + (in * 2.54)
+        biometricsPayload.recordData.height = Number(((ft * 30.48) + (inch * 2.54)).toFixed(2));
+      }
+      if (form.weight) biometricsPayload.recordData.weight = Number(form.weight);
+      if (form.bmi) biometricsPayload.recordData.bmi = Number(form.bmi);
+      if (form.waist) biometricsPayload.recordData.waistCircumference = Number(form.waist);
+
+      const calls = [];
+      if (Object.keys(vitalsPayload.recordData).length > 0) {
+        calls.push(addMedicalRecordByDoctor(vitalsPayload));
+      }
+      if (Object.keys(biometricsPayload.recordData).length > 0) {
+        calls.push(addMedicalRecordByDoctor(biometricsPayload));
+      }
+
+      if (calls.length === 0) {
+        setSaving(false);
+        return;
+      }
+
+      await Promise.all(calls);
+      addToast({ title: "Success", message: "Medical records added successfully", type: "success" });
+      onSave?.();
+      onClose?.();
+      // Reset form
+      setForm({
+        bpSys: "", bpDia: "", oxygenSaturation: "", pulse: "",
+        respiratoryRate: "", temperature: "", bloodGlucose: "",
+        heightFt: "", heightIn: "", weight: "", waist: "", bmi: "", notes: "",
+      });
+    } catch (error) {
+      console.error("Save error:", error);
+      addToast({ title: "Error", message: error?.response?.data?.message || "Failed to add records", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const SectionToggle = ({ title, isOpen, onToggle }) => (
@@ -46,8 +128,14 @@ export default function AddVitalsDrawer({ open, onClose, onSave, patient }) {
       isOpen={open}
       onClose={onClose}
       title="Add Vitals & Biometrics"
-      primaryActionLabel="Save"
+      primaryActionLabel={saving ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} color="white" style={{ width: 'auto', height: 'auto' }} />
+          <span>Saving...</span>
+        </div>
+      ) : "Save"}
       onPrimaryAction={handleSave}
+      primaryActionDisabled={!hasData || saving}
       width={560}
     >
       <div className="flex flex-col gap-4">
@@ -191,7 +279,6 @@ export default function AddVitalsDrawer({ open, onClose, onSave, patient }) {
             </div>
           )}
         </div>
-
       </div>
     </GeneralDrawer>
   );

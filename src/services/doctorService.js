@@ -77,6 +77,15 @@ export const getPatientMedicalHistoryForDoctor = async (patientId) => {
     throw error;
   }
 };
+// Add medical record (vitals or biometrics) for a patient (doctor view)
+export const addMedicalRecordByDoctor = async (payload) => {
+  try {
+    const res = await axios.post("/patients/for-doctor/patient-details/add-medical-record-by-doctor", payload);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
 
 // Register a new doctor
 export const registerDoctor = async (payload) => {

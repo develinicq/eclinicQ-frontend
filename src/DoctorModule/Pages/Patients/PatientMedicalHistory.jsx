@@ -4,6 +4,7 @@ import AvatarCircle from "../../../components/AvatarCircle";
 import { Filter, MoreVertical } from "lucide-react";
 import { getPatientMedicalHistoryForDoctor } from "../../../services/doctorService";
 import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
+import AddMedicalHistoryDrawer from "./AddMedicalHistoryDrawer";
 
 const SUB_TABS = [
   "Problems",
@@ -73,9 +74,14 @@ function formatDate(dateStr) {
   }
 }
 
-function ProblemsTable({ rows }) {
+function formatSentenceCase(s) {
+  if (!s) return "-";
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+function ProblemsTable({ rows, onAdd }) {
   const { user: doctorDetails } = useDoctorAuthStore();
-  if (!rows || rows.length === 0) return <NoData category="Problems" />;
+  if (!rows || rows.length === 0) return <NoData category="Problems" onAdd={onAdd} />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6]">
       <thead className="border-b border-[#D6D6D6]">
@@ -98,10 +104,10 @@ function ProblemsTable({ rows }) {
               <td className="px-[8px] py-2 text-sm text-[#424242]">{r.problemName || "-"}</td>
               <td className="px-[8px] py-2 text-sm text-[#424242]">{formatDate(r.onsetDate)}</td>
               <td className="px-[8px] py-2">
-                <Badge size="s" type="ghost" color={severityColor(r.severity)}>{r.severity || "-"}</Badge>
+                <Badge size="s" type="ghost" color={severityColor(r.severity)}>{formatSentenceCase(r.severity)}</Badge>
               </td>
               <td className="px-[8px] py-2">
-                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{formatSentenceCase(r.status)}</Badge>
               </td>
               <td className="px-[8px] py-2">
                 <div className="flex items-center gap-2">
@@ -120,9 +126,9 @@ function ProblemsTable({ rows }) {
   );
 }
 
-function ConditionsTable({ rows }) {
+function ConditionsTable({ rows, onAdd }) {
   const { user: doctorDetails } = useDoctorAuthStore();
-  if (!rows || rows.length === 0) return <NoData category="Conditions" />;
+  if (!rows || rows.length === 0) return <NoData category="Conditions" onAdd={onAdd} />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
       <thead className="border-b border-[#D6D6D6]">
@@ -145,11 +151,11 @@ function ConditionsTable({ rows }) {
               <td className="px-[8px] py-2 text-sm text-[#424242]">{r.conditionName || "-"}</td>
               <td className="px-[8px] py-2 text-sm text-[#424242]">{formatDate(r.onsetDate)}</td>
               <td className="px-[8px] py-2">
-                <Badge size="s" type="ghost" color={severityColor(r.severity)}>{r.severity || "-"}</Badge>
+                <Badge size="s" type="ghost" color={severityColor(r.severity)}>{formatSentenceCase(r.severity)}</Badge>
               </td>
-              <td className="px-[8px] py-2 text-sm text-[#424242]">{r.type || r.category || "-"}</td>
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{formatSentenceCase(r.type || r.category)}</td>
               <td className="px-[8px] py-2">
-                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{formatSentenceCase(r.status)}</Badge>
               </td>
               <td className="px-[8px] py-2">
                 <div className="flex items-center gap-2">
@@ -168,9 +174,9 @@ function ConditionsTable({ rows }) {
   );
 }
 
-function AllergiesTable({ rows }) {
+function AllergiesTable({ rows, onAdd }) {
   const { user: doctorDetails } = useDoctorAuthStore();
-  if (!rows || rows.length === 0) return <NoData category="Allergies" />;
+  if (!rows || rows.length === 0) return <NoData category="Allergies" onAdd={onAdd} />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
       <thead className="border-b border-[#D6D6D6]">
@@ -194,11 +200,11 @@ function AllergiesTable({ rows }) {
               <td className="px-[8px] py-2 text-sm text-[#424242] max-w-[150px] truncate">{r.reactions?.join(", ") || r.notes || "-"}</td>
               <td className="px-[8px] py-2 text-sm text-[#424242]">{formatDate(r.onsetDate)}</td>
               <td className="px-[8px] py-2">
-                <Badge size="s" type="ghost" color={severityColor(r.severity)}>{r.severity || "-"}</Badge>
+                <Badge size="s" type="ghost" color={severityColor(r.severity)}>{formatSentenceCase(r.severity)}</Badge>
               </td>
-              <td className="px-[8px] py-2 text-sm text-[#424242]">{r.allergyType || "-"}</td>
+              <td className="px-[8px] py-2 text-sm text-[#424242]">{formatSentenceCase(r.allergyType)}</td>
               <td className="px-[8px] py-2">
-                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{formatSentenceCase(r.status)}</Badge>
               </td>
               <td className="px-[8px] py-2">
                 <div className="flex items-center gap-2">
@@ -217,9 +223,9 @@ function AllergiesTable({ rows }) {
   );
 }
 
-function ImmunizationsTable({ rows }) {
+function ImmunizationsTable({ rows, onAdd }) {
   const { user: doctorDetails } = useDoctorAuthStore();
-  if (!rows || rows.length === 0) return <NoData category="Immunizations" />;
+  if (!rows || rows.length === 0) return <NoData category="Immunizations" onAdd={onAdd} />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
       <thead className="border-b border-[#D6D6D6]">
@@ -242,7 +248,7 @@ function ImmunizationsTable({ rows }) {
               <td className="px-[8px] py-3 text-sm text-[#424242]">{r.vaccineName || "-"}</td>
               <td className="px-[8px] py-3 text-sm text-[#424242]">{formatDate(r.dateAdministered)}</td>
               <td className="px-[8px] py-3 text-sm text-[#424242]">{r.doseNumber || "-"}</td>
-              <td className="px-[8px] py-3 text-xs text-gray-500">{r.notes || "-"}</td>
+              <td className="px-[8px] py-3 text-sm text-gray-500">{formatSentenceCase(r.notes)}</td>
               <td className="px-[8px] py-3">
                 <div className="flex items-center gap-2">
                   <AvatarCircle name={docName !== "-" ? docName : "Dr"} size="s" />
@@ -260,9 +266,9 @@ function ImmunizationsTable({ rows }) {
   );
 }
 
-function FamilyHistoryTable({ rows }) {
+function FamilyHistoryTable({ rows, onAdd }) {
   const { user: doctorDetails } = useDoctorAuthStore();
-  if (!rows || rows.length === 0) return <NoData category="Family History" />;
+  if (!rows || rows.length === 0) return <NoData category="Family History" onAdd={onAdd} />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
       <thead className="border-b border-[#D6D6D6]">
@@ -286,7 +292,7 @@ function FamilyHistoryTable({ rows }) {
               <td className="px-[8px] py-3">{r.condition || "-"}</td>
               <td className="px-[8px] py-3">{r.ageOfOnset || "-"}</td>
               <td className="px-[8px] py-3">
-                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{formatSentenceCase(r.status)}</Badge>
               </td>
               <td className="px-[8px] py-3">
                 <div className="flex items-center gap-2 text-nowrap">
@@ -305,9 +311,9 @@ function FamilyHistoryTable({ rows }) {
   );
 }
 
-function SocialTable({ rows }) {
+function SocialTable({ rows, onAdd }) {
   const { user: doctorDetails } = useDoctorAuthStore();
-  if (!rows || rows.length === 0) return <NoData category="Social History" />;
+  if (!rows || rows.length === 0) return <NoData category="Social History" onAdd={onAdd} />;
   return (
     <table className="min-w-full border-t-[0.5px] border-b-[0.5px] border-[#D6D6D6] mt-2">
       <thead className="border-b border-[#D6D6D6]">
@@ -328,14 +334,14 @@ function SocialTable({ rows }) {
           const category = r.category || (r.smokingStatus ? "Smoking" : r.alcoholConsumption ? "Alcohol" : "-");
           return (
             <tr key={i} className="border-b border-gray-200 hover:bg-gray-50 text-sm text-[#424242]">
-              <td className="px-[8px] py-3 font-medium">{category}</td>
+              <td className="px-[8px] py-3 font-medium">{formatSentenceCase(category)}</td>
               <td className="px-[8px] py-3 text-nowrap">{formatDate(r.date || r.onsetDate)}</td>
               <td className="px-[8px] py-3">{r.frequency || r.freq || "-"}</td>
               <td className="px-[8px] py-3">
-                <Badge size="s" type="ghost" color={statusColor(r.status)}>{r.status || "-"}</Badge>
+                <Badge size="s" type="ghost" color={statusColor(r.status)}>{formatSentenceCase(r.status)}</Badge>
               </td>
               <td className="px-[8px] py-3">{r.source || "Patient"}</td>
-              <td className="px-[8px] py-3 max-w-[200px] truncate" title={r.note || r.notes}>{r.note || r.notes || "-"}</td>
+              <td className="px-[8px] py-3 max-w-[200px] truncate" title={r.note || r.notes}>{formatSentenceCase(r.note || r.notes)}</td>
               <td className="px-[8px] py-3">
                 <div className="flex items-center gap-2 text-nowrap">
                   <AvatarCircle name={docName !== "-" ? docName : "Dr"} size="s" />
@@ -353,8 +359,20 @@ function SocialTable({ rows }) {
   );
 }
 
-function NoData({ category }) {
-  return <div className="py-12 text-center text-gray-500 italic border rounded-lg mt-2">No {category} data found for this patient.</div>;
+function NoData({ category, onAdd }) {
+  return (
+    <div className="py-16 text-center border rounded-lg mt-2 flex flex-col items-center gap-4">
+      <div className="text-gray-500 italic">No {category} data found for this patient.</div>
+      {onAdd && (
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors font-medium border border-blue-200"
+        >
+          <span>+ Add {category}</span>
+        </button>
+      )}
+    </div>
+  );
 }
 
 export default function PatientMedicalHistory({ patientId }) {
@@ -362,6 +380,7 @@ export default function PatientMedicalHistory({ patientId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAddDrawer, setShowAddDrawer] = useState(false);
 
   useEffect(() => {
     if (!patientId) return;
@@ -379,6 +398,11 @@ export default function PatientMedicalHistory({ patientId }) {
     };
     fetchData();
   }, [patientId]);
+
+  const handleSaveData = (type, data) => {
+    console.log(`Saving ${type}:`, data);
+    // Refresh data if needed (e.g. by re-fetching or optimistic update)
+  };
 
   if (loading) return (
     <div className="py-20 text-center text-gray-500">
@@ -402,19 +426,32 @@ export default function PatientMedicalHistory({ patientId }) {
       <div className="flex items-center justify-between mb-4">
         <SubTabs value={active} onChange={setActive} />
         <div className="flex items-center gap-3 text-sm">
-          <button className="text-blue-600 hover:underline font-medium">+ {addLabel}</button>
+          <button
+            onClick={() => setShowAddDrawer(true)}
+            className="text-blue-600 hover:underline font-medium"
+          >
+            + {addLabel}
+          </button>
           <button className="p-1.5 rounded hover:bg-gray-100" aria-label="Filter"><Filter className="h-4 w-4 text-gray-600" /></button>
         </div>
       </div>
 
       <div className="min-h-[300px]">
-        {active === "Problems" && <ProblemsTable rows={data?.problems} />}
-        {active === "Conditions" && <ConditionsTable rows={data?.conditions} />}
-        {active === "Allergies" && <AllergiesTable rows={data?.allergies} />}
-        {active === "Immunizations" && <ImmunizationsTable rows={data?.immunization} />}
-        {active === "Family History" && <FamilyHistoryTable rows={data?.family_history} />}
-        {active === "Social" && <SocialTable rows={data?.social} />}
+        {active === "Problems" && <ProblemsTable rows={data?.problems} onAdd={() => setShowAddDrawer(true)} />}
+        {active === "Conditions" && <ConditionsTable rows={data?.conditions} onAdd={() => setShowAddDrawer(true)} />}
+        {active === "Allergies" && <AllergiesTable rows={data?.allergies} onAdd={() => setShowAddDrawer(true)} />}
+        {active === "Immunizations" && <ImmunizationsTable rows={data?.immunization} onAdd={() => setShowAddDrawer(true)} />}
+        {active === "Family History" && <FamilyHistoryTable rows={data?.family_history} onAdd={() => setShowAddDrawer(true)} />}
+        {active === "Social" && <SocialTable rows={data?.social} onAdd={() => setShowAddDrawer(true)} />}
       </div>
+
+      <AddMedicalHistoryDrawer
+        open={showAddDrawer}
+        onClose={() => setShowAddDrawer(false)}
+        onSave={handleSaveData}
+        patientId={patientId}
+        initialTab={active}
+      />
     </div>
   );
 }
