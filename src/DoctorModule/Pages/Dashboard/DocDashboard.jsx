@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import useAuthStore from "../../../store/useAuthStore";
-import { getDoctorMe } from "../../../services/authService";
+import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
 import {
   getDoctorDashboardAnalytics,
   getOutOfOfficeStatus
@@ -67,7 +66,7 @@ const SectionCard = ({ title, children, right }) => (
 );
 
 const DocDashboard = () => {
-  const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
+  const { user: doctorDetails, loading: doctorLoading, fetchMe: fetchDoctorDetails } = useDoctorAuthStore();
   const { user: fdUser } = useFrontDeskAuthStore();
   const selectedSlotId = useSlotStore((s) => s.selectedSlotId);
   const loadAppointmentsForSelectedSlot = useSlotStore(
@@ -106,7 +105,7 @@ const DocDashboard = () => {
   useEffect(() => {
     if (!doctorDetails && !doctorLoading && !fdUser) {
       try {
-        fetchDoctorDetails?.(getDoctorMe);
+        fetchDoctorDetails?.();
       } catch { }
     }
   }, [doctorDetails, doctorLoading, fetchDoctorDetails, fdUser]);

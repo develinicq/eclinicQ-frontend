@@ -39,7 +39,7 @@ import useAwardsPublicationsStore from "../../../store/settings/useAwardsPublica
 import useClinicStore from "../../../store/settings/useClinicStore.js";
 import { fetchAllPermissions } from "../../../services/rbac/permissionService";
 import { fetchAllRoles, createRole } from "../../../services/rbac/roleService";
-import useAuthStore from "../../../store/useAuthStore";
+import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
 import axiosClient from "../../../lib/axios";
 import { fetchClinicStaff } from "../../../services/staffService";
 import { registerStaff } from "../../../services/staff/registerStaffService";
@@ -549,10 +549,18 @@ const StaffTab = () => {
   const [rolesLoading, setRolesLoading] = useState(false);
   const [rolesError, setRolesError] = useState("");
 
+  const { user, loading: docLoading, fetchMe } = useDoctorAuthStore();
+
+  useEffect(() => {
+    if (!user && !docLoading) {
+      fetchMe?.();
+    }
+  }, [user, docLoading, fetchMe]);
+
   // Resolve clinicId dynamically from auth/profile stores
   const resolveClinicId = () => {
     try {
-      const { user, doctorDetails } = useAuthStore.getState();
+      const doctorDetails = user;
       console.log("[StaffTab] Auth store snapshot:", { user, doctorDetails });
       // Common places to find clinicId
       const fromUser =
@@ -599,7 +607,7 @@ const StaffTab = () => {
     let unsub;
     const loadRoles = async () => {
       // Prefer direct path from getMe response
-      const { doctorDetails } = useAuthStore.getState();
+      const doctorDetails = user;
       const clinicId =
         doctorDetails?.associatedWorkplaces?.clinic?.id || resolveClinicId();
       if (!clinicId) {
@@ -662,10 +670,9 @@ const StaffTab = () => {
     loadRoles();
     // subscribe to auth store for relevant changes (user/doctorDetails)
     try {
-      unsub = useAuthStore.subscribe((state, prev) => {
+      unsub = useDoctorAuthStore.subscribe((state, prev) => {
         const changed =
-          state.user !== prev.user ||
-          state.doctorDetails !== prev.doctorDetails;
+          state.user !== prev.user;
         if (changed) {
           console.log(
             "[StaffTab] Auth store changed; re-evaluating clinicId and roles fetch"
@@ -683,7 +690,7 @@ const StaffTab = () => {
   useEffect(() => {
     let unsub;
     const loadStaff = async () => {
-      const { doctorDetails } = useAuthStore.getState();
+      const doctorDetails = user;
       const clinicId =
         doctorDetails?.associatedWorkplaces?.clinic?.id || resolveClinicId();
       if (!clinicId) {
@@ -728,10 +735,9 @@ const StaffTab = () => {
     loadStaff();
     // subscribe to auth changes to refetch when doctorDetails is set
     try {
-      unsub = useAuthStore.subscribe((state, prev) => {
+      unsub = useDoctorAuthStore.subscribe((state, prev) => {
         const changed =
-          state.user !== prev.user ||
-          state.doctorDetails !== prev.doctorDetails;
+          state.user !== prev.user;
         if (changed) loadStaff();
       });
     } catch { }
@@ -841,7 +847,7 @@ const StaffTab = () => {
         onClose={() => setInviteOpen(false)}
         onSend={(rows) => {
           // Resolve clinicId
-          const { doctorDetails } = useAuthStore.getState();
+          const { user: doctorDetails } = useDoctorAuthStore.getState();
           const clinicId =
             doctorDetails?.associatedWorkplaces?.clinic?.id ||
             resolveClinicId();
@@ -917,8 +923,8 @@ const Doc_settings = () => {
 
   // Grab global profile + actions from Zustand
   const { profile, fetchBasicInfo, updateBasicInfo } = useProfileStore();
-  const { fetchDoctorDetails, doctorDetails, doctorLoading } =
-    useAuthStore.getState();
+  const { fetchMe, user: doctorDetails, loading: doctorLoading } =
+    useDoctorAuthStore();
 
   // Education store
   const {
@@ -969,7 +975,7 @@ const Doc_settings = () => {
     { key: "clinical", label: "Clinical Details" },
     { key: "staff", label: "Staff Permissions" },
     { key: "security", label: "Security Settings" },
-    {key:"billing",label:"Subscriptions/Billing"}
+    { key: "billing", label: "Subscriptions/Billing" }
   ];
 
   const tabs = isDualRole
@@ -1006,8 +1012,8 @@ const Doc_settings = () => {
         return `${base}/settings/staff-permissions`;
       case "security":
         return `${base}/settings/security`;
-        case "billing":
-          return `${base}/settings/billing`;
+      case "billing":
+        return `${base}/settings/billing`;
       default:
         return `${base}/settings/account`;
     }
@@ -1770,8 +1776,8 @@ const Doc_settings = () => {
       ) : activeTab === "staff" ? (
         <StaffTab />
       ) : activeTab === "billing" ? (
- <BillingTab/>
-) : (
+        <BillingTab />
+      ) : (
         <SecurityTab />
       )}
 

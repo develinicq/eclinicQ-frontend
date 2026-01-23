@@ -16,7 +16,7 @@ import {
   getPatientAppointmentsForDoctor,
   getPatientMedicalHistoryForDoctor
 } from "../../../services/doctorService";
-import useAuthStore from "../../../store/useAuthStore";
+import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
 import useClinicStore from "../../../store/settings/useClinicStore";
 import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
 import UniversalLoader from "../../../components/UniversalLoader";
@@ -127,7 +127,13 @@ export default function PatientDetails() {
   const [vitalsDrawerOpen, setVitalsDrawerOpen] = useState(false);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
 
-  const { doctorDetails: authDoc } = useAuthStore();
+  const { user: authDoc, loading: docLoading, fetchMe } = useDoctorAuthStore();
+
+  useEffect(() => {
+    if (!authDoc && !docLoading) {
+      fetchMe?.();
+    }
+  }, [authDoc, docLoading, fetchMe]);
   const { clinic: clinicData } = useClinicStore();
 
   const handleOpenSchedule = () => setIsScheduleOpen(true);

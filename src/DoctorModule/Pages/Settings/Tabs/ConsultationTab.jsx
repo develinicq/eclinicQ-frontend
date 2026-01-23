@@ -5,7 +5,7 @@ import Toggle from "../../../../components/FormItems/Toggle";
 import TimeInput from "../../../../components/FormItems/TimeInput";
 import InputWithMeta from "../../../../components/GeneralDrawer/InputWithMeta";
 import useConsultationStore, { DEFAULT_SCHEDULE } from "../../../../store/settings/useConsultationStore";
-import useAuthStore from "../../../../store/useAuthStore";
+import useDoctorAuthStore from "../../../../store/useDoctorAuthStore";
 import useClinicStore from "../../../../store/settings/useClinicStore";
 import useToastStore from "../../../../store/useToastStore";
 import { pencil } from "../../../../../public/index.js";
@@ -78,7 +78,14 @@ const ConsultationTab = () => {
         setDirty
     } = useConsultationStore();
 
-    const { doctorDetails, user } = useAuthStore();
+    const { user: doctorDetails, loading: docLoading, fetchMe } = useDoctorAuthStore();
+    const user = doctorDetails; // reuse the same object for both names to satisfy existing code
+
+    useEffect(() => {
+        if (!doctorDetails && !docLoading) {
+            fetchMe?.();
+        }
+    }, [doctorDetails, docLoading, fetchMe]);
     const { clinic } = useClinicStore();
     const { addToast } = useToastStore();
 

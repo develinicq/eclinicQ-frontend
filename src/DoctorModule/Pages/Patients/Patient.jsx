@@ -5,7 +5,7 @@ import SampleTable from "../../../pages/SampleTable.jsx";
 import AddPatientDrawer from "../../../components/PatientList/AddPatientDrawer";
 import useDoctorPatientListStore from "../../../store/useDoctorPatientListStore";
 import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
-import useAuthStore from "../../../store/useAuthStore";
+import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
 import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
 import useClinicStore from "../../../store/settings/useClinicStore";
 import {
@@ -53,9 +53,15 @@ export default function Patient() {
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [schedulePatient, setSchedulePatient] = useState(null);
 
-  const { doctorDetails } = useAuthStore();
+  const { user: doctorDetails, loading: doctorLoading, fetchMe: fetchDoctorDetails } = useDoctorAuthStore();
   const { user: fdUser } = useFrontDeskAuthStore();
   const { clinic: clinicData } = useClinicStore();
+
+  useEffect(() => {
+    if (!doctorDetails && !doctorLoading && !fdUser) {
+      fetchDoctorDetails?.();
+    }
+  }, [doctorDetails, doctorLoading, fetchDoctorDetails, fdUser]);
 
   useEffect(() => {
     let mounted = true;

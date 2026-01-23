@@ -13,7 +13,7 @@ import { fetchAllRoles } from "../../../../services/rbac/roleService";
 import { registerStaff } from "../../../../services/staff/registerStaffService";
 import { createRole } from "../../../../services/rbac/roleService";
 import { fetchAllPermissions } from "../../../../services/rbac/permissionService";
-import useAuthStore from "../../../../store/useAuthStore";
+import useDoctorAuthStore from "../../../../store/useDoctorAuthStore";
 
 // Inline components from Doc_settings (or could be further extracted)
 const TabBtn = ({ label, active, onClick }) => (
@@ -384,9 +384,9 @@ const RoleDrawerInline = ({ open, onClose, onCreate }) => {
                                     .filter(([, v]) => v)
                                     .map(([k]) => k);
                                 // Resolve clinicId
-                                const authSnap = useAuthStore.getState();
+                                const authSnap = useDoctorAuthStore.getState();
                                 const clinicId =
-                                    authSnap?.doctorDetails?.associatedWorkplaces?.clinic?.id ||
+                                    authSnap?.user?.associatedWorkplaces?.clinic?.id ||
                                     authSnap?.user?.clinicId ||
                                     authSnap?.clinicId;
                                 if (!clinicId) {
@@ -580,9 +580,9 @@ const StaffTab = () => {
 
     // Fetch Staff
     const loadStaff = async () => {
-        const authSnap = useAuthStore.getState();
+        const authSnap = useDoctorAuthStore.getState();
         const clinicId =
-            authSnap?.doctorDetails?.associatedWorkplaces?.clinic?.id ||
+            authSnap?.user?.associatedWorkplaces?.clinic?.id ||
             authSnap?.user?.clinicId ||
             authSnap?.clinicId;
 
@@ -729,10 +729,10 @@ const StaffTab = () => {
                 onClose={() => setInviteOpen(false)}
                 onSendInvite={async (rows) => {
                     try {
-                        const authSnap = useAuthStore.getState();
+                        const authSnap = useDoctorAuthStore.getState();
                         // Try to find clinic ID
                         const clinicId =
-                            authSnap?.doctorDetails?.associatedWorkplaces?.clinic?.id ||
+                            authSnap?.user?.associatedWorkplaces?.clinic?.id ||
                             authSnap?.user?.clinicId ||
                             authSnap?.clinicId;
 

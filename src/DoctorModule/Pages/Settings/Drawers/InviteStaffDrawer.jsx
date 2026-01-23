@@ -6,7 +6,7 @@ import RadioButton from "@/components/GeneralDrawer/RadioButton";
 import { ChevronDown, Trash2 } from "lucide-react";
 import { registerStaff } from "@/services/staff/registerStaffService";
 import { fetchAllRoles } from "@/services/rbac/roleService";
-import useAuthStore from "@/store/useAuthStore";
+import useDoctorAuthStore from "@/store/useDoctorAuthStore";
 
 export default function InviteStaffDrawer({ open, onClose, initial = [], onSendInvite, onSend }) {
   const [rows, setRows] = useState([
@@ -44,12 +44,12 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
     {
       const seed = Array.isArray(initial) && initial.length
         ? initial.map((r) => ({
-            name: r?.name || "",
-            email: r?.email || "",
-            phone: r?.phone || "",
-            position: r?.position || "",
-            role: r?.role || "Front Desk",
-          }))
+          name: r?.name || "",
+          email: r?.email || "",
+          phone: r?.phone || "",
+          position: r?.position || "",
+          role: r?.role || "Front Desk",
+        }))
         : [{ name: "", email: "", phone: "", position: "", role: "Front Desk" }];
       setRows(seed);
 
@@ -58,7 +58,7 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
         try {
           setRolesLoading(true);
           setRolesError("");
-          const { doctorDetails } = useAuthStore.getState();
+          const { user: doctorDetails } = useDoctorAuthStore.getState();
           const clinicId =
             doctorDetails?.associatedWorkplaces?.clinic?.id ||
             doctorDetails?.clinicId ||
@@ -145,7 +145,7 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
       title="Invite Staff"
       primaryActionLabel="Send Invite"
       onPrimaryAction={handleSend}
-  primaryActionDisabled={!allFilled}
+      primaryActionDisabled={!allFilled}
       width={600}
     >
       <div className="flex flex-col gap-5">
@@ -155,8 +155,8 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
           Staff will receive an email invitation to create their account and set up Secure Account
         </div>
 
-  {/* Mode radio group (hidden once first row is filled) */}
-  {!firstRowFilled && (
+        {/* Mode radio group (hidden once first row is filled) */}
+        {!firstRowFilled && (
           <div className="flex items-center gap-6">
             <RadioButton
               name="invite-mode"
@@ -175,8 +175,8 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
           </div>
         )}
 
-  {/* Rows */}
-  <div className="flex flex-col gap-3">
+        {/* Rows */}
+        <div className="flex flex-col gap-3">
           {rows.map((row, idx) => (
             <div key={idx} className="rounded-md flex flex-col border-[0.5px] border-secondary-grey100 p-3 gap-3 relative">
               {/* Header + Delete */}
@@ -196,7 +196,7 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
                   </button>
                 )}
               </div>
-             
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                 <InputWithMeta
@@ -264,14 +264,14 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
         </div>
         {/* Outlined dashed placeholder and Add More link */}
         <div className="">
-            
-              <button
-                type="button"
-                className=" w-full border-[0.5px] border-dashed border-secondary-grey100 rounded-md p-2 hover:bg-blue-primary50 cursor-pointer text-blue-primary250 hover:text-blue-primary300  text-sm "
-                onClick={addRow}
-              >
-                Add More Staff Members
-              </button>
+
+          <button
+            type="button"
+            className=" w-full border-[0.5px] border-dashed border-secondary-grey100 rounded-md p-2 hover:bg-blue-primary50 cursor-pointer text-blue-primary250 hover:text-blue-primary300  text-sm "
+            onClick={addRow}
+          >
+            Add More Staff Members
+          </button>
 
         </div>
       </div>

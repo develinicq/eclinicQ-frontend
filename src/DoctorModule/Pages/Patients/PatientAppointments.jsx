@@ -4,7 +4,6 @@ import Badge from "../../../components/Badge";
 import { Eye, MoreVertical, Filter } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { getPatientAppointmentsForDoctor } from "../../../services/doctorService";
-import useAuthStore from "../../../store/useAuthStore";
 import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
 import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
 import useClinicStore from "../../../store/settings/useClinicStore";
@@ -178,7 +177,7 @@ export default function PatientAppointments({ patientId: propPatientId, appointm
   }, [propsAppointmentData]);
 
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
-  const { doctorDetails: authDoc } = useAuthStore();
+  const { user: authDoc } = useDoctorAuthStore();
   const { user: fdUser } = useFrontDeskAuthStore();
   const { clinic: clinicData } = useClinicStore();
 
