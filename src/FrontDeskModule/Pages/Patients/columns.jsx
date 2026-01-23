@@ -5,6 +5,7 @@ import AvatarCircle from '../../../components/AvatarCircle';
 import pending from '../../../../public/pending.png';
 import { action_calendar, action_dot, action_heart, vertical } from '../../../../public';
 import { Users, Pencil, Trash2 } from 'lucide-react';
+import { calculateAge } from '../../../lib/timeUtils';
 
 const ActionCell = ({ row, onOpenLog, onSchedule }) => {
     const [isOpen, setIsOpen] = React.useState(false);
@@ -117,7 +118,7 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
                             {row.name}
                         </span>
                         <p className="text-secondary-grey300">
-                            {row.gender ? (row.gender.charAt(0).toUpperCase() + row.gender.slice(1).toLowerCase()) : '-'} | {row.dob} {row.age ? `(${row.age}Y)` : ''}
+                            {row.gender ? (row.gender.charAt(0).toUpperCase() + row.gender.slice(1).toLowerCase()) : '-'} | {row.dob} ({calculateAge(row.dob)}Y)
                         </p>
                     </div>
                 </div>

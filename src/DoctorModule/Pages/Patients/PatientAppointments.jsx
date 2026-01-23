@@ -4,7 +4,10 @@ import Badge from "../../../components/Badge";
 import { Eye, MoreVertical, Filter } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { getPatientAppointmentsForDoctor } from "../../../services/doctorService";
-import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
+import useAuthStore from "../../../store/useAuthStore";
+import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
+import useClinicStore from "../../../store/settings/useClinicStore";
+import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
 
 function StatusBadge({ status }) {
   const s = (status || "").toUpperCase();
@@ -184,6 +187,13 @@ export default function PatientAppointments({ patientId: propPatientId }) {
     fetchAppointments();
   }, [patientId]);
 
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const { doctorDetails: authDoc } = useAuthStore();
+  const { user: fdUser } = useFrontDeskAuthStore();
+  const { clinic: clinicData } = useClinicStore();
+
+  const handleOpenSchedule = () => setIsScheduleOpen(true);
+
   return (
     <div className="flex flex-col gap-[24px]">
       {error && (
@@ -198,7 +208,12 @@ export default function PatientAppointments({ patientId: propPatientId }) {
             Upcoming Appointment ({upcoming.length})
           </div>
           <div className="flex items-center gap-3">
-            <button className="text-blue-600 hover:underline font-medium">+ Schedule</button>
+            <button
+              onClick={handleOpenSchedule}
+              className="text-blue-600 hover:underline font-medium"
+            >
+              + Schedule
+            </button>
             <button className="p-1.5 rounded hover:bg-gray-100" aria-label="Filter">
               <Filter className="h-4 w-4 text-gray-600" />
             </button>
@@ -213,6 +228,19 @@ export default function PatientAppointments({ patientId: propPatientId }) {
         </div>
         <AppointmentsTable rows={past} loading={loading} />
       </div>
+
+      <ScheduleAppointmentDrawer2
+        open={isScheduleOpen}
+        onClose={() => setIsScheduleOpen(false)}
+        patient={{ id: patientId, name: upcoming[0]?.patientName || "" }} // Basic info fallback
+        doctorId={authDoc?.id || authDoc?.doctorId || fdUser?.doctorId}
+        clinicId={authDoc?.clinicId || authDoc?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId}
+        onSchedule={() => {
+          // Re-fetch appointments after scheduling
+          window.location.reload(); // Simple refresh for now or trigger re-fetch logic if exposed
+        }}
+        zIndex={6000}
+      />
     </div>
   );
 }

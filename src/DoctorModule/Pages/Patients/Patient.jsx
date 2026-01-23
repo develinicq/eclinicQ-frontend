@@ -4,6 +4,7 @@ import PatientHeader from "../../../components/PatientList/Header";
 import SampleTable from "../../../pages/SampleTable.jsx";
 import AddPatientDrawer from "../../../components/PatientList/AddPatientDrawer";
 import useDoctorPatientListStore from "../../../store/useDoctorPatientListStore";
+import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
 import useAuthStore from "../../../store/useAuthStore";
 import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
 import useClinicStore from "../../../store/settings/useClinicStore";
@@ -48,6 +49,9 @@ export default function Patient() {
   const [addOpen, setAddOpen] = useState(false);
   const { patients, loading, error, fetchPatients, clearPatientsStore } =
     useDoctorPatientListStore();
+
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [schedulePatient, setSchedulePatient] = useState(null);
 
   const { doctorDetails } = useAuthStore();
   const { user: fdUser } = useFrontDeskAuthStore();
@@ -99,7 +103,10 @@ export default function Patient() {
   const columns = useMemo(
     () => getPatientColumns(
       (row) => console.log('Open Log', row),
-      (row) => console.log('Schedule', row)
+      (row) => {
+        setSchedulePatient(row);
+        setIsScheduleOpen(true);
+      }
     ),
     []
   );
@@ -171,6 +178,23 @@ export default function Patient() {
           onSave={(data) => {
             setAddOpen(false);
           }}
+        />
+
+        <ScheduleAppointmentDrawer2
+          open={isScheduleOpen}
+          onClose={() => {
+            setIsScheduleOpen(false);
+            setSchedulePatient(null);
+          }}
+          patient={schedulePatient}
+          doctorId={doctorDetails?.id || doctorDetails?.doctorId || fdUser?.doctorId}
+          clinicId={doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId}
+          onSchedule={() => {
+            const clinicId = doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
+            const doctorId = doctorDetails?.id || doctorDetails?.doctorId || fdUser?.doctorId;
+            fetchPatients({ clinicId, doctorId });
+          }}
+          zIndex={6000}
         />
       </div>
     </>

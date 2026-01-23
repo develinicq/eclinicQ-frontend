@@ -12,6 +12,9 @@ import PatientDocuments from "./PatientDocuments";
 import PatientDemographics from "./PatientDemographics";
 import { getPatientOverviewForDoctor } from "../../../services/doctorService";
 import { getPatientVitalsForDoctor } from "../../../services/doctorService";
+import useAuthStore from "../../../store/useAuthStore";
+import useClinicStore from "../../../store/settings/useClinicStore";
+import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
 
 export default function PatientDetails() {
   const { id } = useParams();
@@ -112,6 +115,12 @@ export default function PatientDetails() {
   const [biometricsHistory, setBiometricsHistory] = useState([]);
   const [vitalsLoading, setVitalsLoading] = useState(false);
   const [vitalsError, setVitalsError] = useState(null);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+
+  const { doctorDetails: authDoc } = useAuthStore();
+  const { clinic: clinicData } = useClinicStore();
+
+  const handleOpenSchedule = () => setIsScheduleOpen(true);
   // load vitals history when viewing vitals tab or when patient id changes
   useEffect(() => {
     let mounted = true;
@@ -240,7 +249,10 @@ export default function PatientDetails() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="group flex flex-col items-center">
+          <button
+            onClick={handleOpenSchedule}
+            className="group flex flex-col items-center"
+          >
             <svg
               className="transition-transform duration-200 group-hover:scale-110 group-hover:bg-gray-100"
               xmlns="http://www.w3.org/2000/svg"
@@ -843,6 +855,17 @@ export default function PatientDetails() {
         onClose={handleCloseAddVitals}
         onSave={handleSaveVitals}
         patient={patient}
+      />
+      <ScheduleAppointmentDrawer2
+        open={isScheduleOpen}
+        onClose={() => setIsScheduleOpen(false)}
+        patient={patient}
+        doctorId={authDoc?.doctorId || authDoc?.id}
+        clinicId={clinicData?.id || clinicData?.clinicId}
+        onSchedule={() => {
+          window.location.reload();
+        }}
+        zIndex={6000}
       />
     </>
   );

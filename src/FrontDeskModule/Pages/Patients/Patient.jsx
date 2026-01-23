@@ -15,6 +15,7 @@ import AvatarCircle from "../../../components/AvatarCircle.jsx";
 import UniversalLoader from "../../../components/UniversalLoader";
 import { getPatientColumns } from "./columns";
 import PatientDetailsDrawer from "./PatientDetailsDrawer";
+import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
 
 
 export default function Patient() {
@@ -22,6 +23,8 @@ export default function Patient() {
     const [addOpen, setAddOpen] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [selectedPatient, setSelectedPatient] = useState(null);
+    const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+    const [schedulePatient, setSchedulePatient] = useState(null);
     const { patients, loading, error, fetchPatients, clearPatientsStore } =
         useDoctorPatientListStore();
 
@@ -73,7 +76,10 @@ export default function Patient() {
     const columns = useMemo(
         () => getPatientColumns(
             (row) => console.log('Open Log', row),
-            (row) => console.log('Schedule', row)
+            (row) => {
+                setSchedulePatient(row);
+                setIsScheduleOpen(true);
+            }
         ),
         []
     );
@@ -178,6 +184,22 @@ export default function Patient() {
                     isOpen={detailsOpen}
                     onClose={() => setDetailsOpen(false)}
                     patient={selectedPatient}
+                />
+                <ScheduleAppointmentDrawer2
+                    open={isScheduleOpen}
+                    onClose={() => {
+                        setIsScheduleOpen(false);
+                        setSchedulePatient(null);
+                    }}
+                    patient={schedulePatient}
+                    doctorId={fdUser?.doctorId || fdUser?.doctor?.id}
+                    clinicId={fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId}
+                    onSchedule={() => {
+                        const clinicId = fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
+                        const doctorId = fdUser?.doctorId || fdUser?.doctor?.id;
+                        fetchPatients({ clinicId, doctorId, roleContext: 'front-desk' });
+                    }}
+                    zIndex={6000}
                 />
             </div>
         </>

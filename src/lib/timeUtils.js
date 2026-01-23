@@ -33,3 +33,16 @@ export const buildISTRangeLabel = (startIso, endIso) => {
   const b = formatISTTime(endIso).toLowerCase();
   return `${a}-${b}`;
 };
+
+// Calculate age in years from a date string
+export const calculateAge = (dob) => {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 ? age : 0;
+};

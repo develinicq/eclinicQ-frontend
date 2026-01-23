@@ -3,7 +3,7 @@ import { X, Calendar, MoreHorizontal, ChevronDown, CheckCircle2, Phone, Mail, Ma
 import { drawerCross } from "../../../../public/index.js";
 import AvatarCircle from "../../../components/AvatarCircle";
 import Badge from "../../../components/Badge.jsx";
-import ScheduleAppointmentDrawer from "../../../components/PatientList/ScheduleAppointmentDrawer";
+import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
 import { getPatientDetailsForStaff } from "../../../services/patientService";
 import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
 import useClinicStore from "../../../store/settings/useClinicStore";
@@ -590,10 +590,26 @@ export default function PatientDetailsDrawer({
                 )}
             </aside>
             {isScheduleDrawerOpen && (
-                <ScheduleAppointmentDrawer
+                <ScheduleAppointmentDrawer2
                     open={isScheduleDrawerOpen}
                     onClose={() => setIsScheduleDrawerOpen(false)}
                     patient={patient || { name, dob, age, gender, contact }}
+                    doctorId={fdUser?.doctorId || fdUser?.doctor?.id}
+                    clinicId={fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId}
+                    onSchedule={() => {
+                        // Refresh details after scheduling
+                        const patientId = patient?.patientId || patient?.id;
+                        const clinicId = fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
+                        const doctorId = fdUser?.doctorId || fdUser?.doctor?.id;
+                        if (patientId && (clinicId || doctorId)) {
+                            getPatientDetailsForStaff({ patientId, doctorId, clinicId })
+                                .then(res => {
+                                    if (res && res.success && res.data) {
+                                        setDetails(res.data);
+                                    }
+                                });
+                        }
+                    }}
                     zIndex={6000}
                 />
             )}

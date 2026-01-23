@@ -17,9 +17,11 @@ import {
   findPatientSlots,
   bookWalkInAppointment,
 } from "../../services/authService";
-import { classifyISTDayPart, buildISTRangeLabel } from "../../lib/timeUtils";
+import { classifyISTDayPart, buildISTRangeLabel, calculateAge } from "../../lib/timeUtils";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import calendarWhite from "/Doctor_module/sidebar/calendar_white.png";
+import AvatarCircle from "../../components/AvatarCircle";
+import { searchPatientsForWalkIn } from "../../services/patientService";
 
 // UI-only Book Appointment Drawer using GeneralDrawer and shared inputs
 // Integrated Book Appointment Drawer fetching real slots and booking via APIs
@@ -38,6 +40,11 @@ export default function BookAppointmentDrawer({
   );
   const { addToast } = useToastStore();
   const [isExisting, setIsExisting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
   const [apptType, setApptType] = useState("New Consultation");
   const [reason, setReason] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -63,7 +70,7 @@ export default function BookAppointmentDrawer({
     "Follow-up Consultation",
     "Review Visit",
   ];
-  const reasonSuggestions = ["Cough", "Cold", "Headache", "Nausea"];
+  const reasonSuggestions = ["Cough", "Cold", "Headache", "Nausea", "Dizziness", "Muscle Pain", "Sore Throat"];
   const genders = ["Male", "Female", "Other"];
   const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
   // Dropdown open states
@@ -114,6 +121,35 @@ export default function BookAppointmentDrawer({
   const [errorMsg, setErrorMsg] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [closing, setClosing] = useState(false);
+
+  // Debounced Search for Existing Patients
+  useEffect(() => {
+    if (!isExisting || !searchQuery.trim() || searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const resp = await searchPatientsForWalkIn(searchQuery);
+        setSearchResults(resp.data || []);
+      } catch (err) {
+        console.error("Patient search failed", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, isExisting]);
+
+  // Reset search when switching tabs
+  useEffect(() => {
+    setSearchQuery("");
+    setSearchResults([]);
+    setSelectedPatient(null);
+  }, [isExisting]);
 
   useEffect(() => {
     const onEsc = (e) => e.key === "Escape" && requestClose();
@@ -243,8 +279,8 @@ export default function BookAppointmentDrawer({
   };
 
   const canSave = () => {
-    if (!selectedSlotId) return false;
-    if (isExisting) return mobile.trim().length >= 3;
+    if (!selectedSlotId || booking || reason.trim().length < 10 || !apptType) return false;
+    if (isExisting) return selectedPatient !== null;
     return firstName && lastName && dob && gender && bloodGroup && mobile;
   };
 
@@ -266,17 +302,14 @@ export default function BookAppointmentDrawer({
       if (isExisting) {
         payload = {
           method: "EXISTING",
-          bookingMode: "WALK_IN",
-          patientId: mobile.trim(),
+          patientId: selectedPatient?.id,
           reason: reason.trim(),
           slotId: selectedSlotId,
-          bookingType: apptType?.toLowerCase().includes("follow")
+          bookingType: apptType?.toUpperCase().includes("FOLLOW")
             ? "FOLLOW_UP"
-            : "NEW",
-          doctorId,
-          clinicId,
-          hospitalId,
-          date: apptDate,
+            : apptType?.toUpperCase().includes("REVIEW")
+              ? "FOLLOW_UP"
+              : "NEW",
         };
       } else {
         payload = {
@@ -360,14 +393,78 @@ export default function BookAppointmentDrawer({
 
         {/* Body */}
         {isExisting ? (
-          <div className="">
-            <InputWithMeta
-              label="Patient"
-              requiredDot
-              value={mobile}
-              onChange={setMobile}
-              placeholder="Search Patient by name, Abha id, Patient ID or Contact Number"
-            />
+          <div className="flex flex-col gap-3">
+            {selectedPatient ? (
+              <InputWithMeta
+                label="Patient"
+                requiredDot
+                showInput={false}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`flex-1 rounded-md border-[0.5px] border-secondary-grey150 h-9 text-sm text-secondary-grey400 bg-secondary-grey50 flex items-center px-2 select-none gap-2`}>
+                    <AvatarCircle name={selectedPatient.name} size="xs" color="blue" />
+                    <span className="truncate">
+                      {`${selectedPatient.name} (${selectedPatient.gender?.charAt(0)} | ${selectedPatient.dob ? new Date(selectedPatient.dob).toLocaleDateString('en-GB') : 'N/A'} (${calculateAge(selectedPatient.dob)}Y) | ${selectedPatient.phone})`}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPatient(null);
+                      setSearchQuery("");
+                    }}
+                    className="text-xs text-blue-primary250 hover:underline shrink-0"
+                  >
+                    Change
+                  </button>
+                </div>
+              </InputWithMeta>
+            ) : (
+              <div className="relative">
+                <InputWithMeta
+                  label="Patient"
+                  requiredDot
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Search Patient by name, Abha id, Patient ID or Contact Number"
+                  RightIcon={searching ? () => (
+                    <div className="flex items-center justify-center h-full w-full">
+                      <UniversalLoader size={12} style={{ width: 'auto', height: 'auto' }} />
+                    </div>
+                  ) : undefined}
+                />
+                {!searching && searchResults.length > 0 && (
+                  <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-[1001] bg-white border border-secondary-grey200 rounded-lg shadow-xl max-h-[250px] overflow-y-auto">
+                    {searchResults.map((p) => (
+                      <div
+                        key={p.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent input onBlur if applicable
+                          setSelectedPatient(p);
+                          setSearchResults([]);
+                        }}
+                        className="flex items-center gap-3 p-3 hover:bg-secondary-grey50 cursor-pointer border-b border-secondary-grey100 last:border-b-0"
+                      >
+                        <AvatarCircle name={p.name} size={32} />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-secondary-grey400">
+                            {p.name}
+                          </span>
+                          <span className="text-[10px] text-secondary-grey200">
+                            {p.patientCode} • {p.phone}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!searching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                  <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-[1001] bg-white border border-secondary-grey200 rounded-lg shadow-xl p-4 text-center text-xs text-secondary-grey400">
+                    No patients found matching "{searchQuery}"
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -540,23 +637,34 @@ export default function BookAppointmentDrawer({
             label="Reason for Visit"
             value={reason}
             onChange={setReason}
-            placeholder="Enter Reason for Visit"
+            requiredDot
+            placeholder="Enter Reason for Visit (Min 10 characters)"
+            inputRightMeta={
+              <div className={`text-[10px] font-medium ${reason.trim().length < 10 ? 'text-red-500' : 'text-green-600'}`}>
+                {reason.trim().length}/10
+              </div>
+            }
           />
-          <div className="flex gap-2 items-center mt-1">
-            <div className="text-xs text-blue-primary250">Suggestion:</div>
-            <div className="flex flex-wrap gap-2">
-              {reasonSuggestions.map((s) => (
-                <button
-                  key={s}
-                  className="px-1 py-0.5 bg-secondary-grey50 rounded-[4px] min-w-[18px] text-xs text-secondary-grey300 hover:bg-gray-50"
-                  type="button"
-                  onClick={() => setReason(s)}
-                >
-                  {s}
-                </button>
-              ))}
+          <div className="flex justify-between items-center mt-1">
+            <div className="flex gap-2 items-center">
+              <div className="text-xs text-blue-primary250">Suggestion:</div>
+              <div className="flex flex-wrap gap-2">
+                {reasonSuggestions.map((s) => (
+                  <button
+                    key={s}
+                    className="px-1 py-0.5 bg-secondary-grey50 rounded-[4px] min-w-[18px] text-xs text-secondary-grey300 hover:bg-gray-50"
+                    type="button"
+                    onClick={() => setReason(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+          {reason.trim().length > 0 && reason.trim().length < 10 && (
+            <div className="text-[10px] text-red-500 mt-0.5">Reason must be at least 10 characters long.</div>
+          )}
         </div>
 
         <div className="bg-secondary-grey150 w-0.5px h-[1px] "></div>
@@ -665,7 +773,7 @@ export default function BookAppointmentDrawer({
             )}
           </div>
         </div>
-       
+
       </div>
     </GeneralDrawer>
   );

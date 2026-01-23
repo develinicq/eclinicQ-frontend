@@ -61,3 +61,15 @@ export const getPatientDetailsForStaff = async ({ patientId, doctorId, clinicId 
         throw error;
     }
 };
+
+// Search patients for walk-in appointment
+export const searchPatientsForWalkIn = async (searchQuery, limit = 5) => {
+    try {
+        const res = await axios.get("/patients/for-providers/search-patients-walk-in", {
+            params: { searchQuery, limit }
+        });
+        return res.data;
+    } catch (error) {
+        throw error;
+    }
+};
