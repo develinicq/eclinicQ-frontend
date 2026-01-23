@@ -997,9 +997,16 @@ const Queue = () => {
     const engaged = categories.engaged || [];
     const checked = categories.checkedIn || [];
     const admitted = categories.admitted || [];
-    const noShow = categories.noShow || [];
+    const noShowObj = categories.noShow || {};
+    const noShow = Array.isArray(noShowObj) ? noShowObj : (noShowObj.all || []);
+
     // Construct 'All' from relevant categories, excluding 'In Waiting'
-    const all = [...(categories.engaged || []), ...(categories.checkedIn || []), ...(categories.admitted || []), ...(categories.noShow || [])];
+    const all = [
+      ...(categories.engaged || []),
+      ...(categories.checkedIn || []),
+      ...(categories.admitted || []),
+      ...noShow,
+    ];
     const mapAppt = (appt) => {
       if (!appt) return null;
       const p = appt.patientDetails || appt.patient || {};
@@ -1072,8 +1079,26 @@ const Queue = () => {
     let base = [];
     if (activeFilter === "Engaged") base = engaged;
     else if (activeFilter === "Checked In") base = checked;
-    else if (activeFilter === "No Show") base = noShow;
-    else if (activeFilter === "Admitted") base = admitted;
+    else if (activeFilter === "No Show") {
+      if (!Array.isArray(noShowObj)) {
+        // New grouped format
+        const within = (noShowObj.withinGracePeriod || []).map(mapAppt).filter(Boolean);
+        const outside = (noShowObj.outsideGracePeriod || []).map(mapAppt).filter(Boolean);
+
+        const result = [];
+        if (within.length > 0) {
+          result.push({ isSeparator: true, label: "Within Grace Period" });
+          result.push(...within);
+        }
+        if (outside.length > 0) {
+          result.push({ isSeparator: true, label: "Outside Grace Period" });
+          result.push(...outside);
+        }
+        setQueueData(result);
+        return;
+      }
+      base = noShow;
+    } else if (activeFilter === "Admitted") base = admitted;
     else if (activeFilter === "All") base = all;
     else base = checked; // Default fallback
 
@@ -1592,20 +1617,36 @@ const Queue = () => {
     const engaged = Array.isArray(categories.engaged)
       ? categories.engaged.length
       : 0;
-    const noShow = Array.isArray(categories.noShow)
-      ? categories.noShow.length
-      : 0;
+
+    // Handle new noShow count structure
+    let noShowCount = 0;
+    if (categories.noShow) {
+      if (Array.isArray(categories.noShow)) {
+        noShowCount = categories.noShow.length;
+      } else if (typeof categories.noShow === 'object') {
+        // Look for the new format counts if available in response, but usually counts are in Data.counts
+        // Let's use slotAppointments.counts if it exists, otherwise fall back to data lengths
+        const totalNoShow = slotAppointments?.counts?.noShow?.total;
+        if (totalNoShow !== undefined) {
+          noShowCount = totalNoShow;
+        } else {
+          noShowCount = (categories.noShow.withinGracePeriod?.length || 0) +
+            (categories.noShow.outsideGracePeriod?.length || 0);
+        }
+      }
+    }
+
     const admitted = Array.isArray(categories.admitted)
       ? categories.admitted.length
       : 0;
-    const all = checkedIn + engaged + noShow + admitted; // exclude inWaiting from All
+    const all = checkedIn + engaged + noShowCount + admitted; // exclude inWaiting from All
     switch (filter) {
       case "Checked In":
         return checkedIn;
       case "Engaged":
         return engaged;
       case "No Show":
-        return noShow;
+        return noShowCount;
       case "Admitted":
         return admitted;
       case "All":
@@ -1729,15 +1770,15 @@ const Queue = () => {
                             }`}
                         >
                           <div className="p-[2px]">
-                              <Icon
-                            className="h-6 w-6"
-                            style={{
-                              fill: "#BFD6FF", // blue-primary150
-                              color: slotValue === key ? "#FFFFFF" : "#9CA3AF", // white vs grey-400
-                            }}
-                          />
+                            <Icon
+                              className="h-6 w-6"
+                              style={{
+                                fill: "#BFD6FF", // blue-primary150
+                                color: slotValue === key ? "#FFFFFF" : "#9CA3AF", // white vs grey-400
+                              }}
+                            />
                           </div>
-                          
+
 
                           <span className="flex-1">
                             <span

@@ -7,6 +7,7 @@ import {
 import useOOOStore from "../../../store/useOOOStore";
 import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
 import useSlotStore from "../../../store/useSlotStore";
+import useDoctorAnalyticsStore from "../../../store/useDoctorAnalyticsStore";
 import Overview_cards from "../../../components/Dashboard/Overview_cards";
 import BookAppointmentDrawer from "../../../components/Appointment/BookAppointmentDrawer.jsx";
 import OutOfOfficeDrawer from "../../Components/OutOfOfficeDrawer";
@@ -73,8 +74,7 @@ const DocDashboard = () => {
     (s) => s.loadAppointmentsForSelectedSlot
   );
   const [period, setPeriod] = useState("Yearly");
-  const [analytics, setAnalytics] = useState(null);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+  const { analytics, loading: loadingAnalytics, fetchAnalytics } = useDoctorAnalyticsStore();
   const { oooData, fetchOOOStatus } = useOOOStore();
   const [isOOODrawerOpen, setIsOOODrawerOpen] = useState(false);
 
@@ -113,35 +113,21 @@ const DocDashboard = () => {
   const clinicId = doctorDetails?.clinicId || doctorDetails?.associatedWorkplaces?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id;
   const doctorId = doctorDetails?.id || doctorDetails?.userId || fdUser?.doctorId;
 
-  const fetchAnalytics = async () => {
-    setLoadingAnalytics(true);
-    try {
+  useEffect(() => {
+    if (clinicId) {
       const monthIndex = selectedMonth === "All Months"
         ? 13
         : months.indexOf(selectedMonth);
 
-      const res = await getDoctorDashboardAnalytics({
+      fetchAnalytics({
         clinicId,
         aggregationType: period.toLowerCase(),
         month: monthIndex,
         year: selectedYear
       });
-      if (res.success) {
-        setAnalytics(res.data);
-      }
-    } catch (e) {
-      console.error("Failed to fetch analytics:", e);
-    } finally {
-      setLoadingAnalytics(false);
-    }
-  };
-
-  useEffect(() => {
-    if (clinicId) {
-      fetchAnalytics();
       fetchOOOStatus();
     }
-  }, [clinicId, period, selectedMonth, selectedYear, fetchOOOStatus]);
+  }, [clinicId, period, selectedMonth, selectedYear, fetchAnalytics, fetchOOOStatus]);
 
   const handleOOOSave = (newData) => {
     // Note: The drawer now handles the store update internally via useOOOStore.updateOOOStatus.

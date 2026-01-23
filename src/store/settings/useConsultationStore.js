@@ -39,6 +39,7 @@ const useConsultationStore = create((set, get) => ({
     fetchError: null,
     saveError: null,
     isDirty: false,
+    lastFetchedParams: null,
 
     setConsultationDetails: (details) => set({ consultationDetails: details, isDirty: true }),
 
@@ -46,6 +47,19 @@ const useConsultationStore = create((set, get) => ({
 
     fetchConsultationDetails: async (params) => {
         if (!params || (!params.hospitalId && !params.clinicId)) return;
+        const { lastFetchedParams, consultationDetails } = get();
+
+        // Check if params are the same and data exists (not DEFAULT)
+        const isSameParams = lastFetchedParams &&
+            lastFetchedParams.clinicId === params.clinicId &&
+            lastFetchedParams.hospitalId === params.hospitalId &&
+            lastFetchedParams.doctorId === params.doctorId;
+
+        if (isSameParams && consultationDetails !== DEFAULT_CONSULTATION_DETAILS) {
+            console.log("[useConsultationStore] Skipping fetch: Params same and data exists.");
+            return;
+        }
+
         set({ loading: true, fetchError: null });
         try {
             const hasDoctorId = !!params.doctorId;
@@ -79,6 +93,7 @@ const useConsultationStore = create((set, get) => ({
                     initialConsultationDetails: JSON.parse(JSON.stringify(details)), // Deep copy for comparison
                     loading: false,
                     isDirty: false,
+                    lastFetchedParams: params,
                 });
             } else {
                 set({

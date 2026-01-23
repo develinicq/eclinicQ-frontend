@@ -81,8 +81,7 @@ export default function Patient() {
     })();
     return () => {
       mounted = false;
-      // keep store clean when unmounting page
-      clearPatientsStore();
+      // Removed clearPatientsStore() call to persist data on tab switching
     };
   }, [fetchPatients, clearPatientsStore, doctorDetails, fdUser, clinicData]);
 

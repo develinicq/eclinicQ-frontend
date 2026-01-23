@@ -14,6 +14,7 @@ import { registerStaff } from "../../../../services/staff/registerStaffService";
 import { createRole } from "../../../../services/rbac/roleService";
 import { fetchAllPermissions } from "../../../../services/rbac/permissionService";
 import useDoctorAuthStore from "../../../../store/useDoctorAuthStore";
+import useStaffStore from "../../../../store/useStaffStore";
 
 // Inline components from Doc_settings (or could be further extracted)
 const TabBtn = ({ label, active, onClick }) => (
@@ -280,53 +281,26 @@ const RoleDrawerInline = ({ open, onClose, onCreate }) => {
     // selection map by permission id => boolean
     const [checked, setChecked] = useState({});
     const [closing, setClosing] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const [creating, setCreating] = useState(false);
     const [createError, setCreateError] = useState("");
-    // groupedPermissions: { [moduleName]: [{ id, name, description }] }
-    const [grouped, setGrouped] = useState({});
+
+    const {
+        permissions: grouped,
+        loadingPermissions: loading,
+        fetchPermissions
+    } = useStaffStore();
 
     // fetch permissions when drawer opens
     useEffect(() => {
-        if (!open) return;
-        let cancelled = false;
-        const load = async () => {
-            setLoading(true);
-            setError("");
-            try {
-                const res = await fetchAllPermissions();
-                const gp = res?.data?.groupedPermissions;
-                const list = res?.data?.permissions;
-                let groupedPermissions = gp;
-                if (!groupedPermissions && Array.isArray(list)) {
-                    groupedPermissions = list.reduce((acc, p) => {
-                        const mod = p.module || "Other";
-                        if (!acc[mod]) acc[mod] = [];
-                        acc[mod].push({
-                            id: p.id,
-                            name: p.name,
-                            description: p.description,
-                        });
-                        return acc;
-                    }, {});
-                }
-                if (!cancelled) {
-                    setGrouped(groupedPermissions || {});
-                    // reset selection on open
-                    setChecked({});
-                }
-            } catch (e) {
-                if (!cancelled)
-                    setError(e?.message || e?.error || "Failed to load permissions");
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
-        load();
-        return () => {
-            cancelled = true;
-        };
+        if (open) {
+            fetchPermissions();
+        }
+    }, [open, fetchPermissions]);
+
+    useEffect(() => {
+        if (open) {
+            setChecked({});
+        }
     }, [open]);
 
     if (!open && !closing) return null;
@@ -464,7 +438,6 @@ const RoleDrawerInline = ({ open, onClose, onCreate }) => {
                             </span>
                         </div>
                         {loading && <div className="text-xs text-gray-500">Loading...</div>}
-                        {error && <div className="text-xs text-red-500">{error}</div>}
                         <div className="space-y-4">
                             {Object.entries(grouped).map(([mod, items]) => {
                                 const allSelected = items.every((it) => checked[it.id]);
@@ -526,114 +499,29 @@ const StaffTab = () => {
     const [createRoleOpen, setCreateRoleOpen] = useState(false); // inline drawer for creating role
 
     // DATA
-    const [roles, setRoles] = useState([]);
-    const [staffList, setStaffList] = useState([]);
-    const [loadingRoles, setLoadingRoles] = useState(false);
-    const [loadingStaff, setLoadingStaff] = useState(false);
+    const {
+        roles,
+        staffList,
+        loadingRoles,
+        loadingStaff,
+        fetchRoles,
+        fetchStaff
+    } = useStaffStore();
 
-    // Fetch Roles
-    const loadRoles = async () => {
-        setLoadingRoles(true);
-        try {
-            const res = await fetchAllRoles();
-            if (res?.data && Array.isArray(res.data)) {
-                // map API roles to UI
-                const mapped = res.data.map((r) => ({
-                    id: r.id,
-                    name: r.name,
-                    subtitle: r.description || "Custom Role",
-                    staffCount: 0, // backend might not send this
-                    permissions: r.permissions?.length || 0,
-                    created: new Date(r.createdAt).toLocaleDateString(),
-                    icon: "clipboard", // default
-                }));
-                setRoles(mapped);
-            } else {
-                // Fallback dummy
-                setRoles([
-                    {
-                        id: 1,
-                        name: "Admin",
-                        subtitle: "Full access to all features",
-                        staffCount: 2,
-                        permissions: "All",
-                        created: "12 Jan, 2024",
-                        icon: "crown",
-                    },
-                    {
-                        id: 2,
-                        name: "Receptionist",
-                        subtitle: "Manage appointments & patients",
-                        staffCount: 4,
-                        permissions: 12,
-                        created: "15 Jan, 2024",
-                        icon: "clipboard",
-                    },
-                ]);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoadingRoles(false);
-        }
-    };
-
-    // Fetch Staff
-    const loadStaff = async () => {
+    const getClinicId = () => {
         const authSnap = useDoctorAuthStore.getState();
-        const clinicId =
+        return (
             authSnap?.user?.associatedWorkplaces?.clinic?.id ||
             authSnap?.user?.clinicId ||
-            authSnap?.clinicId;
-
-        if (!clinicId) {
-            // fallback
-            setStaffList([
-                {
-                    id: 1,
-                    name: "Dr. Anjali Gupta",
-                    position: "Junior Doctor",
-                    role: "Doctor",
-                    phone: "+91 98765 43210",
-                    joined: "12 Jan, 2024",
-                },
-                {
-                    id: 2,
-                    name: "Rahul Sharma",
-                    position: "Receptionist",
-                    role: "Receptionist",
-                    phone: "+91 98765 00000",
-                    joined: "15 Feb, 2024",
-                },
-            ]);
-            return;
-        }
-
-        setLoadingStaff(true);
-        try {
-            const res = await fetchClinicStaff(clinicId);
-            if (res && Array.isArray(res)) {
-                const mapped = res.map((s) => ({
-                    id: s.id,
-                    name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
-                    position: s.roles?.[0]?.name || "Staff",
-                    role: s.roles?.[0]?.name || "Staff",
-                    phone: s.phoneNumber || s.email,
-                    joined: new Date(s.createdAt).toLocaleDateString(),
-                }));
-                setStaffList(mapped);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoadingStaff(false);
-        }
+            authSnap?.clinicId
+        );
     };
 
     useEffect(() => {
-        if (tab === "roles") loadRoles();
-        if (tab === "staff") loadStaff();
-    }, [tab]);
+        const clinicId = getClinicId();
+        if (tab === "roles") fetchRoles(clinicId);
+        if (tab === "staff") fetchStaff(clinicId);
+    }, [tab, fetchRoles, fetchStaff]);
 
     return (
         <div className="p-4 flex flex-col gap-3 no-scrollbar">
@@ -750,7 +638,7 @@ const StaffTab = () => {
                             )
                         );
                         // Refresh
-                        loadStaff();
+                        fetchStaff(clinicId);
                         setInviteOpen(false);
                     } catch (err) {
                         console.error("Failed to send invites:", err);
@@ -771,7 +659,7 @@ const StaffTab = () => {
                 onClose={() => setCreateRoleOpen(false)}
                 onCreate={(newRole) => {
                     // refresh roles
-                    loadRoles();
+                    fetchRoles(getClinicId());
                 }}
             />
         </div>

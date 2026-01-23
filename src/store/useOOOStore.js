@@ -7,6 +7,9 @@ const useOOOStore = create((set, get) => ({
     error: null,
 
     fetchOOOStatus: async () => {
+        if (get().oooData && !get().loading) {
+            return get().oooData;
+        }
         set({ loading: true, error: null });
         try {
             const res = await getOutOfOfficeStatus();

@@ -900,15 +900,11 @@ const StaffTab = () => {
           setRoleOpen(false);
         }}
       />
-      {/* Drawer placeholders end for StaffTab */}
+   
     </div>
   );
 };
 
-import {
-  getDoctorConsultationDetails,
-  putDoctorConsultationDetails,
-} from "../../../services/doctorConsultationService";
 import BillingTab from "./Tabs/BillingTab";
 
 const Doc_settings = () => {

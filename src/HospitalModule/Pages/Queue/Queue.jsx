@@ -222,7 +222,7 @@ const WalkInAppointmentDrawer = ({
       }
       try {
         console.debug("[Hospital] walk-in booking payload:", payload);
-      } catch {}
+      } catch { }
       await bookWalkInAppointment(payload);
       onBookedRefresh?.();
       onClose();
@@ -238,17 +238,15 @@ const WalkInAppointmentDrawer = ({
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${
-          show
+        className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${show
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
-        }`}
+          }`}
         onClick={onClose}
       />
       <div
-        className={`fixed z-50 transition-transform duration-500 ${
-          show ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed z-50 transition-transform duration-500 ${show ? "translate-x-0" : "translate-x-full"
+          }`}
         style={{
           top: 24,
           right: show ? 24 : 0,
@@ -272,11 +270,10 @@ const WalkInAppointmentDrawer = ({
               <button
                 onClick={handleBook}
                 disabled={!canBook()}
-                className={`text-sm font-medium rounded px-3 py-1.5 border ${
-                  canBook()
+                className={`text-sm font-medium rounded px-3 py-1.5 border ${canBook()
                     ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
                     : "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
-                }`}
+                  }`}
               >
                 {booking ? "Booking..." : "Book Appointment"}
               </button>
@@ -333,11 +330,10 @@ const WalkInAppointmentDrawer = ({
               <button
                 disabled={!canBook()}
                 onClick={handleBook}
-                className={`px-4 py-2 rounded text-sm ${
-                  canBook()
+                className={`px-4 py-2 rounded text-sm ${canBook()
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }`}
+                  }`}
               >
                 {booking ? "Booking..." : "Book Appointment"}
               </button>
@@ -473,7 +469,7 @@ const HQueue = () => {
             setQueuePaused(false);
             try {
               await loadAppointmentsForSelectedSlot();
-            } catch {}
+            } catch { }
           } else {
             setSessionStarted(false);
             setRunStartAt(null);
@@ -533,7 +529,7 @@ const HQueue = () => {
               : 0);
           ageStr = `${dd}/${mm}/${yyyy} (${age}Y)`;
         }
-      } catch {}
+      } catch { }
       const apptTypeMap = {
         NEW: "New Consultation",
         FOLLOW_UP: "Follow-up Consultation",
@@ -546,16 +542,16 @@ const HQueue = () => {
         "Consultation";
       const expectedTime = appt.expectedTime
         ? new Date(appt.expectedTime).toLocaleTimeString([], {
-            hour: "numeric",
-            minute: "2-digit",
-          })
+          hour: "numeric",
+          minute: "2-digit",
+        })
         : "";
       const bookingType =
         appt.bookingMode === "ONLINE"
           ? "Online"
           : appt.bookingMode === "WALK_IN"
-          ? "Walk-In"
-          : appt.bookingType || "";
+            ? "Walk-In"
+            : appt.bookingType || "";
       const reason = appt.reason || appt.reasonForVisit || "";
       return {
         id: appt.id || appt.appointmentId,
@@ -563,8 +559,8 @@ const HQueue = () => {
           appt.tokenNo != null
             ? Number(appt.tokenNo)
             : appt.token != null
-            ? Number(appt.token)
-            : undefined,
+              ? Number(appt.token)
+              : undefined,
         patientName: name,
         gender,
         age: ageStr,
@@ -840,7 +836,7 @@ const HQueue = () => {
       {/* Walk-In drawer */}
       <WalkInAppointmentDrawer
         show={false}
-        onClose={() => {}}
+        onClose={() => { }}
         doctorId={doctorId}
         clinicId={clinicId}
         hospitalId={hospitalId}

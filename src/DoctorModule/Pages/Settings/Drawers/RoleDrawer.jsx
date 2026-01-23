@@ -3,6 +3,7 @@ import GeneralDrawer from "@/components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import { fetchAllPermissions } from "@/services/rbac/permissionService";
 import { createRole } from "@/services/rbac/roleService";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function RoleDrawer({ open, onClose, onCreated }) {
   const [closing, setClosing] = useState(false);
@@ -67,35 +68,21 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
 
   const canCreate = name.trim().length > 0 && selected.size > 0;
 
-  const CheckboxWithLabel = ({ label, checked, onChange }) => (
+  const CheckboxWithLabel = ({ label, checked, onCheckedChange }) => (
     <InputWithMeta label=" " showInput={false}>
-      <label className="inline-flex items-start gap-2 cursor-pointer text-[12px] text-[#424242]">
-    <input
-      type="checkbox"
-      className=" peer sr-only  "
-      checked={checked}
-      onChange={onChange}
-  
-    />
-  
-    <span className="w-4 h-4 mt-1 rounded-sm border border-gray-400 flex items-center justify-center
-                     peer-checked:bg-blue-600 peer-checked:border-blue-600">
-      <svg
-        className="hidden peer-checked:block w-3 h-3 text-white"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path
-          fillRule="evenodd"
-          d="M16.707 5.293a1 1 0 010 1.414l-7.364 7.364a1 1 0 01-1.414 0L3.293 9.414a1 1 0 011.414-1.414l3.05 3.05 6.657-6.657a1 1 0 011.414 0z"
-          clipRule="evenodd"
+      <div className="flex items-start gap-2 cursor-pointer">
+        <Checkbox
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          id={typeof label === 'string' ? label : undefined}
         />
-      </svg>
-    </span>
-  
-    <span className="text-xs text-secondary-grey400">{label}</span>
-  </label>
-  
+        <label
+          htmlFor={typeof label === 'string' ? label : undefined}
+          className="text-xs text-secondary-grey400 cursor-pointer"
+        >
+          {label}
+        </label>
+      </div>
     </InputWithMeta>
   );
 
@@ -129,28 +116,28 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
     >
       <div className="flex flex-col ">
         <div className="flex flex-col gap-3">
-            <InputWithMeta
-          label="Role Name"
-          requiredDot
-          placeholder="Enter staff full name"
-          value={name}
-          onChange={setName}
-        />
-        <InputWithMeta
-          label="Description"
-          placeholder="Describe the role"
-          value={desc}
-          onChange={setDesc}
-        />
+          <InputWithMeta
+            label="Role Name"
+            requiredDot
+            placeholder="Enter staff full name"
+            value={name}
+            onChange={setName}
+          />
+          <InputWithMeta
+            label="Description"
+            placeholder="Describe the role"
+            value={desc}
+            onChange={setDesc}
+          />
 
-        <InputWithMeta
-          label="Permissions"
-          requiredDot
-          showInput={false}
-          
-        />
+          <InputWithMeta
+            label="Permissions"
+            requiredDot
+            showInput={false}
+
+          />
         </div>
-        
+
         {loading && <div className="text-[12px] text-secondary-grey200">Loading permissions…</div>}
         {error && <div className="text-[12px] text-red-500">{error}</div>}
 
@@ -170,11 +157,11 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
                           <div className=" mt-1 text-[12px] text-secondary-grey300">Select All</div>
                         )}
                         checked={allSelected}
-                        onChange={(e) => selectAllInGroup(key, e.target.checked)}
+                        onCheckedChange={(checked) => selectAllInGroup(key, checked)}
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {perms.map((p) => (
                       <div key={p.id} className="text-[12px] text-secondary-grey400">
@@ -188,7 +175,7 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
                             </div>
                           )}
                           checked={selected.has(p.id)}
-                          onChange={() => togglePerm(p.id)}
+                          onCheckedChange={() => togglePerm(p.id)}
                         />
                       </div>
                     ))}

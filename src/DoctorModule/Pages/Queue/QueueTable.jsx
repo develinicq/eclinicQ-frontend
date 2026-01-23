@@ -322,21 +322,24 @@ const QueueTable = ({
   // Normalize input rows: prefer items from parent (live queue), else fallback to local sample
   const data =
     Array.isArray(items) && items.length
-      ? items.map((p) => ({
-        id: p.id || p.appointmentId,
-        token: p.token,
-        name: p.patientName,
-        gender: p.gender,
-        dob: (p.age || "").split(" (")[0],
-        age: parseInt(
-          ((p.age || "").match(/\((\d+)Y\)/) || [])[1] || "0",
-          10
-        ),
-        apptType: p.appointmentType,
-        exptTime: p.expectedTime,
-        bookingType: p.bookingType,
-        reason: p.reasonForVisit,
-      }))
+      ? items.map((p) => {
+        if (p.isSeparator) return p;
+        return {
+          id: p.id || p.appointmentId,
+          token: p.token,
+          name: p.patientName,
+          gender: p.gender,
+          dob: (p.age || "").split(" (")[0],
+          age: parseInt(
+            ((p.age || "").match(/\((\d+)Y\)/) || [])[1] || "0",
+            10
+          ),
+          apptType: p.appointmentType,
+          exptTime: p.expectedTime,
+          bookingType: p.bookingType,
+          reason: p.reasonForVisit,
+        };
+      })
       : allowSampleFallback
         ? rows
         : [];
@@ -481,82 +484,114 @@ const QueueTable = ({
                 </td>
               </tr>
             )}
-            {data.map((row) => (
-              <tr
-                key={row.token}
-                className={`group hover:bg-gray-50 ${removingToken === row.token ? "row-exit" : ""
-                  } ${incomingToken === row.token ? "row-enter" : ""}`}
-              >
-                {/* Token (sticky left) */}
-                <td
-                  className="px-3 py-3 font-bold text-blue-600 text-lg text-center sticky left-0 z-10 bg-white group-hover:bg-gray-50 transition-colors border-r border-b border-gray-200"
-                  style={{ minWidth: COL_W.token, width: COL_W.token }}
+            {data.map((row, idx) => {
+              if (row.isSeparator) {
+                return (
+                  <tr key={`sep-${idx}`} className="bg-gray-50/50">
+                    <td
+                      colSpan={7}
+                      className="px-4 py-2 text-[13px] font-semibold text-gray-500 border-b border-gray-200"
+                    >
+                      {row.label}
+                    </td>
+                  </tr>
+                );
+              }
+              return (
+                <tr
+                  key={row.token}
+                  className={`group hover:bg-gray-50 ${removingToken === row.token ? "row-exit" : ""
+                    } ${incomingToken === row.token ? "row-enter" : ""}`}
                 >
-                  {row.token}
-                </td>
+                  {/* Token (sticky left) */}
+                  <td
+                    className="px-3 py-3 font-bold text-blue-600 text-lg text-center sticky left-0 z-10 bg-white group-hover:bg-gray-50 transition-colors border-r border-b border-gray-200"
+                    style={{ minWidth: COL_W.token, width: COL_W.token }}
+                  >
+                    {row.token}
+                  </td>
 
-                {/* Patient (sticky left after Token) */}
-                <td
-                  className="px-3 py-3 sticky z-10 bg-white group-hover:bg-gray-50 transition-colors border-r border-b border-gray-200"
-                  style={{
-                    left: COL_W.token,
-                    minWidth: COL_W.patient,
-                    width: COL_W.patient,
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <AvatarCircle name={row.name} size="s" />
-                    <div className="leading-tight">
-                      <div className="text-sm font-medium text-gray-900">
-                        {row.name}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {row.gender} | {row.dob} ({row.age}Y)
+                  {/* Patient (sticky left after Token) */}
+                  <td
+                    className="px-3 py-3 sticky z-10 bg-white group-hover:bg-gray-50 transition-colors border-r border-b border-gray-200"
+                    style={{
+                      left: COL_W.token,
+                      minWidth: COL_W.patient,
+                      width: COL_W.patient,
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <AvatarCircle name={row.name} size="s" />
+                      <div className="leading-tight">
+                        <div className="text-sm font-medium text-gray-900">
+                          {row.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {row.gender} | {row.dob} ({row.age}Y)
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </td>
+                  </td>
 
-                {/* Middle scrollable columns */}
-                <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
-                  {row.bookingType || "—"}
-                </td>
-                <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
-                  {row.apptType || "—"}
-                </td>
-                <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
-                  {row.exptTime || "—"}
-                </td>
-                <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
-                  {row.reason}
-                </td>
+                  {/* Middle scrollable columns */}
+                  <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                    {row.bookingType || "—"}
+                  </td>
+                  <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                    {row.apptType || "—"}
+                  </td>
+                  <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                    {row.exptTime || "—"}
+                  </td>
+                  <td className="px-3 py-3 text-gray-900 border-r border-b border-gray-200">
+                    {row.reason}
+                  </td>
 
-                {/* Actions (sticky right) */}
-                <td
-                  className="px-3 py-3 sticky right-0 z-20 bg-white group-hover:bg-gray-50 transition-colors border-l border-b border-gray-200"
-                  style={{ minWidth: COL_W.actions, width: COL_W.actions }}
-                >
-                  <div
-                    className="relative flex items-center gap-3"
-                    onClick={(e) => e.stopPropagation()}
+                  {/* Actions (sticky right) */}
+                  <td
+                    className="px-3 py-3 sticky right-0 z-20 bg-white group-hover:bg-gray-50 transition-colors border-l border-b border-gray-200"
+                    style={{ minWidth: COL_W.actions, width: COL_W.actions }}
                   >
-                    {!hideCheckIn &&
-                      (prescreeningEnabled ? (
-                        checkedInTokens && checkedInTokens.has?.(row.token) ? (
-                          <Button
-                            size="large"
-                            variant="primary"
-                            className="h-9 py-0 text-sm w-full flex-1 shadow-lg whitespace-nowrap"
-                            style={{
-                              boxShadow: "0 4px 24px 0 rgba(37, 99, 235, 0.15)",
-                            }}
-                            onClick={() => onCheckIn(row)}
-                          >
-                            {checkingInTokens &&
-                              checkingInTokens.has?.(row.token)
-                              ? "Checking in…"
-                              : "Add Pre-screening"}
-                          </Button>
+                    <div
+                      className="relative flex items-center gap-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {!hideCheckIn &&
+                        (prescreeningEnabled ? (
+                          checkedInTokens && checkedInTokens.has?.(row.token) ? (
+                            <Button
+                              size="large"
+                              variant="primary"
+                              className="h-9 py-0 text-sm w-full flex-1 shadow-lg whitespace-nowrap"
+                              style={{
+                                boxShadow: "0 4px 24px 0 rgba(37, 99, 235, 0.15)",
+                              }}
+                              onClick={() => onCheckIn(row)}
+                            >
+                              {checkingInTokens &&
+                                checkingInTokens.has?.(row.token)
+                                ? "Checking in…"
+                                : "Add Pre-screening"}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="large"
+                              variant="secondary"
+                              className="h-9 py-0 px-4 text-sm w-full flex-1 whitespace-nowrap"
+                              disabled={
+                                !!(
+                                  checkingInTokens &&
+                                  checkingInTokens.has?.(row.token)
+                                )
+                              }
+                              onClick={() => onCheckIn(row)}
+                            >
+                              {checkingInTokens &&
+                                checkingInTokens.has?.(row.token)
+                                ? "Checking in…"
+                                : "Check-In"}
+                            </Button>
+                          )
                         ) : (
                           <Button
                             size="large"
@@ -570,160 +605,142 @@ const QueueTable = ({
                             }
                             onClick={() => onCheckIn(row)}
                           >
-                            {checkingInTokens &&
-                              checkingInTokens.has?.(row.token)
+                            {checkingInTokens && checkingInTokens.has?.(row.token)
                               ? "Checking in…"
                               : "Check-In"}
                           </Button>
-                        )
-                      ) : (
-                        <Button
-                          size="large"
-                          variant="secondary"
-                          className="h-9 py-0 px-4 text-sm w-full flex-1 whitespace-nowrap"
-                          disabled={
-                            !!(
-                              checkingInTokens &&
-                              checkingInTokens.has?.(row.token)
-                            )
-                          }
-                          onClick={() => onCheckIn(row)}
-                        >
-                          {checkingInTokens && checkingInTokens.has?.(row.token)
-                            ? "Checking in…"
-                            : "Check-In"}
-                        </Button>
-                      ))}
-                    {/* 3-dots action */}
-                    <button
-                      type="button"
-                      title="More"
-                      aria-label="More actions"
-                      className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-0"
-                      onClick={(e) => {
-                        const width = 224; // w-56
-                        const H = 280; // approx menu height
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        let top = Math.round(rect.bottom + 8);
-                        let left = Math.max(8, Math.round(rect.right - width));
-                        const vw = window.innerWidth;
-                        const vh = window.innerHeight;
-                        if (left + width > vw - 8) left = vw - width - 8;
-                        if (top + H > vh - 8)
-                          top = Math.max(8, rect.top - H - 8); // flip up if near bottom
-                        setMenuPos({ top, left });
-                        setMenuRow((t) => (t === row.token ? null : row.token));
-                      }}
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                        aria-hidden="true"
-                      >
-                        <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM18 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </button>
-
-                    {/* Manual Start Session Button */}
-                    {sessionStarted && (
+                        ))}
+                      {/* 3-dots action */}
                       <button
                         type="button"
-                        title="Start Session"
-                        disabled={isStartingPatient === row.token}
-                        onClick={() => onStartSession?.(row.token)}
-                        className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-md border border-blue-primary250 bg-blue-primary50 text-blue-primary250 hover:bg-blue-primary250 hover:text-white transition-all disabled:opacity-50"
+                        title="More"
+                        aria-label="More actions"
+                        className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus:ring-0"
+                        onClick={(e) => {
+                          const width = 224; // w-56
+                          const H = 280; // approx menu height
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          let top = Math.round(rect.bottom + 8);
+                          let left = Math.max(8, Math.round(rect.right - width));
+                          const vw = window.innerWidth;
+                          const vh = window.innerHeight;
+                          if (left + width > vw - 8) left = vw - width - 8;
+                          if (top + H > vh - 8)
+                            top = Math.max(8, rect.top - H - 8); // flip up if near bottom
+                          setMenuPos({ top, left });
+                          setMenuRow((t) => (t === row.token ? null : row.token));
+                        }}
                       >
-                        {isStartingPatient === row.token ? (
-                          <UniversalLoader size={14} className="text-blue-primary250" />
-                        ) : (
-                          <Play size={16} />
-                        )}
-                      </button>
-                    )}
-
-                    {/* Dropdown menu (fixed, bottom-left from trigger) */}
-                    {menuRow === row.token &&
-                      createPortal(
-                        <div
-                          className="fixed z-[9999]"
-                          style={{ top: menuPos.top, left: menuPos.left }}
-                          onClick={(e) => e.stopPropagation()}
+                        <svg
+                          className="w-5 h-5"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                          aria-hidden="true"
                         >
-                          <div className="w-56 rounded-md border border-gray-200 bg-white shadow-lg">
-                            <ul className="py-1 text-sm text-gray-700">
-                              <li>
-                                <button className="w-full text-left px-3 py-2 hover:bg-gray-50 inline-flex items-center gap-2">
-                                  <User className="w-4 h-4 text-gray-500" />
-                                  View Profile
-                                </button>
-                              </li>
-                              <li>
-                                <button className="w-full text-left px-3 py-2 hover:bg-gray-50 inline-flex items-center gap-2">
-                                  <Bed className="w-4 h-4 text-gray-500" />
-                                  Mark as Admitted
-                                </button>
-                              </li>
-                              <li>
-                                <button className="w-full text-left px-3 py-2 hover:bg-gray-50 inline-flex items-center gap-2">
-                                  <CalendarClock className="w-4 h-4 text-gray-500" />
-                                  Schedule Follow-up
-                                </button>
-                              </li>
-                              <li>
-                                <button className="w-full text-left px-3 py-2 hover:bg-gray-50 inline-flex items-center gap-2">
-                                  <Calendar className="w-4 h-4 text-gray-500" />
-                                  Reschedule
-                                </button>
-                              </li>
-                            </ul>
-                            <div className="h-px bg-gray-200" />
-                            <ul className="py-1 text-sm">
-                              <li>
-                                <button
-                                  disabled={isMarkingNoShowState}
-                                  onClick={async (e) => {
-                                    e.stopPropagation(); // prevent document click close
-                                    if (onMarkNoShow) await onMarkNoShow(row);
-                                    setMenuRow(null);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 inline-flex items-center gap-2 ${isMarkingNoShowState ? "opacity-50 cursor-not-allowed" : ""
-                                    }`}
-                                >
-                                  {isMarkingNoShowState ? (
-                                    <div className="flex items-center gap-2">
-                                      <UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
-                                      <span>Marking...</span>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <UserX className="w-4 h-4" />
-                                      Mark as No-Show
-                                    </>
-                                  )}
-                                </button>
-                              </li>
-                              <li>
-                                <button
-                                  onClick={() => {
-                                    onRevokeCheckIn?.(row.token);
-                                    setMenuRow(null);
-                                  }}
-                                  className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 inline-flex items-center gap-2"
-                                >
-                                  <Undo2 className="w-4 h-4" />
-                                  Revoke Check-In
-                                </button>
-                              </li>
-                            </ul>
-                          </div>
-                        </div>,
-                        document.body
+                          <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM18 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </button>
+
+                      {/* Manual Start Session Button */}
+                      {sessionStarted && (
+                        <button
+                          type="button"
+                          title="Start Session"
+                          disabled={isStartingPatient === row.token}
+                          onClick={() => onStartSession?.(row.token)}
+                          className="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-md border border-blue-primary250 bg-blue-primary50 text-blue-primary250 hover:bg-blue-primary250 hover:text-white transition-all disabled:opacity-50"
+                        >
+                          {isStartingPatient === row.token ? (
+                            <UniversalLoader size={14} className="text-blue-primary250" />
+                          ) : (
+                            <Play size={16} />
+                          )}
+                        </button>
                       )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+
+                      {/* Dropdown menu (fixed, bottom-left from trigger) */}
+                      {menuRow === row.token &&
+                        createPortal(
+                          <div
+                            className="fixed z-[9999]"
+                            style={{ top: menuPos.top, left: menuPos.left }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="w-56 rounded-md border border-gray-200 bg-white shadow-lg">
+                              <ul className="py-1 text-sm text-gray-700">
+                                <li>
+                                  <button className="w-full text-left px-3 py-2 hover:bg-gray-50 inline-flex items-center gap-2">
+                                    <User className="w-4 h-4 text-gray-500" />
+                                    View Profile
+                                  </button>
+                                </li>
+                                <li>
+                                  <button className="w-full text-left px-3 py-2 hover:bg-gray-50 inline-flex items-center gap-2">
+                                    <Bed className="w-4 h-4 text-gray-500" />
+                                    Mark as Admitted
+                                  </button>
+                                </li>
+                                <li>
+                                  <button className="w-full text-left px-3 py-2 hover:bg-gray-50 inline-flex items-center gap-2">
+                                    <CalendarClock className="w-4 h-4 text-gray-500" />
+                                    Schedule Follow-up
+                                  </button>
+                                </li>
+                                <li>
+                                  <button className="w-full text-left px-3 py-2 hover:bg-gray-50 inline-flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-gray-500" />
+                                    Reschedule
+                                  </button>
+                                </li>
+                              </ul>
+                              <div className="h-px bg-gray-200" />
+                              <ul className="py-1 text-sm">
+                                <li>
+                                  <button
+                                    disabled={isMarkingNoShowState}
+                                    onClick={async (e) => {
+                                      e.stopPropagation(); // prevent document click close
+                                      if (onMarkNoShow) await onMarkNoShow(row);
+                                      setMenuRow(null);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 inline-flex items-center gap-2 ${isMarkingNoShowState ? "opacity-50 cursor-not-allowed" : ""
+                                      }`}
+                                  >
+                                    {isMarkingNoShowState ? (
+                                      <div className="flex items-center gap-2">
+                                        <UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
+                                        <span>Marking...</span>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <UserX className="w-4 h-4" />
+                                        Mark as No-Show
+                                      </>
+                                    )}
+                                  </button>
+                                </li>
+                                <li>
+                                  <button
+                                    onClick={() => {
+                                      onRevokeCheckIn?.(row.token);
+                                      setMenuRow(null);
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 inline-flex items-center gap-2"
+                                  >
+                                    <Undo2 className="w-4 h-4" />
+                                    Revoke Check-In
+                                  </button>
+                                </li>
+                              </ul>
+                            </div>
+                          </div>,
+                          document.body
+                        )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

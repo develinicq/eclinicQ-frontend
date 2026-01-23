@@ -6,10 +6,22 @@ const useDoctorPatientListStore = create((set, get) => ({
   patients: [],
   loading: false,
   error: null,
+  lastFetchedParams: null,
   // fetch patients for doctor. Accept optional params object for pagination/filtering in future.
   fetchPatients: async (opts = {}) => {
-    set({ loading: true, error: null });
     const { clinicId, doctorId, roleContext } = opts;
+    const { lastFetchedParams, patients } = get();
+
+    // Check if params are the same and data exists
+    if (lastFetchedParams &&
+      lastFetchedParams.clinicId === clinicId &&
+      lastFetchedParams.doctorId === doctorId &&
+      patients.length > 0) {
+      console.log("[useDoctorPatientListStore] Skipping fetch: Params same and data exists.");
+      return;
+    }
+
+    set({ loading: true, error: null });
     try {
       const res = await axios.get('/patients/for-doctor/patients-list', {
         params: { clinicId, doctorId },
@@ -74,7 +86,7 @@ const useDoctorPatientListStore = create((set, get) => ({
         };
       });
 
-      set({ patients: mapped, loading: false });
+      set({ patients: mapped, loading: false, lastFetchedParams: { clinicId, doctorId } });
       return data;
     } catch (e) {
       const err = e?.response?.data?.message || e.message || 'Failed to load patients';
@@ -83,7 +95,7 @@ const useDoctorPatientListStore = create((set, get) => ({
     }
   },
   // Clear store state (keeps separation)
-  clearPatientsStore: () => set({ patients: [], loading: false, error: null }),
+  clearPatientsStore: () => set({ patients: [], loading: false, error: null, lastFetchedParams: null }),
 }))
 
 export default useDoctorPatientListStore
