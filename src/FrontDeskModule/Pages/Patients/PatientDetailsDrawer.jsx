@@ -4,7 +4,9 @@ import { drawerCross } from "../../../../public/index.js";
 import AvatarCircle from "../../../components/AvatarCircle";
 import Badge from "../../../components/Badge.jsx";
 import ScheduleAppointmentDrawer from "../../../components/PatientList/ScheduleAppointmentDrawer";
-import { getPatientDetailsForDoctor } from "../../../services/patientService";
+import { getPatientDetailsForStaff } from "../../../services/patientService";
+import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
+import useClinicStore from "../../../store/settings/useClinicStore";
 import UniversalLoader from "../../../components/UniversalLoader";
 
 function Row({ label, value }) {
@@ -109,11 +111,17 @@ export default function PatientDetailsDrawer({
         };
     }, []);
 
+    const { user: fdUser } = useFrontDeskAuthStore();
+    const { clinic: clinicData } = useClinicStore();
+
     useEffect(() => {
-        const idToFetch = patient?.patientId || patient?.id;
-        if (isOpen && idToFetch) {
+        const patientId = patient?.patientId || patient?.id;
+        const clinicId = fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
+        const doctorId = fdUser?.doctorId || fdUser?.doctor?.id;
+
+        if (isOpen && patientId && (clinicId || doctorId)) {
             setLoadingDetails(true);
-            getPatientDetailsForDoctor(idToFetch)
+            getPatientDetailsForStaff({ patientId, doctorId, clinicId })
                 .then(res => {
                     if (res && res.success && res.data) {
                         setDetails(res.data);
@@ -128,7 +136,7 @@ export default function PatientDetailsDrawer({
         } else {
             setDetails(null);
         }
-    }, [isOpen, patient]);
+    }, [isOpen, patient, fdUser, clinicData]);
 
 
     const requestClose = () => {

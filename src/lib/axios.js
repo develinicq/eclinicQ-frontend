@@ -57,28 +57,30 @@ axiosInstance.interceptors.request.use(
 
       // Priority logic based on current route/path to support multi-role users
       const path = typeof window !== 'undefined' ? window.location.pathname : '';
+      const roleContext = config.roleContext; // Internal property, not a header
       let token = null;
 
       // Disambiguate between modules using specific segment checks
-      const isDoctorModule = path.startsWith('/doc/') || path === '/doc';
-      const isHospitalModule = path.startsWith('/hospital/') || path === '/hospital';
-      const isHospitalFDModule = path.startsWith('/hfd/') || path === '/hfd';
-      const isFrontDeskModule = path.startsWith('/fd/') || path === '/fd';
+      const isDoctorModule = roleContext === 'doctor' || path.startsWith('/doc/') || path === '/doc';
+      const isHospitalModule = roleContext === 'hospital' || path.startsWith('/hospital/') || path === '/hospital';
+      const isHospitalFDModule = roleContext === 'hfd' || path.startsWith('/hfd/') || path === '/hfd';
+      const isFrontDeskModule = roleContext === 'front-desk' || path.startsWith('/fd/') || path === '/fd';
 
       // Disambiguate SuperAdmin: /doctor (SA) vs /doc (Doctor), /hospitals (SA) vs /hospital (Hospital)
-      const isSuperAdminRoute = path === '/' || path.startsWith('/doctor') || path.startsWith('/hospitals') ||
+      const isSuperAdminRoute = roleContext === 'super-admin' || path === '/' || path.startsWith('/doctor') || path.startsWith('/hospitals') ||
         path.startsWith('/patients') || path.startsWith('/dashboard') ||
         path.startsWith('/settings');
 
       if (isSuperAdminRoute) {
-        // SuperAdmin routes should NOT fall back to hospital or doctor tokens
         token = saToken || lsToken || genericToken;
+      } else if (isFrontDeskModule) {
+        // Strictly prioritize FD token in FD module
+        token = fdToken || genericToken || saToken || hToken || dToken || lsToken;
       } else if (isDoctorModule) {
+        // Strictly prioritize Doctor token in Doctor module
         token = dToken || fdToken || saToken || hToken || genericToken || lsToken;
       } else if (isHospitalModule || isHospitalFDModule) {
         token = hToken || saToken || dToken || genericToken || lsToken;
-      } else if (isFrontDeskModule) {
-        token = fdToken || genericToken || saToken || hToken || dToken || lsToken;
       } else {
         // Universal fallback
         token = saToken || hToken || dToken || genericToken || lsToken;

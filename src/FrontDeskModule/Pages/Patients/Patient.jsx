@@ -37,7 +37,7 @@ export default function Patient() {
 
             try {
                 if (clinicId || doctorId) {
-                    await fetchPatients({ clinicId, doctorId });
+                    await fetchPatients({ clinicId, doctorId, roleContext: 'front-desk' });
                 }
             } catch (e) {
                 if (mounted) {
@@ -95,7 +95,7 @@ export default function Patient() {
                     onClick={() => {
                         const clinicId = fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
                         const doctorId = fdUser?.doctorId || fdUser?.doctor?.id;
-                        fetchPatients({ clinicId, doctorId });
+                        fetchPatients({ clinicId, doctorId, roleContext: 'front-desk' });
                     }}
                     className="px-6 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors shadow-sm"
                 >
@@ -126,7 +126,7 @@ export default function Patient() {
                     onSave={() => {
                         const clinicId = fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
                         const doctorId = fdUser?.doctorId || fdUser?.doctor?.id;
-                        fetchPatients({ clinicId, doctorId });
+                        fetchPatients({ clinicId, doctorId, roleContext: 'front-desk' });
                         setAddOpen(false);
                     }}
                 />
@@ -170,7 +170,7 @@ export default function Patient() {
                     onSave={() => {
                         const clinicId = fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
                         const doctorId = fdUser?.doctorId || fdUser?.doctor?.id;
-                        fetchPatients({ clinicId, doctorId });
+                        fetchPatients({ clinicId, doctorId, roleContext: 'front-desk' });
                         setAddOpen(false);
                     }}
                 />

@@ -49,3 +49,15 @@ export const getPatientDetailsForDoctor = async (patientId) => {
         throw error;
     }
 };
+// Get patient details for Staff/Front Desk view
+export const getPatientDetailsForStaff = async ({ patientId, doctorId, clinicId }) => {
+    try {
+        const res = await axios.get("/doctors/staff/patient-details", {
+            params: { patientId, doctorId, clinicId },
+            roleContext: 'front-desk'
+        });
+        return res.data;
+    } catch (error) {
+        throw error;
+    }
+};
