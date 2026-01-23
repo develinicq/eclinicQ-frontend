@@ -10,11 +10,16 @@ import PatientMedicalHistory from "./PatientMedicalHistory";
 import PatientDocuments from "./PatientDocuments";
 
 import PatientDemographics from "./PatientDemographics";
-import { getPatientOverviewForDoctor } from "../../../services/doctorService";
-import { getPatientVitalsForDoctor } from "../../../services/doctorService";
+import {
+  getPatientOverviewForDoctor,
+  getPatientVitalsForDoctor,
+  getPatientAppointmentsForDoctor,
+  getPatientMedicalHistoryForDoctor
+} from "../../../services/doctorService";
 import useAuthStore from "../../../store/useAuthStore";
 import useClinicStore from "../../../store/settings/useClinicStore";
 import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
+import UniversalLoader from "../../../components/UniversalLoader";
 
 export default function PatientDetails() {
   const { id } = useParams();
@@ -27,33 +32,39 @@ export default function PatientDetails() {
   const [loadError, setLoadError] = useState(null);
   const [vitalsVersion, setVitalsVersion] = useState(0);
 
+  const [appointments, setAppointments] = useState([]);
+  const [medicalHistory, setMedicalHistory] = useState(null);
+  const [vitalsHistory, setVitalsHistory] = useState([]);
+  const [biometricsHistory, setBiometricsHistory] = useState([]);
+
   const refreshVitals = () => setVitalsVersion((v) => v + 1);
 
   useEffect(() => {
     let mounted = true;
-    const load = async () => {
+    const loadAllData = async () => {
       if (!id) return;
       setLoading(true);
       setLoadError(null);
       try {
-        const resp = await getPatientOverviewForDoctor(id);
-        if (!mounted) return;
-        // resp may be either the axios response data object ({ success,..., data: { ... } })
-        // or it may already be the inner data payload depending on service implementation.
-        const pdata =
-          resp && (resp.patientId || resp.overview) ? resp : resp?.data || {};
+        const [overviewResp, vitalsResp, apptsResp, historyResp] = await Promise.all([
+          getPatientOverviewForDoctor(id),
+          getPatientVitalsForDoctor(id),
+          getPatientAppointmentsForDoctor(id),
+          getPatientMedicalHistoryForDoctor(id)
+        ]);
 
-        // flatten overview data into patient object for existing UI
+        if (!mounted) return;
+
+        // Process Overview
+        const pdata = overviewResp && (overviewResp.patientId || overviewResp.overview) ? overviewResp : overviewResp?.data || {};
         const overview = pdata.overview || {};
         const contactInfo = overview.contactInfo || {};
         const phone = contactInfo.phone || {};
         const lastVisit = overview.lastVisit || {};
-        const vitalsAndBiometrics = overview.lastRecordedVitalsAndBiometrics || {};
 
         setPatient((prev) => ({
           ...prev,
           patientId: pdata.patientId || prev.patientId,
-          // prefer name from overview if present, otherwise keep existing
           name: overview.name || prev.name || "-",
           contact: phone.primary || prev.contact || "-",
           secondaryContact: phone.secondary || "-",
@@ -63,38 +74,41 @@ export default function PatientDetails() {
           dob: overview.dob ? new Date(overview.dob).toLocaleDateString("en-GB") : (prev.dob || "-"),
           age: overview.age !== undefined ? `${overview.age}y` : (prev.age || "-"),
           blood: overview.bloodGroup ? overview.bloodGroup.replace('_', ' ') : (prev.blood || "-"),
-          lastVisit:
-            lastVisit.date && (lastVisit.time || lastVisit.time === null)
-              ? `${new Date(lastVisit.date).toLocaleDateString("en-GB")} | ${lastVisit.time
-                ? new Date(lastVisit.time).toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })
-                : ""
-              }`
-              : "-",
-          // accept either nested doctor object or a direct doctorName field
-          lastVisitDoctor:
-            lastVisit.doctor?.name ||
-            lastVisit.doctorName ||
-            "-",
+          lastVisit: lastVisit.date && (lastVisit.time || lastVisit.time === null)
+            ? `${new Date(lastVisit.date).toLocaleDateString("en-GB")} | ${lastVisit.time ? new Date(lastVisit.time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}` : "-",
+          lastVisitDoctor: lastVisit.doctor?.name || lastVisit.doctorName || "-",
           lastVisitReason: lastVisit.reason || "-",
           demographics: overview.demographics || {},
-          // last recorded vitals payload (if any) and dependents list
-          lastRecordedVitals:
-            overview.lastRecordedVitalsAndBiometrics ||
-            null,
-          dependants:
-            overview.dependents || pdata.dependents || [],
+          lastRecordedVitals: overview.lastRecordedVitalsAndBiometrics || null,
+          dependants: overview.dependents || pdata.dependents || [],
           raw: pdata,
         }));
+
+        // Process Vitals
+        const vdata = vitalsResp?.data?.vitals || vitalsResp?.vitals || [];
+        const bdata = vitalsResp?.data?.biometrics || vitalsResp?.biometrics || [];
+        setVitalsHistory(vdata);
+        setBiometricsHistory(bdata);
+
+        // Process Appointments
+        if (apptsResp?.success && Array.isArray(apptsResp.data)) {
+          setAppointments(apptsResp.data);
+        }
+
+        // Process Medical History
+        if (historyResp?.success) {
+          setMedicalHistory(historyResp.data);
+        }
+
       } catch (e) {
-        setLoadError(e?.message || "Failed to load patient");
+        console.error("Error loading patient details:", e);
+        setLoadError(e?.message || "Failed to load patient details");
       } finally {
         if (mounted) setLoading(false);
       }
     };
-    load();
+
+    loadAllData();
     return () => {
       mounted = false;
     };
@@ -111,42 +125,12 @@ export default function PatientDetails() {
   const [leftTab, setLeftTab] = useState("overview");
   const [rightTab, setRightTab] = useState("vitals");
   const [vitalsDrawerOpen, setVitalsDrawerOpen] = useState(false);
-  const [vitalsHistory, setVitalsHistory] = useState([]);
-  const [biometricsHistory, setBiometricsHistory] = useState([]);
-  const [vitalsLoading, setVitalsLoading] = useState(false);
-  const [vitalsError, setVitalsError] = useState(null);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
 
   const { doctorDetails: authDoc } = useAuthStore();
   const { clinic: clinicData } = useClinicStore();
 
   const handleOpenSchedule = () => setIsScheduleOpen(true);
-  // load vitals history when viewing vitals tab or when patient id changes
-  useEffect(() => {
-    let mounted = true;
-    const loadVitalsData = async () => {
-      if (!id) return;
-      setVitalsLoading(true);
-      setVitalsError(null);
-      try {
-        const resp = await getPatientVitalsForDoctor(id);
-        if (!mounted) return;
-        const vdata = resp?.data?.vitals || resp?.vitals || [];
-        const bdata = resp?.data?.biometrics || resp?.biometrics || [];
-        setVitalsHistory(vdata);
-        setBiometricsHistory(bdata);
-      } catch (e) {
-        setVitalsError(e?.message || "Failed to load vitals");
-      } finally {
-        if (mounted) setVitalsLoading(false);
-      }
-    };
-    // only auto-load when the vitals tab is active — this keeps UX snappy
-    if (rightTab === "vitals") loadVitalsData();
-    return () => {
-      mounted = false;
-    };
-  }, [id, rightTab, vitalsVersion]);
 
   const handleOpenAddVitals = () => setVitalsDrawerOpen(true);
   const handleCloseAddVitals = () => setVitalsDrawerOpen(false);
@@ -157,6 +141,8 @@ export default function PatientDetails() {
   const [stickyNote, setStickyNote] = useState("");
   const activeProblems = patient.activeProblems || [];
   const dependants = patient.dependants || [];
+
+  if (loading && !patient.raw) return <UniversalLoader size={32} />;
   return (
     <>
       {/* Header row */}
@@ -823,21 +809,26 @@ export default function PatientDetails() {
                     <PatientVitals
                       embedded
                       onAdd={handleOpenAddVitals}
-                      history={vitalsHistory}
+                      vitalsHistory={vitalsHistory}
                       biometricsHistory={biometricsHistory}
-                      loading={vitalsLoading}
-                      error={vitalsError}
                     />
                   </div>
                 )}
                 {rightTab === "appointment" && (
                   <div>
-                    <PatientAppointments patientId={patient.patientId} />
+                    <PatientAppointments
+                      patientId={patient.patientId}
+                      appointmentData={appointments}
+                    />
                   </div>
                 )}
                 {rightTab === "medical" && (
                   <div>
-                    <PatientMedicalHistory patientId={patient.patientId} />
+                    <PatientMedicalHistory
+                      patientId={patient.patientId}
+                      historyData={medicalHistory}
+                      onRefresh={refreshVitals}
+                    />
                   </div>
                 )}
                 {rightTab === "documents" && (

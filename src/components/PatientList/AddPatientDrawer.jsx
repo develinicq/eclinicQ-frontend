@@ -1,12 +1,20 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { calendarMinimalistic } from "../../../public/index.js";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import GeneralDrawer from "../GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "../GeneralDrawer/InputWithMeta";
 import Dropdown from "../GeneralDrawer/Dropdown";
+import { createPatientProfile } from "../../services/doctorService";
+import useClinicStore from "../../store/settings/useClinicStore";
+import useToastStore from "../../store/useToastStore";
 
-export default function AddPatientDrawer({ open, onClose, onSave }) {
+import UniversalLoader from "../UniversalLoader";
+
+import useFrontDeskAuthStore from "../../store/useFrontDeskAuthStore";
+import useAuthStore from "../../store/useAuthStore";
+
+export default function AddPatientDrawer({ open, onClose, onSave, clinicId: propClinicId }) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -19,6 +27,12 @@ export default function AddPatientDrawer({ open, onClose, onSave }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showGenderDD, setShowGenderDD] = useState(false);
   const [showBloodDD, setShowBloodDD] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const { clinic } = useClinicStore();
+  const { doctorDetails } = useAuthStore();
+  const { user: fdUser } = useFrontDeskAuthStore();
+  const { addToast } = useToastStore();
 
   const CalendarIcon = () => (
     <img src={calendarMinimalistic} alt="Calendar" className="w-4 h-4" />
@@ -26,13 +40,38 @@ export default function AddPatientDrawer({ open, onClose, onSave }) {
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const BLOOD_MAP = {
+    "A+": "A_POSITIVE",
+    "A-": "A_NEGATIVE",
+    "B+": "B_POSITIVE",
+    "B-": "B_NEGATIVE",
+    "O+": "O_POSITIVE",
+    "O-": "O_NEGATIVE",
+    "AB+": "AB_POSITIVE",
+    "AB-": "AB_NEGATIVE",
+  };
+
+  const validateEmail = (email) => {
+    return String(email)
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
+  };
+
+  const validatePhone = (phone) => {
+    return /^\d{10}$/.test(phone);
+  };
+
   const canSave =
     form.firstName &&
     form.lastName &&
     form.dob &&
     form.gender &&
     form.bloodGroup &&
-    form.mobile;
+    validatePhone(form.mobile) &&
+    validateEmail(form.email) &&
+    !loading;
 
   const handleDateSelect = (date) => {
     if (date) {
@@ -44,19 +83,92 @@ export default function AddPatientDrawer({ open, onClose, onSave }) {
     }
   };
 
-  const handleSave = () => {
-    if (canSave) {
-      onSave?.(form);
-      // Reset form after save
-      setForm({
-        firstName: "",
-        lastName: "",
-        dob: "",
-        gender: "",
-        bloodGroup: "",
-        mobile: "",
-        email: "",
+  const handleSave = async () => {
+    if (!canSave) return;
+
+    if (!validatePhone(form.mobile)) {
+      addToast({
+        title: "Validation Error",
+        message: "Please enter a valid 10-digit mobile number",
+        type: "error",
       });
+      return;
+    }
+
+    if (form.email && !validateEmail(form.email)) {
+      addToast({
+        title: "Validation Error",
+        message: "Please enter a valid email address",
+        type: "error",
+      });
+      return;
+    }
+
+    const clinicId =
+      propClinicId ||
+      doctorDetails?.clinicId ||
+      doctorDetails?.clinic?.id ||
+      fdUser?.clinicId ||
+      fdUser?.clinic?.id ||
+      clinic?.id ||
+      clinic?.clinicId;
+
+    if (!clinicId) {
+      addToast({
+        title: "Error",
+        message: "Clinic ID not found. Please try again.",
+        type: "error",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        emailId: form.email || null,
+        phone: form.mobile,
+        dob: form.dob,
+        gender: form.gender.toLowerCase(),
+        bloodGroup: BLOOD_MAP[form.bloodGroup] || form.bloodGroup,
+      };
+
+      const res = await createPatientProfile(clinicId, payload);
+      if (res?.success) {
+        addToast({
+          title: "Registration Success",
+          message: "Patient profile created successfully.",
+          type: "success",
+        });
+        onSave?.(form);
+        // Reset form
+        setForm({
+          firstName: "",
+          lastName: "",
+          dob: "",
+          gender: "",
+          bloodGroup: "",
+          mobile: "",
+          email: "",
+        });
+        onClose();
+      } else {
+        addToast({
+          title: "Registration Failed",
+          message: res?.message || "Failed to create patient profile",
+          type: "error",
+        });
+      }
+    } catch (err) {
+      console.error("Error creating patient:", err);
+      addToast({
+        title: "Registration Failed",
+        message: err?.response?.data?.message || "Something went wrong",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,7 +177,16 @@ export default function AddPatientDrawer({ open, onClose, onSave }) {
       isOpen={open}
       onClose={onClose}
       title="Add New Patient"
-      primaryActionLabel="Save"
+      primaryActionLabel={
+        loading ? (
+          <div className="flex items-center gap-2">
+            <UniversalLoader size={16} color="white" />
+            <span>Saving...</span>
+          </div>
+        ) : (
+          "Save"
+        )
+      }
       onPrimaryAction={handleSave}
       primaryActionDisabled={!canSave}
       width={600}
@@ -168,21 +289,39 @@ export default function AddPatientDrawer({ open, onClose, onSave }) {
             />
           </div>
 
-          <InputWithMeta
-            label="Mobile Number"
-            requiredDot
-            value={form.mobile}
-            onChange={(v) => set("mobile", v)}
-            placeholder="Enter Mobile Number"
-          />
+          <div>
+            <InputWithMeta
+              label="Mobile Number"
+              requiredDot
+              value={form.mobile}
+              onChange={(v) => {
+                const numeric = v.replace(/\D/g, "");
+                if (numeric.length <= 10) set("mobile", numeric);
+              }}
+              placeholder="Enter Mobile Number"
+            />
+            {form.mobile.length > 0 && form.mobile.length < 10 && (
+              <div className="text-[10px] text-red-500 mt-0.5 ml-1">
+                Mobile number must be exactly 10 digits long.
+              </div>
+            )}
+          </div>
         </div>
 
-        <InputWithMeta
-          label="Email ID"
-          value={form.email}
-          onChange={(v) => set("email", v)}
-          placeholder="Enter Email"
-        />
+        <div>
+          <InputWithMeta
+            label="Email ID"
+            value={form.email}
+            requiredDot
+            onChange={(v) => set("email", v)}
+            placeholder="Enter Email"
+          />
+          {form.email.length > 0 && !validateEmail(form.email) && (
+            <div className="text-[10px] text-red-500 mt-0.5 ml-1">
+              Please enter a valid email address.
+            </div>
+          )}
+        </div>
       </div>
     </GeneralDrawer>
   );

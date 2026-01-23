@@ -322,21 +322,17 @@ function BiometricsTable({ history }) {
   );
 }
 
-export default function PatientVitals({ embedded = false, onAdd, history = [], biometricsHistory = [], loading = false, error = null }) {
+export default function PatientVitals({
+  embedded = false,
+  onAdd,
+  vitalsHistory = [],
+  biometricsHistory = []
+}) {
   const [viewMode, setViewMode] = useState("chart");
   const [selectedVitalName, setSelectedVitalName] = useState("Blood Pressure");
 
-  const mappedConfigs = VITAL_CONFIGS.map(cfg => mapVitalHistory(history, cfg));
+  const mappedConfigs = VITAL_CONFIGS.map(cfg => mapVitalHistory(vitalsHistory, cfg));
   const selectedConfig = mappedConfigs.find(c => c.name === selectedVitalName) || mappedConfigs[0];
-
-  if (loading) return (
-    <div className="py-20 text-center text-gray-500">
-      <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-      Loading Vitals & Biometrics...
-    </div>
-  );
-
-  if (error) return <div className="py-12 text-center text-red-600 font-medium border border-red-100 bg-red-50 rounded-lg">{error}</div>;
 
   if (embedded) {
     return (

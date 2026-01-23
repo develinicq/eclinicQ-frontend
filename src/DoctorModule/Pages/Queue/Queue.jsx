@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, Sunrise, Sun, Sunset, Moon, X, Clock, ChevronDown } from "lucide-react";
+import { Calendar, X, Clock, ChevronDown } from "lucide-react";
+import { Morning, Afternoon, Evening, Night } from "../../../components/Icons/SessionIcons";
 import {
   bookWalkInAppointment,
   findPatientSlots,
@@ -60,6 +61,7 @@ const verifiedYellow = '/fd/verified_yellow.svg'
 import BookAppointmentDrawer from "../../../components/Appointment/BookAppointmentDrawer.jsx";
 import PauseQueueModal from "../../../components/PauseQueueModal.jsx";
 import TerminateQueueModal from "../../../components/TerminateQueueModal.jsx";
+import OutOfOfficeDrawer from "../../Components/OutOfOfficeDrawer.jsx";
 import SessionTimer from "../../../components/SessionTimer";
 import {
   RotateCcw,
@@ -939,6 +941,7 @@ const Queue = () => {
   const [resumeError, setResumeError] = useState("");
   const [showTerminateModal, setShowTerminateModal] = useState(false);
   const [terminateSubmitting, setTerminateSubmitting] = useState(false);
+  const [isOOOOpen, setIsOOOOpen] = useState(false);
   const [isAnimationRunning, setIsAnimationRunning] = useState(false); // New animation state
   // NEW: Strict Active Patient from Polling
   const [backendCurrentToken, setBackendCurrentToken] = useState(null); // Restore backendCurrentToken state
@@ -1103,18 +1106,6 @@ const Queue = () => {
       }
     }
   }, [slotAppointments, sessionStarted, backendCurrentToken, activeFilter]);
-
-  // REMOVED cross-view event listener as FDQueue controls state via backend polling only.
-
-
-  // Poll appointments every 15s
-  // Poll appointments for selected slot every 45s (aligned with FD) to avoid excessive API calls
-  // REMOVED separate appt poll (merged into consolidated poll above)
-
-
-  // REMOVED: Redundant auto-start EFFECTOR. 
-  // Auto-start for the first patient is now handled EXCLUSIVELY inside handleToggleSession (Initial Start only).
-
 
   // Consolidated Poll Logic
   const pollQueueStatus = async () => {
@@ -1577,6 +1568,7 @@ const Queue = () => {
       // Refresh appointments after termination
       if (selectedSlotId) {
         await loadAppointmentsForSelectedSlot();
+        await pollQueueStatus();
       }
     } catch (e) {
       console.error("Terminate queue error:", e?.response?.data || e.message);
@@ -1639,10 +1631,10 @@ const Queue = () => {
     setActiveActionMenuToken(activeActionMenuToken === token ? null : token);
   };
   const getIconForTime = (hour) => {
-    if (hour < 12) return Sunrise;
-    if (hour < 17) return Sun;
-    if (hour < 20) return Sunset;
-    return Moon;
+    if (hour < 12) return Morning;
+    if (hour < 17) return Afternoon;
+    if (hour < 20) return Evening;
+    return Night;
   };
 
   const getLabelForTime = (hour) => {
@@ -1712,13 +1704,14 @@ const Queue = () => {
             {activeActionMenuToken === "slot_dropdown" &&
               createPortal(
                 <div
-                  className="fixed z-[9999] bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden py-2 px-2"
+                  className="fixed z-[100] bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden py-2 px-2"
                   style={{
                     top: dropdownPosition.top,
                     left: dropdownPosition.left,
                     width: 300,
                   }}
                   onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
                 >
                   <ul>
                     {timeSlots.map(({ key, label, time, Icon }, idx) => (
@@ -1730,15 +1723,21 @@ const Queue = () => {
                             selectSlot(key);
                             setActiveActionMenuToken(null);
                           }}
-                          className={`flex items-center gap-3 px-4 py-3 text-sm text-left w-full transition-colors ${slotValue === key
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-700 hover:bg-gray-50"
+                          className={`flex items-center gap-3 p-2 text-sm text-left w-full transition-colors ${slotValue === key
+                            ? "bg-blue-primary250 text-white"
+                            : "text-secondary-grey400 hover:bg-gray-50"
                             }`}
                         >
-                          <Icon
-                            className={`h-5 w-5 ${slotValue === key ? "text-white" : "text-gray-500"
-                              }`}
+                          <div className="p-[2px]">
+                              <Icon
+                            className="h-6 w-6"
+                            style={{
+                              fill: "#BFD6FF", // blue-primary150
+                              color: slotValue === key ? "#FFFFFF" : "#9CA3AF", // white vs grey-400
+                            }}
                           />
+                          </div>
+                          
 
                           <span className="flex-1">
                             <span
@@ -1751,8 +1750,8 @@ const Queue = () => {
                             </span>
                             <span
                               className={`${slotValue === key
-                                ? "text-blue-100"
-                                : "text-gray-500"
+                                ? "text-white"
+                                : "text-secondary-grey400"
                                 }`}
                             >
                               ({time})
@@ -1860,51 +1859,47 @@ const Queue = () => {
             {activeActionMenuToken === "queue_actions_dropdown" &&
               createPortal(
                 <div
-                  className="fixed z-[9999] bg-white rounded-lg border border-gray-200 shadow-xl overflow-hidden p-2"
+                  className="fixed z-[9999] bg-white rounded-lg border border-gray-100 shadow-xl overflow-hidden py-1 flex flex-col min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
                   style={{
                     top: dropdownPosition.top,
                     left: dropdownPosition.left,
-                    width: 220,
                   }}
                   onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
                 >
-                  <ul className="flex flex-col gap-2">
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          try {
-                            if (selectedSlotId) {
-                              loadAppointmentsForSelectedSlot();
-                            }
-                          } finally {
-                            setActiveActionMenuToken(null);
-                          }
-                        }}
-                        className="w-full rounded-sm text-left px-2 py-1 flex items-center gap-3 hover:bg-gray-50"
-                      >
-                        <img src={refresh} alt="Refresh" className="w-4 " />
-                        <span className="text-[14px] text-gray-800">
-                          Refresh Queue
-                        </span>
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveActionMenuToken(null);
-                          setShowTerminateModal(true);
-                        }}
-                        className="w-full text-left px-2 py-1 flex items-center gap-3 hover:bg-red-50"
-                      >
-                        <img src={terminate} alt="Terminate" className="w-4" />
-                        <span className="text-[14px] text-red-600 font-medium">
-                          Terminate Queue
-                        </span>
-                      </button>
-                    </li>
-                  </ul>
+                  <button
+                    onClick={() => {
+                      if (selectedSlotId) {
+                        loadAppointmentsForSelectedSlot();
+                      }
+                      setActiveActionMenuToken(null);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                  >
+                    <RotateCcw className="h-4 w-4" /> Refresh Queue
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsOOOOpen(true);
+                      setActiveActionMenuToken(null);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+                  >
+                    <CalendarMinus className="h-4 w-4" /> Set Doctor Out of Office
+                  </button>
+
+                  <div className="my-1 border-t border-gray-100"></div>
+
+                  <button
+                    onClick={() => {
+                      setShowTerminateModal(true);
+                      setActiveActionMenuToken(null);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+                  >
+                    <CalendarX className="h-4 w-4" /> Terminate Queue
+                  </button>
                 </div>,
                 document.body
               )}
@@ -2113,6 +2108,7 @@ const Queue = () => {
                           className="fixed z-[99999] bg-white rounded-lg shadow-xl border border-gray-100 py-1 flex flex-col min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
                           style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
                           onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
                         >
                           <button
                             className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
@@ -2238,23 +2234,26 @@ const Queue = () => {
           </div>
         </div>
 
-        <PauseQueueModal
-          show={showPauseModal}
-          onClose={() => setShowPauseModal(false)}
-          pauseMinutes={pauseMinutes}
-          setPauseMinutes={setPauseMinutes}
-          pauseSubmitting={pauseSubmitting}
-          pauseError={pauseError}
-          onConfirm={handlePauseConfirm}
-        />
-
-        <TerminateQueueModal
-          show={showTerminateModal}
-          onClose={() => setShowTerminateModal(false)}
-          onConfirm={handleTerminateConfirm}
-          isSubmitting={terminateSubmitting}
-        />
       </div>
+      <PauseQueueModal
+        show={showPauseModal}
+        onClose={() => setShowPauseModal(false)}
+        pauseMinutes={pauseMinutes}
+        setPauseMinutes={setPauseMinutes}
+        pauseSubmitting={pauseSubmitting}
+        pauseError={pauseError}
+        onConfirm={handlePauseConfirm}
+      />
+      <TerminateQueueModal
+        show={showTerminateModal}
+        onClose={() => setShowTerminateModal(false)}
+        onConfirm={handleTerminateConfirm}
+        isSubmitting={terminateSubmitting}
+        sessions={timeSlots.map((slot) => ({
+          id: slot.key,
+          label: `${slot.label} (${slot.time})`,
+        }))}
+      />
       <BookAppointmentDrawer
         open={showWalkIn}
         onClose={() => setShowWalkIn(false)}
@@ -2267,6 +2266,13 @@ const Queue = () => {
               loadAppointmentsForSelectedSlot();
             } catch { }
           }
+        }}
+      />
+      <OutOfOfficeDrawer
+        isOpen={isOOOOpen}
+        onClose={() => setIsOOOOpen(false)}
+        onSave={() => {
+          // Refresh data if needed
         }}
       />
     </>

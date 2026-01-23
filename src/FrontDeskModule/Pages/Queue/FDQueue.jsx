@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 // Front Desk Queue: full API-integrated version copied from original before doctor static simplification
-import { ChevronDown, Sunrise, Sun, Sunset, Moon, X, RotateCcw, CalendarMinus, CalendarX, User, BedDouble, CheckCheck, Bell, CalendarPlus, UserX, Calendar, Clock, ArrowRight, Play, PauseCircle } from 'lucide-react';
+import { ChevronDown, X, RotateCcw, CalendarMinus, CalendarX, User, BedDouble, CheckCheck, Bell, CalendarPlus, UserX, Calendar, Clock, ArrowRight, Play, PauseCircle } from 'lucide-react';
+import { Morning, Afternoon, Evening, Night } from '../../../components/Icons/SessionIcons';
+import { buildISTRangeLabel } from '../../../lib/timeUtils';
 import QueueDatePicker from '../../../components/QueueDatePicker';
 import AvatarCircle from '../../../components/AvatarCircle';
 import Button from '../../../components/Button';
@@ -23,10 +25,10 @@ import { format } from 'date-fns'; // Assuming date-fns is available, or use nat
 // The user has QueueDatePicker which likely passes a Date object.
 
 const getIconForTime = (hour) => {
-	if (hour < 12) return Sunrise;
-	if (hour < 17) return Sun;
-	if (hour < 20) return Sunset;
-	return Moon;
+	if (hour < 12) return Morning;
+	if (hour < 17) return Afternoon;
+	if (hour < 20) return Evening;
+	return Night;
 };
 
 const getLabelForTime = (hour) => {
@@ -206,9 +208,9 @@ export default function FDQueue() {
 					// Actually, if it is just time of day, we should rely on the time values.
 
 					return {
-						key: slot.id, // using ID as key
-						label: getLabelForTime(startRaw.getHours()), // Use local time hours for label logic
-						time: `${formatSlotTime(slot.startTime)} - ${formatSlotTime(slot.endTime)}`, // formatting function
+						key: slot.id,
+						label: getLabelForTime(startRaw.getHours()),
+						time: buildISTRangeLabel(slot.startTime, slot.endTime),
 						Icon: getIconForTime(startRaw.getHours()),
 						slotId: slot.id,
 						raw: slot
@@ -1362,194 +1364,238 @@ export default function FDQueue() {
 			/>
 
 
-			{/* Dropdown Menu Portal */}
-			{
-				activeActionMenuToken && createPortal(
+			{/* Dropdown Menu Portals */}
+			{activeActionMenuToken === "slot_dropdown" &&
+				createPortal(
 					<div
-						className="fixed z-[99999] bg-white rounded-lg shadow-xl border border-gray-100 py-1 flex flex-col min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
-						style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+						className="fixed z-[100] bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden py-2 px-2"
+						style={{
+							top: dropdownPosition.top,
+							left: dropdownPosition.left,
+							width: 300,
+						}}
 						onClick={(e) => e.stopPropagation()}
+						onMouseDown={(e) => e.stopPropagation()}
 					>
-						{activeActionMenuToken === 'slot_dropdown' ? (
-							<div className="py-1 min-w-[300px]">
-								{timeSlots.map((slot) => {
-									const isSelected = slotValue === slot.key;
-									return (
+						<ul>
+							{timeSlots.map((slot, idx) => {
+								const isSelected = slotValue === slot.key;
+								const { Icon, label, time, key } = slot;
+								return (
+									<li key={key}>
 										<button
-											key={slot.key}
+											type="button"
 											onClick={() => {
-												setSlotValue(slot.key);
+												setSlotValue(key);
 												setSelectedSlotId(slot.slotId);
 												setActiveActionMenuToken(null);
 											}}
-											className={`flex items-center gap-3 px-4 py-3 text-sm text-left w-full transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'}`}
+											className={`flex items-center gap-3 p-2 text-sm text-left w-full transition-colors ${isSelected
+												? "bg-blue-primary250 text-white"
+												: "text-secondary-grey400 hover:bg-gray-50"
+												}`}
 										>
-											<slot.Icon className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-gray-500'}`} />
+											<div className="p-[2px]">
+												<Icon
+													className="h-6 w-6"
+													style={{
+														fill: "#BFD6FF", // blue-primary150
+														color: isSelected ? "#FFFFFF" : "#9CA3AF", // white vs grey-400
+													}}
+												/>
+											</div>
+
 											<span className="flex-1">
-												<span className="font-medium mr-1">{slot.label}</span>
-												<span className={`${isSelected ? 'text-blue-100' : 'text-gray-500'}`}>({slot.time})</span>
+												<span
+													className={`font-medium mr-1 ${isSelected ? "text-white" : "text-gray-900"
+														}`}
+												>
+													{label}
+												</span>
+												<span
+													className={`${isSelected
+														? "text-white"
+														: "text-secondary-grey400"
+														}`}
+												>
+													({time})
+												</span>
 											</span>
 										</button>
-									);
-								})}
-							</div>
-						) : activeActionMenuToken === 'queue_actions_dropdown' ? (
-							<>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<RotateCcw className="h-4 w-4" /> Refresh Queue
-								</button>
-
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<CalendarMinus className="h-4 w-4" /> Set Doctor Out of Office
-								</button>
-								<div className="my-1 border-t border-gray-100"></div>
-								<button
-									onClick={() => {
-										setShowTerminateModal(true);
-										setActiveActionMenuToken(null);
-									}}
-									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
-								>
-									<CalendarX className="h-4 w-4" /> Terminate Queue
-								</button>
-							</>
-						) : activeActionMenuToken === 'active_patient_card' ? (
-							<>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<User className="h-4 w-4" /> View Profile
-								</button>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<Calendar className="h-4 w-4" /> Reschedule
-								</button>
-								<button
-									onClick={() => {
-										setSessionStatus('admitted');
-										setActiveActionMenuToken(null);
-									}}
-									className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
-								>
-									<BedDouble className="h-4 w-4" /> Mark as Admitted
-								</button>
-								<button
-									onClick={() => {
-										setSessionStatus('completed');
-										completeCurrentPatient();
-										setActiveActionMenuToken(null);
-									}}
-									className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
-								>
-									<CheckCheck className="h-4 w-4" /> End Visit
-								</button>
-							</>
-						) : activeFilter === 'No show' ? (
-							<>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<User className="h-4 w-4" /> View Profile
-								</button>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<Bell className="h-4 w-4" /> Send Reminder
-								</button>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<Calendar className="h-4 w-4" /> Reschedule
-								</button>
-								<div className="my-1 border-t border-gray-100"></div>
-								<button
-									onClick={() => {
-										if (activeActionMenuToken) {
-											setCancelledTokens(prev => new Set(prev).add(activeActionMenuToken));
-											setActiveActionMenuToken(null);
-										}
-									}}
-									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
-								>
-									<CalendarX className="h-4 w-4" /> Cancel Appointment
-								</button>
-							</>
-						) : activeFilter === 'Engaged' ? (
-							<>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<CalendarPlus className="h-4 w-4" /> Schedule Follow-up
-								</button>
-								<button
-									onClick={() => {
-										setSessionStatus('admitted');
-										setActiveActionMenuToken(null);
-									}}
-									className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
-								>
-									<BedDouble className="h-4 w-4" /> Mark as Admitted
-								</button>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<User className="h-4 w-4" /> View Profile
-								</button>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
-									<RotateCcw className="h-4 w-4" /> Revoke Check-In
-								</button>
-							</>
-						) : activeActionMenuToken?.toString().startsWith('req_') ? (
-							<>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<User className="h-4 w-4" /> View Profile
-								</button>
-								<div className="my-1 border-t border-gray-100"></div>
-								<button
-									onClick={handleCancelRequest}
-									disabled={isCancellingRequest}
-									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
-								>
-									{isCancellingRequest ? (
-										<div className="flex items-center gap-2">
-											<UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
-											<span>Rejecting...</span>
-										</div>
-									) : (
-										<>
-											<CalendarX className="h-4 w-4" /> Cancel Appointment
-										</>
-									)}
-								</button>
-							</>
-						) : (
-							<>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<User className="h-4 w-4" /> View Profile
-								</button>
-								<button
-									onClick={() => {
-										setActiveActionMenuToken(null);
-									}}
-									className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
-								>
-									<BedDouble className="h-4 w-4" /> Mark as Admitted
-								</button>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
-									<CalendarPlus className="h-4 w-4" /> Schedule Follow-up
-								</button>
-								<div className="my-1 border-t border-gray-100"></div>
-								<button
-									onClick={handleMarkNoShow}
-									disabled={isMarkingNoShow}
-									className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
-								>
-									{isMarkingNoShow ? (
-										<div className="flex items-center gap-2">
-											<UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
-											<span>Marking...</span>
-										</div>
-									) : (
-										<>
-											<UserX className="h-4 w-4" /> Mark as No-Show
-										</>
-									)}
-								</button>
-								<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
-									<RotateCcw className="h-4 w-4" /> Revoke Check-In
-								</button>
-							</>
-						)}
+										{idx < timeSlots.length - 1 && (
+											<div className="h-px bg-gray-100 mx-4" />
+										)}
+									</li>
+								);
+							})}
+						</ul>
 					</div>,
 					document.body
-				)
+				)}
+
+			{activeActionMenuToken && activeActionMenuToken !== 'slot_dropdown' && createPortal(
+				<div
+					className="fixed z-[99999] bg-white rounded-lg shadow-xl border border-gray-100 py-1 flex flex-col min-w-[200px] animate-in fade-in zoom-in-95 duration-100"
+					style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+					onClick={(e) => e.stopPropagation()}
+				>
+					{activeActionMenuToken === 'queue_actions_dropdown' ? (
+						<>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<RotateCcw className="h-4 w-4" /> Refresh Queue
+							</button>
+
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<CalendarMinus className="h-4 w-4" /> Set Doctor Out of Office
+							</button>
+							<div className="my-1 border-t border-gray-100"></div>
+							<button
+								onClick={() => {
+									setShowTerminateModal(true);
+									setActiveActionMenuToken(null);
+								}}
+								className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+							>
+								<CalendarX className="h-4 w-4" /> Terminate Queue
+							</button>
+						</>
+					) : activeActionMenuToken === 'active_patient_card' ? (
+						<>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<User className="h-4 w-4" /> View Profile
+							</button>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<Calendar className="h-4 w-4" /> Reschedule
+							</button>
+							<button
+								onClick={() => {
+									setSessionStatus('admitted');
+									setActiveActionMenuToken(null);
+								}}
+								className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+							>
+								<BedDouble className="h-4 w-4" /> Mark as Admitted
+							</button>
+							<button
+								onClick={() => {
+									setSessionStatus('completed');
+									completeCurrentPatient();
+									setActiveActionMenuToken(null);
+								}}
+								className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+							>
+								<CheckCheck className="h-4 w-4" /> End Visit
+							</button>
+						</>
+					) : activeFilter === 'No show' ? (
+						<>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<User className="h-4 w-4" /> View Profile
+							</button>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<Bell className="h-4 w-4" /> Send Reminder
+							</button>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<Calendar className="h-4 w-4" /> Reschedule
+							</button>
+							<div className="my-1 border-t border-gray-100"></div>
+							<button
+								onClick={() => {
+									if (activeActionMenuToken) {
+										setCancelledTokens(prev => new Set(prev).add(activeActionMenuToken));
+										setActiveActionMenuToken(null);
+									}
+								}}
+								className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+							>
+								<CalendarX className="h-4 w-4" /> Cancel Appointment
+							</button>
+						</>
+					) : activeFilter === 'Engaged' ? (
+						<>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<CalendarPlus className="h-4 w-4" /> Schedule Follow-up
+							</button>
+							<button
+								onClick={() => {
+									setSessionStatus('admitted');
+									setActiveActionMenuToken(null);
+								}}
+								className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+							>
+								<BedDouble className="h-4 w-4" /> Mark as Admitted
+							</button>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<User className="h-4 w-4" /> View Profile
+							</button>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
+								<RotateCcw className="h-4 w-4" /> Revoke Check-In
+							</button>
+						</>
+					) : activeActionMenuToken?.toString().startsWith('req_') ? (
+						<>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<User className="h-4 w-4" /> View Profile
+							</button>
+							<div className="my-1 border-t border-gray-100"></div>
+							<button
+								onClick={handleCancelRequest}
+								disabled={isCancellingRequest}
+								className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+							>
+								{isCancellingRequest ? (
+									<div className="flex items-center gap-2">
+										<UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
+										<span>Rejecting...</span>
+									</div>
+								) : (
+									<>
+										<CalendarX className="h-4 w-4" /> Cancel Appointment
+									</>
+								)}
+							</button>
+						</>
+					) : (
+						<>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<User className="h-4 w-4" /> View Profile
+							</button>
+							<button
+								onClick={() => {
+									setActiveActionMenuToken(null);
+								}}
+								className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full"
+							>
+								<BedDouble className="h-4 w-4" /> Mark as Admitted
+							</button>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-secondary-grey400 hover:bg-gray-50 text-left w-full">
+								<CalendarPlus className="h-4 w-4" /> Schedule Follow-up
+							</button>
+							<div className="my-1 border-t border-gray-100"></div>
+							<button
+								onClick={handleMarkNoShow}
+								disabled={isMarkingNoShow}
+								className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full"
+							>
+								{isMarkingNoShow ? (
+									<div className="flex items-center gap-2">
+										<UniversalLoader size={16} className="text-[#ef4444]" style={{ width: 'auto', height: 'auto' }} />
+										<span>Marking...</span>
+									</div>
+								) : (
+									<>
+										<UserX className="h-4 w-4" /> Mark as No-Show
+									</>
+								)}
+							</button>
+							<button className="flex items-center gap-2 px-4 py-2 text-sm text-[#ef4444] hover:bg-red-50 text-left w-full">
+								<RotateCcw className="h-4 w-4" /> Revoke Check-In
+							</button>
+						</>
+					)}
+				</div>,
+				document.body
+			)
 			}
 			<BookAppointmentDrawer
 				open={showWalkIn}

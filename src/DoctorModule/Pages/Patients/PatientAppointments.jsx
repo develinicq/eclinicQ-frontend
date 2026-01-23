@@ -5,6 +5,7 @@ import { Eye, MoreVertical, Filter } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { getPatientAppointmentsForDoctor } from "../../../services/doctorService";
 import useAuthStore from "../../../store/useAuthStore";
+import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
 import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
 import useClinicStore from "../../../store/settings/useClinicStore";
 import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
@@ -126,66 +127,55 @@ function AppointmentsTable({ rows, loading }) {
   );
 }
 
-export default function PatientAppointments({ patientId: propPatientId }) {
+export default function PatientAppointments({ patientId: propPatientId, appointmentData: propsAppointmentData }) {
   const { id: urlPatientId } = useParams();
   const patientId = propPatientId || urlPatientId;
 
   const { user: doctorDetails } = useDoctorAuthStore();
   const [upcoming, setUpcoming] = useState([]);
   const [past, setPast] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!patientId) return;
+    if (!propsAppointmentData) return;
 
-    const fetchAppointments = async () => {
-      setLoading(true);
-      try {
-        const res = await getPatientAppointmentsForDoctor(patientId);
-        if (res?.success && Array.isArray(res.data)) {
-          const now = new Date();
-          const upcomingArr = [];
-          const pastArr = [];
+    const processAppointments = () => {
+      const now = new Date();
+      const upcomingArr = [];
+      const pastArr = [];
 
-          res.data.forEach((appt) => {
-            const apptDate = appt.date ? new Date(appt.date) : null;
-            const apptTime = appt.time ? new Date(appt.time) : null;
+      propsAppointmentData.forEach((appt) => {
+        const apptDate = appt.date ? new Date(appt.date) : null;
+        const apptTime = appt.time ? new Date(appt.time) : null;
 
-            // Format for display
-            const displayDate = apptDate
-              ? `${apptDate.toLocaleDateString("en-GB")} | ${apptTime ? apptTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}`
-              : "-";
+        // Format for display
+        const displayDate = apptDate
+          ? `${apptDate.toLocaleDateString("en-GB")} | ${apptTime ? apptTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}`
+          : "-";
 
-            const processed = { ...appt, displayDate };
+        const processed = { ...appt, displayDate };
 
-            // Categorization
-            // If date is today or future, it's upcoming
-            if (apptDate && apptDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
-              upcomingArr.push(processed);
-            } else {
-              pastArr.push(processed);
-            }
-          });
-
-          // Sort upcoming: closest first
-          upcomingArr.sort((a, b) => new Date(a.date) - new Date(b.date));
-          // Sort past: most recent first
-          pastArr.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-          setUpcoming(upcomingArr);
-          setPast(pastArr);
+        // Categorization
+        // If date is today or future, it's upcoming
+        if (apptDate && apptDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+          upcomingArr.push(processed);
+        } else {
+          pastArr.push(processed);
         }
-      } catch (err) {
-        console.error("Error fetching appointments:", err);
-        setError("Failed to load appointments.");
-      } finally {
-        setLoading(false);
-      }
+      });
+
+      // Sort upcoming: closest first
+      upcomingArr.sort((a, b) => new Date(a.date) - new Date(b.date));
+      // Sort past: most recent first
+      pastArr.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      setUpcoming(upcomingArr);
+      setPast(pastArr);
     };
 
-    fetchAppointments();
-  }, [patientId]);
+    processAppointments();
+  }, [propsAppointmentData]);
 
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const { doctorDetails: authDoc } = useAuthStore();

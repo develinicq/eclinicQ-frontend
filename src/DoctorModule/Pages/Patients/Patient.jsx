@@ -175,6 +175,7 @@ export default function Patient() {
         <AddPatientDrawer
           open={addOpen}
           onClose={() => setAddOpen(false)}
+          clinicId={doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId}
           onSave={(data) => {
             setAddOpen(false);
           }}

@@ -375,40 +375,32 @@ function NoData({ category, onAdd }) {
   );
 }
 
-export default function PatientMedicalHistory({ patientId }) {
+export default function PatientMedicalHistory({ patientId, historyData, onRefresh }) {
   const [active, setActive] = useState("Problems");
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showAddDrawer, setShowAddDrawer] = useState(false);
 
-  const fetchData = async () => {
-    if (!patientId) return;
-    const isInitialLoad = !data;
-    if (isInitialLoad) setLoading(true);
-    try {
-      const res = await getPatientMedicalHistoryForDoctor(patientId);
-      if (res?.success) setData(res.data);
-    } catch (err) {
-      console.error("Error fetching medical history:", err);
-      if (isInitialLoad) setError("Failed to load medical history.");
-    } finally {
-      if (isInitialLoad) setLoading(false);
+  useEffect(() => {
+    if (historyData) {
+      setData(historyData);
     }
-  };
+  }, [historyData]);
 
   useEffect(() => {
-    fetchData();
+    // Initial data is already fetched by parent, but if patientId changes
+    // it could trigger something if needed. For now, it depends on parent.
   }, [patientId]);
 
   const handleSaveData = () => {
-    fetchData();
+    if (onRefresh) onRefresh();
   };
 
-  if (loading && !data) return (
+  if (!data) return (
     <div className="py-20 text-center text-gray-500">
       <div className="h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-      Loading medical history...
+      Syncing history...
     </div>
   );
 

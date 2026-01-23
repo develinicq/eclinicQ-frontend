@@ -87,6 +87,19 @@ export const addMedicalRecordByDoctor = async (payload) => {
   }
 };
 
+// Create a new patient profile (for providers)
+export const createPatientProfile = async (clinicId, payload) => {
+  if (!clinicId) throw new Error("clinicId is required");
+  try {
+    const res = await axios.post(`/patients/for-providers/${clinicId}/create-patient-profile`, payload, {
+      params: { clinicId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Register a new doctor
 export const registerDoctor = async (payload) => {
   try {
@@ -349,6 +362,30 @@ export const updateDoctorConsultationDetailsForSuperAdmin = async (doctorId, pay
 export const getDoctorDashboardAnalytics = async (params = {}) => {
   try {
     const res = await axios.get('/doctors/dashboard/analytics', { params });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+/**
+ * Get out-of-office status for the current doctor
+ */
+export const getOutOfOfficeStatus = async () => {
+  try {
+    const res = await axios.get('/doctors/my-account/out-of-office');
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Update out-of-office status for the current doctor
+ * @param {Object} payload - { enabled, start, end }
+ */
+export const updateOutOfOfficeStatus = async (payload) => {
+  try {
+    const res = await axios.put('/doctors/my-account/out-of-office', payload);
     return res.data;
   } catch (error) {
     throw error;

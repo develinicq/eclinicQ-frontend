@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, matchPath } from "react-router-dom";
 import {
   bell,
   hospitalIcon,
@@ -20,6 +20,8 @@ import AvatarCircle from "../../components/AvatarCircle";
 import SearchInput from "../../components/SearchInput";
 import { getDoctorMe } from "../../services/authService";
 import { getPublicUrl } from "@/services/uploadsService";
+import { getOutOfOfficeStatus } from "@/services/doctorService";
+import useOOOStore from "@/store/useOOOStore";
 import {
   Mail,
   Phone,
@@ -42,6 +44,7 @@ import { fetchAllRoles } from "../../services/rbac/roleService";
 import { registerStaff } from "../../services/staff/registerStaffService";
 import AddPatientDrawer from "../../components/PatientList/AddPatientDrawer.jsx";
 import BookAppointmentDrawer from "../../components/Appointment/BookAppointmentDrawer.jsx";
+import OutOfOfficeDrawer from "./OutOfOfficeDrawer.jsx";
 import {
   vertical,
   whiteProfile,
@@ -94,7 +97,29 @@ const ProfileMenuItem = ({
 
 const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const searchRef = useRef(null);
+
+  const getTitle = () => {
+    const path = location.pathname;
+    if (path === "/doc" || path === "/doc/") return "Dashboard";
+    if (path.startsWith("/doc/queue")) return "Queue Management";
+    if (path.startsWith("/doc/calendar")) return "Calendar";
+    if (path.startsWith("/doc/patients")) {
+      if (matchPath("/doc/patients/:id", path)) return "Patient Profile";
+      return "Patients List";
+    }
+    if (path.includes("/doc/settings/account")) return "Personal Details";
+    if (path.includes("/doc/settings/consultation")) return "Consultation Details";
+    if (path.includes("/doc/settings/clinics")) return "Clinical Details";
+    if (path.includes("/doc/settings/staff-permissions")) return "Staff Permissions";
+    if (path.includes("/doc/settings/security")) return "Security Settings";
+    if (path.includes("/doc/settings/billing")) return "Subscriptions/Billing";
+    if (path.includes("/doc/settings/rx-template")) return "Rx Template";
+    return "Dashboard";
+  };
+
+  const pageTitle = getTitle();
 
   // Use new doctor auth store
   const {
@@ -185,6 +210,8 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
   const [addPatientOpen, setAddPatientOpen] = useState(false);
   const [bookApptOpen, setBookApptOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [showOutOfOfficeDrawer, setShowOutOfOfficeDrawer] = useState(false);
+  const { oooData, fetchOOOStatus } = useOOOStore();
 
   // Focus search when pressing Ctrl+/
   useEffect(() => {
@@ -220,7 +247,7 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
     };
   }, []);
 
-  // Ensure doctor details are loaded - fetch when in doctor module for doctors or dual-role users
+
   useEffect(() => {
     const { isAuthenticated, fetchMe, user } = useDoctorAuthStore.getState();
     const { token: hToken, roleNames: hRoles } = useHospitalAuthStore.getState();
@@ -236,8 +263,13 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
 
     if (shouldFetchDoctorData) {
       fetchMe();
+      fetchOOOStatus();
     }
-  }, [activeModule]);
+  }, [activeModule, fetchOOOStatus]);
+
+  const handleOOOSave = (newData) => {
+    // Note: The drawer now handles the store update internally via useOOOStore.updateOOOStatus.
+  };
 
   const handleCopyProfileLink = async () => {
     try {
@@ -348,8 +380,8 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
       <div className="flex items-center gap-4 ">
         <img src={collapse_white} alt="Collapse" className="w-4 h-4" />
         <img src={vertical} alt="" className="h-5" />
-        <span className="text-2xl font-medium text-secondary-grey400">
-          Dashboard
+        <span className="text-[24px] font-medium text-secondary-grey400">
+          {pageTitle}
         </span>
       </div>
 
@@ -615,7 +647,7 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
                   label="Out Of Office"
                   onClick={() => {
                     setShowProfile(false);
-                    navigate("/doc/out-of-office");
+                    setShowOutOfOfficeDrawer(true);
                   }}
                 />
 
@@ -668,6 +700,12 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
         }}
       />
       <InviteStaffDrawer open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      <OutOfOfficeDrawer
+        isOpen={showOutOfOfficeDrawer}
+        onClose={() => setShowOutOfOfficeDrawer(false)}
+        onSave={handleOOOSave}
+        initialData={oooData}
+      />
     </div>
   );
 };

@@ -141,7 +141,7 @@ import dangerIcon from "./danger-icon.svg";
 
 export {
   // Root PNGs
-  
+
   checkbox,
   iIcon,
   logo,
@@ -158,9 +158,9 @@ export {
   package3,
   package4,
   // Sidebar Registration Steps Icons
- userAvatar,
- angledown,
- Eye,
+  userAvatar,
+  angledown,
+  Eye,
   patientunselect,
   accountBlue,
   ChevronRight,
@@ -193,7 +193,7 @@ export {
   settingUnselect,
   helpCircle,
   // Navbar icons
-chevdown,
+  chevdown,
   bell,
   blueCall,
   blueId,
