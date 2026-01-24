@@ -61,8 +61,8 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
     // Admin Details
     const [adminFirstName, setAdminFirstName] = useState(initAdmin.firstName || initial.firstName || "");
     const [adminLastName, setAdminLastName] = useState(initAdmin.lastName || initial.lastName || "");
-    const [adminMobile, setAdminMobile] = useState(initAdmin.mobileNumber || admin.phone || initial.adminMobile || "");
-    const [adminEmail, setAdminEmail] = useState(initAdmin.email || admin.emailId || initial.adminEmail || "");
+    const [adminMobile, setAdminMobile] = useState(initAdmin.mobileNumber || initAdmin.phone || initial.adminMobile || "");
+    const [adminEmail, setAdminEmail] = useState(initAdmin.email || initAdmin.emailId || initial.adminEmail || "");
     const [adminGender, setAdminGender] = useState(initAdmin.gender ? initAdmin.gender.toUpperCase() : "");
     const [adminCity, setAdminCity] = useState(initAdmin.city || "");
 
@@ -131,6 +131,8 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
 
     // Effect to Sync State with Initial Data if props change (re-initialization)
     useEffect(() => {
+        if (!open) return; // Only sync when drawer is open or opens
+
         const iAdmin = initial?.admin || {};
         const iAddr = initial?.address || {};
 
@@ -156,7 +158,7 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
         const initialItems = initKeys.map(key => ({
             id: Math.random().toString(36).substr(2, 9),
             key,
-            url: null, // Will be fetched by the other effect
+            url: null,
             uploading: false
         }));
         setManagedPhotos(initialItems);
@@ -180,7 +182,7 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
         setAdminGender(iAdmin.gender ? iAdmin.gender.toUpperCase() : "");
         setAdminCity(iAdmin.city || "");
 
-    }, [initial]);
+    }, [open, initial]);
 
     // Effect for Scrolling / Focus when opened
     useEffect(() => {
@@ -525,7 +527,7 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
                     </InputWithMeta>
                     <div className="relative">
                         <InputWithMeta label="City" requiredDot value={adminCity} onChange={setAdminCity} infoIcon RightIcon={ChevronDown} onFieldOpen={() => setAdminCityOpen(!adminCityOpen)} dropdownOpen={adminCityOpen} onRequestClose={() => setAdminCityOpen(false)} placeholder="Mumbai" />
-                        <Dropdown open={adminCityOpen} onClose={() => setAdminCityOpen(false)} items={cityOptions.map(c => ({ label: c, value: c }))} selectedValue={adminCity} onSelect={(it) => { setAdminCity(it.value); setAdminCityOpen(false); }} className="w-full" anchorClassName="w-full" direction="up" />
+                        <Dropdown open={adminCityOpen} onClose={() => setAdminCityOpen(false)} items={cityOptions.map(c => ({ label: c, value: c }))} selectedValue={adminCity} onSelect={(it) => { setAdminCity(it.value); setAdminCityOpen(false); }} className="w-full input-meta-dropdown" anchorClassName="w-full" direction="up" />
                     </div>
                 </div>
 
@@ -549,11 +551,11 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="relative">
                             <InputWithMeta label="City" requiredDot value={city} onChange={setCity} infoIcon RightIcon={ChevronDown} onFieldOpen={() => setCityOpen(!cityOpen)} dropdownOpen={cityOpen} onRequestClose={() => setCityOpen(false)} placeholder="Akola" />
-                            <Dropdown open={cityOpen} onClose={() => setCityOpen(false)} items={cityOptions.map(c => ({ label: c, value: c }))} selectedValue={city} onSelect={(it) => { setCity(it.value); setCityOpen(false); }} className="w-full" anchorClassName="w-full" direction="up" />
+                            <Dropdown open={cityOpen} onClose={() => setCityOpen(false)} items={cityOptions.map(c => ({ label: c, value: c }))} selectedValue={city} onSelect={(it) => { setCity(it.value); setCityOpen(false); }} className="w-full input-meta-dropdown" anchorClassName="w-full" direction="up" />
                         </div>
                         <div className="relative">
                             <InputWithMeta label="State" requiredDot value={state} onChange={() => { }} infoIcon RightIcon={ChevronDown} onFieldOpen={() => setStateOpen(!stateOpen)} dropdownOpen={stateOpen} onRequestClose={() => setStateOpen(false)} readonlyWhenIcon placeholder="Maharashtra" />
-                            <Dropdown open={stateOpen} onClose={() => setStateOpen(false)} items={stateOptions.map(s => ({ label: s, value: s }))} selectedValue={state} onSelect={(it) => { setState(it.value); setStateOpen(false); }} className="w-full" anchorClassName="w-full" direction="up" />
+                            <Dropdown open={stateOpen} onClose={() => setStateOpen(false)} items={stateOptions.map(s => ({ label: s, value: s }))} selectedValue={state} onSelect={(it) => { setState(it.value); setStateOpen(false); }} className="w-full input-meta-dropdown" anchorClassName="w-full" direction="up" />
                         </div>
                     </div>
                 </div>

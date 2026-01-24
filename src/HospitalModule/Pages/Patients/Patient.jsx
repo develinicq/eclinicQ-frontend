@@ -8,6 +8,7 @@ import { getPatientColumns } from './columns'
 import PatientDetailsDrawer from './PatientDetailsDrawer'
 import { getPatientsForHospital } from '../../../services/patientService'
 import useHospitalAuthStore from '../../../store/useHospitalAuthStore'
+import useHospitalDataStore from '../../../store/hospital/useHospitalDataStore';
 import UniversalLoader from '../../../components/UniversalLoader'
 
 const Patients = () => {
@@ -20,18 +21,18 @@ const Patients = () => {
   const [selectedPatientForSchedule, setSelectedPatientForSchedule] = useState(null);
   const [selectedPatientDetails, setSelectedPatientDetails] = useState(null);
   const { hospitalId } = useHospitalAuthStore();
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { patients: cachedPatients, patientsLoaded, setPatients } = useHospitalDataStore();
+  const [loading, setLoading] = useState(!patientsLoaded);
   const pageSize = 10;
 
   useEffect(() => {
     const fetchPatients = async () => {
-      if (!hospitalId) return;
+      if (!hospitalId || patientsLoaded) return;
       setLoading(true);
       try {
         const res = await getPatientsForHospital(hospitalId);
         if (res.success) {
-          setData(res.data);
+          setPatients(res.data);
         }
       } catch (err) {
         console.error("Failed to fetch patients", err);
@@ -40,14 +41,14 @@ const Patients = () => {
       }
     };
     fetchPatients();
-  }, [hospitalId]);
+  }, [hospitalId, patientsLoaded, setPatients]);
 
   // Filter logic
   const patientsFiltered = useMemo(() => {
-    if (selected === 'active') return data.filter(p => p.status === 'Active'); // Note: API might not return 'status' yet, adjust if needed
-    if (selected === 'inactive') return data.filter(p => p.status === 'Inactive');
-    return data;
-  }, [selected, data]);
+    if (selected === 'active') return cachedPatients.filter(p => p.status === 'Active');
+    if (selected === 'inactive') return cachedPatients.filter(p => p.status === 'Inactive');
+    return cachedPatients;
+  }, [selected, cachedPatients]);
 
   const pagedData = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -55,11 +56,10 @@ const Patients = () => {
   }, [patientsFiltered, page, pageSize]);
 
   const counts = useMemo(() => ({
-    all: data.length,
-    active: data.filter(p => p.status === 'Active').length,
-    inactive: data.filter(p => p.status === 'Inactive').length,
-    draft: 0
-  }), [data])
+    all: cachedPatients.length,
+    active: cachedPatients.filter(p => p.status === 'Active').length,
+    inactive: cachedPatients.filter(p => p.status === 'Inactive').length
+  }), [cachedPatients])
 
   const handleOpenLog = useCallback((row) => {
     setLogDrawerOpen(true);
@@ -89,7 +89,7 @@ const Patients = () => {
           counts={counts}
           selected={selected}
           onChange={setSelected}
-          tabs={[{ key: 'all', label: 'All' }, { key: 'active', label: 'Active' }, { key: 'inactive', label: 'Inactive' }, { key: 'draft', label: 'Draft' }]}
+          tabs={[{ key: 'all', label: 'All' }, { key: 'active', label: 'Active' }, { key: 'inactive', label: 'Inactive' }]}
           showCounts={true}
           addLabel="Add New Patient"
           addPath={() => setAddOpen(true)} // Keep drawer capability if needed, or null
@@ -97,22 +97,28 @@ const Patients = () => {
       </div>
 
       <div className="h-[calc(100vh-140px)] overflow-hidden m-3 border border-gray-200 rounded-lg shadow-sm bg-white">
-        <SampleTable
-          columns={columns}
-          data={pagedData}
-          page={page}
-          pageSize={pageSize}
-          total={patientsFiltered.length}
-          onPageChange={setPage}
-          stickyLeftWidth={260}
-          stickyRightWidth={160}
-          onRowClick={(row) => {
-            setSelectedPatientDetails(row);
-            setDetailsOpen(true);
-          }}
-          hideSeparators={false} // Show dividers
-          loading={loading}
-        />
+        {patientsFiltered.length > 0 ? (
+          <SampleTable
+            columns={columns}
+            data={pagedData}
+            page={page}
+            pageSize={pageSize}
+            total={patientsFiltered.length}
+            onPageChange={setPage}
+            stickyLeftWidth={260}
+            stickyRightWidth={160}
+            onRowClick={(row) => {
+              setSelectedPatientDetails(row);
+              setDetailsOpen(true);
+            }}
+            hideSeparators={false} // Show dividers
+            loading={loading}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <span className="text-secondary-grey300 font-medium">No patient</span>
+          </div>
+        )}
       </div>
 
       <AddPatientDrawer open={addOpen} onClose={() => setAddOpen(false)} onSave={() => setAddOpen(false)} />

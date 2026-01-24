@@ -32,7 +32,8 @@ export default function HSurgeries() {
       try {
         const res = await getHospitalSurgeriesForAdmin(hospitalId)
         if (!ignore && res?.success) {
-          setSurgeries(res.data || [])
+          const fetchedData = Array.isArray(res.data) ? res.data : (res.data?.surgeries || [])
+          setSurgeries(fetchedData)
         }
       } catch (e) {
         if (!ignore) setError(e?.response?.data?.message || "Failed to load surgeries")

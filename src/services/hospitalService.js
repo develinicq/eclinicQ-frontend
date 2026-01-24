@@ -300,7 +300,7 @@ export const getHospitalAccountSettings = async (hospitalId) => {
 export const updateHospitalInfoAndAddressForAdmin = async (hospitalId, data) => {
   if (!hospitalId) throw new Error('hospitalId is required');
   try {
-    const res = await axios.post('/hospitals/for-admin/account-details', data, {
+    const res = await axios.put('/hospitals/for-admin/updateDetails', data, {
       params: { hospitalId }
     });
     return res.data;

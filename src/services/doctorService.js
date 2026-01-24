@@ -27,7 +27,51 @@ export const getDoctorDetailsByIdBySuperAdmin = async (userId) => {
 export const getDoctorsForHospital = async (hospitalId) => {
   if (!hospitalId) throw new Error("hospitalId is required");
   try {
-    const res = await axios.get(`/doctors/for-hospital-admin/${hospitalId}/doctors-list`);
+    const res = await axios.get('/doctors/for-hospital-admin/doctors-list', {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get doctor personal info for Hospital Admin
+export const getDoctorPersonalInfoForHospital = async (doctorId, hospitalId) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  if (!hospitalId) throw new Error("hospitalId is required");
+  try {
+    const res = await axios.get(`/doctors/for-hospital-admin/doctor-personal-info/${doctorId}`, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get doctor consultation details for Hospital Admin
+export const getDoctorConsultationDetailsForHospital = async (doctorId, hospitalId) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  if (!hospitalId) throw new Error("hospitalId is required");
+  try {
+    const res = await axios.get(`/doctors/for-hospital-admin/doctor-consultation-details/${doctorId}`, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Update doctor consultation details for Hospital Admin
+export const updateDoctorConsultationDetailsForHospital = async (doctorId, hospitalId, payload) => {
+  if (!doctorId) throw new Error("doctorId is required");
+  if (!hospitalId) throw new Error("hospitalId is required");
+  try {
+    const res = await axios.put(`/doctors/for-hospital-admin/doctor-consultation-details/${doctorId}`, payload, {
+      params: { hospitalId }
+    });
     return res.data;
   } catch (error) {
     throw error;

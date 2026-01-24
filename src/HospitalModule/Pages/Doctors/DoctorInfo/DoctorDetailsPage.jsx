@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import HospitalDoctorBanner from "./HospitalDoctorBanner";
 import PageNav from "./PageNav";
-import { getDoctorDetailsByIdBySuperAdmin } from "@/services/doctorService";
-import useAuthStore from "@/store/useAuthStore";
+import { getDoctorPersonalInfoForHospital } from "@/services/doctorService";
+import useHospitalAuthStore from "@/store/useHospitalAuthStore";
 
 const DoctorDetailsPage = () => {
     const { id } = useParams();
     const location = useLocation();
-    const isAuthed = useAuthStore((s) => Boolean(s.token));
+    const { hospitalId } = useHospitalAuthStore();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [doctor, setDoctor] = useState(null);
@@ -26,43 +26,57 @@ const DoctorDetailsPage = () => {
                 const userId = routeId || stateUserId;
 
                 if (!userId) throw new Error("Doctor userId is missing");
+                if (!hospitalId) throw new Error("Hospital ID is missing");
 
-                const resp = await getDoctorDetailsByIdBySuperAdmin(userId);
+                const resp = await getDoctorPersonalInfoForHospital(userId, hospitalId);
                 if (ignore) return;
 
-                const d = resp?.data?.doctor || resp?.data || {};
+                const d = resp?.data || {};
+                const pInfo = d.personalInfo || {};
+                const profInfo = d.professionalInfo || {};
+                const hMap = d.hospitalMapping || {};
+                const specs = profInfo.specializations || [];
 
-                // Map API details to UI contract used by banner & tabs
-                // Ensure legacy support for fields if API varies
+                // Map API details to UI contract
                 const mapped = {
                     ...d,
-                    id: d?.doctorCode || d?.id || userId,
+                    id: d.doctorCode || userId,
                     userId,
-                    name: d?.name || d?.doctorName || location.state?.doctor?.name || "Doctor",
-                    designation: d?.designation || d?.qualification || location.state?.doctor?.designation || "",
-                    specialization: d?.specialization || location.state?.doctor?.specialization || "",
-                    exp: d?.exp || d?.experience,
-                    status: d?.status || location.state?.doctor?.status || 'Active',
-                    profileImage: d?.image || d?.profilePhoto || d?.avatar || location.state?.doctor?.image || "",
-                    coverImage: d?.coverImage || d?.bannerImage || "",
-                    activePackage: d?.activePackage,
-                    clinicHospitalName: d?.clinicHospitalName,
-                    mrnNumber: d?.mrnNumber || "",
-                    registrationCouncil: d?.registrationCouncil || "",
-                    registrationYear: d?.registrationYear || "",
-                    specializationWithExperience: d?.specializationWithExperience || [],
-                    primaryPhone: d?.primaryPhone || d?.contact,
-                    emailAddress: d?.emailAddress || d?.email,
-                    graduationDegree: d?.graduationDegree || "",
-                    postGraduationDegree: d?.postGraduationDegree || "",
-                    address: d?.address,
-                    location: d?.location,
-                    hospitalDetails: d?.hospitalDetails || [],
-                    dateOfBirth: d?.dateOfBirth,
-                    age: d?.age,
-                    dateJoinedPlatform: d?.dateJoinedPlatform,
-                    profileCreated: d?.profileCreated,
-                    consultationDetails: d?.consultationDetails || {}, // Important for Consultation tab
+                    name: pInfo.name || "Doctor",
+                    designation: specs[0]?.name || "",
+                    specialization: specs.map(s => s.name).join(", "),
+                    exp: specs[0]?.experience || "0",
+                    status: 'Active', // Fallback status as not in new API snippet
+                    profileImage: pInfo.photo || "",
+                    coverImage: "",
+                    activePackage: null,
+                    clinicHospitalName: "",
+                    mrnNumber: "",
+                    registrationCouncil: profInfo.medicalCouncil || "",
+                    registrationNumber: profInfo.registrationNumber || "",
+                    registrationYear: profInfo.registrationYear || "",
+                    specializationWithExperience: specs,
+                    primaryPhone: pInfo.phone || "",
+                    emailAddress: pInfo.email || "",
+                    graduationDegree: d.education?.[0]?.degree || "",
+                    postGraduationDegree: d.education?.find(e => e.type === 'PG')?.degree || "",
+                    address: null,
+                    location: "-",
+                    hospitalDetails: [],
+                    dateOfBirth: pInfo.dateOfBirth,
+                    age: null,
+                    dateJoinedPlatform: null,
+                    profileCreated: null,
+                    consultationDetails: {
+                        consultationFee: hMap.consultationFee,
+                        followUpFee: hMap.followUpFee,
+                        avgDurationMinutes: hMap.avgDurationMinutes,
+                        availabilityDays: hMap.availabilityDays
+                    },
+                    education: d.education || [],
+                    experience: d.experience || [],
+                    awards: d.awards || [],
+                    publications: d.publications || []
                 };
                 setDoctor(mapped);
             } catch (e) {
@@ -109,9 +123,9 @@ const DoctorDetailsPage = () => {
             }
         };
 
-        if (isAuthed) load();
+        if (hospitalId) load();
         else {
-            // Not authed: allow viewing from route state if present
+            // Not authed or missing hospitalId: allow viewing from route state if present
             const stateDoc = location.state?.doctor;
             if (stateDoc) {
                 setDoctor({
@@ -132,7 +146,7 @@ const DoctorDetailsPage = () => {
             setLoading(false);
         }
         return () => { ignore = true; };
-    }, [id, isAuthed, location.state]);
+    }, [id, hospitalId, location.state]);
 
     if (loading) return <div className="p-6 text-gray-600">Loading doctor details…</div>;
     // Suppress error if we have a partial doctor loaded via fallback? No, existing logic sets doctor if fallback succeeds.

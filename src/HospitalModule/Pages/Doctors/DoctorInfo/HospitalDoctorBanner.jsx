@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { getDownloadUrl } from '@/services/uploadsService'
+import { getPublicUrl } from '@/services/uploadsService'
 import AvatarCircle from '@/components/AvatarCircle'
 
 const HospitalDoctorBanner = ({ doctor }) => {
@@ -10,7 +10,7 @@ const HospitalDoctorBanner = ({ doctor }) => {
     const navigate = useNavigate()
 
     const bannerKey = doctor?.coverImage || doctor?.bannerImage
-    const profileKey = doctor?.image || doctor?.profileImage
+    const profileKey = doctor?.image || doctor?.profileImage || doctor?.personalInfo?.photo
 
     useEffect(() => {
         let ignore = false
@@ -18,8 +18,8 @@ const HospitalDoctorBanner = ({ doctor }) => {
         const run = async () => {
             try {
                 const [b, p] = await Promise.all([
-                    bannerKey ? getDownloadUrl(bannerKey) : null,
-                    profileKey ? getDownloadUrl(profileKey) : null,
+                    bannerKey ? getPublicUrl(bannerKey) : null,
+                    profileKey ? getPublicUrl(profileKey) : null,
                 ])
                 if (!ignore) {
                     setResolvedBanner(b || '')

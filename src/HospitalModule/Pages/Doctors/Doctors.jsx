@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { getDoctorsForHospital } from '../../../services/doctorService';
 import useHospitalAuthStore from '../../../store/useHospitalAuthStore';
+import useHospitalDataStore from '../../../store/hospital/useHospitalDataStore';
 import UniversalLoader from '../../../components/UniversalLoader';
 
 export default function HDoctors() {
@@ -15,12 +16,12 @@ export default function HDoctors() {
   const pageSize = 10;
 
   const { hospitalId } = useHospitalAuthStore();
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { doctors: cachedDoctors, doctorsLoaded, setDoctors } = useHospitalDataStore();
+  const [loading, setLoading] = useState(!doctorsLoaded);
 
   useEffect(() => {
     const fetchDoctors = async () => {
-      if (!hospitalId) {
+      if (!hospitalId || doctorsLoaded) {
         return;
       }
       setLoading(true);
@@ -30,6 +31,9 @@ export default function HDoctors() {
           // Map API response to UI shape
           const mapped = res.data.doctors.map(d => {
             const specsArray = d.specialization ? d.specialization.split(',').map(s => s.trim()) : [];
+            const rawStatus = (d.status || '').toUpperCase();
+            const status = rawStatus === 'ACTIVE' ? 'Active' : (rawStatus === 'INACTIVE' ? 'Inactive' : 'Draft');
+
             return {
               id: d.doctorCode,
               userId: d.doctorId,
@@ -37,16 +41,16 @@ export default function HDoctors() {
               gender: d.gender === 'MALE' ? 'M' : (d.gender === 'FEMALE' ? 'F' : '-'),
               contact: d.phone,
               email: d.email,
-              location: '-', // API response doesn't show location, defaulting to -
+              location: '-',
               specialization: specsArray[0] || '-',
               specializationMore: specsArray.length > 1 ? specsArray.length - 1 : 0,
-              designation: '-', // API response doesn't show designation
-              exp: '-',         // API response doesn't show exp
-              status: (d.status && d.status.toUpperCase() === 'ACTIVE') ? 'Active' : 'Inactive',
+              designation: '-',
+              exp: '-',
+              status,
               consultationFee: d.consultationFee,
             };
           });
-          setData(mapped);
+          setDoctors(mapped);
         }
       } catch (err) {
         console.error("Failed to fetch doctors", err);
@@ -55,25 +59,27 @@ export default function HDoctors() {
       }
     };
     fetchDoctors();
-  }, [hospitalId]);
+  }, [hospitalId, doctorsLoaded, setDoctors]);
 
   const counts = useMemo(() => ({
-    all: data.length,
-    active: data.filter(d => d.status === 'Active').length,
-    inactive: data.filter(d => d.status === 'Inactive').length,
-  }), [data])
+    all: cachedDoctors.length,
+    active: cachedDoctors.filter(d => d.status === 'Active').length,
+    inactive: cachedDoctors.filter(d => d.status === 'Inactive').length,
+    draft: cachedDoctors.filter(d => d.status === 'Draft').length,
+  }), [cachedDoctors])
 
-  const doctors = useMemo(() => {
-    let filtered = data;
-    if (selected === 'active') filtered = data.filter(d => d.status === 'Active')
-    if (selected === 'inactive') filtered = data.filter(d => d.status === 'Inactive')
+  const doctorsFiltered = useMemo(() => {
+    let filtered = cachedDoctors;
+    if (selected === 'active') filtered = cachedDoctors.filter(d => d.status === 'Active')
+    if (selected === 'inactive') filtered = cachedDoctors.filter(d => d.status === 'Inactive')
+    if (selected === 'draft') filtered = cachedDoctors.filter(d => d.status === 'Draft')
     return filtered;
-  }, [data, selected])
+  }, [cachedDoctors, selected])
 
   const pagedData = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return doctors.slice(start, start + pageSize);
-  }, [doctors, page, pageSize]);
+    return doctorsFiltered.slice(start, start + pageSize);
+  }, [doctorsFiltered, page, pageSize]);
 
   const handleRowClick = (doc) => {
     navigate(`/hospital/doctor/${encodeURIComponent(doc.userId || doc.id)}`, { state: { doctor: doc } });
@@ -90,22 +96,39 @@ export default function HDoctors() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-secondary-grey50">
       <div className="shrink-0 mt-2">
-        <Header counts={counts} selected={selected} onChange={setSelected} addLabel="Add New Doctor" />
+        <Header
+          counts={counts}
+          selected={selected}
+          onChange={setSelected}
+          tabs={[
+            { key: 'all', label: 'All' },
+            { key: 'active', label: 'Active' },
+            { key: 'inactive', label: 'Inactive' },
+            { key: 'draft', label: 'Draft' }
+          ]}
+          addLabel="Add New Doctor"
+        />
       </div>
 
       <div className="h-[calc(100vh-140px)] overflow-hidden m-3 border border-gray-200 rounded-lg shadow-sm bg-white">
-        <SampleTable
-          columns={doctorColumns}
-          data={pagedData}
-          page={page}
-          pageSize={pageSize}
-          total={doctors.length}
-          onPageChange={setPage}
-          stickyLeftWidth={335}
-          stickyRightWidth={120}
-          onRowClick={handleRowClick}
-          hideSeparators={true}
-        />
+        {doctorsFiltered.length > 0 ? (
+          <SampleTable
+            columns={doctorColumns}
+            data={pagedData}
+            page={page}
+            pageSize={pageSize}
+            total={doctorsFiltered.length}
+            onPageChange={setPage}
+            stickyLeftWidth={335}
+            stickyRightWidth={120}
+            onRowClick={handleRowClick}
+            hideSeparators={true}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <span className="text-secondary-grey300 font-medium">No doctor</span>
+          </div>
+        )}
       </div>
     </div>
   )

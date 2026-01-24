@@ -33,7 +33,12 @@ export default function HSettings() {
     }, [location.pathname])
 
     const [activeTab, setActiveTab] = useState(activeKey)
-    useEffect(() => setActiveTab(activeKey), [activeKey])
+    const [visitedTabs, setVisitedTabs] = useState(new Set([activeKey]))
+
+    useEffect(() => {
+        setActiveTab(activeKey)
+        setVisitedTabs(prev => new Set(prev).add(activeKey))
+    }, [activeKey])
 
     const profile = useMemo(() => ({
         name: 'Manipal Hospital - Baner',
@@ -60,8 +65,22 @@ export default function HSettings() {
         ],
     }), [])
 
+    const renderTabContent = (key) => {
+        if (!visitedTabs.has(key)) return null;
+
+        return (
+            <div key={key} className={activeTab === key ? "block" : "hidden"}>
+                {key === 'account' && <HAccount profile={profile} />}
+                {key === 'timing' && <HTiming />}
+                {key === 'surgeries' && <HSurgeries />}
+                {key === 'staff' && <HStaffPermissions />}
+                {key === 'security' && <HSecurity />}
+            </div>
+        );
+    };
+
     return (
-    
+
         <div className="px-4 pb-10 bg-secondary-grey50 ">
             {/* Top banner + centered avatar + tabs */}
             <div className="-mx-4">
@@ -80,7 +99,7 @@ export default function HSettings() {
                                 <div className="text-lg font-medium text-gray-900">{profile.name}</div>
                                 <div className="text-green-600 text-sm">{profile.status}</div>
                             </div>
-                            
+
                         </div>
                         <nav className=" flex items-center gap-6 overflow-x-auto text-sm">
                             {tabs.map((t) => (
@@ -93,13 +112,9 @@ export default function HSettings() {
                 </div>
             </div>
 
-            {/* Content Area */}
+            {/* Content Area - Persist mounted tabs once visited */}
             <div className="mt-5">
-                {activeTab === 'account' && <HAccount profile={profile} />}
-                {activeTab === 'timing' && <HTiming />}
-                {activeTab === 'surgeries' && <HSurgeries />}
-                {activeTab === 'staff' && <HStaffPermissions />}
-                {activeTab === 'security' && <HSecurity />}
+                {tabs.map(t => renderTabContent(t.key))}
             </div>
         </div>
     )

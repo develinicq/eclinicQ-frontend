@@ -4,6 +4,10 @@ import Toggle from "@/components/FormItems/Toggle";
 import TimeInput from "@/components/FormItems/TimeInput";
 import { ChevronDown, Trash2 } from "lucide-react";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
+import UniversalLoader from "@/components/UniversalLoader";
+import useToastStore from "@/store/useToastStore";
+import { getDoctorConsultationDetailsForHospital, updateDoctorConsultationDetailsForHospital } from '@/services/doctorService';
+import useHospitalAuthStore from "@/store/useHospitalAuthStore";
 
 // Reusable SectionCard (same as others)
 const SectionCard = ({
@@ -66,15 +70,12 @@ const toHM = (iso) => {
     try {
         const d = new Date(iso);
         if (isNaN(d.getTime())) return "";
-        // For this read-only/display view, just showing local time or mocked string
-        // If the prop provides full ISO strings, we parse them.
-        // Simple fallback:
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     } catch (e) { return "" }
 };
 
 const DEFAULT_SCHEDULE = [
-    { day: "Monday", available: true, sessions: [{ sessionNumber: 1, startTime: "1970-01-01T09:00:00.000Z", endTime: "1970-01-01T13:00:00.000Z" }] },
+    { day: "Monday", available: true, sessions: [{ sessionNumber: 1, startTime: "09:00", endTime: "13:00" }] },
     { day: "Tuesday", available: false, sessions: [] },
     { day: "Wednesday", available: false, sessions: [] },
     { day: "Thursday", available: false, sessions: [] },
@@ -83,25 +84,137 @@ const DEFAULT_SCHEDULE = [
     { day: "Sunday", available: false, sessions: [] },
 ];
 
-const Consultation = ({ doctor }) => {
-    const [consultationDetails, setConsultationDetails] = useState(doctor?.consultationDetails || {});
+const Consultation = ({ doctor, isEditMode, setIsEditMode }) => {
+    const { hospitalId } = useHospitalAuthStore();
+    const { addToast } = useToastStore();
+    const [availabilityOpen, setAvailabilityOpen] = useState(false);
+    const [initialDetails, setInitialDetails] = useState(null);
+    const [consultationDetails, setConsultationDetails] = useState({
+        consultationFees: [{}],
+        slotTemplates: { schedule: JSON.parse(JSON.stringify(DEFAULT_SCHEDULE)) }
+    });
     const [consultationDirty, setConsultationDirty] = useState(false);
     const [savingConsultation, setSavingConsultation] = useState(false);
     const [consultationLoading, setConsultationLoading] = useState(false);
+
+    // Style helper for read-only vs editable inputs
+    const inputCls = (extra = "") =>
+        `flex-1 text-sm px-2 rounded-l focus:outline-none transition-colors ${!isEditMode
+            ? "bg-secondary-grey50 text-secondary-grey300 cursor-not-allowed"
+            : "bg-white text-gray-900 border-none"
+        } ${extra}`;
 
     // Alias for code using doctorDetails
     const doctorDetails = doctor;
 
     useEffect(() => {
-        if (doctor?.consultationDetails) {
-            setConsultationDetails(doctor.consultationDetails);
-        }
-    }, [doctor]);
+        const fetchDetails = async () => {
+            const doctorId = doctor?.userId || doctor?.id;
+            if (!doctorId || !hospitalId) return;
 
-    // Mock API for SuperAdmin view
-    const putDoctorConsultationDetails = async (payload) => {
-        console.log("Mock save consultation:", payload);
-        await new Promise(r => setTimeout(r, 800));
+            setConsultationLoading(true);
+            try {
+                const res = await getDoctorConsultationDetailsForHospital(doctorId, hospitalId);
+                if (res.success && res.data) {
+                    const info = res.data.consultationInfo || {};
+                    const slots = res.data.slotData || [];
+
+                    const mappedSchedule = DEFAULT_SCHEDULE.map(d => {
+                        const dayData = slots.find(s => s.day.toUpperCase() === d.day.toUpperCase());
+                        return {
+                            day: d.day,
+                            available: dayData ? (dayData.timings && dayData.timings.length > 0) : false,
+                            sessions: (dayData?.timings || []).map((t, idx) => ({
+                                id: idx + 1,
+                                sessionNumber: idx + 1,
+                                startTime: t.startTime,
+                                endTime: t.endTime,
+                                maxTokens: t.maxTokens
+                            }))
+                        };
+                    });
+
+                    const mapped = {
+                        consultationFees: [{
+                            consultationFee: info.consultationFee,
+                            followUpFee: info.followUpFee,
+                            avgDurationMinutes: info.avgDurationMinutes,
+                            availabilityDurationDays: info.availabilityDays,
+                        }],
+                        slotTemplates: {
+                            schedule: mappedSchedule
+                        }
+                    };
+                    setConsultationDetails(mapped);
+                    setInitialDetails(JSON.parse(JSON.stringify(mapped)));
+                    setConsultationDirty(false);
+                }
+            } catch (err) {
+                console.error("Failed to fetch consultation details", err);
+            } finally {
+                setConsultationLoading(false);
+            }
+        };
+        fetchDetails();
+    }, [doctor?.userId, doctor?.id, hospitalId]);
+
+    const handleSave = async () => {
+        const doctorId = doctor?.userId || doctor?.id;
+        if (!doctorId || !hospitalId) return;
+
+        try {
+            setSavingConsultation(true);
+            const fees = consultationDetails.consultationFees[0] || {};
+            const schedule = consultationDetails.slotTemplates.schedule;
+
+            const dayMap = {
+                Monday: "MONDAY",
+                Tuesday: "TUESDAY",
+                Wednesday: "WEDNESDAY",
+                Thursday: "THURSDAY",
+                Friday: "FRIDAY",
+                Saturday: "SATURDAY",
+                Sunday: "SUNDAY",
+            };
+
+            const currentSlotData = schedule.map((d) => {
+                const liveSessions = d.available ? (d.sessions || []) : [];
+                return {
+                    day: dayMap[d.day] || String(d.day).toUpperCase(),
+                    timings: liveSessions.map((s) => ({
+                        startTime: s.startTime,
+                        endTime: s.endTime,
+                        maxTokens: Math.max(1, Number(s.maxTokens) || 1),
+                    })),
+                };
+            });
+
+            const finalPayload = {
+                consultationInfo: {
+                    consultationFee: Number(fees.consultationFee) || 0,
+                    followUpFee: Number(fees.followUpFee) || 0,
+                    avgDurationMinutes: Number(fees.avgDurationMinutes) || 0,
+                    availabilityDays: Number(fees.availabilityDurationDays || fees.availabilityDays) || 0,
+                },
+                slotDetails: { slotData: currentSlotData }
+            };
+
+            await updateDoctorConsultationDetailsForHospital(doctorId, hospitalId, finalPayload);
+
+            setInitialDetails(JSON.parse(JSON.stringify(consultationDetails)));
+            setConsultationDirty(false);
+            setIsEditMode(false);
+            addToast({ title: "Success", message: "Consultation details updated successfully", type: "success" });
+        } catch (e) {
+            console.error(e);
+            addToast({
+                title: "Error",
+                message: e?.response?.data?.message || e.message || "Failed to save consultation details",
+                type: "error"
+            });
+        } finally {
+            setSavingConsultation(false);
+        }
     };
 
     return (
@@ -120,9 +233,10 @@ const Consultation = ({ doctor }) => {
                         First Time Consultation Fees:
                     </label>
 
-                    <div className="flex h-8 flex-1 border-[0.5px] border-secondary-grey200 rounded-md ">
+                    <div className={`flex h-8 flex-1 border-[0.5px] border-secondary-grey200 rounded-md overflow-hidden ${!isEditMode ? 'bg-secondary-grey50' : 'bg-white'}`}>
                         <input
-                            className="flex-1 text-sm px-2 rounded-l bg-white focus:outline-none"
+                            className={inputCls()}
+                            disabled={!isEditMode}
                             placeholder="Value"
                             value={
                                 consultationDetails?.consultationFees?.[0]
@@ -155,9 +269,10 @@ const Consultation = ({ doctor }) => {
                         Follow-up Consultation Fees:
                     </label>
 
-                    <div className="flex h-8 flex-1 border-[0.5px] border-secondary-grey200 rounded-md ">
+                    <div className={`flex h-8 flex-1 border-[0.5px] border-secondary-grey200 rounded-md overflow-hidden ${!isEditMode ? 'bg-secondary-grey50' : 'bg-white'}`}>
                         <input
-                            className="flex-1 text-sm px-2 rounded-l bg-white focus:outline-none"
+                            className={inputCls()}
+                            disabled={!isEditMode}
                             placeholder="Value"
                             value={
                                 consultationDetails?.consultationFees?.[0]?.followUpFee ||
@@ -191,6 +306,7 @@ const Consultation = ({ doctor }) => {
                 headerRight={
                     <label className="inline-flex items-center gap-2 text-sm text-gray-700">
                         <Checkbox
+                            disabled={!isEditMode}
                             checked={Boolean(
                                 consultationDetails?.consultationFees?.[0]?.autoApprove
                             )}
@@ -219,9 +335,10 @@ const Consultation = ({ doctor }) => {
                     <div>
                         <InputWithMeta label="Average Consultation Min per Patient" requiredDot showInput={false}></InputWithMeta>
 
-                        <div className="flex flex-1 h-8 w-[300px]  border-[0.5px] border-secondary-grey200 rounded-md">
+                        <div className={`flex flex-1 h-8 w-[300px] border-[0.5px] border-secondary-grey200 rounded-md overflow-hidden ${!isEditMode ? 'bg-secondary-grey50' : 'bg-white'}`}>
                             <input
-                                className="flex-1 text-sm px-2 rounded-l bg-white focus:outline-none"
+                                className={inputCls()}
+                                disabled={!isEditMode}
                                 placeholder="Value"
                                 value={
                                     consultationDetails?.consultationFees?.[0]
@@ -258,7 +375,7 @@ const Consultation = ({ doctor }) => {
                             requiredDot
                             infoIcon
                             value={(() => {
-                                const v = consultationDetails?.consultationFees?.[0]?.availabilityDurationDays;
+                                const v = consultationDetails?.consultationFees?.[0]?.availabilityDurationDays || consultationDetails?.consultationFees?.[0]?.availabilityDays;
                                 return v ? `${v} Days` : '';
                             })()}
                             placeholder="Select Duration"
@@ -269,33 +386,29 @@ const Consultation = ({ doctor }) => {
                                 { label: '21 Days', value: 21 },
                                 { label: '28 Days', value: 28 },
                             ]}
-                            selectedValue={consultationDetails?.consultationFees?.[0]?.availabilityDurationDays}
+                            selectedValue={consultationDetails?.consultationFees?.[0]?.availabilityDurationDays || consultationDetails?.consultationFees?.[0]?.availabilityDays}
+                            disabled={!isEditMode}
                             onSelectItem={(it) => {
-                                setConsultationDetails((d) => ({
-                                    ...d,
-                                    consultationFees: [
-                                        {
-                                            ...(d?.consultationFees?.[0] || {}),
-                                            availabilityDurationDays: it.value,
-                                        },
-                                    ],
-                                }));
-                                setConsultationDirty(true);
-                            }}
-                            itemRenderer={(it, { isSelected }) => (
-                                <span
-                                    className={
-                                        isSelected
-                                            ? 'text-blue-600 font-semibold bg-blue-50 rounded px-2 py-1'
-                                            : ''
+                                if (!isEditMode) return;
+                                setConsultationDetails((d) => {
+                                    const next = JSON.parse(JSON.stringify(d));
+                                    if (next.consultationFees[0]) {
+                                        next.consultationFees[0].availabilityDurationDays = it.value;
                                     }
-                                >
-                                    {it.label}
-                                </span>
-                            )}
+                                    return next;
+                                });
+                                setConsultationDirty(true);
+                                setAvailabilityOpen(false);
+                            }}
                             showInput={true}
                             className="h-8 w-full text-xs"
                             RightIcon={ChevronDown}
+                            readonlyWhenIcon={true}
+                            onFieldOpen={() => setAvailabilityOpen(true)}
+                            onIconClick={() => setAvailabilityOpen(o => !o)}
+                            dropdownOpen={availabilityOpen}
+                            onRequestClose={() => setAvailabilityOpen(false)}
+                            dropdownClassName="mt-6"
                         />
                     </div>
 
@@ -377,6 +490,7 @@ const Consultation = ({ doctor }) => {
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm text-secondary-grey300">Available</span>
                                         <Toggle
+                                            disabled={!isEditMode}
                                             checked={Boolean(d.available)}
                                             onChange={(v) => {
                                                 const checked =
@@ -418,6 +532,7 @@ const Consultation = ({ doctor }) => {
                                                 Session {s.sessionNumber}:
                                             </span>
                                             <TimeInput
+                                                disabled={!isEditMode}
                                                 value={toHM(s.startTime)}
                                                 onChange={(ev) => {
                                                     const v = ev.target.value;
@@ -438,6 +553,7 @@ const Consultation = ({ doctor }) => {
                                             />
                                             <span className="text-sm text-secondary-grey300 whitespace-nowrap">-</span>
                                             <TimeInput
+                                                disabled={!isEditMode}
                                                 value={toHM(s.endTime)}
                                                 onChange={(ev) => {
                                                     const v = ev.target.value;
@@ -462,7 +578,8 @@ const Consultation = ({ doctor }) => {
                                             </span>
                                             <div className="">
                                                 <input
-                                                    className="h-8 w-full text-sm border border-secondary-grey200 rounded px-2 bg-white text-secondary-grey400 focus:outline-none focus:border-blue-primary500"
+                                                    className={`h-8 w-16 text-sm border border-secondary-grey200 rounded px-2 focus:outline-none transition-colors ${!isEditMode ? 'bg-secondary-grey50 text-secondary-grey400 cursor-not-allowed' : 'bg-white text-secondary-grey400'}`}
+                                                    disabled={!isEditMode}
                                                     placeholder="Value"
                                                     value={s.maxTokens ?? ""}
                                                     onChange={(e) => {
@@ -483,8 +600,8 @@ const Consultation = ({ doctor }) => {
                                                 />
                                             </div>
 
-                                            {/* Delete icon - only show when there are 2+ sessions */}
-                                            {d.sessions.length > 1 && (
+                                            {/* Delete icon - only show when in edit mode and there are 2+ sessions */}
+                                            {isEditMode && d.sessions.length > 1 && (
                                                 <button
                                                     onClick={() => {
                                                         setConsultationDetails((prev) => {
@@ -511,73 +628,75 @@ const Consultation = ({ doctor }) => {
                                         </div>
                                     ))}
 
-                                    <div className="mt-4 flex items-center justify-between">
-                                        <button
-                                            className="text-sm text-blue-primary250 hover:text-blue-700 font-normal"
-                                            disabled={!d.available}
-                                            onClick={() => {
-                                                if (!d.available) return;
-                                                setConsultationDetails((prev) => {
-                                                    const next = hydrateState(prev);
-                                                    const daySchedule = next.slotTemplates.schedule.find(x => x.day === d.day || String(x.day).toUpperCase() === String(d.day).toUpperCase());
-
-                                                    if (!daySchedule) return next;
-
-                                                    // Check if we've reached max 6 slots
-                                                    const currentSessionCount =
-                                                        daySchedule.sessions?.length || 0;
-                                                    if (currentSessionCount >= 6) {
-                                                        alert("Maximum 6 slots allowed");
-                                                        return next;
-                                                    }
-
-                                                    const sessionsToAdd = [];
-
-                                                    if (currentSessionCount === 0) {
-                                                        // Add Session 1 (matching placeholder)
-                                                        sessionsToAdd.push({
-                                                            sessionNumber: 1,
-                                                            startTime: "1970-01-01T09:00:00.000Z",
-                                                            endTime: "1970-01-01T01:00:00.000Z", // Matching 01:00
-                                                            maxTokens: null,
-                                                        });
-                                                        // Add Session 2 (new default)
-                                                        sessionsToAdd.push({
-                                                            sessionNumber: 2,
-                                                            startTime: "1970-01-01T09:00:00.000Z",
-                                                            endTime: "1970-01-01T17:00:00.000Z",
-                                                            maxTokens: null,
-                                                        });
-                                                    } else {
-                                                        // Add Next Session
-                                                        sessionsToAdd.push({
-                                                            sessionNumber: currentSessionCount + 1,
-                                                            startTime: "1970-01-01T09:00:00.000Z",
-                                                            endTime: "1970-01-01T17:00:00.000Z",
-                                                            maxTokens: null,
-                                                        });
-                                                    }
-
-                                                    if (!daySchedule.sessions) daySchedule.sessions = [];
-                                                    daySchedule.sessions.push(...sessionsToAdd);
-
-                                                    return next;
-                                                });
-                                                setConsultationDirty(true);
-                                            }}
-                                        >
-                                            + Add More (Max 6 Slots)
-                                        </button>
-                                        <label className="inline-flex items-center gap-2 text-sm text-gray-600">
-                                            <input
-                                                type="checkbox"
+                                    {isEditMode && (
+                                        <div className="mt-4 flex items-center justify-between">
+                                            <button
+                                                className="text-sm text-blue-primary250 hover:text-blue-700 font-normal"
                                                 disabled={!d.available}
-                                                className="w-4 h-4"
-                                            />
+                                                onClick={() => {
+                                                    if (!d.available) return;
+                                                    setConsultationDetails((prev) => {
+                                                        const next = hydrateState(prev);
+                                                        const daySchedule = next.slotTemplates.schedule.find(x => x.day === d.day || String(x.day).toUpperCase() === String(d.day).toUpperCase());
 
-                                            <span>Apply to All Days</span>
-                                        </label>
-                                    </div>
+                                                        if (!daySchedule) return next;
+
+                                                        // Check if we've reached max 6 slots
+                                                        const currentSessionCount =
+                                                            daySchedule.sessions?.length || 0;
+                                                        if (currentSessionCount >= 6) {
+                                                            alert("Maximum 6 slots allowed");
+                                                            return next;
+                                                        }
+
+                                                        const sessionsToAdd = [];
+
+                                                        if (currentSessionCount === 0) {
+                                                            // Add Session 1 (matching placeholder)
+                                                            sessionsToAdd.push({
+                                                                sessionNumber: 1,
+                                                                startTime: "1970-01-01T09:00:00.000Z",
+                                                                endTime: "1970-01-01T01:00:00.000Z", // Matching 01:00
+                                                                maxTokens: null,
+                                                            });
+                                                            // Add Session 2 (new default)
+                                                            sessionsToAdd.push({
+                                                                sessionNumber: 2,
+                                                                startTime: "1970-01-01T09:00:00.000Z",
+                                                                endTime: "1970-01-01T17:00:00.000Z",
+                                                                maxTokens: null,
+                                                            });
+                                                        } else {
+                                                            // Add Next Session
+                                                            sessionsToAdd.push({
+                                                                sessionNumber: currentSessionCount + 1,
+                                                                startTime: "1970-01-01T09:00:00.000Z",
+                                                                endTime: "1970-01-01T17:00:00.000Z",
+                                                                maxTokens: null,
+                                                            });
+                                                        }
+
+                                                        if (!daySchedule.sessions) daySchedule.sessions = [];
+                                                        daySchedule.sessions.push(...sessionsToAdd);
+
+                                                        return next;
+                                                    });
+                                                    setConsultationDirty(true);
+                                                }}
+                                            >
+                                                + Add More (Max 6 Slots)
+                                            </button>
+                                            <label className="inline-flex items-center gap-2 text-sm text-gray-600">
+                                                <input
+                                                    type="checkbox"
+                                                    disabled={!d.available}
+                                                    className="w-4 h-4 cursor-pointer"
+                                                />
+
+                                                <span>Apply to All Days</span>
+                                            </label>
+                                        </div>
+                                    )}
 
                                 </div>
                             </div>
@@ -586,103 +705,37 @@ const Consultation = ({ doctor }) => {
                 </div>
             </SectionCard>
 
-            {/* Footer consent + Save */}
-            <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-                <div className="px-2 sm:px-4 md:px-6 py-3 flex items-center justify-between gap-3">
-                    <label className="flex items-center gap-2 text-[12px] text-gray-600">
-                        <input type="checkbox" defaultChecked className="h-4 w-4" />
-                        In order to use the platform to its full potential and continue
-                        using your benefits, kindly accept our{" "}
-                        <a href="#" className="text-blue-600">
-                            Terms and conditions
-                        </a>{" "}
-                        and{" "}
-                        <a href="#" className="text-blue-600">
-                            Privacy policy
-                        </a>
-                        .
-                    </label>
-                    <button
-                        disabled={!consultationDirty || savingConsultation}
-                        onClick={async () => {
-                            try {
-                                setSavingConsultation(true);
-                                const hospitalId =
-                                    doctorDetails?.associatedWorkplaces?.clinic?.id ||
-                                    doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id;
-
-
-
-                                // Build payload per spec
-                                const fees =
-                                    consultationDetails?.consultationFees?.[0] || {};
-                                const schedule =
-                                    consultationDetails?.slotTemplates?.schedule?.length
-                                        ? consultationDetails.slotTemplates.schedule
-                                        : DEFAULT_SCHEDULE;
-
-                                const dayMap = {
-                                    Monday: "MONDAY",
-                                    Tuesday: "TUESDAY",
-                                    Wednesday: "WEDNESDAY",
-                                    Thursday: "THURSDAY",
-                                    Friday: "FRIDAY",
-                                    Saturday: "SATURDAY",
-                                    Sunday: "SUNDAY",
-                                };
-                                const toHM = (iso) => {
-                                    const d = new Date(iso);
-                                    const hh = String(d.getUTCHours()).padStart(2, "0");
-                                    const mm = String(d.getUTCMinutes()).padStart(2, "0");
-                                    return `${hh}:${mm}`;
-                                };
-                                const slotData = schedule
-                                    .filter((x) => x.available)
-                                    .map((d) => ({
-                                        day: dayMap[d.day] || String(d.day).toUpperCase(),
-                                        timings: (d.sessions || []).map((s) => ({
-                                            startTime: toHM(s.startTime),
-                                            endTime: toHM(s.endTime),
-                                            maxTokens: Number(s.maxTokens) || 0,
-                                        })),
-                                    }));
-                                const payload = {
-                                    consultationFees: {
-                                        hospitalId,
-                                        consultationFee: String(fees.consultationFee ?? ""),
-                                        followUpFee: String(fees.followUpFee ?? ""),
-                                        autoApprove: Boolean(fees.autoApprove),
-                                        avgDurationMinutes:
-                                            Number(fees.avgDurationMinutes) || 0,
-                                        availabilityDurationDays:
-                                            Number(fees.availabilityDurationDays) || undefined,
-                                    },
-                                    slotDetails: {
-                                        hospitalId,
-                                        slotData,
-                                    },
-                                };
-                                await putDoctorConsultationDetails(payload);
-                                setConsultationDirty(false);
-                            } catch (e) {
-                                alert(
-                                    e?.response?.data?.message ||
-                                    e.message ||
-                                    "Failed to save consultation details"
-                                );
-                            } finally {
-                                setSavingConsultation(false);
-                            }
-                        }}
-                        className={`px-4 h-9 rounded text-sm font-medium ${!consultationDirty || savingConsultation
-                            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                            : "bg-blue-600 text-white hover:bg-blue-700"
-                            }`}
-                    >
-                        {savingConsultation ? "Saving…" : "Save"}
-                    </button>
+            {/* Footer consent + Save - Only visible in edit mode */}
+            {isEditMode && (
+                <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
+                    <div className="px-2 sm:px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+                        <label className="flex items-center gap-2 text-[12px] text-gray-600">
+                            <input type="checkbox" defaultChecked className="h-4 w-4 cursor-pointer" />
+                            In order to use the platform to its full potential and continue
+                            using your benefits, kindly accept our{" "}
+                            <a href="#" className="text-blue-600">
+                                Terms and conditions
+                            </a>{" "}
+                            and{" "}
+                            <a href="#" className="text-blue-600">
+                                Privacy policy
+                            </a>
+                            .
+                        </label>
+                        <button
+                            disabled={savingConsultation}
+                            onClick={handleSave}
+                            className={`inline-flex items-center justify-center px-4 h-9 rounded text-sm font-medium transition-all ${savingConsultation
+                                ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow"
+                                }`}
+                        >
+                            {savingConsultation && <UniversalLoader size={16} className="border-white mr-2" />}
+                            {savingConsultation ? "Saving.." : "Save Changes"}
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

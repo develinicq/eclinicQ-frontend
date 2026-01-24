@@ -227,6 +227,18 @@ const Info = ({ doctor }) => {
 
     const onFileView = (fileName) => { console.log("View file:", fileName); };
 
+    // Local helper to format a date string into 'Mon YYYY'. Accepts ISO/date-like strings.
+    const formatMonthYear = (dateStr) => {
+        if (!dateStr) return undefined;
+        try {
+            const d = new Date(dateStr);
+            if (Number.isNaN(d.getTime())) return undefined;
+            return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+        } catch {
+            return undefined;
+        }
+    };
+
     const formatExperienceRange = (start, end, current) => {
         if (!start) return "";
         const s = new Date(start).getFullYear();
@@ -263,42 +275,35 @@ const Info = ({ doctor }) => {
 
     // Practice Details Adapter
     const practiceDetails = {
-        workExperience: doctor?.experience || '', // 'experience' is typically a string "12 years" or number
+        workExperience: doctor?.exp || '',
         medicalPracticeType: doctor?.practiceType || '', // hypothetical
-        specialties: doctor?.specialization ? [{ id: 1, specialtyName: doctor.specialization, expYears: doctor.experience }] : [],
+        specialties: Array.isArray(doctor?.specializationWithExperience)
+            ? doctor.specializationWithExperience.map((s, i) => ({ id: i, specialtyName: s.name, expYears: s.experience }))
+            : (doctor?.specialization ? [{ id: 1, specialtyName: doctor.specialization, expYears: doctor.exp }] : []),
         practiceArea: doctor?.services || [] // hypothetical
     };
 
     // Experience Adapter
-    // If doctor.experiences is actually an array, use it. Otherwise empty.
+    // If doctor.experiences is actually an array, use it. Otherwise fallback to singular 'experience' from API.
     const experiences = Array.isArray(doctor?.experiences) ? doctor.experiences :
-        (doctor?.experienceDetails ? doctor.experienceDetails : []);
+        (Array.isArray(doctor?.experience) ? doctor.experience : []);
 
 
     // Mock data/adapters for lists not fully in doctor prop
     // In a real scenario, we'd ensure doctor prop has these lists or fetch them
 
     // Education adapter
-    const education = [
-        doctor?.graduationDegree && {
-            degree: doctor.graduationDegree.degree,
-            fieldOfStudy: '',
-            graduationType: 'Graduation',
-            instituteName: doctor.graduationDegree.college,
-            startYear: '',
-            completionYear: doctor.graduationDegree.completionYear,
-            proofDocumentUrl: doctor.graduationDegreeProof
-        },
-        doctor?.postGraduationDegree && {
-            degree: doctor.postGraduationDegree.degree,
-            fieldOfStudy: '',
-            graduationType: 'Post Graduation',
-            instituteName: doctor.postGraduationDegree.college,
-            startYear: '',
-            completionYear: doctor.postGraduationDegree.completionYear,
-            proofDocumentUrl: doctor.postGraduationProof
-        }
-    ].filter(Boolean);
+    const education = Array.isArray(doctor?.education)
+        ? doctor.education.map((ed) => ({
+            degree: ed.degree,
+            fieldOfStudy: ed.field || '',
+            graduationType: ed.type || (ed.graduationType || ''),
+            instituteName: ed.institute || '',
+            startYear: ed.startYear || '',
+            completionYear: ed.completionYear || '',
+            proofDocumentUrl: ed.proofDocumentUrl || ''
+        }))
+        : [];
 
     // Awards/Publications (mocked/empty if not present)
     // Assuming doctor object might have these in future, currently using empty arrays or props if available
@@ -312,8 +317,6 @@ const Info = ({ doctor }) => {
                 <SectionCard
                     title="Basic Info"
                     subtitle="Visible to Patient"
-                    Icon={pencil}
-                    onIconClick={() => setBasicOpen(true)}
                 >
                     <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-[14px] mb-4">
@@ -398,8 +401,6 @@ const Info = ({ doctor }) => {
                 <SectionCard
                     title="Educational Details"
                     subtitle="Visible to Patient"
-                    Icon={add}
-                    onIconClick={() => setEduOpen(true)}
                     subo="To Change your Graduation Details please"
                 >
                     <div className="space-y-3">
@@ -414,28 +415,6 @@ const Info = ({ doctor }) => {
                                 date={`${ed.startYear} - ${ed.completionYear}`}
                                 linkLabel="Degree_Certificate.pdf"
                                 linkUrl={ed.proofDocumentUrl}
-                                showEditEducation={true}
-                                editEducationIcon={pencil}
-                                onEditEducationClick={() => {
-                                    setEduEditData({
-                                        id: ed.id,
-                                        school: ed.instituteName,
-                                        gradType: ed.graduationType,
-                                        degree: ed.degree,
-                                        field: ed.fieldOfStudy || "",
-                                        start: ed.startYear?.toString() || "",
-                                        end: ed.completionYear?.toString() || "",
-
-                                    });
-                                    setEduEditMode("edit");
-                                    setEduOpen(true);
-                                }}
-                            // rightActions={
-                            //   <button
-                            //     onClick={() => {
-                            //       setEduEditData({
-                            //         id: ed.id,
-                            //         school: ed.instituteName,
                             //         gradType: ed.graduationType,
                             //         degree: ed.degree,
                             //         field: ed.fieldOfStudy || "",
@@ -458,64 +437,25 @@ const Info = ({ doctor }) => {
                 <SectionCard
                     title="Awards & Publications"
                     subtitle="Visible to Patient"
-                    headerRight={
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowAddMenu((v) => !v)}
-                                className="p-1 text-gray-500 hover:bg-gray-50 rounded"
-                            >
-                                <img src={add} alt="add" className="w-7 h-7" />
-                            </button>
-                            {showAddMenu && (
-                                <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 shadow-xl rounded-md p-1 text-[13px] z-50">
-                                    <button
-                                        className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 w-full text-left bg-white text-gray-700 hover:text-blue-600 rounded-sm"
-                                        onClick={() => { setShowAddMenu(false); setAwardEditMode("add"); setAwardEditData(null); setAwardOpen(true); }}
-                                    >
-                                        <img src={award} alt="" className="w-4 h-4" /> Add Awards
-                                    </button>
-                                    <button
-                                        className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 w-full text-left bg-white text-gray-700 hover:text-blue-600 rounded-sm"
-                                        onClick={() => {
-                                            setShowAddMenu(false);
-                                            setPubEditMode("add");
-                                            setPubEditData(null);
-                                            setPubOpen(true);
-                                        }}
-                                    >
-                                        <img src={publication} alt="" className="w-4 h-4" /> Add Publications
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    }
                 >
                     <div className="space-y-3">
                         {Array.isArray(awards) &&
-                            awards.map((aw) => (
+                            awards.map((aw, idx) => (
                                 <ProfileItemCard
-                                    key={aw.id}
+                                    key={aw.id || idx}
                                     icon={award}
                                     title={aw.awardName}
                                     subtitle={aw.issuerName}
                                     date={formatMonthYear(aw.issueDate)}
                                     linkLabel="Certificate ↗"
                                     linkUrl={aw.awardUrl}
-                                    showEditEducation={true}
-                                    editEducationIcon={pencil}
-                                    onEditEducationClick={() => {
-                                        setAwardEditData(aw);
-                                        setAwardEditMode("edit");
-                                        setAwardOpen(true);
-                                    }}
-
                                 />
                             ))}
 
                         {Array.isArray(publications) &&
-                            publications.map((pub) => (
+                            publications.map((pub, idx) => (
                                 <ProfileItemCard
-                                    key={pub.id}
+                                    key={pub.id || idx}
                                     icon={publication}
                                     title={pub.title}
                                     subtitle={pub.publisher || pub.associatedWith}
@@ -523,19 +463,6 @@ const Info = ({ doctor }) => {
                                     linkLabel="Publication ↗"
                                     linkUrl={pub.publicationUrl}
                                     description={pub.description}
-                                    rightActions={
-                                        <button
-                                            onClick={() => {
-                                                setPubEditData(pub);
-                                                setPubEditMode("edit");
-                                                setPubOpen(true);
-                                            }}
-                                            className="text-gray-400 hover:text-blue-600 transition"
-                                            title="Edit"
-                                        >
-                                            <img src={pencil} alt="edit" className="w-4 h-4" />
-                                        </button>
-                                    }
                                 />
                             ))}
                     </div>
@@ -547,8 +474,6 @@ const Info = ({ doctor }) => {
                 <SectionCard
                     title="Professional Details"
                     subtitle="Visible to Patient"
-                    Icon={pencil}
-                    onIconClick={() => setPracticeOpen(true)}
                 >
                     <div className="flex flex-col gap-6">
                         <div className="grid grid-cols-12 gap-y-1 gap-x-6 text-[13px]">
@@ -730,14 +655,12 @@ const Info = ({ doctor }) => {
                 <SectionCard
                     title="Experience Details"
                     subtitle="Visible to Patient"
-                    Icon={add}
-                    onIconClick={() => setExpOpen(true)}
                 >
                     <div className="space-y-3">
                         {Array.isArray(experiences) &&
-                            experiences.map((ex) => (
+                            experiences.map((ex, idx) => (
                                 <ProfileItemCard
-                                    key={ex.id}
+                                    key={ex.id || idx}
                                     icon={experience}
                                     title={ex.jobTitle}
                                     badge={
@@ -747,18 +670,10 @@ const Info = ({ doctor }) => {
                                     }
                                     subtitle={ex.hospitalOrClinicName}
                                     date={formatExperienceRange(ex.startDate, ex.endDate, ex.isCurrentlyWorking)}
-                                    showEditEducation={true}
-                                    editEducationIcon={pencil}
                                     location={[ex.city, ex.state, ex.location]
                                         .filter(Boolean)
                                         .join(', ') || undefined}
                                     description={ex.description}
-                                    onEditEducationClick={() => {
-                                        setExpEditData(ex);
-                                        setExpEditMode('edit');
-                                        setExpOpen(true);
-                                    }}
-
                                 />
                             ))}
                     </div>

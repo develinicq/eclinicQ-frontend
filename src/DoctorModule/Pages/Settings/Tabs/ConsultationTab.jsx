@@ -6,6 +6,7 @@ import TimeInput from "../../../../components/FormItems/TimeInput";
 import InputWithMeta from "../../../../components/GeneralDrawer/InputWithMeta";
 import useConsultationStore, { DEFAULT_SCHEDULE } from "../../../../store/settings/useConsultationStore";
 import useDoctorAuthStore from "../../../../store/useDoctorAuthStore";
+import useHospitalAuthStore from "../../../../store/useHospitalAuthStore";
 import useClinicStore from "../../../../store/settings/useClinicStore";
 import useToastStore from "../../../../store/useToastStore";
 import { pencil } from "../../../../../public/index.js";
@@ -75,11 +76,13 @@ const ConsultationTab = () => {
         updateConsultationDetails,
         setConsultationDetails,
         isDirty,
-        setDirty
+        setDirty,
+        fetchError
     } = useConsultationStore();
 
     const { user: doctorDetails, loading: docLoading, fetchMe } = useDoctorAuthStore();
     const user = doctorDetails; // reuse the same object for both names to satisfy existing code
+    const { user: hospitalAdminUser, hospitalId: storeHospitalId } = useHospitalAuthStore();
 
     useEffect(() => {
         if (!doctorDetails && !docLoading) {
@@ -90,10 +93,10 @@ const ConsultationTab = () => {
     const { addToast } = useToastStore();
 
     useEffect(() => {
-        console.log("[ConsultationTab] useEffect triggered", { doctorDetails, user, clinic });
+        console.log("[ConsultationTab] useEffect triggered", { doctorDetails, user, clinic, hospitalAdminUser, storeHospitalId });
 
         const resolveParams = () => {
-            // Priority 1: doctorDetails (most specific)
+            // Priority 1: doctorDetails from useDoctorAuthStore
             const dClinicId =
                 doctorDetails?.clinicId ||
                 doctorDetails?.clinic?.id ||
@@ -112,20 +115,31 @@ const ConsultationTab = () => {
                 doctorDetails?.associatedWorkplaces?.hospital?.id ||
                 doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id;
 
-            // Priority 2: user object (session info)
+            // Priority 2: user object (alias for doctorDetails)
             const uClinicId = user?.clinicId || user?.clinic?.id || user?.currentClinicId || user?.currentClinic?.id;
             const uHospitalId = user?.hospitalId || user?.hospital?.id || user?.currentHospitalId || user?.currentHospital?.id;
 
-            // Priority 3: clinic store (if currently viewed clinic)
+            // Priority 3: Hospital Admin Store (for dual-role users)
+            const hAdminClinicId = hospitalAdminUser?.clinicId || hospitalAdminUser?.clinic?.id || hospitalAdminUser?.currentClinicId;
+            const hAdminHospitalId = storeHospitalId || hospitalAdminUser?.hospitalId || hospitalAdminUser?.hospital?.id || hospitalAdminUser?.currentHospitalId;
+
+            // Priority 4: clinic store (if currently viewed clinic)
             const cId = clinic?.id || clinic?.clinicId;
 
-            const finalClinicId = dClinicId || uClinicId || cId;
-            const finalHospitalId = dHospitalId || uHospitalId;
+            // Priority 5: Check if doctorDetails is actually nested (some APIs return it differently)
+            const nestedDoc = doctorDetails?.doctor || user?.doctor;
+            const ndClinicId = nestedDoc?.clinicId || nestedDoc?.clinic?.id;
+            const ndHospitalId = nestedDoc?.hospitalId || nestedDoc?.hospital?.id;
+
+            const finalClinicId = dClinicId || uClinicId || hAdminClinicId || cId || ndClinicId;
+            const finalHospitalId = dHospitalId || uHospitalId || hAdminHospitalId || ndHospitalId;
 
             console.log("[ConsultationTab] ID Resolution Search:", {
                 fromDoctor: { dClinicId, dHospitalId },
                 fromUser: { uClinicId, uHospitalId },
-                fromClinicStore: cId
+                fromHospitalAdmin: { hAdminClinicId, hAdminHospitalId },
+                fromClinicStore: cId,
+                fromNestedDoc: { ndClinicId, ndHospitalId }
             });
 
             if (finalClinicId) return { clinicId: finalClinicId };
@@ -133,15 +147,18 @@ const ConsultationTab = () => {
             return null;
         };
 
-        const params = resolveParams();
-        console.log("[ConsultationTab] Final params for fetch:", params);
+        // Only attempt to resolve and fetch if we are not still loading the doctor profile
+        if (!docLoading) {
+            const params = resolveParams();
+            console.log("[ConsultationTab] Final params for fetch:", params);
 
-        if (params) {
-            fetchConsultationDetails(params);
-        } else {
-            console.warn("[ConsultationTab] No clinicId or hospitalId could be resolved.");
+            if (params) {
+                fetchConsultationDetails(params);
+            } else {
+                console.warn("[ConsultationTab] No clinicId or hospitalId could be resolved.");
+            }
         }
-    }, [doctorDetails, user, clinic, fetchConsultationDetails]);
+    }, [doctorDetails, user, clinic, hospitalAdminUser, storeHospitalId, fetchConsultationDetails, docLoading]);
 
     const handleFeeChange = (field, value) => {
         let fees = [...consultationDetails.consultationFees];
@@ -201,11 +218,20 @@ const ConsultationTab = () => {
             const uClinicId = user?.clinicId || user?.clinic?.id || user?.currentClinicId || user?.currentClinic?.id;
             const uHospitalId = user?.hospitalId || user?.hospital?.id || user?.currentHospitalId || user?.currentHospital?.id;
 
-            // Priority 3: clinic store (if currently viewed clinic)
+            // Priority 3: hospital store (if dual-role admin)
+            const hAdminClinicId = hospitalAdminUser?.clinicId || hospitalAdminUser?.clinic?.id || hospitalAdminUser?.currentClinicId;
+            const hAdminHospitalId = storeHospitalId || hospitalAdminUser?.hospitalId || hospitalAdminUser?.hospital?.id || hospitalAdminUser?.currentHospitalId;
+
+            // Priority 4: clinic store (if currently viewed clinic)
             const cId = clinic?.id || clinic?.clinicId;
 
-            const finalClinicId = dClinicId || uClinicId || cId;
-            const finalHospitalId = dHospitalId || uHospitalId;
+            // Priority 5: Nested doctor data
+            const nestedDoc = doctorDetails?.doctor || user?.doctor;
+            const ndClinicId = nestedDoc?.clinicId || nestedDoc?.clinic?.id;
+            const ndHospitalId = nestedDoc?.hospitalId || nestedDoc?.hospital?.id;
+
+            const finalClinicId = dClinicId || uClinicId || hAdminClinicId || cId || ndClinicId;
+            const finalHospitalId = dHospitalId || uHospitalId || hAdminHospitalId || ndHospitalId;
 
             return { clinicId: finalClinicId || null, hospitalId: finalHospitalId || null };
         };
@@ -298,6 +324,24 @@ const ConsultationTab = () => {
             {loading && !consultationDetails.consultationFees[0]?.consultationFee ? (
                 <div className="flex items-center justify-center h-48 rounded-lg">
                     <UniversalLoader size={28} className="" />
+                </div>
+            ) : fetchError ? (
+                <div className="flex flex-col items-center justify-center h-48 rounded-lg  p-6 text-center">
+
+                    <div className="text-red-500 text-sm">{fetchError}</div>
+                    {/* <button
+                        onClick={() => {
+                            // Trigger re-resolve and fetch
+                            const params = {
+                                clinicId: doctorDetails?.clinicId || clinic?.id || user?.clinicId,
+                                hospitalId: doctorDetails?.hospitalId || user?.hospitalId
+                            };
+                            if (params.clinicId || params.hospitalId) fetchConsultationDetails(params);
+                        }}
+                        className="mt-4 px-4 py-2 border border-red-400 text-error-400 rounded-md hover:bg-red-100 transition-colors text-sm font-medium"
+                    >
+                        Retry Loading
+                    </button> */}
                 </div>
             ) : (
                 <>
