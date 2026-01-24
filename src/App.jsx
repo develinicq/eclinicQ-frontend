@@ -63,6 +63,7 @@ import Payment from "./DoctorModule/Pages/Settings/Payment";
 import Step6 from "./SuperAdmin/pages/Dashboard/Doctor_registration/Step6";
 import Step6Payment from "./SuperAdmin/pages/Dashboard/Doctor_registration/Step6payment";
 import Step7 from "./SuperAdmin/pages/Dashboard/Doctor_registration/Step7";
+import DisplayGraph from "./components/ui/Graphs/DisplayGraph";
 
 // DocSignIn route intentionally not wired per requirement
 import DocSignIn from "./DoctorModule/Pages/Login/SignIn";
@@ -270,6 +271,9 @@ function App() {
     </RegistrationProvider>
   }
 />
+
+{/* grpah routes for testing and displaying */}
+<Route path="/testGraph" element={<DisplayGraph/>}/>
     </Routes>
   );
 }
