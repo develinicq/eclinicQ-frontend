@@ -6,7 +6,7 @@ import ScheduleAppointmentDrawer from '../../../components/PatientList/ScheduleA
 import SampleTable from '../../../pages/SampleTable'
 import { getPatientColumns } from './columns'
 import PatientDetailsDrawer from './PatientDetailsDrawer'
-import { getPatientsForHospital } from '../../../services/patientService'
+import { getPatientsForHospitalAdmin } from '../../../services/hospitalService'
 import useHospitalAuthStore from '../../../store/useHospitalAuthStore'
 import useHospitalDataStore from '../../../store/hospital/useHospitalDataStore';
 import UniversalLoader from '../../../components/UniversalLoader'
@@ -27,10 +27,11 @@ const Patients = () => {
 
   useEffect(() => {
     const fetchPatients = async () => {
-      if (!hospitalId || patientsLoaded) return;
+      // Always fetch to ensure fresh data, or rely on store caching logic
+      if (!hospitalId) return;
       setLoading(true);
       try {
-        const res = await getPatientsForHospital(hospitalId);
+        const res = await getPatientsForHospitalAdmin(hospitalId);
         if (res.success) {
           setPatients(res.data);
         }
@@ -41,7 +42,7 @@ const Patients = () => {
       }
     };
     fetchPatients();
-  }, [hospitalId, patientsLoaded, setPatients]);
+  }, [hospitalId, setPatients]);
 
   // Filter logic
   const patientsFiltered = useMemo(() => {

@@ -507,29 +507,6 @@ export default function HospitalInfoDrawer({ open, onClose, onSave, initial = {}
                     <div className="text-[12px] text-secondary-grey200 mt-1">Support Size upto 2MB in .png, .jpg, .svg, .webp</div>
                 </div>
 
-                <div className="border-b-[0.5px] border-secondary-grey100 my-2"></div>
-                <div ref={adminDetailsRef} className="text-sm font-semibold text-secondary-grey400">Admin Details</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <InputWithMeta label="First Name" requiredDot value={adminFirstName} onChange={setAdminFirstName} placeholder="Enter First Name" />
-                    <InputWithMeta label="Last Name" requiredDot value={adminLastName} onChange={setAdminLastName} placeholder="Enter Last Name" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <InputWithMeta label="Mobile Number" requiredDot value={adminMobile} onChange={setAdminMobile} immutable ImmutableRightIcon={CheckCircle2} placeholder="91753 67487" />
-                    <InputWithMeta label="Email" requiredDot value={adminEmail} onChange={setAdminEmail} immutable ImmutableRightIcon={CheckCircle2} placeholder="admin@example.com" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <InputWithMeta label="Gender" requiredDot showInput={false}>
-                        <div className="flex gap-4 mt-1">
-                            <RadioButton name="adminGender" value="MALE" label="Male" checked={adminGender === "MALE"} onChange={() => setAdminGender("MALE")} />
-                            <RadioButton name="adminGender" value="FEMALE" label="Female" checked={adminGender === "FEMALE"} onChange={() => setAdminGender("FEMALE")} />
-                            <RadioButton name="adminGender" value="OTHER" label="Other" checked={adminGender === "OTHER"} onChange={() => setAdminGender("OTHER")} />
-                        </div>
-                    </InputWithMeta>
-                    <div className="relative">
-                        <InputWithMeta label="City" requiredDot value={adminCity} onChange={setAdminCity} infoIcon RightIcon={ChevronDown} onFieldOpen={() => setAdminCityOpen(!adminCityOpen)} dropdownOpen={adminCityOpen} onRequestClose={() => setAdminCityOpen(false)} placeholder="Mumbai" />
-                        <Dropdown open={adminCityOpen} onClose={() => setAdminCityOpen(false)} items={cityOptions.map(c => ({ label: c, value: c }))} selectedValue={adminCity} onSelect={(it) => { setAdminCity(it.value); setAdminCityOpen(false); }} className="w-full input-meta-dropdown" anchorClassName="w-full" direction="up" />
-                    </div>
-                </div>
 
                 <div className="border-b-[0.5px] border-secondary-grey100 my-2"></div>
                 <div ref={addressDetailsRef} className="text-sm font-semibold text-secondary-grey400">Hospital Address</div>
