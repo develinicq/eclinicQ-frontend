@@ -467,3 +467,26 @@ export const deleteHospitalSurgeryForAdmin = async (hospitalId, surgeryId) => {
     throw error;
   }
 };
+
+export const getAllDoctorsForQueue = async (hospitalId) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.get('/hospitals/queue/all-doctors', {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+export const getAvailableDoctorsForQueue = async (hospitalId) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.get('/hospitals/queue/available-doctors', {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};

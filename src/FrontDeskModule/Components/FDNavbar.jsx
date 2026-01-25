@@ -55,7 +55,7 @@ const AddNewDropdown = ({ isOpen, onClose, onAddPatient, onBookAppointment, onAd
 	);
 };
 
-const FDNavbar = ({ useAuthStore = useFrontDeskAuthStore }) => {
+const FDNavbar = ({ useAuthStore = useFrontDeskAuthStore, BookDrawer = BookAppointmentDrawer }) => {
 	const navigate = useNavigate();
 	const searchRef = useRef(null);
 	const { user, clearAuth, fetchMe } = useAuthStore();
@@ -210,7 +210,7 @@ const FDNavbar = ({ useAuthStore = useFrontDeskAuthStore }) => {
 			</div>
 			<NotificationDrawer show={showNotifications} onClose={() => setShowNotifications(false)} />
 			<AddPatientDrawer open={addPatientOpen} onClose={() => setAddPatientOpen(false)} onSave={() => setAddPatientOpen(false)} />
-			<BookAppointmentDrawer
+			<BookDrawer
 				open={bookApptOpen}
 				onClose={() => setBookApptOpen(false)}
 				// Pass doctor/clinic IDs from store if available, typically FD store might need to have them or pass placeholders

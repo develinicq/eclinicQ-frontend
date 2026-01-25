@@ -13,6 +13,7 @@ export default function InputWithMeta({
   onChange,
   placeholder,
   RightIcon,
+  LeftIcon,
   onIconClick,
   onFieldOpen,
   readonlyWhenIcon = true,
@@ -233,11 +234,20 @@ export default function InputWithMeta({
           </div>
         ) : showInput ? (
           <div className={`relative flex items-stretch ${suffix ? "h-8" : ""}`}>
+            {LeftIcon && !suffix && (
+              <div className="absolute left-2 top-1/2 -translate-y-1/2 text-secondary-grey200">
+                {typeof LeftIcon === "string" ? (
+                  <img src={LeftIcon} alt="icon" className="h-4 w-4" />
+                ) : (
+                  <LeftIcon className="h-4 w-4" />
+                )}
+              </div>
+            )}
             <input
               type={type}
               className={`w-full rounded-sm border-[0.5px] border-secondary-grey200 p-2 h-8 text-sm text-secondary-grey400 focus:outline-none focus:ring-0 focus:border-blue-primary150 focus:border-[2px] placeholder:text-secondary-grey100 ${suffix ? "rounded-r-none border-r-0 pr-2" : "pr-16"
                 } ${disabled ? "bg-gray-100 cursor-not-allowed" : ""} ${isReadOnly || dropdownOpen ? "cursor-pointer select-none" : ""
-                }`}
+                } ${LeftIcon ? "pl-8" : ""}`}
               value={value || ""}
               onChange={(e) => {
                 if (isReadOnly) return; // prevent typing when read-only

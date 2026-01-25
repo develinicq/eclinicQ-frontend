@@ -77,8 +77,11 @@ const SectionCard = ({
   </div>
 );
 
-export default function FDClinics() {
-  const { user } = useFrontDeskAuthStore();
+export default function FDClinics({
+  basePath = "/fd/settings",
+  useAuthStore = useFrontDeskAuthStore
+}) {
+  const { user } = useAuthStore();
   const { clinic, fetchClinicInfo } = useClinicStore();
   const [clinicDrawerOpen, setClinicDrawerOpen] = useState(false);
   const [resolvedClinicPhotos, setResolvedClinicPhotos] = useState([]);
@@ -126,9 +129,9 @@ export default function FDClinics() {
       <div className="px-6 pb-10">
         <SettingsHeader name={user?.name}>
           <nav className="flex items-center gap-6 overflow-x-auto text-sm">
-            <NavLink to="/fd/settings/clinics" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Clinic Details</NavLink>
-            <NavLink to="/fd/settings/consultation" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Consultation Details</NavLink>
-            <NavLink to="/fd/settings/staff-permissions" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Staff Permissions</NavLink>
+            <NavLink to={`${basePath}/clinics`} className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Clinic Details</NavLink>
+            <NavLink to={`${basePath}/consultation`} className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Consultation Details</NavLink>
+            <NavLink to={`${basePath}/staff-permissions`} className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Staff Permissions</NavLink>
           </nav>
         </SettingsHeader>
 

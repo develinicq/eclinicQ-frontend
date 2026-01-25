@@ -250,12 +250,12 @@ export default function SampleTable({
           <tbody>
             {data.map((row, i) => (
               row.isHeader ? (
-                <tr key={i} className="">
+                <tr key={i} className="bg-gray-50/50">
                   <td
                     colSpan={columns.length}
-                    className="px-[10px] py-1 text-[12px] text-secondary-grey400 border-b w-full"
+                    className="px-4 py-2 text-[13px] font-semibold text-gray-500 border-b border-gray-200 w-full"
                   >
-                    <span className="bg-secondary-grey50 px-1 py-[2px]">{row.label}</span>
+                    {row.label}
                   </td>
                 </tr>
               ) : (

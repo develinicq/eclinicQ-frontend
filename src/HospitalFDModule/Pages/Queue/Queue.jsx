@@ -21,27 +21,58 @@ const appt = '/fd/appt.svg'
 const active = '/fd/active.svg'
 import useHospitalFrontDeskAuthStore from '../../../store/useHospitalFrontDeskAuthStore';
 
+import { getAvailableDoctorsForQueue } from '../../../services/hospitalService';
+
 const toggle_open = '/fd/toggle_open.svg'
 
 
-// Initial Data
-const INITIAL_DOCTORS = [
-  { id: 1, name: 'Dr. Arvind Mehta', specialty: 'General Physician', avatar: '', active: true, sessionStarted: true, paused: false, pauseDuration: null, pauseStartTime: null },
-  { id: 2, name: 'Dr. Sneha Deshmukh', specialty: 'Pediatrician', avatar: '', active: false, sessionStarted: false, paused: false, pauseDuration: null, pauseStartTime: null },
-  { id: 3, name: 'Dr. Rajesh Khanna', specialty: 'Cardiologist', avatar: '', active: false, sessionStarted: false, paused: false, pauseDuration: null, pauseStartTime: null },
-  { id: 4, name: 'Dr. Anil Kapoor', specialty: 'Orthopedic Surgeon', avatar: '', active: false, sessionStarted: false, paused: false, pauseDuration: null, pauseStartTime: null },
-  { id: 5, name: 'Dr. Priya Sharma', specialty: 'Neurologist', avatar: '', active: false, sessionStarted: false, paused: false, pauseDuration: null, pauseStartTime: null },
-];
-
 export default function HFDQueue() {
-  const [doctors, setDoctors] = useState(INITIAL_DOCTORS);
-  const [selectedDoctorId, setSelectedDoctorId] = useState(1);
+  const [doctors, setDoctors] = useState([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('appt_request'); // 'active_sessions' or 'appt_request'
+  const [doctorsLoading, setDoctorsLoading] = useState(false);
+
+  const { hospitalId } = useHospitalFrontDeskAuthStore();
+
+  const fetchDoctors = async () => {
+    if (!hospitalId) return;
+    setDoctorsLoading(true);
+    try {
+      const res = await getAvailableDoctorsForQueue(hospitalId);
+      if (res.success && res.data?.doctors) {
+        const mapped = res.data.doctors.map(d => ({
+          id: d.doctorId,
+          name: d.doctorName,
+          specialty: d.medicalPracticeType,
+          avatar: '',
+          active: true,
+          sessionStarted: false,
+          paused: false,
+          pauseDuration: null,
+          pauseStartTime: null
+        }));
+        setDoctors(mapped);
+        if (mapped.length > 0 && !selectedDoctorId) {
+          setSelectedDoctorId(mapped[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch available doctors:', error);
+    } finally {
+      setDoctorsLoading(false);
+    }
+  };
 
   useEffect(() => {
     useHospitalFrontDeskAuthStore.getState().fetchMe();
   }, []);
+
+  useEffect(() => {
+    if (hospitalId) {
+      fetchDoctors();
+    }
+  }, [hospitalId]);
 
   // Hook for Queue Logic (Requests, Approvals)
   const {
@@ -219,7 +250,11 @@ export default function HFDQueue() {
               >
                 <img src={appt} alt="" className='w-3.5 h-3.5' />
                 <span>Appt. Request</span>
-                <div className='w-4 h-4 border border-secondary-grey100/10 rounded-sm flex items-center justify-center text-[10px] px-1 py-[2px] bg-error-400  text-white'>2</div>
+                {appointmentRequests.length > 0 && (
+                  <div className='w-5 h-5 border border-secondary-grey100/10 rounded-sm flex items-center justify-center text-[10px] px-1 py-[2px] bg-error-400  text-white'>
+                    {appointmentRequests.length}
+                  </div>
+                )}
               </button>
             </div>
           ) : null}

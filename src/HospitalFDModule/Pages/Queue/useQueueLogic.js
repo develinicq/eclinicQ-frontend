@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
-    getPendingAppointmentsForClinic,
     approveAppointment,
-    rejectAppointment
+    rejectAppointment,
+    getPendingsAppointmentsForHospital
 } from '../../../services/authService';
 import useAuthStore from '../../../store/useAuthStore';
 import useHospitalFrontDeskAuthStore from '../../../store/useHospitalFrontDeskAuthStore';
 import { getDoctorMe } from '../../../services/authService';
+import useToastStore from '../../../store/useToastStore';
 
 export function useQueueLogic(selectedDoctorIdOverride) {
     const [appointmentRequests, setAppointmentRequests] = useState([]);
@@ -15,8 +16,9 @@ export function useQueueLogic(selectedDoctorIdOverride) {
     const [approvingId, setApprovingId] = useState(null);
     const [rejectingId, setRejectingId] = useState(null);
 
+    const { addToast } = useToastStore();
     const { doctorDetails, doctorLoading, fetchDoctorDetails } = useAuthStore();
-    const { user: hfdUser } = useHospitalFrontDeskAuthStore();
+    const { user: hfdUser, hospitalId: storeHospitalId } = useHospitalFrontDeskAuthStore();
 
     useEffect(() => {
         if (!doctorDetails && !doctorLoading) {
@@ -27,7 +29,7 @@ export function useQueueLogic(selectedDoctorIdOverride) {
     // Derive IDs - Priority to HFD user clinicId, then doctor details
     const clinicId = hfdUser?.clinicId || doctorDetails?.associatedWorkplaces?.clinic?.id || doctorDetails?.clinicId || doctorDetails?.primaryClinicId || null;
     const doctorId = selectedDoctorIdOverride || hfdUser?.doctorId || doctorDetails?.userId || doctorDetails?.id || null;
-    const hospitalId = (Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) && doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id) || undefined;
+    const hospitalId = storeHospitalId || (Array.isArray(doctorDetails?.associatedWorkplaces?.hospitals) && doctorDetails?.associatedWorkplaces?.hospitals?.[0]?.id) || undefined;
 
     // Helpers
     const fmtDOB = dobIso => { if (!dobIso) return ''; try { const d = new Date(dobIso); const day = String(d.getDate()).padStart(2, '0'); const mo = String(d.getMonth() + 1).padStart(2, '0'); const yr = d.getFullYear(); return `${day}/${mo}/${yr}`; } catch { return ''; } };
@@ -84,21 +86,32 @@ export function useQueueLogic(selectedDoctorIdOverride) {
         }
     ];
 
-    const loadAppointments = async () => {
-        // TEMPORARY: Using Dummy Data for UI Dev
+    const loadAppointments = async (clearPrevious = false) => {
+        if (!hospitalId) return;
+        if (clearPrevious) setAppointmentRequests([]);
         setApptLoading(true);
+        setApptError('');
         try {
-            // Simulate network delay
-            await new Promise(r => setTimeout(r, 500));
-            setAppointmentRequests(DUMMY_REQUESTS);
-
-            /* Original API Logic - Commented out for now
-           if (!clinicId) return;
-           setApptError('');
-           const resp = await getPendingAppointmentsForClinic({ clinicId });
-            ... (original mapping) ...
-           setAppointmentRequests(mapped);
-           */
+            const resp = await getPendingsAppointmentsForHospital({ hospitalId });
+            if (resp.success && Array.isArray(resp.data)) {
+                const mapped = resp.data.map(item => ({
+                    id: item.id,
+                    name: `${item.patientDetails?.firstName || ''} ${item.patientDetails?.lastName || ''}`.trim(),
+                    gender: item.patientDetails?.gender === 'MALE' ? 'M' : item.patientDetails?.gender === 'FEMALE' ? 'F' : item.patientDetails?.gender,
+                    age: `${calcAgeYears(item.patientDetails?.dob)}Y`,
+                    dob: `${fmtDOB(item.patientDetails?.dob)} (${calcAgeYears(item.patientDetails?.dob)}Y)`,
+                    date: fmtApptDate(item.schedule?.date),
+                    time: fmtTimeRangeIST(item.schedule?.startTime, item.schedule?.endTime),
+                    doctorName: `Dr. ${item.doctor?.firstName || ''} ${item.doctor?.lastName || ''}`.trim(),
+                    doctorSpecialty: 'General Physician', // Fallback as not in API
+                    dateRaw: item.schedule?.date,
+                    reason: item.reason || '',
+                    raw: item
+                }));
+                setAppointmentRequests(mapped);
+            } else {
+                setAppointmentRequests([]);
+            }
         } catch (e) {
             console.error(e);
             setApptError('Failed to load');
@@ -108,20 +121,41 @@ export function useQueueLogic(selectedDoctorIdOverride) {
     };
 
     useEffect(() => {
-        loadAppointments();
-    }, [clinicId]);
+        loadAppointments(true); // Clear only on hospitalId change
+    }, [hospitalId]);
 
     const handleApprove = async (request, onSuccess) => {
         try {
-            if (!request?.raw?.id) return;
-            setApprovingId(request.raw.id);
-            await approveAppointment(request.raw.id);
-            setAppointmentRequests(prev => prev.filter(r => r.raw?.id !== request.raw.id));
-            onSuccess?.();
+            if (!request?.id) return;
+            setApprovingId(request.id);
+            const res = await approveAppointment(request.id);
+            if (res.success) {
+                // Optimistic Update: remove the item immediately
+                setAppointmentRequests(prev => prev.filter(r => r.id !== request.id));
+
+                addToast({
+                    title: 'Appointment Approved',
+                    message: 'Appointment has been successfully moved to queue.',
+                    type: 'success'
+                });
+
+                // End loading before refresh to make it snappy
+                setApprovingId(null);
+
+                // Sync with server in background
+                loadAppointments();
+                onSuccess?.();
+            } else {
+                throw new Error(res.message || 'Failed to approve appointment');
+            }
         } catch (e) {
             console.error('Approve failed', e?.response?.data || e.message);
-        } finally {
             setApprovingId(null);
+            addToast({
+                title: 'Approval Failed',
+                message: e?.response?.data?.message || e.message || 'Something went wrong while approving.',
+                type: 'error'
+            });
         }
     };
 

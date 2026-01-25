@@ -183,8 +183,22 @@ export default function SignIn({ variant = "neutral" }) {
         data?.user || data?.data?.user || data?.data?.data?.user || null;
       if (token) setToken(token);
       if (user) setUser(user);
-      await fetchDoctorDetails(getDoctorMe);
-      navigate("/doc", { replace: true });
+
+      // Only fetch doctor details if we are in doctor/neutral context
+      if (variant !== "hfd" && variant !== "fd" && variant !== "hospital") {
+        await fetchDoctorDetails(getDoctorMe);
+      }
+
+      // Role-based redirection logic
+      if (variant === "hfd") {
+        navigate("/hfd/queue", { replace: true });
+      } else if (variant === "fd") {
+        navigate("/fd/queue", { replace: true });
+      } else if (variant === "hospital") {
+        navigate("/hospital", { replace: true });
+      } else {
+        navigate("/doc", { replace: true });
+      }
     } catch (e) {
       const apiMsg =
         e?.response?.data?.message ||
@@ -221,8 +235,22 @@ export default function SignIn({ variant = "neutral" }) {
       const user = data?.user || data?.data?.user || null;
       if (token) setToken(token);
       if (user) setUser(user);
-      await fetchDoctorDetails(getDoctorMe);
-      navigate("/doc", { replace: true });
+
+      // Only fetch doctor details if we are in doctor/neutral context
+      if (variant !== "hfd" && variant !== "fd" && variant !== "hospital") {
+        await fetchDoctorDetails(getDoctorMe);
+      }
+
+      // Role-based redirection logic
+      if (variant === "hfd") {
+        navigate("/hfd/queue", { replace: true });
+      } else if (variant === "fd") {
+        navigate("/fd/queue", { replace: true });
+      } else if (variant === "hospital") {
+        navigate("/hospital", { replace: true });
+      } else {
+        navigate("/doc", { replace: true });
+      }
     } catch (e) {
       const apiMsg =
         e?.response?.data?.message ||

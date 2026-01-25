@@ -1,5 +1,5 @@
 import React from 'react';
-import {Building2} from "lucide-react"
+import { Building2 } from "lucide-react"
 
 // Size tokens: L(48px), MD(40px), S(32px), XS(24px)
 const sizeMap = {

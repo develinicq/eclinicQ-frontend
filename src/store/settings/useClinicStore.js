@@ -14,10 +14,13 @@ const useClinicStore = create((set, get) => ({
 
   // Fetch clinic info
   fetchClinicInfo: async (params) => {
+    console.log("useClinicStore fetchClinicInfo called with params:", params);
     set({ loading: true, error: null });
     try {
-      const hasDoctorId = !!params?.doctorId;
-      const response = hasDoctorId
+      // Robustly detect staff context: if we have isStaff flag or doctorId
+      const isStaff = params?.isStaff || !!params?.doctorId;
+
+      const response = isStaff
         ? await getStaffClinicInfo(params)
         : await getClinicInfo();
 

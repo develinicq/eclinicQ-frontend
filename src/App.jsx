@@ -180,8 +180,8 @@ function App() {
       </Route>
 
       {/* billing */}
-       <Route path="billing/upgrade-plan" element={<UpgradePlan/>} />
-       <Route path="billing/payment" element={<Payment/>} />
+      <Route path="billing/upgrade-plan" element={<UpgradePlan />} />
+      <Route path="billing/payment" element={<Payment />} />
 
       {/* FrontDesk Portal (copy of Doctor Portal) */}
       <Route element={<ProtectedFrontDeskRoute />}>
@@ -236,18 +236,21 @@ function App() {
           <Route path="patients" element={<HFDPatients />} />
           <Route path="patients/:id" element={<HFDPatientDetails />} />
           {/* Settings */}
+          {/* 
           <Route path="settings/clinics" element={<HFDClinics />} />
           <Route path="settings/consultation" element={<HFDConsultation />} />
           <Route
             path="settings/staff-permissions"
             element={<HFDStaffPermissions />}
           />
+          */}
         </Route>
       </Route>
 
 
       {/* testing and building */}
       <Route
+
   path="step6/test"
   element={
     <RegistrationProvider>
@@ -274,6 +277,7 @@ function App() {
 
 {/* grpah routes for testing and displaying */}
 <Route path="/testGraph" element={<DisplayGraph/>}/>
+
     </Routes>
   );
 }

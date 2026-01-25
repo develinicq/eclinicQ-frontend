@@ -3,22 +3,22 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { HelpCircle, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react'
 import { logo, doctorSelect, doctorUnselect, hospitalSelected, hospitalUnselect, patientUnselect, settingUnselect } from '../../../public/index.js'
 
-export default function HFDSidebar(){
+export default function HFDSidebar() {
   const location = useLocation()
   const isSettingsRoute = location.pathname.startsWith('/hfd/settings')
   const [openSettings, setOpenSettings] = useState(isSettingsRoute)
-  useEffect(()=>{ if(isSettingsRoute) setOpenSettings(true) }, [isSettingsRoute])
+  useEffect(() => { if (isSettingsRoute) setOpenSettings(true) }, [isSettingsRoute])
 
   const menuItems = [
     { name: 'Queue Management', iconSelected: patientUnselect, iconUnselected: patientUnselect, path: '/hfd/queue', alt: 'Queue' },
     { name: 'Patients', iconSelected: doctorSelect, iconUnselected: doctorUnselect, path: '/hfd/patients', alt: 'Patients' },
     { name: 'Calendar', iconSelected: hospitalSelected, iconUnselected: hospitalUnselect, path: '/hfd/calendar', alt: 'Calendar' },
-    { name: 'Settings', iconSelected: settingUnselect, iconUnselected: settingUnselect, path: '/hfd/settings', alt: 'Settings' },
+    // { name: 'Settings', iconSelected: settingUnselect, iconUnselected: settingUnselect, path: '/hfd/settings', alt: 'Settings' },
   ]
   const settingsSubItems = [
-    { label: 'Clinic Details', to: '/hfd/settings/clinics' },
-    { label: 'Consultation Details', to: '/hfd/settings/consultation' },
-    { label: 'Staff Permissions', to: '/hfd/settings/staff-permissions' },
+    // { label: 'Clinic Details', to: '/hfd/settings/clinics' },
+    // { label: 'Consultation Details', to: '/hfd/settings/consultation' },
+    // { label: 'Staff Permissions', to: '/hfd/settings/staff-permissions' },
   ]
 
   return (
@@ -37,6 +37,7 @@ export default function HFDSidebar(){
                 </NavLink>
               )
             }
+            /*
             return (
               <div key="Settings" className="">
                 <button type="button" onClick={() => setOpenSettings((v) => !v)} className={`w-full flex items-center justify-between py-3 px-4 h-[44px] transition-colors ${isSettingsRoute ? 'bg-[#2372EC] text-white border-l-[3px] border-[#96BFFF]' : 'text-gray-800 hover:bg-gray-100'}`}>
@@ -57,6 +58,8 @@ export default function HFDSidebar(){
                 )}
               </div>
             )
+            */
+            return null;
           })}
         </nav>
       </div>

@@ -68,7 +68,10 @@ const toRawUTC_HM = (iso) => {
   return `${hh}:${mm}`;
 };
 
-export default function FDConsultation() {
+export default function FDConsultation({
+  basePath = "/fd/settings",
+  useAuthStore = useFrontDeskAuthStore
+}) {
   const [availabilityOpen, setAvailabilityOpen] = useState(false);
   const {
     consultationDetails,
@@ -80,7 +83,7 @@ export default function FDConsultation() {
     isDirty,
   } = useConsultationStore();
 
-  const { user } = useFrontDeskAuthStore();
+  const { user } = useAuthStore();
   const { clinic } = useClinicStore();
   const { addToast } = useToastStore();
 
@@ -184,9 +187,9 @@ export default function FDConsultation() {
       <div className="px-6 pb-10">
         <SettingsHeader name={user?.name}>
           <nav className="flex items-center gap-6 overflow-x-auto text-sm">
-            <NavLink to="/fd/settings/clinics" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Clinic Details</NavLink>
-            <NavLink to="/fd/settings/consultation" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Consultation Details</NavLink>
-            <NavLink to="/fd/settings/staff-permissions" className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Staff Permissions</NavLink>
+            <NavLink to={`${basePath}/clinics`} className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Clinic Details</NavLink>
+            <NavLink to={`${basePath}/consultation`} className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Consultation Details</NavLink>
+            <NavLink to={`${basePath}/staff-permissions`} className={({ isActive }) => `pb-3 border-b-2 ${isActive ? 'border-blue-600 text-blue-primary250' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>Staff Permissions</NavLink>
           </nav>
         </SettingsHeader>
 

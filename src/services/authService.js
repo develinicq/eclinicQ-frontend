@@ -305,13 +305,25 @@ export const resumeSlotEta = async (slotId) => {
 export const terminateQueue = async ({ slotIds, cancellationReason }) => {
   if (!slotIds || !slotIds.length) throw new Error('slotIds are required');
   try {
-    const response = await axiosInstance.post('/slots/queue/terminate', {
+    const response = await axiosInstance.post('/appointments/terminate-queue', {
       slotIds,
       cancellationReason
     });
     return response.data;
   } catch (error) {
     console.error('Terminate queue failed:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Get pending appointments for a hospital
+export const getPendingsAppointmentsForHospital = async ({ hospitalId }) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axiosInstance.post('/appointments/pending-appointments-doctor-hospital', { hospitalId });
+    return res.data;
+  } catch (error) {
+    console.error('Get pending appointments failed:', error?.response?.data || error.message);
     throw error;
   }
 };

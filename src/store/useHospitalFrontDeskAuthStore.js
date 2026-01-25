@@ -7,16 +7,25 @@ const useHospitalFrontDeskAuthStore = create(
             token: null,
             user: null,
             roleNames: [],
+            hospitalId: null,
+            clinicId: null,
+            doctorId: null,
             loading: false,
 
             setToken: (token) => set({ token }),
             setUser: (user) => set({ user }),
             setRoleNames: (roleNames) => set({ roleNames }),
+            setHospitalId: (hospitalId) => set({ hospitalId }),
+            setClinicId: (clinicId) => set({ clinicId }),
+            setDoctorId: (doctorId) => set({ doctorId }),
 
             clearAuth: () => set({
                 token: null,
                 user: null,
-                roleNames: []
+                roleNames: [],
+                hospitalId: null,
+                clinicId: null,
+                doctorId: null
             }),
 
             fetchMe: async () => {
@@ -26,8 +35,12 @@ const useHospitalFrontDeskAuthStore = create(
                     const res = await axiosInstance.get('/staff/me');
 
                     if (res.data?.success) {
+                        const data = res.data.data;
                         set({
-                            user: res.data.data,
+                            user: data,
+                            hospitalId: data.hospitalId,
+                            clinicId: data.hospitalId, // For HFD, clinic settings are hospital-level
+                            doctorId: data.staffId,    // Use staffId as doctorId for staff context
                             loading: false
                         });
                         return res.data;
@@ -59,7 +72,10 @@ const useHospitalFrontDeskAuthStore = create(
             partialize: (state) => ({
                 token: state.token,
                 user: state.user,
-                roleNames: state.roleNames
+                roleNames: state.roleNames,
+                hospitalId: state.hospitalId,
+                clinicId: state.clinicId,
+                doctorId: state.doctorId
             }),
         }
     )

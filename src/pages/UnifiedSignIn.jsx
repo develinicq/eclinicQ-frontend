@@ -1,7 +1,10 @@
-import React from 'react'
-import SignIn from '../components/Auth/SignIn'
+import { useLocation } from 'react-router-dom';
 
-// Unified SignIn page without any variant-specific UI
-export default function UnifiedSignIn(){
-  return <SignIn />
+// Unified SignIn page that passes the variant prop from URL search params
+export default function UnifiedSignIn() {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const variant = params.get('variant') || 'neutral';
+
+  return <SignIn variant={variant} />
 }

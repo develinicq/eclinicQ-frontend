@@ -30,10 +30,36 @@ export const getPatientsForHospital = async (hospitalId) => {
     }
 };
 
+// Get all patients for Hospital Staff (HFD)
+export const getPatientsForHospitalStaff = async (hospitalId) => {
+    try {
+        const res = await axios.get("/hospitals/staff/patients-list", {
+            params: { hospitalId },
+            roleContext: 'hfd'
+        });
+        return res.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
 // Get patient details for Hospital Admin
 export const getPatientDetailsForHospital = async (hospitalId, patientId) => {
     try {
         const res = await axios.get(`/patients/for-hospital-admin/${hospitalId}/patient-details/${patientId}`);
+        return res.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Get patient details for Hospital Staff (HFD)
+export const getPatientDetailsForHospitalStaff = async (hospitalId, patientId) => {
+    try {
+        const res = await axios.get("/hospitals/staff/patient-details", {
+            params: { hospitalId, patientId },
+            roleContext: 'hfd'
+        });
         return res.data;
     } catch (error) {
         throw error;

@@ -4,6 +4,7 @@ import { Calendar, Clock, ChevronRight, Play, ArrowRight, ClipboardList, CheckCi
 import SessionTimer from '../../../components/SessionTimer';
 import AvatarCircle from '../../../components/AvatarCircle';
 import Button from '../../../components/Button';
+import UniversalLoader from '../../../components/UniversalLoader';
 const more = '/superAdmin/Doctors/Threedots.svg'
 const CalendarMinimalistic = '/fd/Calendar Minimalistic.svg'
 const ClockCircle = '/fd/Clock Circle.svg'
@@ -44,92 +45,101 @@ export default function RightQueueSidebar({
 
             {/* Content Area */}
             {expanded ? (
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto pb-20">
                     {activeTab === 'appt_request' && (
-                        <div className="flex flex-col">
-                            {loading && <div className="p-4 text-sm text-gray-500 text-center">Loading requests...</div>}
+                        <div className="flex flex-col relative">
+                            {loading && (
+                                <div className="absolute inset-0 bg-white/50 z-10 flex flex-col items-center justify-center gap-2">
+                                    <UniversalLoader size={32} />
+                                    <span className="text-sm text-gray-500 font-medium">Refreshing list...</span>
+                                </div>
+                            )}
 
                             {!loading && appointmentRequests.length === 0 && (
                                 <div className="p-8 text-center text-gray-500 text-sm">No new appointment requests</div>
                             )}
 
-                            {appointmentRequests.map((request, index) => (
-                                <div key={request.id || index} className="border-b border-gray-100 flex flex-col gap-3 last:border-0 p-3 bg-white  transition-colors">
-
-                                    {/* Patient Header */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <AvatarCircle name={request.name} size="l" />
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-[16px] font-semibold text-secondary-grey400">{request.name}</span>
-                                                    <ArrowRight className="h-3 w-3 text-gray-400 -rotate-45" />
-                                                </div>
-                                                <div className="text-[12px] text-secondary-grey300">{request.gender} | {request.dob}</div>
-                                            </div>
-                                        </div>
-                                        <button className="text-gray-400 hover:bg-secondary-grey50">
-                                            <img src={more} alt="" />
-                                        </button>
-                                    </div>
-
-                                    {/* Date & Time */}
-                                    <div className="flex flex-col gap-1">
-                                        <div className='flex flex-col gap-1 text-sm text-secondary-grey400'>
+                            <div className={`flex flex-col transition-opacity duration-200 ${loading && appointmentRequests.length === 0 ? 'opacity-0' : 'opacity-100'}`}>
+                                {appointmentRequests.map((request, index) => (
+                                    <div key={request.id || index} className="border-b border-gray-100 flex flex-col gap-3 last:border-0 p-3 bg-white transition-colors">
+                                        {/* Patient Header */}
+                                        <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <img src={CalendarMinimalistic} alt="" />
-                                                <span>{request.date}</span>
-                                            </div>
-                                            {request.time && (
-                                                <div className="flex items-center gap-2 ">
-                                                    <img src={ClockCircle} alt="" />
-                                                    <span>{request.time}</span>
+                                                <AvatarCircle name={request.name?.replace(/^Dr\.\s*/i, '')} size="l" />
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-[16px] font-semibold text-secondary-grey400">{request.name}</span>
+                                                        <ArrowRight className="h-3 w-3 text-gray-400 -rotate-45" />
+                                                    </div>
+                                                    <div className="text-[12px] text-secondary-grey300">{request.gender} | {request.dob}</div>
                                                 </div>
-                                            )}
+                                            </div>
+                                            <button className="text-gray-400 hover:bg-secondary-grey50">
+                                                <img src={more} alt="" />
+                                            </button>
                                         </div>
 
-                                        {/* Request For */}
+                                        {/* Date & Time */}
                                         <div className="flex flex-col gap-1">
-                                            <div className="text-sm text-secondary-grey200">Request For</div>
-                                            <div className="flex items-center gap-2">
-                                                <AvatarCircle
-                                                    name={request.doctorName || 'Doctor'}
-                                                    size="s"
-                                                    className="shrink-0 text-orange-500 border border-orange-200 bg-orange-50"
-                                                    color="orange"
-                                                />
-                                                <div>
-                                                    <div className="text-sm font-medium text-secondary-grey400 leading-tight">{request.doctorName}</div>
-                                                    <div className="text-xs text-secondary-grey300">{request.doctorSpecialty}</div>
+                                            <div className='flex flex-col gap-1 text-sm text-secondary-grey400'>
+                                                <div className="flex items-center gap-2">
+                                                    <img src={CalendarMinimalistic} alt="" />
+                                                    <span>{request.date}</span>
+                                                </div>
+                                                {request.time && (
+                                                    <div className="flex items-center gap-2 ">
+                                                        <img src={ClockCircle} alt="" />
+                                                        <span>{request.time}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Request For */}
+                                            <div className="flex flex-col gap-1">
+                                                <div className="text-sm text-secondary-grey200">Request For</div>
+                                                <div className="flex items-center gap-2">
+                                                    <AvatarCircle
+                                                        name={request.doctorName?.replace(/^Dr\.\s*/i, '') || 'Doctor'}
+                                                        size="s"
+                                                        className="shrink-0 text-orange-500 border border-orange-200 bg-orange-50"
+                                                        color="orange"
+                                                    />
+                                                    <div>
+                                                        <div className="text-sm font-medium text-secondary-grey400 leading-tight">{request.doctorName}</div>
+                                                        <div className="text-xs text-secondary-grey300">{request.doctorSpecialty}</div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
+                                        {/* Buttons */}
+                                        <div className="flex gap-3">
+                                            <Button
+                                                size="small"
+                                                variant="primary"
+                                                className={`flex-1 font-medium py-2 h-9 rounded-md transition-all ${approvingId === request.id ? 'bg-blue-primary400' : 'bg-blue-primary250 hover:bg-blue-primary400'}`}
+                                                disabled={approvingId === request.id}
+                                                onClick={() => onApprove(request)}
+                                            >
+                                                {approvingId === request.id ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <UniversalLoader size={16} color="white" style={{ width: 'auto', height: 'auto' }} />
+                                                        <span>Accepting...</span>
+                                                    </div>
+                                                ) : 'Accept'}
+                                            </Button>
+                                            <Button
+                                                size="small"
+                                                variant="secondary"
+                                                className="flex-1 border border-gray-300 text-gray-700 hover:bg-secondary-grey50 font-medium py-2 h-9 rounded-md disabled:opacity-50"
+                                                disabled={approvingId === request.id}
+                                            >
+                                                Ask to Reschedule
+                                            </Button>
+                                        </div>
                                     </div>
-
-
-
-                                    {/* Buttons */}
-                                    <div className="flex gap-3">
-                                        <Button
-                                            size="small"
-                                            variant="primary"
-                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 h-9 rounded-md"
-                                            disabled={!!approvingId}
-                                            onClick={() => onApprove(request)}
-                                        >
-                                            {approvingId === request.raw?.id ? 'Accepting...' : 'Accept'}
-                                        </Button>
-                                        <Button
-                                            size="small"
-                                            variant="secondary"
-                                            className="flex-1 border border-gray-300 text-gray-700 hover:bg-secondary-grey50 font-medium py-2 h-9 rounded-md"
-                                        >
-                                            Ask to Reschedule
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     )}
 

@@ -48,6 +48,13 @@ axiosInstance.interceptors.request.use(
         fdToken = store.getState().token;
       } catch (e) { /* ignore */ }
 
+      let hfdToken = null;
+      try {
+        // Dynamic import for hospital front desk auth store
+        const store = (await import('../store/useHospitalFrontDeskAuthStore')).default;
+        hfdToken = store.getState().token;
+      } catch (e) { /* ignore */ }
+
       const genericToken = (() => {
         try { return useAuthStore.getState().token; } catch { return null; }
       })();
@@ -79,7 +86,10 @@ axiosInstance.interceptors.request.use(
       } else if (isDoctorModule) {
         // Strictly prioritize Doctor token in Doctor module
         token = dToken || fdToken || saToken || hToken || genericToken || lsToken;
-      } else if (isHospitalModule || isHospitalFDModule) {
+      } else if (isHospitalFDModule) {
+        // Strictly prioritize HFD token in HFD module
+        token = hfdToken || hToken || saToken || dToken || genericToken || lsToken;
+      } else if (isHospitalModule) {
         token = hToken || saToken || dToken || genericToken || lsToken;
       } else {
         // Universal fallback
@@ -116,8 +126,8 @@ axiosInstance.interceptors.response.use(
         // Dynamic import for doctor auth store to clear it too
         import('../store/useDoctorAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
 
-        // Dynamic import for front desk auth store to clear it too
-        import('../store/useFrontDeskAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
+        // Dynamic import for hospital front desk auth store to clear it too
+        import('../store/useHospitalFrontDeskAuthStore').then(m => m.default.getState().clearAuth()).catch(() => { });
 
         // Note: useToastStore might need to be imported or accessed similarly
         // For now, keeping the 401 logic minimal to avoid breaking more things

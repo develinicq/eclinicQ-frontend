@@ -38,25 +38,25 @@ export default function Dropdown({
   }, [open, onClose]);
 
   // Calculate position based on anchor element
- useEffect(() => {
-  if (open && anchorRef.current) {
-    const rect = anchorRef.current.getBoundingClientRect();
-    const GAP = 8;
+  useEffect(() => {
+    if (open && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      const GAP = 8;
 
-    const pos = {
-      left: rect.left,
-      width: rect.width,
-    };
+      const pos = {
+        left: rect.left,
+        width: rect.width,
+      };
 
-    if (direction === "up") {
-      pos.bottom = window.innerHeight - rect.top + GAP;
-    } else {
-      pos.top = rect.bottom + GAP;
+      if (direction === "up") {
+        pos.bottom = window.innerHeight - rect.top + GAP;
+      } else {
+        pos.top = rect.bottom + GAP;
+      }
+
+      setPosition(pos);
     }
-
-    setPosition(pos);
-  }
-}, [open, direction]);
+  }, [open, direction]);
 
 
   if (!open) return <div ref={anchorRef} className={anchorClassName} />;

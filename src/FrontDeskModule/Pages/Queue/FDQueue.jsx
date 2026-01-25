@@ -330,23 +330,60 @@ export default function FDQueue() {
 				const counts = data.counts || {};
 				const appointments = data.appointments || {};
 
+				// Normalize counts: if object with .total, use .total
+				const normalizeCount = (val) => {
+					if (typeof val === 'number') return val;
+					if (val && typeof val === 'object' && val.total !== undefined) return val.total;
+					return 0;
+				};
+
 				setAppointmentCounts({
-					checkedIn: counts.checkedIn || 0,
-					inWaiting: counts.inWaiting || 0,
-					engaged: counts.engaged || 0,
-					noShow: counts.noShow || 0,
-					admitted: counts.admitted || 0,
-					all: counts.all || 0
+					checkedIn: normalizeCount(counts.checkedIn),
+					inWaiting: normalizeCount(counts.inWaiting),
+					engaged: normalizeCount(counts.engaged),
+					noShow: normalizeCount(counts.noShow),
+					admitted: normalizeCount(counts.admitted),
+					all: normalizeCount(counts.all)
 				});
 
-				// Map all lists
+				// Map all lists safely
+				const ensureArray = (val) => Array.isArray(val) ? val : [];
+
+				const noShowRaw = appointments.noShow || {};
+				const withinGrace = ensureArray(noShowRaw.withinGracePeriod).map(item => ({ ...mapAppointmentToRow(item), isGrace: true }));
+				const outsideGrace = ensureArray(noShowRaw.outsideGracePeriod).map(item => ({ ...mapAppointmentToRow(item), isGrace: false }));
+
+				const mappedNoShow = [];
+				if (withinGrace.length > 0) {
+					mappedNoShow.push({ isHeader: true, label: "Within Grace Period" });
+					mappedNoShow.push(...withinGrace);
+				}
+				if (outsideGrace.length > 0) {
+					mappedNoShow.push({ isHeader: true, label: "Outside Grace Period" });
+					mappedNoShow.push(...outsideGrace);
+				}
+				// If both empty but we are in No Show tab, maybe show nothing or just the empty arrays?
+				// The user reference showed both headers even if empty sometimes? 
+				// Actually MiddleQueue shows them if they exist. 
+				// Let's stick to showing headers only if data exists for now, or as per user screenshot.
+
+				// Re-reading user request: "noshow table nothing is being shown... implement it... like we did in doctor queue... within grace period heading"
+				// Usually we show the headers always if the tab is active? 
+				// Let's always add headers if we want to mimic the reference exactly.
+				const mappedNoShowStrict = [
+					{ isHeader: true, label: "Within Grace Period" },
+					...withinGrace,
+					{ isHeader: true, label: "Outside Grace Period" },
+					...outsideGrace
+				];
+
 				setAppointmentsData({
-					checkedIn: (appointments.checkedIn || []).map(mapAppointmentToRow),
-					inWaiting: (appointments.inWaiting || []).map(mapAppointmentToRow),
-					engaged: (appointments.engaged || []).map(mapAppointmentToRow),
-					noShow: (appointments.noShow || []).map(mapAppointmentToRow),
-					admitted: (appointments.admitted || []).map(mapAppointmentToRow),
-					all: (appointments.all || []).map(mapAppointmentToRow)
+					checkedIn: ensureArray(appointments.checkedIn).map(mapAppointmentToRow),
+					inWaiting: ensureArray(appointments.inWaiting).map(mapAppointmentToRow),
+					engaged: ensureArray(appointments.engaged).map(mapAppointmentToRow),
+					noShow: mappedNoShowStrict,
+					admitted: ensureArray(appointments.admitted).map(mapAppointmentToRow),
+					all: ensureArray(appointments.all).map(mapAppointmentToRow)
 				});
 			}
 		} catch (error) {
@@ -527,11 +564,15 @@ export default function FDQueue() {
 
 	// API Counts
 	const getFilterCount = f => {
-		if (f === 'In Waiting') return appointmentCounts.inWaiting;
-		if (f === 'Engaged') return appointmentCounts.engaged;
-		if (f === 'No show') return appointmentCounts.noShow;
-		if (f === 'Checking In' || f === 'Checked-In') return appointmentCounts.checkedIn;
-		if (f === 'Admitted') return appointmentCounts.admitted;
+		let val = 0;
+		if (f === 'In Waiting') val = appointmentCounts.inWaiting;
+		else if (f === 'Engaged') val = appointmentCounts.engaged;
+		else if (f === 'No show') val = appointmentCounts.noShow;
+		else if (f === 'Checking In' || f === 'Checked-In') val = appointmentCounts.checkedIn;
+		else if (f === 'Admitted') val = appointmentCounts.admitted;
+
+		if (typeof val === 'number') return val;
+		if (val && typeof val === 'object' && val.total !== undefined) return val.total;
 		return 0;
 	};
 	// Updated Active Patient to use Real Data
