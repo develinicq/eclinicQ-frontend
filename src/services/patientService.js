@@ -23,7 +23,9 @@ export const getPatientDetailsForSuperAdmin = async (patientId) => {
 // Get all patients for Hospital Admin
 export const getPatientsForHospital = async (hospitalId) => {
     try {
-        const res = await axios.get(`/patients/for-hospital-admin/${hospitalId}/patients-list`);
+        const res = await axios.get("/patients/for-hospital-admin/patients-list", {
+            params: { hospitalId }
+        });
         return res.data;
     } catch (error) {
         throw error;

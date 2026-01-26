@@ -33,7 +33,9 @@ const Patients = () => {
       try {
         const res = await getPatientsForHospitalAdmin(hospitalId);
         if (res.success) {
-          setPatients(res.data);
+          // Robustly handle different response formats
+          const patientsList = res.data?.patients || (Array.isArray(res.data) ? res.data : []);
+          setPatients(patientsList);
         }
       } catch (err) {
         console.error("Failed to fetch patients", err);
