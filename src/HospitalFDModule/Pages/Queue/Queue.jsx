@@ -15,6 +15,8 @@ import MiddleQueue from './MiddleQueue';
 import RightQueueSidebar from './RightQueueSidebar';
 import Badge from '../../../components/Badge';
 import PauseQueueModal from '../../../components/PauseQueueModal';
+import { startSlotEta, findPatientSlots, pauseSlotEta, resumeSlotEta } from '../../../services/authService';
+import useToastStore from '../../../store/useToastStore';
 const search = '/superAdmin/Doctors/SearchIcon.svg'
 import { useQueueLogic } from './useQueueLogic';
 const appt = '/fd/appt.svg'
@@ -47,8 +49,10 @@ export default function HFDQueue() {
           specialty: d.medicalPracticeType,
           avatar: '',
           active: true,
-          sessionStarted: false,
-          paused: false,
+          sessionStarted: d.sessionStatus === 'STARTED',
+          slotId: d.slotId,
+          starting: false,
+          paused: d.sessionStatus === 'PAUSED',
           pauseDuration: null,
           pauseStartTime: null
         }));
@@ -90,37 +94,155 @@ export default function HFDQueue() {
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [pauseMinutes, setPauseMinutes] = useState(null);
   const [pendingPauseDocId, setPendingPauseDocId] = useState(null);
+  const [pauseSubmitting, setPauseSubmitting] = useState(false);
+  const [pauseError, setPauseError] = useState(null);
 
-  const handleToggleSession = (docId) => {
+  const { addToast } = useToastStore();
+
+  const handleToggleSession = async (docId) => {
     const doc = doctors.find(d => d.id === docId);
-    if (doc?.sessionStarted) {
+    if (!doc) return;
+
+    if (doc.sessionStarted) {
       // If session is active, we are pausing it -> Open Modal
       setPendingPauseDocId(docId);
       setShowPauseModal(true);
     } else {
       // If session is inactive, just start it
+      let slotIdToStart = doc.slotId;
+
       setDoctors(prev => prev.map(d =>
-        d.id === docId ? { ...d, sessionStarted: true } : d
+        d.id === docId ? { ...d, starting: true } : d
       ));
+
+      try {
+        // If slotId is missing, try to fetch it for today
+        if (!slotIdToStart) {
+          const today = new Date().toISOString().slice(0, 10);
+          const slotRes = await findPatientSlots({
+            doctorId: docId,
+            hospitalId: hospitalId,
+            date: today
+          });
+          const slots = Array.isArray(slotRes) ? slotRes : (slotRes?.data || slotRes?.slots || []);
+
+          if (slots.length > 0) {
+            // Pick first slot
+            slotIdToStart = slots[0].id || slots[0].slotId || slots[0]._id;
+            // Update doctor with slotId for future use
+            setDoctors(prev => prev.map(d =>
+              d.id === docId ? { ...d, slotId: slotIdToStart } : d
+            ));
+          }
+        }
+
+        if (!slotIdToStart) {
+          addToast({
+            title: "No Slots Found",
+            message: `No active slots found for ${doc.name} today.`,
+            type: "error"
+          });
+          setDoctors(prev => prev.map(d =>
+            d.id === docId ? { ...d, starting: false } : d
+          ));
+          return;
+        }
+
+        const res = await startSlotEta(slotIdToStart);
+        if (res.success) {
+          setDoctors(prev => prev.map(d =>
+            d.id === docId ? { ...d, sessionStarted: true, starting: false } : d
+          ));
+          addToast({
+            title: "Success",
+            message: `Check-ups started for ${doc.name}`,
+            type: "success"
+          });
+          // Reload appointments for the selected doctor if it's the one we just started
+          if (docId === selectedDoctorId) {
+            reloadAppointments?.();
+          }
+        } else {
+          throw new Error(res.message || "Failed to start check-ups");
+        }
+      } catch (error) {
+        console.error("Failed to start slot:", error);
+        setDoctors(prev => prev.map(d =>
+          d.id === docId ? { ...d, starting: false } : d
+        ));
+        addToast({
+          title: "Error",
+          message: error.response?.data?.message || error.message || "Something went wrong",
+          type: "error"
+        });
+      }
     }
   };
 
-  const confirmPauseQueue = () => {
-    if (pendingPauseDocId) {
-      setDoctors(prev => prev.map(d =>
-        d.id === pendingPauseDocId ? { ...d, sessionStarted: true, paused: true, pauseDuration: pauseMinutes, pauseStartTime: new Date().toISOString() } : d
-      ));
-      setPendingPauseDocId(null);
+  const confirmPauseQueue = async () => {
+    if (!pendingPauseDocId || !pauseMinutes) return;
+    const doc = doctors.find(d => d.id === pendingPauseDocId);
+    if (!doc?.slotId) return;
+
+    setPauseSubmitting(true);
+    setPauseError(null);
+    try {
+      const res = await pauseSlotEta(doc.slotId, pauseMinutes);
+      if (res.success) {
+        setDoctors(prev => prev.map(d =>
+          d.id === pendingPauseDocId ? {
+            ...d,
+            sessionStarted: true,
+            paused: true,
+            pauseDuration: pauseMinutes,
+            pauseStartTime: new Date().toISOString()
+          } : d
+        ));
+        addToast({
+          title: "Queue Paused",
+          message: `Queue paused for ${pauseMinutes} minutes`,
+          type: "success"
+        });
+        setShowPauseModal(false);
+        setPendingPauseDocId(null);
+        setPauseMinutes(null);
+      } else {
+        throw new Error(res.message || "Failed to pause queue");
+      }
+    } catch (error) {
+      console.error("Failed to pause queue:", error);
+      setPauseError(error.response?.data?.message || error.message || "Something went wrong");
+    } finally {
+      setPauseSubmitting(false);
     }
-    console.log(`Queue paused for ${pauseMinutes} minutes`);
-    setShowPauseModal(false);
-    setPauseMinutes(null);
   };
 
-  const handleResumeQueue = (docId) => {
-    setDoctors(prev => prev.map(d =>
-      d.id === docId ? { ...d, paused: false, pauseDuration: null } : d
-    ));
+  const handleResumeQueue = async (docId) => {
+    const doc = doctors.find(d => d.id === docId);
+    if (!doc?.slotId) return;
+
+    try {
+      const res = await resumeSlotEta(doc.slotId);
+      if (res.success) {
+        setDoctors(prev => prev.map(d =>
+          d.id === docId ? { ...d, paused: false, pauseDuration: null } : d
+        ));
+        addToast({
+          title: "Queue Resumed",
+          message: "Queue has been resumed successfully.",
+          type: "success"
+        });
+      } else {
+        throw new Error(res.message || "Failed to resume queue");
+      }
+    } catch (error) {
+      console.error("Failed to resume queue:", error);
+      addToast({
+        title: "Error",
+        message: error.response?.data?.message || error.message || "Failed to resume queue",
+        type: "error"
+      });
+    }
   };
 
   const selectedDoctor = doctors.find(d => d.id === selectedDoctorId);
@@ -174,13 +296,16 @@ export default function HFDQueue() {
 
                   <Toggle
                     checked={doc.sessionStarted}
+                    disabled={doc.starting}
                     onChange={(e) => {
                       e.stopPropagation();
                       handleToggleSession(doc.id);
                     }}
                     size="sm"
                   />
-                  <span className="text-[12px] text-secondary-grey300">Start Check-ups</span>
+                  <span className="text-[12px] text-secondary-grey300">
+                    {doc.starting ? "Starting..." : "Start Check-ups"}
+                  </span>
                 </div>
 
                 {/* Blinking Indicator if Session Started */}
@@ -204,7 +329,7 @@ export default function HFDQueue() {
       <div className="flex-1 flex flex-col min-w-0 bg-white border-r border-gray-200">
         <MiddleQueue
           doctorId={selectedDoctorId}
-          dummyMode={selectedDoctor?.sessionStarted}
+          sessionStarted={selectedDoctor?.sessionStarted}
           isPaused={selectedDoctor?.paused}
           pauseDuration={selectedDoctor?.pauseDuration}
           pauseStartTime={selectedDoctor?.pauseStartTime}
@@ -221,11 +346,12 @@ export default function HFDQueue() {
         onClose={() => {
           setShowPauseModal(false);
           setPendingPauseDocId(null);
+          setPauseError(null);
         }}
         pauseMinutes={pauseMinutes}
         setPauseMinutes={setPauseMinutes}
-        pauseSubmitting={false}
-        pauseError={null}
+        pauseSubmitting={pauseSubmitting}
+        pauseError={pauseError}
         onConfirm={confirmPauseQueue}
       />
 

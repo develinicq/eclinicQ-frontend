@@ -43,58 +43,7 @@ const getLabelForTime = (hour) => {
 	return 'Night';
 };
 
-// Dummy Data for UI Demo
-const DUMMY_ACTIVE_PATIENT = {
-	patientName: 'Priya Mehta',
-	token: 2,
-	gender: 'F',
-	age: '08/09/1992 (31Y)',
-	reasonForVisit: 'Annual Checkup'
-};
-
-
-const DUMMY_PATIENTS = [
-	{ token: 1, patientName: 'Rahul Sharma', gender: 'M', dob: '12/05/1985', age: '39Y', appointmentType: 'Review Visit', expectedTime: '10:30 AM', bookingType: 'Online', reason: 'Fever & Weakness', status: 'Checked-In' },
-	{ token: 2, patientName: 'Priya Mehta', gender: 'F', dob: '08/09/1992', age: '31Y', appointmentType: 'Follow-up Consultation', expectedTime: '11:00 AM', bookingType: 'Online', reason: 'Annual Checkup', status: 'Checked-In' },
-	{ token: 3, patientName: 'Arjun Verma', gender: 'M', dob: '23/11/1987', age: '36Y', appointmentType: 'New Consultation', expectedTime: '11:45 AM', bookingType: 'Online', reason: 'Back Pain', status: 'Waiting' },
-	{ token: 4, patientName: 'Sneha Deshpande', gender: 'F', dob: '14/07/1998', age: '25Y', appointmentType: 'New Consultation', expectedTime: '12:30 PM', bookingType: 'Walk-In', reason: 'Skin Allergy', status: 'Waiting' },
-	{ token: 5, patientName: 'Kunal Joshi', gender: 'M', dob: '05/02/1990', age: '34Y', appointmentType: 'Second Opinion', expectedTime: '1:30 PM', bookingType: 'Walk-In', reason: 'High BP', status: 'Waiting' },
-	{ token: 6, patientName: 'Neha Iyer', gender: 'F', dob: '30/10/1995', age: '28Y', appointmentType: 'New Consultation', expectedTime: '2:00 PM', bookingType: 'Online', reason: 'Migraine', status: 'Waiting' },
-	{ token: 7, patientName: 'Vikas Gupta', gender: 'M', dob: '19/04/1983', age: '41Y', appointmentType: 'Second Opinion', expectedTime: '2:30 PM', bookingType: 'Walk-In', reason: 'Diabetes Checkup', status: 'Waiting' },
-	{ token: 8, patientName: 'Radhika Nair', gender: 'F', dob: '06/01/1991', age: '33Y', appointmentType: 'Review Visit', expectedTime: '3:15 PM', bookingType: 'Online', reason: 'Pregnancy Consultation', status: 'Waiting' },
-	{ token: 9, patientName: 'Ankit Saxena', gender: 'M', dob: '11/06/1989', age: '35Y', appointmentType: 'Review Visit', expectedTime: '4:15 PM', bookingType: 'Online', reason: 'Heartburn & Acidity', status: 'Waiting' },
-	{ token: 10, patientName: 'Pooja Kulkarni', gender: 'F', dob: '15/08/1993', age: '30Y', appointmentType: 'Second Opinion', expectedTime: '4:45 PM', bookingType: 'Online', reason: 'Thyroid Checkup', status: 'Waiting' },
-	{ token: 11, patientName: 'Manish Choudhary', gender: 'M', dob: '02/12/1986', age: '37Y', appointmentType: 'Follow-up Consultation', expectedTime: '5:45 PM', bookingType: 'Walk-In', reason: 'Anxiety & Stress', status: 'Waiting' },
-	{ token: 12, patientName: 'Kavita Rao', gender: 'F', dob: '20/03/1980', age: '44Y', appointmentType: 'New Consultation', expectedTime: '6:15 PM', bookingType: 'Walk-In', reason: 'Menopause Symptoms', status: 'Waiting' },
-	{ token: 13, patientName: 'Rohan Agarwal', gender: 'M', dob: '07/05/1994', age: '30Y', appointmentType: 'Follow-up Consultation', expectedTime: '10:15 AM', bookingType: 'Online', reason: 'Asthma', status: 'Waiting' },
-	{ token: 14, patientName: 'Deepika Singh', gender: 'F', dob: '09/11/1997', age: '26Y', appointmentType: 'Review Visit', expectedTime: '11:00 AM', bookingType: 'Walk-In', reason: 'PCOD Treatment', status: 'Waiting' },
-	{ token: 15, patientName: 'Anirudh Patel', gender: 'M', dob: '16/07/1982', age: '42Y', appointmentType: 'Review Visit', expectedTime: '12:15 PM', bookingType: 'Online', reason: 'Knee Pain', status: 'Waiting' },
-	{ token: 16, patientName: 'Swati Mishra', gender: 'F', dob: '03/09/1990', age: '33Y', appointmentType: 'Second Opinion', expectedTime: '12:45 PM', bookingType: 'Online', reason: 'Eye Checkup', status: 'Waiting' },
-	{ token: 17, patientName: 'Vikram Singh', gender: 'M', dob: '22/01/1988', age: '36Y', appointmentType: 'New Consultation', expectedTime: '1:00 PM', bookingType: 'Walk-In', reason: 'Stomach Ache', status: 'Waiting' },
-	{ token: 18, patientName: 'Priti Kapoor', gender: 'F', dob: '14/11/1995', age: '28Y', appointmentType: 'Review Visit', expectedTime: '1:45 PM', bookingType: 'Online', reason: 'Skin Rash', status: 'Waiting' },
-	{ token: 19, patientName: 'Amit Shah', gender: 'M', dob: '05/06/1984', age: '40Y', appointmentType: 'Follow-up Consultation', expectedTime: '2:15 PM', bookingType: 'Walk-In', reason: 'Fever', status: 'Waiting' },
-	{ token: 20, patientName: 'Nisha Gupta', gender: 'F', dob: '19/08/1991', age: '32Y', appointmentType: 'New Consultation', expectedTime: '2:45 PM', bookingType: 'Online', reason: 'Headache', status: 'Waiting' },
-	{ token: 21, patientName: 'Suresh Kumar', gender: 'M', dob: '11/02/1979', age: '45Y', appointmentType: 'Second Opinion', expectedTime: '3:30 PM', bookingType: 'Walk-In', reason: 'Joint Pain', status: 'Waiting' },
-	{ token: 22, patientName: 'Meera Reddy', gender: 'F', dob: '25/12/1993', age: '30Y', appointmentType: 'Review Visit', expectedTime: '4:00 PM', bookingType: 'Online', reason: 'Cough & Cold', status: 'Waiting' },
-	{ token: 24, patientName: 'Simran Kaur', gender: 'F', dob: '17/09/1996', age: '27Y', appointmentType: 'New Consultation', expectedTime: '5:00 PM', bookingType: 'Online', reason: 'Allergy', status: 'Waiting' },
-	{ token: 25, patientName: 'Varun Dhawan', gender: 'M', dob: '30/03/1992', age: '32Y', appointmentType: 'Review Visit', expectedTime: '5:30 PM', bookingType: 'Walk-In', reason: 'Injury', status: 'Waiting' },
-	{ token: 26, patientName: 'Pooja Hegde', gender: 'F', dob: '12/10/1994', age: '29Y', appointmentType: 'Second Opinion', expectedTime: '6:00 PM', bookingType: 'Online', reason: 'Throat Pain', status: 'Waiting' },
-	{ token: 27, patientName: 'Aditya Roy', gender: 'M', dob: '01/01/1986', age: '38Y', appointmentType: 'Follow-up Consultation', expectedTime: '6:30 PM', bookingType: 'Walk-In', reason: 'Back Pain', status: 'Waiting' },
-	{ token: 28, patientName: 'Kiara Advani', gender: 'F', dob: '31/07/1992', age: '31Y', appointmentType: 'New Consultation', expectedTime: '7:00 PM', bookingType: 'Online', reason: 'Vitamin Deficiency', status: 'Waiting' },
-	{ token: 29, patientName: 'Sidharth Malhotra', gender: 'M', dob: '16/01/1985', age: '39Y', appointmentType: 'Review Visit', expectedTime: '7:30 PM', bookingType: 'Walk-In', reason: 'Fitness Checkup', status: 'Waiting' },
-	{ token: 30, patientName: 'Alia Bhatt', gender: 'F', dob: '15/03/1993', age: '31Y', appointmentType: 'Follow-up Consultation', expectedTime: '8:00 PM', bookingType: 'Online', reason: 'Routine Checkup', status: 'Waiting' }
-];
-
-const DUMMY_ENGAGED_DATA = [
-	{ token: 1, patientName: 'Rahul Sharma', gender: 'M', dob: '12/05/1985', age: '39Y', appointmentType: 'New', startTime: '11:00 AM', endTime: '11:08 AM', bookingType: 'Online', reason: 'Annual Checkup' }
-];
-
-const DUMMY_NO_SHOW_DATA = [
-	{ isHeader: true, label: "Within Grace Period" },
-	{ token: 11, patientName: 'Manish Choudhary', gender: 'M', dob: '02/12/1986', age: '37Y', appointmentType: 'Follow-up Consultation', expectedTime: '5:45 PM', bookingType: 'Online', reason: 'Anxiety & Stress', isGrace: true },
-	{ isHeader: true, label: "Outside Grace Period" },
-	{ token: 5, patientName: 'Kunal Joshi', gender: 'M', dob: '05/02/1990', age: '34Y', appointmentType: 'Follow-up Consultation', expectedTime: '1:30 PM', bookingType: 'Online', reason: 'Anxiety & Stress', isGrace: false },
-];
+// Helpers
 
 const formatSlotTime = (timeStr) => {
 	if (!timeStr) return '';
@@ -121,7 +70,7 @@ const calculateAge = (dob) => {
 
 
 
-export default function MiddleQueue({ doctorId: propsDoctorId, dummyMode = false, onPauseQueue, isPaused, pauseDuration, pauseStartTime, onResumeQueue }) {
+export default function MiddleQueue({ doctorId: propsDoctorId, sessionStarted = false, onPauseQueue, isPaused, pauseDuration, pauseStartTime, onResumeQueue }) {
 	// Timer Logic for Pause
 	const [remainingTime, setRemainingTime] = useState('00:00');
 
@@ -339,6 +288,13 @@ export default function MiddleQueue({ doctorId: propsDoctorId, dummyMode = false
 	}, [selectedSlotId]);
 
 	useEffect(() => {
+		if (selectedSlotId && sessionStarted) {
+			fetchAppointments(selectedSlotId);
+			pollSlotStatus();
+		}
+	}, [sessionStarted]);
+
+	useEffect(() => {
 		if (!selectedSlotId) return;
 		const interval = setInterval(() => {
 			fetchAppointments(selectedSlotId);
@@ -406,11 +362,10 @@ export default function MiddleQueue({ doctorId: propsDoctorId, dummyMode = false
 	const [showTerminateModal, setShowTerminateModal] = useState(false);
 
 	// Derived States
-	const sessionActive = dummyMode || !!polledActivePatient;
-	const activePatient = dummyMode ? DUMMY_ACTIVE_PATIENT : polledActivePatient;
+	const sessionActive = sessionStarted || !!polledActivePatient;
+	const activePatient = polledActivePatient;
 
 	const getTableData = () => {
-		if (dummyMode) return DUMMY_PATIENTS;
 		if (activeFilter === 'In Waiting') return appointmentsData.inWaiting;
 		if (activeFilter === 'Checked-In') return appointmentsData.checkedIn;
 		if (activeFilter === 'Engaged') return appointmentsData.engaged;
@@ -423,13 +378,6 @@ export default function MiddleQueue({ doctorId: propsDoctorId, dummyMode = false
 	const [showWalkInDrawer, setShowWalkInDrawer] = useState(false);
 	const filters = ['In Waiting', 'Checked-In', 'Engaged', 'No show', 'Admitted'];
 	const getFilterCount = (f) => {
-		if (dummyMode) {
-			if (f === 'In Waiting') return 95;
-			if (f === 'Checked-In') return 13;
-			if (f === 'Engaged') return 1;
-			if (f === 'No show') return 2;
-			return 0;
-		}
 		let val = 0;
 		if (f === 'In Waiting') val = appointmentCounts.inWaiting;
 		else if (f === 'Checked-In') val = appointmentCounts.checkedIn;

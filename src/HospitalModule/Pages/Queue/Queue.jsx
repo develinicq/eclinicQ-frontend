@@ -239,8 +239,8 @@ const WalkInAppointmentDrawer = ({
     <>
       <div
         className={`fixed inset-0 bg-black bg-opacity-30 z-40 transition-opacity duration-300 ${show
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
           }`}
         onClick={onClose}
       />
@@ -271,8 +271,8 @@ const WalkInAppointmentDrawer = ({
                 onClick={handleBook}
                 disabled={!canBook()}
                 className={`text-sm font-medium rounded px-3 py-1.5 border ${canBook()
-                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                    : "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
+                  ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                  : "text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed"
                   }`}
               >
                 {booking ? "Booking..." : "Book Appointment"}
@@ -331,8 +331,8 @@ const WalkInAppointmentDrawer = ({
                 disabled={!canBook()}
                 onClick={handleBook}
                 className={`px-4 py-2 rounded text-sm ${canBook()
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
                   }`}
               >
                 {booking ? "Booking..." : "Book Appointment"}
