@@ -68,6 +68,18 @@ export const getPatientDetailsForHospitalStaff = async (hospitalId, patientId) =
     }
 };
 
+// Get all patients for Doctor/Clinic
+export const getPatientsForDoctor = async ({ clinicId, doctorId, hospitalId, page = 1, limit = 20 }) => {
+    try {
+        const res = await axios.get("/patients/for-doctor/patients-list", {
+            params: { clinicId, doctorId, hospitalId, page, limit }
+        });
+        return res.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
 // Get patient details for Doctor/Staff
 export const getPatientDetailsForDoctor = async (patientId) => {
     try {

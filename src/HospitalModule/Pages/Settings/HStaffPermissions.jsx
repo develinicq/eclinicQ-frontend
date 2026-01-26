@@ -22,8 +22,9 @@ import { fetchClinicStaff } from "../../../services/staffService";
 import { registerStaff } from "../../../services/staff/registerStaffService";
 
 import InviteStaffDrawer from "./Drawers/InviteStaffDrawer.jsx";
-import RoleDrawerShared from "./Drawers/RoleDrawer.jsx";
+import RoleDrawer from "./Drawers/RoleDrawer.jsx";
 import useClinicStore from "../../../store/settings/useClinicStore.js";
+import useStaffStore from "../../../store/useStaffStore";
 
 const HStaffPermissions = () => {
   const TabBtn = ({ label, active, onClick }) => (
@@ -241,205 +242,30 @@ const HStaffPermissions = () => {
 
 
 
+
   const [tab, setTab] = useState("staff");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
-  const [staff, setStaff] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [rolesLoading, setRolesLoading] = useState(false);
-  const [rolesError, setRolesError] = useState("");
-  const { clinic } = useClinicStore();
 
-  // Resolve clinicId dynamically from auth/profile stores
-  const resolveClinicId = () => {
-    try {
-      const { user, doctorDetails } = useAuthStore.getState();
-      console.log("[StaffTab] Auth store snapshot:", { user, doctorDetails });
-      // Common places to find clinicId
-      const fromUser =
-        user?.clinicId ||
-        user?.clinic?.id ||
-        user?.currentClinicId ||
-        user?.currentClinic?.id;
-      const fromDoctor =
-        doctorDetails?.clinicId ||
-        doctorDetails?.clinic?.id ||
-        doctorDetails?.currentClinicId ||
-        doctorDetails?.currentClinic?.id ||
-        doctorDetails?.primaryClinic?.id ||
-        doctorDetails?.associatedWorkplaces?.clinic?.id; // from provided /doctors/me shape
-      // Fallback from clinic store if loaded
-      const maybeClinic = clinic?.id || clinic?.clinicId;
-      // Last resort: persisted value
-      const persisted = (() => {
-        try {
-          return (
-            JSON.parse(localStorage.getItem("auth-store") || "{}")?.state?.user
-              ?.clinicId || null
-          );
-        } catch {
-          return null;
-        }
-      })();
-      const resolved =
-        fromUser || fromDoctor || maybeClinic || persisted || null;
-      console.log("[StaffTab] Resolved clinicId:", resolved, {
-        fromUser,
-        fromDoctor,
-        maybeClinic,
-        persisted,
-      });
-      return resolved;
-    } catch (e) {
-      return null;
-    }
+  const { selectedClinicId } = useClinicStore();
+  const {
+    roles,
+    staffList: staff,
+    loadingRoles,
+    loadingStaff,
+    fetchRoles,
+    fetchStaff
+  } = useStaffStore();
+
+  useEffect(() => {
+    if (tab === "roles") fetchRoles({ hospitalId: selectedClinicId });
+    if (tab === "staff") fetchStaff({ hospitalId: selectedClinicId });
+  }, [tab, selectedClinicId, fetchRoles, fetchStaff]);
+
+  const handleUpdate = () => {
+    if (tab === "roles") fetchRoles({ hospitalId: selectedClinicId });
+    if (tab === "staff") fetchStaff({ hospitalId: selectedClinicId });
   };
-
-  // Fetch roles immediately when Settings opens and when auth changes
-  useEffect(() => {
-    let unsub;
-    const loadRoles = async () => {
-      // Prefer direct path from getMe response
-      const { doctorDetails } = useAuthStore.getState();
-      const clinicId =
-        doctorDetails?.associatedWorkplaces?.clinic?.id || resolveClinicId();
-      if (!clinicId) {
-        console.warn("[StaffTab] No clinicId resolved; skipping roles fetch");
-        return;
-      }
-      try {
-        setRolesLoading(true);
-        setRolesError("");
-        const base = axiosClient?.defaults?.baseURL;
-        const url = `${base}/rbac/all-roles?clinicId=${clinicId}`;
-        console.log(
-          "[StaffTab] Fetching roles for clinicId:",
-          clinicId,
-          "baseURL:",
-          base,
-          "url:",
-          url
-        );
-        const data = await fetchAllRoles(clinicId);
-        const list = data?.data || [];
-        const mapped = list.map((r) => ({
-          id: r.id,
-          name: r.name,
-          subtitle: r.description || "",
-          staffCount: r._count?.userRoles || 0,
-          permissions: Array.isArray(r.permissions) ? r.permissions.length : 0,
-          created: r.createdAt
-            ? new Date(r.createdAt).toLocaleDateString()
-            : "",
-          icon: /senior|admin|super/i.test(r.name) ? "crown" : "clipboard",
-        }));
-        setRoles(mapped);
-        setRolesLoading(false);
-      } catch (e) {
-        console.error("Failed to load roles", e);
-        setRolesError(
-          e?.response?.data?.message || e?.message || "Failed to load roles"
-        );
-        // Fallback: seed dummy roles so permissions UI remains usable
-        const dummy = [
-          { id: "role-frontdesk", name: "Front Desk", description: "Reception and queue ops", permissions: 8, _count: { userRoles: 3 }, createdAt: new Date().toISOString() },
-          { id: "role-consultant", name: "Consultant", description: "Consultation management", permissions: 12, _count: { userRoles: 2 }, createdAt: new Date().toISOString() },
-          { id: "role-admin", name: "Admin", description: "Administrative access", permissions: 20, _count: { userRoles: 1 }, createdAt: new Date().toISOString() }
-        ];
-        const mapped = dummy.map((r) => ({
-          id: r.id,
-          name: r.name,
-          subtitle: r.description,
-          staffCount: r._count?.userRoles || 0,
-          permissions: r.permissions,
-          created: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "",
-          icon: /admin/i.test(r.name) ? "crown" : "clipboard",
-        }));
-        setRoles(mapped);
-        setRolesLoading(false);
-      }
-    };
-    // initial fetch on mount
-    loadRoles();
-    // subscribe to auth store for relevant changes (user/doctorDetails)
-    try {
-      unsub = useAuthStore.subscribe((state, prev) => {
-        const changed =
-          state.user !== prev.user ||
-          state.doctorDetails !== prev.doctorDetails;
-        if (changed) {
-          console.log(
-            "[StaffTab] Auth store changed; re-evaluating clinicId and roles fetch"
-          );
-          loadRoles();
-        }
-      });
-    } catch { }
-    return () => {
-      if (typeof unsub === "function") unsub();
-    };
-  }, []);
-
-  // Fetch staff list for the clinic on mount and when auth changes
-  useEffect(() => {
-    let unsub;
-    const loadStaff = async () => {
-      const { doctorDetails } = useAuthStore.getState();
-      const clinicId =
-        doctorDetails?.associatedWorkplaces?.clinic?.id || resolveClinicId();
-      if (!clinicId) {
-        console.warn("[StaffTab] No clinicId resolved; skipping staff fetch");
-        return;
-      }
-      try {
-        console.log(
-          "[StaffTab] Fetching staff for clinicId:",
-          clinicId,
-          "baseURL:",
-          axiosClient?.defaults?.baseURL
-        );
-        const data = await fetchClinicStaff(clinicId);
-        const list = data?.data || [];
-        // Map API staff to UI StaffRow shape
-        const mapped = list.map((s) => ({
-          name: s.name,
-          email: s.email,
-          phone: s.phone,
-          position: s.position,
-          role: s.role,
-          joined: (() => {
-            const d = s.joinedAt || s.joinedDate || s.createdAt;
-            return d ? new Date(d).toLocaleDateString("en-GB") : "";
-          })(),
-          status: "Active",
-        }));
-        setStaff(mapped);
-      } catch (e) {
-        console.error("Failed to load staff", e);
-        // Fallback: seed dummy staff
-        const dummy = [
-          { name: "Anita Rao", email: "anita.rao@example.com", phone: "9876543210", position: "Receptionist", role: "Front Desk", joined: new Date().toLocaleDateString("en-GB"), status: "Active" },
-          { name: "Karan Mehta", email: "karan.mehta@example.com", phone: "9812345678", position: "Nurse", role: "Consultant", joined: new Date().toLocaleDateString("en-GB"), status: "Active" },
-          { name: "Sana Khan", email: "sana.khan@example.com", phone: "9890011223", position: "Assistant", role: "Admin", joined: new Date().toLocaleDateString("en-GB"), status: "Inactive" }
-        ];
-        setStaff(dummy);
-      }
-    };
-    // initial fetch
-    loadStaff();
-    // subscribe to auth changes to refetch when doctorDetails is set
-    try {
-      unsub = useAuthStore.subscribe((state, prev) => {
-        const changed =
-          state.user !== prev.user ||
-          state.doctorDetails !== prev.doctorDetails;
-        if (changed) loadStaff();
-      });
-    } catch { }
-    return () => {
-      if (typeof unsub === "function") unsub();
-    };
-  }, []);
 
   return (
     <div className=" flex flex-col gap-3 no-scrollbar">
@@ -512,14 +338,9 @@ const HStaffPermissions = () => {
         )
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,280px))] justify-start gap-4 pt-1">
-          {rolesLoading && (
+          {loadingRoles && (
             <div className="col-span-full text-[12px] text-[#626060]">
               Loading roles…
-            </div>
-          )}
-          {!!rolesError && (
-            <div className="col-span-full text-[12px] text-red-600">
-              Error: {rolesError}
             </div>
           )}
           {roles.map((role, i) => (
@@ -540,60 +361,14 @@ const HStaffPermissions = () => {
       <InviteStaffDrawer
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        onSend={(rows) => {
-          // Resolve clinicId
-          const { doctorDetails } = useAuthStore.getState();
-          const clinicId =
-            doctorDetails?.associatedWorkplaces?.clinic?.id ||
-            resolveClinicId();
-          // Fire POST for each row
-          Promise.all(
-            rows.map(async (r) => {
-              const [firstName = "", lastName = ""] =
-                String(r.fullName || "").split(" ").length > 1
-                  ? [
-                    String(r.fullName).split(" ")[0],
-                    String(r.fullName).split(" ").slice(1).join(" "),
-                  ]
-                  : [r.fullName || "", ""];
-              const payload = {
-                firstName,
-                lastName,
-                emailId: r.email,
-                phone: r.phone,
-                position: r.position,
-                clinicId,
-                roleId: r.roleId || null,
-              };
-              try {
-                await registerStaff(payload);
-              } catch (e) {
-                console.error("Failed to register staff", payload, e);
-              }
-              const selectedRole = roles.find((x) => x.id === r.roleId);
-              return {
-                name: r.fullName,
-                email: r.email,
-                phone: r.phone,
-                position: r.position,
-                role: selectedRole?.name || "",
-                status: "Inactive",
-              };
-            })
-          ).then((created) => {
-            setStaff((s) => [...created, ...s]);
-            setInviteOpen(false);
-          });
-        }}
+        onSendInvite={handleUpdate}
+        onSend={handleUpdate}
         roleOptions={roles}
       />
-      <RoleDrawerShared
+      <RoleDrawer
         open={roleOpen}
         onClose={() => setRoleOpen(false)}
-        onCreated={(role) => {
-          setRoles((r) => [role, ...r]);
-          setRoleOpen(false);
-        }}
+        onCreated={handleUpdate}
       />
       {/* Drawer placeholders end for StaffTab */}
     </div>

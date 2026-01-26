@@ -26,6 +26,7 @@ import { getDoctorMe } from "../../services/authService";
 import { getPublicUrl } from "@/services/uploadsService";
 import { getOutOfOfficeStatus } from "@/services/doctorService";
 import useOOOStore from "@/store/useOOOStore";
+import { logoutAll } from "@/utils/authUtils";
 import {
   Mail,
   Phone,
@@ -328,10 +329,7 @@ const DocNavbar = ({
   };
 
   const handleLogout = () => {
-    useUIStore.getState().setIsLoggingOut(true);
-    useDoctorAuthStore.getState().clearAuth();
-    useHospitalAuthStore.getState().clearAuth();
-    useSuperAdminAuthStore.getState().clearAuth();
+    logoutAll();
 
     // Redirect based on current active module
     if (activeModule === 'hospital') {

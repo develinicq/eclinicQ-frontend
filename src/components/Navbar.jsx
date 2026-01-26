@@ -12,6 +12,7 @@ import AvatarCircle from './AvatarCircle.jsx'
 import useAuthStore from '../store/useAuthStore'
 import useSuperAdminAuthStore from '../store/useSuperAdminAuthStore';
 import useUIStore from '../store/useUIStore';
+import { logoutAll } from '../utils/authUtils';
 import { getDoctorMe } from '../services/authService'
 import { useRegistration } from '../SuperAdmin/context/RegistrationContext.jsx'
 
@@ -130,9 +131,7 @@ const Navbar = () => {
   const registration = useRegistration();
 
   const handleLogout = () => {
-    useUIStore.getState().setIsLoggingOut(true);
-    clearAdminAuth();
-    clearDoctorAuth();
+    logoutAll();
     navigate('/');
   };
   const location = useLocation();

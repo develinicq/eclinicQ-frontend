@@ -111,32 +111,33 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         sticky: 'left',
         headerClassName: 'pl-[52px]',
         render: (row) => {
+            const isActive = row.status === 'Active';
             return (
-                <Link to={`/doc/patients/${row.patientId || row.id}`} className="flex items-center gap-2 group cursor-pointer w-full h-full block">
-                    <AvatarCircle name={row.name} size="s" color="blue" />
+                <div className="flex items-center gap-2">
+                    <AvatarCircle name={row.name} size="s" color={isActive ? "blue" : "grey"} />
                     <div className='flex flex-col text-sm'>
-                        <span className="font-medium text-secondary-grey400 leading-5  transition-colors">
+                        <span className="font-medium text-secondary-grey400 leading-5">
                             {row.name}
                         </span>
-                        <p className="text-secondary-grey300">
-                            {row.gender ? (row.gender.charAt(0).toUpperCase() + row.gender.slice(1).toLowerCase()) : '-'} | {row.dob} ({calculateAge(row.dob)}Y)
+                        <p className="text-secondary-grey300 uppercase">
+                            {row.genderInitial || row.gender || '-'} | {row.dob ? new Date(row.dob).toLocaleDateString() : '—'} ({row.age || '-'}Y)
                         </p>
                     </div>
-                </Link>
+                </div>
             )
         },
     },
     {
-        key: 'patientId',
+        key: 'id',
         header: <TableHeader label="Patient ID" />,
         width: 140,
-        render: (row) => <span className="text-secondary-grey300 text-sm">{row.patientCode || row.patientId || row.id}</span>
+        render: (row) => <span className="text-secondary-grey300 text-sm">{row.patientCode || row.patientId || '—'}</span>
     },
     {
         key: 'contact',
         header: <TableHeader label="Contact Number" />,
         width: 160,
-        render: (row) => <span className="text-secondary-grey300 text-sm">{row.contact}</span>
+        render: (row) => <span className="text-secondary-grey300 text-sm">{row.contactNumber || row.contact || '—'}</span>
     },
     {
         key: 'email',
@@ -150,8 +151,8 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         header: <TableHeader label="Location" />,
         width: 160,
         render: (row) => (
-            <div className='h-[22px] px-[6px] flex bg-secondary-grey50 rounded-md w-fit text-sm'>
-                <span className="text-secondary-grey400">{row.location}</span>
+            <div className='h-[22px] px-[6px] flex bg-secondary-grey50 rounded-sm w-fit text-sm'>
+                <span className="text-secondary-grey400">{row.location || '—'}</span>
             </div>
         )
     },
@@ -159,13 +160,17 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         key: 'lastVisit',
         header: <TableHeader label="Last Visit Date & Time" />,
         width: 200,
-        render: (row) => <span className="text-secondary-grey300 text-sm">{row.lastVisit || '-'}</span>
+        render: (row) => {
+            const dateStr = row.lastVisitDate ? new Date(row.lastVisitDate).toLocaleDateString() : '';
+            const dateTime = dateStr ? `${dateStr} ${row.lastVisitTime || ''}` : row.lastVisit;
+            return <span className="text-secondary-grey300 text-sm">{dateTime || '—'}</span>
+        }
     },
     {
         key: 'reason',
         header: <TableHeader label="Reason for Last Visit" />,
-        width: 450, // Reduced from 689 to match Doc implementation slightly better or keep flexible
-        render: (row) => <span className="text-secondary-grey300 text-sm " title={row.reason}>{row.reason || '-'}</span>
+        width: 350,
+        render: (row) => <span className="text-secondary-grey300 text-sm " title={row.reasonForLastVisit || row.reason}>{row.reasonForLastVisit || row.reason || '—'}</span>
     },
     {
         key: 'actions',
@@ -176,3 +181,4 @@ export const getPatientColumns = (onOpenLog, onSchedule) => [
         render: (row) => <ActionCell row={row} onOpenLog={onOpenLog} onSchedule={onSchedule} />,
     },
 ];
+;

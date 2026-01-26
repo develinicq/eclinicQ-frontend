@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { calendarMinimalistic } from "../../../public/index.js";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
@@ -6,15 +7,18 @@ import GeneralDrawer from "../GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "../GeneralDrawer/InputWithMeta";
 import Dropdown from "../GeneralDrawer/Dropdown";
 import { createPatientProfile } from "../../services/doctorService";
+import { createPatientProfileForHospital } from "../../services/hospitalService";
 import useClinicStore from "../../store/settings/useClinicStore";
 import useToastStore from "../../store/useToastStore";
 
 import UniversalLoader from "../UniversalLoader";
 
 import useFrontDeskAuthStore from "../../store/useFrontDeskAuthStore";
+import useHospitalFrontDeskAuthStore from "../../store/useHospitalFrontDeskAuthStore";
+import useHospitalAuthStore from "../../store/useHospitalAuthStore";
 import useAuthStore from "../../store/useAuthStore";
 
-export default function AddPatientDrawer({ open, onClose, onSave, clinicId: propClinicId }) {
+export default function AddPatientDrawer({ open, onClose, onSave, clinicId: propClinicId, hospitalId: propHospitalId }) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -29,10 +33,13 @@ export default function AddPatientDrawer({ open, onClose, onSave, clinicId: prop
   const [showBloodDD, setShowBloodDD] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { clinic } = useClinicStore();
+  const { clinic, selectedClinicId } = useClinicStore();
   const { doctorDetails } = useAuthStore();
   const { user: fdUser } = useFrontDeskAuthStore();
+  const { hospitalId: hfdHospitalId } = useHospitalFrontDeskAuthStore();
+  const { hospitalId: hAdminHospitalId } = useHospitalAuthStore();
   const { addToast } = useToastStore();
+  const location = useLocation();
 
   const CalendarIcon = () => (
     <img src={calendarMinimalistic} alt="Calendar" className="w-4 h-4" />
@@ -104,8 +111,14 @@ export default function AddPatientDrawer({ open, onClose, onSave, clinicId: prop
       return;
     }
 
+    const hospitalId =
+      propHospitalId ||
+      hfdHospitalId ||
+      hAdminHospitalId;
+
     const clinicId =
       propClinicId ||
+      selectedClinicId ||
       doctorDetails?.clinicId ||
       doctorDetails?.clinic?.id ||
       fdUser?.clinicId ||
@@ -113,10 +126,14 @@ export default function AddPatientDrawer({ open, onClose, onSave, clinicId: prop
       clinic?.id ||
       clinic?.clinicId;
 
-    if (!clinicId) {
+    // Use selectedWorkplaceType from store to decide the logical flow if multiple IDs resolved
+    const { selectedWorkplaceType } = useClinicStore.getState();
+    const isHospital = selectedWorkplaceType === "Hospital" || location.pathname.startsWith("/hospital");
+
+    if (!hospitalId && !clinicId) {
       addToast({
         title: "Error",
-        message: "Clinic ID not found. Please try again.",
+        message: "Clinic or Hospital ID not found. Please try again.",
         type: "error",
       });
       return;
@@ -134,7 +151,31 @@ export default function AddPatientDrawer({ open, onClose, onSave, clinicId: prop
         bloodGroup: BLOOD_MAP[form.bloodGroup] || form.bloodGroup,
       };
 
-      const res = await createPatientProfile(clinicId, payload);
+      let res;
+      if (isHospital) {
+        if (!hospitalId) {
+          addToast({
+            title: "Error",
+            message: "Hospital ID not found. Please try again.",
+            type: "error",
+          });
+          setLoading(false);
+          return;
+        }
+        res = await createPatientProfileForHospital(hospitalId, payload);
+      } else {
+        if (!clinicId) {
+          addToast({
+            title: "Error",
+            message: "Clinic ID not found. Please try again.",
+            type: "error",
+          });
+          setLoading(false);
+          return;
+        }
+        res = await createPatientProfile(clinicId, payload);
+      }
+
       if (res?.success) {
         addToast({
           title: "Registration Success",

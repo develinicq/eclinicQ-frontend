@@ -332,11 +332,34 @@ export const updateHospitalAdminDetailsForAdmin = async (hospitalId, data) => {
   }
 };
 
-export const updateHospitalSpecialtiesForAdmin = async (hospitalId, specialties) => {
+export const getMedicalSpecialtiesForAdmin = async (hospitalId) => {
   if (!hospitalId) throw new Error('hospitalId is required');
   try {
-    // Determine expected payload structure. Assuming simple array of strings or list wrapper
-    const res = await axios.put('/hospitals/for-admin/specialties', { specialties }, {
+    const res = await axios.get('/hospitals/for-admin/specialties', {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateHospitalSpecialtiesForAdmin = async (hospitalId, keys) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.put('/hospitals/for-admin/specialties', { specialtyIds: keys }, {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getHospitalServicesForAdmin = async (hospitalId) => {
+  if (!hospitalId) throw new Error('hospitalId is required');
+  try {
+    const res = await axios.get('/hospitals/for-admin/services-facilities', {
       params: { hospitalId }
     });
     return res.data;
@@ -348,7 +371,7 @@ export const updateHospitalSpecialtiesForAdmin = async (hospitalId, specialties)
 export const updateHospitalServicesForAdmin = async (hospitalId, services) => {
   if (!hospitalId) throw new Error('hospitalId is required');
   try {
-    const res = await axios.put('/hospitals/for-admin/services', { services }, {
+    const res = await axios.put('/hospitals/for-admin/services-facilities', { services }, {
       params: { hospitalId }
     });
     return res.data;
@@ -494,6 +517,18 @@ export const getAvailableDoctorsForQueue = async (hospitalId) => {
   if (!hospitalId) throw new Error('hospitalId is required');
   try {
     const res = await axios.get('/hospitals/queue/available-doctors', {
+      params: { hospitalId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createPatientProfileForHospital = async (hospitalId, payload) => {
+  if (!hospitalId) throw new Error("hospitalId is required");
+  try {
+    const res = await axios.post(`/patients/for-providers/${hospitalId}/create-patient-profile`, payload, {
       params: { hospitalId }
     });
     return res.data;

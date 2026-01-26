@@ -3,6 +3,7 @@ import PatientHeader from "../../../components/PatientList/Header";
 // Replaced the custom PatientTable with the reusable SampleTable component
 import SampleTable from "../../../pages/SampleTable.jsx";
 import AddPatientDrawer from "../../../components/PatientList/AddPatientDrawer";
+import PatientDetailsDrawer from "./PatientDetailsDrawer";
 import useDoctorPatientListStore from "../../../store/useDoctorPatientListStore";
 import ScheduleAppointmentDrawer2 from "../../../components/PatientList/ScheduleAppointmentDrawer2";
 import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
@@ -47,7 +48,14 @@ const demoPatients = Array.from({ length: 300 }).map((_, i) => ({
 export default function Patient() {
   const [selected, setSelected] = useState("all");
   const [addOpen, setAddOpen] = useState(false);
-  const { patients, loading, error, fetchPatients, clearPatientsStore } =
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedPatientDetails, setSelectedPatientDetails] = useState(null);
+
+  // Pagination state (must be declared before useEffects/useMemos that use them)
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const { patients, pagination, loading, error, fetchPatients, clearPatientsStore } =
     useDoctorPatientListStore();
 
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
@@ -55,7 +63,7 @@ export default function Patient() {
 
   const { user: doctorDetails, loading: doctorLoading, fetchMe: fetchDoctorDetails } = useDoctorAuthStore();
   const { user: fdUser } = useFrontDeskAuthStore();
-  const { clinic: clinicData } = useClinicStore();
+  const { clinic: clinicData, selectedClinicId, selectedWorkplaceType } = useClinicStore();
 
   useEffect(() => {
     if (!doctorDetails && !doctorLoading && !fdUser) {
@@ -67,11 +75,29 @@ export default function Patient() {
     let mounted = true;
     (async () => {
       // Resolve IDs for both Doctor and Front Desk contexts
-      const clinicId = doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
-      const doctorId = doctorDetails?.id || doctorDetails?.doctorId || fdUser?.doctorId;
+      const activeId =
+        selectedClinicId ||
+        doctorDetails?.clinicId ||
+        doctorDetails?.clinic?.id ||
+        doctorDetails?.associatedWorkplaces?.clinic?.id ||
+        fdUser?.clinicId ||
+        fdUser?.clinic?.id ||
+        clinicData?.id ||
+        clinicData?.clinicId;
+
+      const isHospital = selectedWorkplaceType === "Hospital";
+      const clinicId = !isHospital ? activeId : undefined;
+      const hospitalId = isHospital ? activeId : undefined;
+
+      const doctorId =
+        doctorDetails?.userId ||
+        doctorDetails?.id ||
+        doctorDetails?._id ||
+        doctorDetails?.doctorId ||
+        fdUser?.doctorId;
 
       try {
-        await fetchPatients({ clinicId, doctorId });
+        await fetchPatients({ clinicId, doctorId, hospitalId, page, limit: pageSize });
       } catch (e) {
         // If fetch fails, keep using demoPatients as fallback
         if (mounted) {
@@ -83,7 +109,7 @@ export default function Patient() {
       mounted = false;
       // Removed clearPatientsStore() call to persist data on tab switching
     };
-  }, [fetchPatients, clearPatientsStore, doctorDetails, fdUser, clinicData]);
+  }, [fetchPatients, clearPatientsStore, doctorDetails, fdUser, clinicData, page, pageSize, selectedWorkplaceType]);
 
   const displayPatients = loading
     ? []
@@ -91,18 +117,27 @@ export default function Patient() {
       ? patients
       : [];
 
+  const patientsFiltered = useMemo(() => {
+    if (selected === 'active') return displayPatients.filter(p => (p.status || '').toLowerCase() === 'active');
+    if (selected === 'inactive') return displayPatients.filter(p => (p.status || '').toLowerCase() === 'inactive');
+    return displayPatients;
+  }, [selected, displayPatients]);
+
   const counts = useMemo(
-    () => ({ all: displayPatients.length, online: 0, walkin: 0 }),
-    [displayPatients]
+    () => ({
+      all: pagination?.totalCount || displayPatients.length,
+      active: displayPatients.filter(p => (p.status || '').toLowerCase() === 'active').length,
+      inactive: displayPatients.filter(p => (p.status || '').toLowerCase() === 'inactive').length
+    }),
+    [displayPatients, pagination]
   );
-  // Simple pagination state
-  const [page, setPage] = useState(1);
-  const pageSize = 30;
-  const total = displayPatients.length;
-  const pageRows = useMemo(
-    () => displayPatients.slice((page - 1) * pageSize, page * pageSize),
-    [displayPatients, page, pageSize]
-  );
+  const total = pagination?.totalCount || displayPatients.length;
+  const pageRows = patientsFiltered;
+
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
+    setPage(1); // Reset to first page when limit changes
+  };
 
   // Define columns for patient table view
   const columns = useMemo(
@@ -131,22 +166,17 @@ export default function Patient() {
         <div className="text-sm text-red-500 mb-4">{error}</div>
         <button
           onClick={() => {
-            const clinicId = doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
-            const doctorId = doctorDetails?.id || doctorDetails?.doctorId || fdUser?.doctorId;
-            fetchPatients({ clinicId, doctorId });
+            const activeId = selectedClinicId || doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
+            const isHospital = selectedWorkplaceType === "Hospital";
+            const clinicId = !isHospital ? activeId : undefined;
+            const hospitalId = isHospital ? activeId : undefined;
+            const doctorId = doctorDetails?.userId || doctorDetails?.id || doctorDetails?._id || doctorDetails?.doctorId || fdUser?.doctorId;
+            fetchPatients({ clinicId, doctorId, hospitalId, page, limit: pageSize });
           }}
           className="px-6 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors shadow-sm"
         >
           Retry
         </button>
-      </div>
-    );
-  }
-
-  if (displayPatients.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-100px)] text-secondary-grey400">
-        <p className="text-base">No patient found</p>
       </div>
     );
   }
@@ -159,29 +189,54 @@ export default function Patient() {
             counts={counts}
             selected={selected}
             onChange={setSelected}
+            tabs={[
+              { key: 'all', label: 'All' },
+              { key: 'active', label: 'Active' },
+              { key: 'inactive', label: 'Inactive' }
+            ]}
+            showTabs={true}
+            showCounts={true}
             addLabel="Add New Patient"
             addPath={() => setAddOpen(true)}
           />
         </div>
 
         <div className="h-[calc(100vh-140px)] overflow-hidden border border-gray-200 rounded-lg shadow-sm bg-white">
-          <SampleTable
-            columns={columns}
-            data={pageRows}
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={setPage}
-            stickyLeftWidth={260}
-            stickyRightWidth={160}
-          />
+          {patientsFiltered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-secondary-grey400">
+              <p className="text-base">No patient found</p>
+            </div>
+          ) : (
+            <SampleTable
+              columns={columns}
+              data={pageRows}
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={handlePageSizeChange}
+              stickyLeftWidth={260}
+              stickyRightWidth={160}
+              onRowClick={(row) => {
+                setSelectedPatientDetails(row);
+                setDetailsOpen(true);
+              }}
+            />
+          )}
         </div>
 
         <AddPatientDrawer
           open={addOpen}
           onClose={() => setAddOpen(false)}
-          clinicId={doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId}
+          clinicId={selectedWorkplaceType !== "Hospital" ? (selectedClinicId || doctorDetails?.clinicId || fdUser?.clinicId) : undefined}
+          hospitalId={selectedWorkplaceType === "Hospital" ? (selectedClinicId || doctorDetails?.clinicId || fdUser?.clinicId) : undefined}
           onSave={(data) => {
+            const activeId = selectedClinicId || doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
+            const isHospital = selectedWorkplaceType === "Hospital";
+            const clinicId = !isHospital ? activeId : undefined;
+            const hospitalId = isHospital ? activeId : undefined;
+            const doctorId = doctorDetails?.userId || doctorDetails?.id || doctorDetails?._id || doctorDetails?.doctorId || fdUser?.doctorId;
+            fetchPatients({ clinicId, doctorId, hospitalId, page, limit: pageSize });
             setAddOpen(false);
           }}
         />
@@ -194,13 +249,22 @@ export default function Patient() {
           }}
           patient={schedulePatient}
           doctorId={doctorDetails?.id || doctorDetails?.doctorId || fdUser?.doctorId}
-          clinicId={doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId}
+          clinicId={selectedWorkplaceType !== "Hospital" ? (selectedClinicId || doctorDetails?.clinicId || fdUser?.clinicId) : undefined}
+          hospitalId={selectedWorkplaceType === "Hospital" ? (selectedClinicId || doctorDetails?.clinicId || fdUser?.clinicId) : undefined}
           onSchedule={() => {
-            const clinicId = doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
-            const doctorId = doctorDetails?.id || doctorDetails?.doctorId || fdUser?.doctorId;
-            fetchPatients({ clinicId, doctorId });
+            const activeId = selectedClinicId || doctorDetails?.clinicId || doctorDetails?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || clinicData?.id || clinicData?.clinicId;
+            const isHospital = selectedWorkplaceType === "Hospital";
+            const clinicId = !isHospital ? activeId : undefined;
+            const hospitalId = isHospital ? activeId : undefined;
+            const doctorId = doctorDetails?.userId || doctorDetails?.id || doctorDetails?._id || doctorDetails?.doctorId || fdUser?.doctorId;
+            fetchPatients({ clinicId, doctorId, hospitalId, page, limit: pageSize });
           }}
           zIndex={6000}
+        />
+        <PatientDetailsDrawer
+          isOpen={detailsOpen}
+          onClose={() => setDetailsOpen(false)}
+          patient={selectedPatientDetails}
         />
       </div>
     </>

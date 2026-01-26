@@ -9,6 +9,8 @@ import {
   getDoctorMe,
 } from "../../services/authService";
 import useAuthStore from "../../store/useAuthStore";
+import useHospitalAuthStore from "../../store/useHospitalAuthStore";
+import useDoctorAuthStore from "../../store/useDoctorAuthStore";
 import { useNavigate } from "react-router-dom";
 
 const Tab = ({ label, active, onClick }) => (
@@ -179,10 +181,17 @@ export default function SignIn({ variant = "neutral" }) {
         data?.accessToken ||
         data?.data?.token ||
         data?.data?.data?.token;
-      const user =
-        data?.user || data?.data?.user || data?.data?.data?.user || null;
+      const user = data?.user || data?.data?.user || data?.data?.data?.user || null;
       if (token) setToken(token);
       if (user) setUser(user);
+
+      const roles = user?.roleNames || [];
+      if (roles.includes("HOSPITAL_ADMIN")) {
+        useHospitalAuthStore.getState().clearAuth();
+      }
+      if (roles.includes("DOCTOR") && variant !== "doctor") {
+        useDoctorAuthStore.getState().clearAuth();
+      }
 
       // Only fetch doctor details if we are in doctor/neutral context
       if (variant !== "hfd" && variant !== "fd" && variant !== "hospital") {
@@ -235,6 +244,14 @@ export default function SignIn({ variant = "neutral" }) {
       const user = data?.user || data?.data?.user || null;
       if (token) setToken(token);
       if (user) setUser(user);
+
+      const roles = user?.roleNames || [];
+      if (roles.includes("HOSPITAL_ADMIN")) {
+        useHospitalAuthStore.getState().clearAuth();
+      }
+      if (roles.includes("DOCTOR") && variant !== "doctor") {
+        useDoctorAuthStore.getState().clearAuth();
+      }
 
       // Only fetch doctor details if we are in doctor/neutral context
       if (variant !== "hfd" && variant !== "fd" && variant !== "hospital") {

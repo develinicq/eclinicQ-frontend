@@ -45,7 +45,16 @@ export default function HospitalServicesDrawer({ open, onClose, selectedItems = 
     const handleSaveNewItem = () => {
         const val = newItemValue.trim();
         if (!val) return;
-        if (!defaultServices.includes(val) && !customServices.includes(val)) setCustomServices([...customServices, val]);
+
+        // Check duplication
+        if (!defaultServices.includes(val) && !customServices.includes(val)) {
+            setCustomServices([...customServices, val]);
+            // Auto-select the new item? Usually yes.
+            if (!selected.includes(val)) setSelected(prev => [...prev, val]);
+        } else if (defaultServices.includes(val) && !selected.includes(val)) {
+            // If it exists in master list but wasn't selected, select it
+            setSelected(prev => [...prev, val]);
+        }
         setNewItemValue("");
         setIsAddingString(false);
     };
@@ -77,7 +86,7 @@ export default function HospitalServicesDrawer({ open, onClose, selectedItems = 
     // calculate changes
     const isDirty = JSON.stringify((selectedItems || []).sort()) !== JSON.stringify(selected.sort());
 
-    const allAvailable = [...defaultServices, ...customServices];
+    const allAvailable = Array.from(new Set([...defaultServices, ...customServices]));
     const selectedList = allAvailable.filter(s => selected.includes(s));
     const unselectedList = allAvailable.filter(s => !selected.includes(s));
 

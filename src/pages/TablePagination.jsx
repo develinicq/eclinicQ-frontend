@@ -9,9 +9,11 @@ export default function TablePagination({
   end = 10,
   canPrev = false,
   canNext = false,
-  goto = () => {},
+  goto = () => { },
+  onPageSizeChange = () => { },
 }) {
   const [goToValue, setGoToValue] = useState("");
+  const [showPageSizeDD, setShowPageSizeDD] = useState(false);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // Generate page numbers to display
@@ -86,11 +88,10 @@ export default function TablePagination({
               <button
                 key={pageNum}
                 onClick={() => goto(pageNum)}
-                className={`h-6 min-w-[24px] px-1.5 py-1 rounded ${
-                  isActive
+                className={`h-6 min-w-[24px] px-1.5 py-1 rounded ${isActive
                     ? "bg-monochrom-white border border-secondary-grey100 text-secondary-grey400"
                     : "text-secondary-grey200 hover:text-secondary-grey300"
-                }`}
+                  }`}
                 style={{
                   fontFamily: "Inter",
                   fontWeight: 400,
@@ -121,31 +122,50 @@ export default function TablePagination({
           {/* Divider */}
 
           {/* Page size selector */}
-          <div
-            className="flex items-center gap-2 bg-monochrom-white border border-secondary-grey200 px-1.5 py-1 h-6 whitespace-nowrap"
-            style={{
-              borderRadius: "4px",
-              borderWidth: "0.5px",
-            }}
-          >
-            <span
-              className="text-secondary-grey300"
+          <div className="relative">
+            <div
+              className="flex items-center gap-2 bg-monochrom-white border border-secondary-grey200 px-1.5 py-1 h-6 whitespace-nowrap cursor-pointer hover:bg-gray-50"
               style={{
-                fontFamily: "Inter",
-                fontWeight: 500,
-                fontSize: "12px",
-                lineHeight: "120%",
-                letterSpacing: "0%",
-                verticalAlign: "middle",
+                borderRadius: "4px",
+                borderWidth: "0.5px",
               }}
+              onClick={() => setShowPageSizeDD(!showPageSizeDD)}
             >
-              {pageSize} / Page
-            </span>
-            <img
-              src={paginationDown}
-              alt="Dropdown"
-              className="w-2.5 h-2.5 flex-shrink-0"
-            />
+              <span
+                className="text-secondary-grey300"
+                style={{
+                  fontFamily: "Inter",
+                  fontWeight: 500,
+                  fontSize: "12px",
+                  lineHeight: "120%",
+                  letterSpacing: "0%",
+                  verticalAlign: "middle",
+                }}
+              >
+                {pageSize} / Page
+              </span>
+              <img
+                src={paginationDown}
+                alt="Dropdown"
+                className={`w-2.5 h-2.5 flex-shrink-0 transition-transform ${showPageSizeDD ? "rotate-180" : ""}`}
+              />
+            </div>
+            {showPageSizeDD && (
+              <div className="absolute bottom-full right-0 mb-1 w-20 bg-white border border-secondary-grey100 rounded shadow-lg z-50 overflow-hidden">
+                {[10, 20, 50, 100].map((size) => (
+                  <div
+                    key={size}
+                    className={`px-3 py-1.5 text-xs text-secondary-grey300 hover:bg-secondary-grey50 cursor-pointer ${pageSize === size ? "bg-secondary-grey50 font-semibold text-secondary-grey400" : ""}`}
+                    onClick={() => {
+                      onPageSizeChange(size);
+                      setShowPageSizeDD(false);
+                    }}
+                  >
+                    {size} / Page
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Go to page */}

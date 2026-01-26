@@ -25,26 +25,27 @@ const Patients = () => {
   const [loading, setLoading] = useState(!patientsLoaded);
   const pageSize = 10;
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      // Always fetch to ensure fresh data, or rely on store caching logic
-      if (!hospitalId) return;
-      setLoading(true);
-      try {
-        const res = await getPatientsForHospitalAdmin(hospitalId);
-        if (res.success) {
-          // Robustly handle different response formats
-          const patientsList = res.data?.patients || (Array.isArray(res.data) ? res.data : []);
-          setPatients(patientsList);
-        }
-      } catch (err) {
-        console.error("Failed to fetch patients", err);
-      } finally {
-        setLoading(false);
+  const fetchPatients = useCallback(async () => {
+    // Always fetch to ensure fresh data, or rely on store caching logic
+    if (!hospitalId) return;
+    setLoading(true);
+    try {
+      const res = await getPatientsForHospitalAdmin(hospitalId);
+      if (res.success) {
+        // Robustly handle different response formats
+        const patientsList = res.data?.patients || (Array.isArray(res.data) ? res.data : []);
+        setPatients(patientsList);
       }
-    };
-    fetchPatients();
+    } catch (err) {
+      console.error("Failed to fetch patients", err);
+    } finally {
+      setLoading(false);
+    }
   }, [hospitalId, setPatients]);
+
+  useEffect(() => {
+    fetchPatients();
+  }, [fetchPatients]);
 
   // Filter logic
   const patientsFiltered = useMemo(() => {
@@ -124,7 +125,14 @@ const Patients = () => {
         )}
       </div>
 
-      <AddPatientDrawer open={addOpen} onClose={() => setAddOpen(false)} onSave={() => setAddOpen(false)} />
+      <AddPatientDrawer
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSave={() => {
+          setAddOpen(false);
+          fetchPatients();
+        }}
+      />
       <AppointmentLogDrawer open={logDrawerOpen} onClose={() => setLogDrawerOpen(false)} />
       <ScheduleAppointmentDrawer
         open={scheduleOpen}

@@ -4,6 +4,9 @@ import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import { fetchAllPermissions } from "@/services/rbac/permissionService";
 import { createRole } from "@/services/rbac/roleService";
 import { Checkbox } from "@/components/ui/checkbox";
+import useToastStore from "@/store/useToastStore";
+import useClinicStore from "@/store/settings/useClinicStore";
+import UniversalLoader from "@/components/UniversalLoader";
 
 export default function RoleDrawer({ open, onClose, onCreated }) {
   const [closing, setClosing] = useState(false);
@@ -12,7 +15,10 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
   const [grouped, setGrouped] = useState({}); // { module: [{id,name,description}] }
   const [selected, setSelected] = useState(new Set());
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const { addToast } = useToastStore();
+  const { selectedClinicId } = useClinicStore();
 
   useEffect(() => {
     if (!open) return;
@@ -87,18 +93,34 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
   );
 
   const handleCreate = async () => {
-    if (!canCreate) return;
+    if (!canCreate || creating) return;
     try {
+      setCreating(true);
       const permissionIds = Array.from(selected);
       const res = await createRole({
         name: name.trim(),
         description: desc.trim(),
         permissions: permissionIds,
+        clinicId: selectedClinicId,
       });
+
+      addToast({
+        title: "Success",
+        message: "Role created successfully.",
+        type: "success",
+      });
+
       onCreated?.(res?.data);
       requestClose();
     } catch (e) {
-      alert(e?.message || "Failed to create role");
+      console.error("Create role failed:", e);
+      addToast({
+        title: "Error",
+        message: e?.response?.data?.message || e?.message || "Failed to create role",
+        type: "error",
+      });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -110,8 +132,17 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
       onClose={requestClose}
       title="Create User Role"
       onPrimaryAction={handleCreate}
-      primaryActionLabel="Create"
-      primaryActionDisabled={!canCreate}
+      primaryActionLabel={
+        creating ? (
+          <div className="flex items-center gap-2">
+            <UniversalLoader size={16} color="white" />
+            <span>Creating...</span>
+          </div>
+        ) : (
+          "Create"
+        )
+      }
+      primaryActionDisabled={!canCreate || creating}
       width={600}
     >
       <div className="flex flex-col ">

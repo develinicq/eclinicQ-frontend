@@ -35,6 +35,7 @@ import {
 import AvatarCircle from "../../components/AvatarCircle";
 import useDoctorAuthStore from "../../store/useDoctorAuthStore";
 import useHospitalAuthStore from "../../store/useHospitalAuthStore";
+import useClinicStore from "../../store/settings/useClinicStore";
 
 const DocSidebar = () => {
   const location = useLocation();
@@ -49,8 +50,9 @@ const DocSidebar = () => {
   const isDualRole = hospitalRoles?.includes("HOSPITAL_ADMIN") && hospitalRoles?.includes("DOCTOR");
 
   // Switch account popover state
+  const { selectedClinicId, setSelectedClinicId } = useClinicStore();
   const [showSwitch, setShowSwitch] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [selectedAccount, setSelectedAccount] = useState(selectedClinicId);
   const switchRef = useRef(null);
   const triggerRef = useRef(null);
   const popoverRef = useRef(null);
@@ -86,12 +88,22 @@ const DocSidebar = () => {
     });
   }
 
-  // Set default selected account
+  // Set default selected account if nothing is persisted
   useEffect(() => {
     if (accounts.length > 0 && !selectedAccount) {
-      setSelectedAccount(accounts[0].id);
+      const firstAcc = accounts[0];
+      setSelectedAccount(firstAcc.id);
+      setSelectedClinicId(firstAcc.id, firstAcc.type);
     }
-  }, [accounts.length]);
+  }, [accounts.length, selectedAccount, setSelectedClinicId]);
+
+  // Handle account switch
+  const handleAccountSwitch = (id) => {
+    const acc = accounts.find(a => a.id === id);
+    setSelectedAccount(id);
+    setSelectedClinicId(id, acc?.type);
+    setShowSwitch(false);
+  };
 
   // Get currently selected account details
   const currentAccount = accounts.find(acc => acc.id === selectedAccount) || accounts[0];
@@ -188,7 +200,7 @@ const DocSidebar = () => {
     { label: "Clinics Details", to: "/doc/settings/clinics" },
     { label: "Staff Permissions", to: "/doc/settings/staff-permissions" },
     { label: "Security Settings", to: "/doc/settings/security" },
-     { label: "Subscriptions/Billing", to: "/doc/settings/billing" },
+    { label: "Subscriptions/Billing", to: "/doc/settings/billing" },
   ];
 
   const settingsSubItems = isDualRole
@@ -257,7 +269,7 @@ const DocSidebar = () => {
                   <React.Fragment key={acc.id}>
                     <button
                       type="button"
-                      onClick={() => setSelectedAccount(acc.id)}
+                      onClick={() => handleAccountSwitch(acc.id)}
                       className={`w-full flex items-center gap-3 px-2 py-2 rounded text-left ${selectedAccount === acc.id
                         ? "bg-[#F7FAFF] border border-blue-200"
                         : "hover:bg-gray-50"

@@ -13,16 +13,21 @@ const useStaffStore = create((set, get) => ({
     lastClinicIdForRoles: null,
     lastClinicIdForStaff: null,
 
-    fetchRoles: async (clinicId) => {
-        if (!clinicId) return;
-        if (get().lastClinicIdForRoles === clinicId && get().roles.length > 0) {
-            console.log("[useStaffStore] Skipping fetchRoles: ClinicId same and data exists.");
+    fetchRoles: async (params) => {
+        // params: { clinicId } or { hospitalId }
+        // Simple distinct key check or passing 'params' directly
+        const idKey = params.clinicId ? params.clinicId : params.hospitalId;
+        if (!idKey) return;
+
+        // We track last fetched ID generically
+        if (get().lastClinicIdForRoles === idKey && get().roles.length > 0) {
+            console.log("[useStaffStore] Skipping fetchRoles: ID same and data exists.");
             return;
         }
 
         set({ loadingRoles: true });
         try {
-            const res = await fetchAllRoles(clinicId);
+            const res = await fetchAllRoles(params);
             if (res?.data && Array.isArray(res.data)) {
                 const mapped = res.data.map((r) => ({
                     id: r.id,
@@ -33,7 +38,7 @@ const useStaffStore = create((set, get) => ({
                     created: new Date(r.createdAt).toLocaleDateString(),
                     icon: "clipboard",
                 }));
-                set({ roles: mapped, lastClinicIdForRoles: clinicId });
+                set({ roles: mapped, lastClinicIdForRoles: idKey });
             }
         } catch (err) {
             console.error("Failed to fetch roles:", err);
@@ -42,26 +47,48 @@ const useStaffStore = create((set, get) => ({
         }
     },
 
-    fetchStaff: async (clinicId) => {
-        if (!clinicId) return;
-        if (get().lastClinicIdForStaff === clinicId && get().staffList.length > 0) {
-            console.log("[useStaffStore] Skipping fetchStaff: ClinicId same and data exists.");
+    fetchStaff: async (params) => {
+        // params: { clinicId } or { hospitalId }
+        const idKey = params.clinicId ? params.clinicId : params.hospitalId;
+        const isHospital = !!params.hospitalId;
+
+        if (!idKey) return;
+        if (get().lastClinicIdForStaff === idKey && get().staffList.length > 0) {
+            console.log("[useStaffStore] Skipping fetchStaff: ID same and data exists.");
             return;
         }
 
         set({ loadingStaff: true });
         try {
-            const res = await fetchClinicStaff(clinicId);
-            if (res && Array.isArray(res)) {
-                const mapped = res.map((s) => ({
-                    id: s.id,
-                    name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
-                    position: s.roles?.[0]?.name || "Staff",
-                    role: s.roles?.[0]?.name || "Staff",
-                    phone: s.phoneNumber || s.email,
-                    joined: new Date(s.createdAt).toLocaleDateString(),
-                }));
-                set({ staffList: mapped, lastClinicIdForStaff: clinicId });
+            const res = isHospital
+                ? await import('../services/staffService').then(m => m.fetchHospitalStaff(idKey))
+                : await fetchClinicStaff(idKey);
+
+            const listData = isHospital ? (res?.data || []) : (res || []);
+
+            if (Array.isArray(listData)) {
+                const mapped = listData.map((s) => {
+                    if (isHospital) {
+                        return {
+                            id: s.staffId,
+                            name: s.name,
+                            position: s.position,
+                            role: s.role,
+                            phone: s.phone || s.email,
+                            joined: s.joinedAt ? new Date(s.joinedAt).toLocaleDateString() : "-",
+                        };
+                    }
+                    // Doctor module mapping
+                    return {
+                        id: s.id,
+                        name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
+                        position: s.roles?.[0]?.name || "Staff",
+                        role: s.roles?.[0]?.name || "Staff",
+                        phone: s.phoneNumber || s.email,
+                        joined: s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "-",
+                    };
+                });
+                set({ staffList: mapped, lastClinicIdForStaff: idKey });
             }
         } catch (err) {
             console.error("Failed to fetch staff:", err);

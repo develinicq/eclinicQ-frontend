@@ -11,6 +11,7 @@ import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import useUIStore from "@/store/useUIStore";
 import useToastStore from "@/store/useToastStore";
 import useHospitalAuthStore from "@/store/useHospitalAuthStore";
+import useDoctorAuthStore from "@/store/useDoctorAuthStore";
 
 import RadioButton from "@/components/GeneralDrawer/RadioButton";
 
@@ -138,6 +139,10 @@ export default function HSignIn() {
             return;
           }
 
+          if (roles.includes("DOCTOR")) {
+            useDoctorAuthStore.getState().clearAuth();
+          }
+
           addToast({
             title: "Login Successful",
             message: "Redirecting to dashboard...",
@@ -197,6 +202,10 @@ export default function HSignIn() {
             type: "error",
           });
           return;
+        }
+
+        if (roles.includes("DOCTOR")) {
+          useDoctorAuthStore.getState().clearAuth();
         }
 
         addToast({

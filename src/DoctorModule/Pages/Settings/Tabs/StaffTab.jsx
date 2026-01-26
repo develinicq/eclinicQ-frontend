@@ -8,9 +8,7 @@ import {
 import { pencil } from "../../../../../public/index.js";
 import InviteStaffDrawer from "../Drawers/InviteStaffDrawer.jsx";
 import RoleDrawerShared from "../Drawers/RoleDrawer.jsx";
-import { fetchClinicStaff } from "../../../../services/staffService";
 import { fetchAllRoles } from "../../../../services/rbac/roleService";
-import { registerStaff } from "../../../../services/staff/registerStaffService";
 import { createRole } from "../../../../services/rbac/roleService";
 import { fetchAllPermissions } from "../../../../services/rbac/permissionService";
 import useDoctorAuthStore from "../../../../store/useDoctorAuthStore";
@@ -519,8 +517,8 @@ const StaffTab = () => {
 
     useEffect(() => {
         const clinicId = getClinicId();
-        if (tab === "roles") fetchRoles(clinicId);
-        if (tab === "staff") fetchStaff(clinicId);
+        if (tab === "roles") fetchRoles({ clinicId });
+        if (tab === "staff") fetchStaff({ clinicId });
     }, [tab, fetchRoles, fetchStaff]);
 
     return (
@@ -615,35 +613,10 @@ const StaffTab = () => {
             <InviteStaffDrawer
                 open={inviteOpen}
                 onClose={() => setInviteOpen(false)}
-                onSendInvite={async (rows) => {
-                    try {
-                        const authSnap = useDoctorAuthStore.getState();
-                        // Try to find clinic ID
-                        const clinicId =
-                            authSnap?.user?.associatedWorkplaces?.clinic?.id ||
-                            authSnap?.user?.clinicId ||
-                            authSnap?.clinicId;
-
-                        await Promise.all(
-                            rows.map((r) =>
-                                registerStaff({
-                                    name: r.name,
-                                    email: r.email,
-                                    phone: r.phone,
-                                    position: r.position,
-                                    role: r.role,
-                                    status: "Inactive",
-                                    clinicId, // Pass clinicId if registerStaff supports it
-                                })
-                            )
-                        );
-                        // Refresh
-                        fetchStaff(clinicId);
-                        setInviteOpen(false);
-                    } catch (err) {
-                        console.error("Failed to send invites:", err);
-                        alert("Failed to send invites");
-                    }
+                onSendInvite={async () => {
+                    const clinicId = getClinicId();
+                    fetchStaff({ clinicId });
+                    setInviteOpen(false);
                 }}
             />
 
@@ -659,7 +632,7 @@ const StaffTab = () => {
                 onClose={() => setCreateRoleOpen(false)}
                 onCreate={(newRole) => {
                     // refresh roles
-                    fetchRoles(getClinicId());
+                    fetchRoles({ clinicId: getClinicId() });
                 }}
             />
         </div>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { bell, chevdown, patientunselect, appointement } from '../../../public/index.js';
 import useFrontDeskAuthStore from '../../store/useFrontDeskAuthStore';
 import AvatarCircle from '../../components/AvatarCircle';
+import { logoutAll } from '../../utils/authUtils';
 import NotificationDrawer from '../../components/NotificationDrawer.jsx';
 import AddPatientDrawer from '../../components/PatientList/AddPatientDrawer.jsx';
 import BookAppointmentDrawer from '../../components/Appointment/BookAppointmentDrawer.jsx';
@@ -102,7 +103,7 @@ const FDNavbar = ({ useAuthStore = useFrontDeskAuthStore, BookDrawer = BookAppoi
 	}, []);
 
 	const handleLogout = () => {
-		clearAuth();
+		logoutAll();
 		navigate('/doc/signin');
 	};
 

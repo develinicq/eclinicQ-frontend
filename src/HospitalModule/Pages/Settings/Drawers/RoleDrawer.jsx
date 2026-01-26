@@ -1,8 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import GeneralDrawer from "@/components/GeneralDrawer/GeneralDrawer";
 import InputWithMeta from "@/components/GeneralDrawer/InputWithMeta";
 import { fetchAllPermissions } from "@/services/rbac/permissionService";
 import { createRole } from "@/services/rbac/roleService";
+import { Checkbox } from "@/components/ui/checkbox";
+import useToastStore from "@/store/useToastStore";
+import useClinicStore from "@/store/settings/useClinicStore";
+import UniversalLoader from "@/components/UniversalLoader";
 
 export default function RoleDrawer({ open, onClose, onCreated }) {
     const [closing, setClosing] = useState(false);
@@ -11,7 +15,10 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
     const [grouped, setGrouped] = useState({}); // { module: [{id,name,description}] }
     const [selected, setSelected] = useState(new Set());
     const [loading, setLoading] = useState(false);
+    const [creating, setCreating] = useState(false);
     const [error, setError] = useState("");
+    const { addToast } = useToastStore();
+    const { selectedClinicId } = useClinicStore();
 
     useEffect(() => {
         if (!open) return;
@@ -67,52 +74,53 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
 
     const canCreate = name.trim().length > 0 && selected.size > 0;
 
-    const CheckboxWithLabel = ({ label, checked, onChange }) => (
+    const CheckboxWithLabel = ({ label, checked, onCheckedChange }) => (
         <InputWithMeta label=" " showInput={false}>
-            <label className="inline-flex items-start gap-2 cursor-pointer text-[12px] text-[#424242]">
-                <input
-                    type="checkbox"
-                    className=" peer sr-only  "
+            <div className="flex items-start gap-2 cursor-pointer">
+                <Checkbox
                     checked={checked}
-                    onChange={onChange}
-
+                    onCheckedChange={onCheckedChange}
+                    id={typeof label === 'string' ? label : undefined}
                 />
-
-                <span className="w-4 h-4 mt-1 rounded-sm border border-gray-400 flex items-center justify-center
-                     peer-checked:bg-blue-600 peer-checked:border-blue-600">
-                    <svg
-                        className="hidden peer-checked:block w-3 h-3 text-white"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                    >
-                        <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-7.364 7.364a1 1 0 01-1.414 0L3.293 9.414a1 1 0 011.414-1.414l3.05 3.05 6.657-6.657a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                            style={{ width: '0.75rem', height: '0.75rem' }}
-                        />
-                    </svg>
-                </span>
-
-                <span className="text-xs text-secondary-grey400">{label}</span>
-            </label>
-
+                <label
+                    htmlFor={typeof label === 'string' ? label : undefined}
+                    className="text-xs text-secondary-grey400 cursor-pointer"
+                >
+                    {label}
+                </label>
+            </div>
         </InputWithMeta>
     );
 
     const handleCreate = async () => {
-        if (!canCreate) return;
+        if (!canCreate || creating) return;
         try {
+            setCreating(true);
             const permissionIds = Array.from(selected);
             const res = await createRole({
                 name: name.trim(),
                 description: desc.trim(),
                 permissions: permissionIds,
+                hospitalId: selectedClinicId, // Use hospitalId for HospitalModule
             });
+
+            addToast({
+                title: "Success",
+                message: "Role created successfully.",
+                type: "success",
+            });
+
             onCreated?.(res?.data);
             requestClose();
         } catch (e) {
-            alert(e?.message || "Failed to create role");
+            console.error("Create role failed:", e);
+            addToast({
+                title: "Error",
+                message: e?.response?.data?.message || e?.message || "Failed to create role",
+                type: "error",
+            });
+        } finally {
+            setCreating(false);
         }
     };
 
@@ -124,8 +132,17 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
             onClose={requestClose}
             title="Create User Role"
             onPrimaryAction={handleCreate}
-            primaryActionLabel="Create"
-            primaryActionDisabled={!canCreate}
+            primaryActionLabel={
+                creating ? (
+                    <div className="flex items-center gap-2">
+                        <UniversalLoader size={16} color="white" />
+                        <span>Creating...</span>
+                    </div>
+                ) : (
+                    "Create"
+                )
+            }
+            primaryActionDisabled={!canCreate || creating}
             width={600}
         >
             <div className="flex flex-col ">
@@ -148,7 +165,6 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
                         label="Permissions"
                         requiredDot
                         showInput={false}
-
                     />
                 </div>
 
@@ -162,7 +178,6 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
                             const allSelected = groupIds.every((id) => selected.has(id));
                             return (
                                 <div key={key} className="border border-secondary-grey100 rounded-md py-2 px-3 pb-3 flex flex-col gap-[6px]">
-
                                     <div className="flex items-center justify-between ">
                                         <div className="font-medium text-[14px] text-secondary-grey300">{key}</div>
                                         <div className="">
@@ -171,7 +186,7 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
                                                     <div className=" mt-1 text-[12px] text-secondary-grey300">Select All</div>
                                                 )}
                                                 checked={allSelected}
-                                                onChange={(e) => selectAllInGroup(key, e.target.checked)}
+                                                onCheckedChange={(checked) => selectAllInGroup(key, checked)}
                                             />
                                         </div>
                                     </div>
@@ -189,7 +204,7 @@ export default function RoleDrawer({ open, onClose, onCreated }) {
                                                         </div>
                                                     )}
                                                     checked={selected.has(p.id)}
-                                                    onChange={() => togglePerm(p.id)}
+                                                    onCheckedChange={() => togglePerm(p.id)}
                                                 />
                                             </div>
                                         ))}

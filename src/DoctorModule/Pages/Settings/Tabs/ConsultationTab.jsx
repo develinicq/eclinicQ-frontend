@@ -441,88 +441,180 @@ const ConsultationTab = () => {
                         </div>
 
 
-                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 items-start">
-                            {consultationDetails.slotTemplates.schedule.map((d) => (
-                                <div key={d.day} className="bg-white border border-secondary-grey100 rounded-lg p-3 ">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-sm font-medium text-gray-900">{d.day}</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm text-secondary-grey300">Available</span>
-                                            <Toggle
-                                                checked={Boolean(d.available)}
-                                                onChange={(v) => {
-                                                    const checked = typeof v === "boolean" ? v : v?.target?.checked;
-                                                    handleScheduleChange(d.day, { available: checked });
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-gray-200 mb-3" />
-                                    <div className={`space-y-3 ${!d.available ? "opacity-60 pointer-events-none" : ""}`}>
-                                        {(d.sessions?.length > 0 ? d.sessions : [{ sessionNumber: 1, startTime: "1970-01-01T09:00:00.000Z", endTime: "1970-01-01T17:00:00.000Z", maxTokens: null }]).map((s, idx) => (
-                                            <div key={s.id || idx} className="flex items-center gap-4 bg-blue-primary50 p-2 rounded-lg">
-                                                <span className="text-sm text-secondary-grey300 whitespace-nowrap">Session {s.sessionNumber || idx + 1}:</span>
-                                                <TimeInput
-                                                    value={toHM(s.startTime)}
-                                                    onChange={(e) => {
-                                                        const sessions = [...d.sessions];
-                                                        sessions[idx] = { ...sessions[idx], startTime: toUTC(e.target.value) };
-                                                        handleScheduleChange(d.day, { sessions });
-                                                    }}
-                                                />
-                                                <span className="text-sm text-secondary-grey300">-</span>
-                                                <TimeInput
-                                                    value={toHM(s.endTime)}
-                                                    onChange={(e) => {
-                                                        const sessions = [...d.sessions];
-                                                        sessions[idx] = { ...sessions[idx], endTime: toUTC(e.target.value) };
-                                                        handleScheduleChange(d.day, { sessions });
-                                                    }}
-                                                />
-                                                <div className="text-sm text-secondary-grey300 whitespace-nowrap h-5 w-[8px] opacity-50">|</div>
-                                                <span className="text-sm text-secondary-grey300 whitespace-nowrap">Token Available:</span>
-                                                <input
-                                                    className="h-8 w-16 text-sm border border-secondary-grey200 rounded px-2 bg-white text-secondary-grey400 focus:outline-none"
-                                                    placeholder="Val"
-                                                    value={s.maxTokens ?? ""}
-                                                    onChange={(e) => {
-                                                        const sessions = [...d.sessions];
-                                                        sessions[idx] = { ...sessions[idx], maxTokens: e.target.value === "" ? null : Number(e.target.value) };
-                                                        handleScheduleChange(d.day, { sessions });
-                                                    }}
-                                                />
-                                                {d.sessions?.length > 1 && (
-                                                    <button
-                                                        onClick={() => {
-                                                            const sessions = d.sessions.filter((_, i) => i !== idx);
-                                                            handleScheduleChange(d.day, { sessions });
+                        <div className="mt-6 flex flex-col md:flex-row gap-6 items-start">
+                            {/* Left Column (Even indices) */}
+                            <div className="flex-1 flex flex-col gap-6 w-full">
+                                {consultationDetails.slotTemplates.schedule
+                                    .filter((_, i) => i % 2 === 0)
+                                    .map((d) => (
+                                        <div key={d.day} className="bg-white border border-secondary-grey100 rounded-lg p-3 w-full">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-sm font-medium text-gray-900">{d.day}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm text-secondary-grey300">Available</span>
+                                                    <Toggle
+                                                        checked={Boolean(d.available)}
+                                                        onChange={(v) => {
+                                                            const checked = typeof v === "boolean" ? v : v?.target?.checked;
+                                                            handleScheduleChange(d.day, { available: checked });
                                                         }}
-                                                        className="text-gray-400 hover:text-red-600"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                )}
+                                                    />
+                                                </div>
                                             </div>
-                                        ))}
-                                        <button
-                                            className="text-sm text-blue-primary250 hover:text-blue-700 font-normal"
-                                            onClick={() => {
-                                                const sessions = [...(d.sessions || [])];
-                                                if (sessions.length >= 6) return alert("Max 6 sessions");
-                                                sessions.push({
-                                                    sessionNumber: sessions.length + 1,
-                                                    startTime: "1970-01-01T09:00:00.000Z",
-                                                    endTime: "1970-01-01T17:00:00.000Z",
-                                                    maxTokens: null
-                                                });
-                                                handleScheduleChange(d.day, { sessions });
-                                            }}
-                                        >
-                                            + Add More
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                            <div className="border-t border-gray-200 mb-3" />
+                                            <div className={`space-y-3 ${!d.available ? "opacity-60 pointer-events-none" : ""}`}>
+                                                {(d.sessions?.length > 0 ? d.sessions : [{ sessionNumber: 1, startTime: "1970-01-01T09:00:00.000Z", endTime: "1970-01-01T17:00:00.000Z", maxTokens: null }]).map((s, idx) => (
+                                                    <div key={s.id || idx} className="flex items-center gap-4 bg-blue-primary50 p-2 rounded-lg">
+                                                        <span className="text-sm text-secondary-grey300 whitespace-nowrap">Session {s.sessionNumber || idx + 1}:</span>
+                                                        <TimeInput
+                                                            value={toHM(s.startTime)}
+                                                            onChange={(e) => {
+                                                                const sessions = [...d.sessions];
+                                                                sessions[idx] = { ...sessions[idx], startTime: toUTC(e.target.value) };
+                                                                handleScheduleChange(d.day, { sessions });
+                                                            }}
+                                                        />
+                                                        <span className="text-sm text-secondary-grey300">-</span>
+                                                        <TimeInput
+                                                            value={toHM(s.endTime)}
+                                                            onChange={(e) => {
+                                                                const sessions = [...d.sessions];
+                                                                sessions[idx] = { ...sessions[idx], endTime: toUTC(e.target.value) };
+                                                                handleScheduleChange(d.day, { sessions });
+                                                            }}
+                                                        />
+                                                        <div className="text-sm text-secondary-grey300 whitespace-nowrap h-5 w-[8px] opacity-50">|</div>
+                                                        <span className="text-sm text-secondary-grey300 whitespace-nowrap">Token Available:</span>
+                                                        <input
+                                                            className="h-8 w-16 text-sm border border-secondary-grey200 rounded px-2 bg-white text-secondary-grey400 focus:outline-none"
+                                                            placeholder="Val"
+                                                            value={s.maxTokens ?? ""}
+                                                            onChange={(e) => {
+                                                                const sessions = [...d.sessions];
+                                                                sessions[idx] = { ...sessions[idx], maxTokens: e.target.value === "" ? null : Number(e.target.value) };
+                                                                handleScheduleChange(d.day, { sessions });
+                                                            }}
+                                                        />
+                                                        {d.sessions?.length > 1 && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    const sessions = d.sessions.filter((_, i) => i !== idx);
+                                                                    handleScheduleChange(d.day, { sessions });
+                                                                }}
+                                                                className="text-gray-400 hover:text-red-600"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    className="text-sm text-blue-primary250 hover:text-blue-700 font-normal"
+                                                    onClick={() => {
+                                                        const sessions = [...(d.sessions || [])];
+                                                        if (sessions.length >= 6) return alert("Max 6 sessions");
+                                                        sessions.push({
+                                                            sessionNumber: sessions.length + 1,
+                                                            startTime: "1970-01-01T09:00:00.000Z",
+                                                            endTime: "1970-01-01T17:00:00.000Z",
+                                                            maxTokens: null
+                                                        });
+                                                        handleScheduleChange(d.day, { sessions });
+                                                    }}
+                                                >
+                                                    + Add More
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+
+                            {/* Right Column (Odd indices) */}
+                            <div className="flex-1 flex flex-col gap-6 w-full">
+                                {consultationDetails.slotTemplates.schedule
+                                    .filter((_, i) => i % 2 !== 0)
+                                    .map((d) => (
+                                        <div key={d.day} className="bg-white border border-secondary-grey100 rounded-lg p-3 w-full">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-sm font-medium text-gray-900">{d.day}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm text-secondary-grey300">Available</span>
+                                                    <Toggle
+                                                        checked={Boolean(d.available)}
+                                                        onChange={(v) => {
+                                                            const checked = typeof v === "boolean" ? v : v?.target?.checked;
+                                                            handleScheduleChange(d.day, { available: checked });
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="border-t border-gray-200 mb-3" />
+                                            <div className={`space-y-3 ${!d.available ? "opacity-60 pointer-events-none" : ""}`}>
+                                                {(d.sessions?.length > 0 ? d.sessions : [{ sessionNumber: 1, startTime: "1970-01-01T09:00:00.000Z", endTime: "1970-01-01T17:00:00.000Z", maxTokens: null }]).map((s, idx) => (
+                                                    <div key={s.id || idx} className="flex items-center gap-4 bg-blue-primary50 p-2 rounded-lg">
+                                                        <span className="text-sm text-secondary-grey300 whitespace-nowrap">Session {s.sessionNumber || idx + 1}:</span>
+                                                        <TimeInput
+                                                            value={toHM(s.startTime)}
+                                                            onChange={(e) => {
+                                                                const sessions = [...d.sessions];
+                                                                sessions[idx] = { ...sessions[idx], startTime: toUTC(e.target.value) };
+                                                                handleScheduleChange(d.day, { sessions });
+                                                            }}
+                                                        />
+                                                        <span className="text-sm text-secondary-grey300">-</span>
+                                                        <TimeInput
+                                                            value={toHM(s.endTime)}
+                                                            onChange={(e) => {
+                                                                const sessions = [...d.sessions];
+                                                                sessions[idx] = { ...sessions[idx], endTime: toUTC(e.target.value) };
+                                                                handleScheduleChange(d.day, { sessions });
+                                                            }}
+                                                        />
+                                                        <div className="text-sm text-secondary-grey300 whitespace-nowrap h-5 w-[8px] opacity-50">|</div>
+                                                        <span className="text-sm text-secondary-grey300 whitespace-nowrap">Token Available:</span>
+                                                        <input
+                                                            className="h-8 w-16 text-sm border border-secondary-grey200 rounded px-2 bg-white text-secondary-grey400 focus:outline-none"
+                                                            placeholder="Val"
+                                                            value={s.maxTokens ?? ""}
+                                                            onChange={(e) => {
+                                                                const sessions = [...d.sessions];
+                                                                sessions[idx] = { ...sessions[idx], maxTokens: e.target.value === "" ? null : Number(e.target.value) };
+                                                                handleScheduleChange(d.day, { sessions });
+                                                            }}
+                                                        />
+                                                        {d.sessions?.length > 1 && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    const sessions = d.sessions.filter((_, i) => i !== idx);
+                                                                    handleScheduleChange(d.day, { sessions });
+                                                                }}
+                                                                className="text-gray-400 hover:text-red-600"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    className="text-sm text-blue-primary250 hover:text-blue-700 font-normal"
+                                                    onClick={() => {
+                                                        const sessions = [...(d.sessions || [])];
+                                                        if (sessions.length >= 6) return alert("Max 6 sessions");
+                                                        sessions.push({
+                                                            sessionNumber: sessions.length + 1,
+                                                            startTime: "1970-01-01T09:00:00.000Z",
+                                                            endTime: "1970-01-01T17:00:00.000Z",
+                                                            maxTokens: null
+                                                        });
+                                                        handleScheduleChange(d.day, { sessions });
+                                                    }}
+                                                >
+                                                    + Add More
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
                         </div>
                     </SectionCard>
 

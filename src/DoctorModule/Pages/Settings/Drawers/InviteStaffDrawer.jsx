@@ -7,32 +7,42 @@ import { ChevronDown, Trash2 } from "lucide-react";
 import { registerStaff } from "@/services/staff/registerStaffService";
 import { fetchAllRoles } from "@/services/rbac/roleService";
 import useDoctorAuthStore from "@/store/useDoctorAuthStore";
+import useClinicStore from "@/store/settings/useClinicStore";
+import useStaffStore from "@/store/useStaffStore";
+import useToastStore from "@/store/useToastStore";
+import UniversalLoader from "@/components/UniversalLoader";
 
 export default function InviteStaffDrawer({ open, onClose, initial = [], onSendInvite, onSend }) {
   const [rows, setRows] = useState([
-    { name: "", email: "", phone: "", position: "", role: "Front Desk" },
+    { name: "", email: "", phone: "", position: "", role: "" },
   ]);
+  const [inviting, setInviting] = useState(false);
+  const { addToast } = useToastStore();
+  const { roles: storeRoles } = useStaffStore();
+  const { selectedClinicId, selectedWorkplaceType } = useClinicStore();
   const [closing, setClosing] = useState(false);
   const [roleOpenIdx, setRoleOpenIdx] = useState(null);
   const [mode, setMode] = useState("individual"); // 'individual' | 'bulk'
   const allFilled = useMemo(() => {
     if (!rows || rows.length === 0) return false;
     return rows.every(r => {
-      const hasName = (r.name || "").trim().length > 0;
+      const trimmedName = (r.name || "").trim();
+      const hasBothNames = trimmedName.split(/\s+/).length >= 2;
       const hasEmail = (r.email || "").trim().length > 0;
       const hasPhone = (r.phone || "").trim().length > 0;
       const hasPosition = (r.position || "").trim().length > 0;
-      return hasName && hasEmail && hasPhone && hasPosition;
+      return hasBothNames && hasEmail && hasPhone && hasPosition;
     });
   }, [rows]);
   const firstRowFilled = useMemo(() => {
     const r = rows?.[0];
     if (!r) return false;
-    const hasName = (r.name || "").trim().length > 0;
+    const trimmedName = (r.name || "").trim();
+    const hasBothNames = trimmedName.split(/\s+/).length >= 2;
     const hasEmail = (r.email || "").trim().length > 0;
     const hasPhone = (r.phone || "").trim().length > 0;
     const hasPosition = (r.position || "").trim().length > 0;
-    return hasName && hasEmail && hasPhone && hasPosition;
+    return hasBothNames && hasEmail && hasPhone && hasPosition;
   }, [rows]);
   const [roles, setRoles] = useState([]); // [{id,name}]
   const [rolesLoading, setRolesLoading] = useState(false);
@@ -44,13 +54,13 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
     {
       const seed = Array.isArray(initial) && initial.length
         ? initial.map((r) => ({
-          name: r?.name || "",
+          name: r?.name || (r?.firstName ? `${r.firstName} ${r.lastName || ""}`.trim() : ""),
           email: r?.email || "",
           phone: r?.phone || "",
           position: r?.position || "",
-          role: r?.role || "Front Desk",
+          role: r?.role || "",
         }))
-        : [{ name: "", email: "", phone: "", position: "", role: "Front Desk" }];
+        : [{ name: "", email: "", phone: "", position: "", role: "" }]; // Empty role initially
       setRows(seed);
 
       // Fetch roles for Assign Roles dropdown
@@ -68,9 +78,19 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
             setRolesLoading(false);
             return;
           }
-          const res = await fetchAllRoles(clinicId);
+          const res = await fetchAllRoles({ clinicId });
           const list = res?.data || [];
-          setRoles(list.map((r) => ({ id: r.id, name: r.name })));
+          const mappedRoles = list.map((r) => ({ id: r.id, name: r.name }));
+          setRoles(mappedRoles);
+
+          // Default role to the first one available
+          if (mappedRoles.length > 0) {
+            const firstRole = mappedRoles[0].name;
+            setRows(prev => prev.map(r => ({
+              ...r,
+              role: r.role || firstRole
+            })));
+          }
         } catch (e) {
           setRolesError(e?.message || "Failed to load roles");
         } finally {
@@ -103,36 +123,69 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
     return roles.map((r) => ({ label: r.name, value: r.name }));
   }, [roles, rolesLoading, rolesError]);
 
-  const addRow = () => setRows((r) => [...r, { name: "", email: "", phone: "", position: "", role: "Front Desk" }]);
+  const addRow = () => setRows((r) => [...r, { name: "", email: "", phone: "", position: "", role: roles[0]?.name || "" }]);
   const removeRow = (idx) => setRows((r) => r.filter((_, i) => i !== idx));
   const setRow = (idx, patch) => setRows((r) => r.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
 
-  const valid = rows.every((r) => r.name && r.email && r.phone && r.position && r.role);
+  const valid = rows.every((r) => {
+    const trimmedName = (r.name || "").trim();
+    const hasBothNames = trimmedName.split(/\s+/).length >= 2;
+    return hasBothNames && r.email && r.phone && r.position && r.role;
+  });
+
   // Prefer API inside drawer; fallback to callbacks when provided
   const useApi = true;
   const handleSend = async () => {
-    if (!valid) return;
+    if (!valid || inviting) return;
+
+    setInviting(true);
     try {
-      if (useApi) {
-        await Promise.all(
-          rows.map((r) =>
-            registerStaff({
-              name: r.name,
-              email: r.email,
-              phone: r.phone,
-              position: r.position,
-              role: r.role,
-            })
-          )
-        );
-      } else {
-        if (typeof onSendInvite === 'function') await onSendInvite(rows);
-        else if (typeof onSend === 'function') await onSend(rows);
-      }
-      onClose?.();
+      const isHospital = selectedWorkplaceType === "Hospital";
+      const workplaceId = selectedClinicId;
+
+      await Promise.all(
+        rows.map((r) => {
+          // Use local 'roles' state instead of storeRoles for lookup
+          const matchedRole = roles.find(role => role.name === r.role);
+          const roleId = matchedRole?.id || "";
+
+          // Split name: first word as firstName, the rest as lastName
+          const parts = (r.name || "").trim().split(/\s+/);
+          const firstName = parts[0] || "";
+          const lastName = parts.slice(1).join(" ");
+
+          const payload = {
+            firstName,
+            lastName,
+            emailId: r.email,
+            phone: r.phone,
+            position: r.position,
+            roleId: roleId,
+            [isHospital ? "hospitalId" : "clinicId"]: workplaceId
+          };
+          return registerStaff(payload);
+        })
+      );
+
+      addToast({
+        title: "Success",
+        message: "Staff invitation(s) sent successfully.",
+        type: "success"
+      });
+
+      if (typeof onSendInvite === 'function') await onSendInvite(rows);
+      else if (typeof onSend === 'function') await onSend(rows);
+
+      requestClose();
     } catch (err) {
       console.error("Invite failed:", err);
-      alert("Failed to send invites");
+      addToast({
+        title: "Error",
+        message: err?.response?.data?.message || err?.message || "Failed to send invites",
+        type: "error"
+      });
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -143,9 +196,14 @@ export default function InviteStaffDrawer({ open, onClose, initial = [], onSendI
       isOpen={open}
       onClose={requestClose}
       title="Invite Staff"
-      primaryActionLabel="Send Invite"
+      primaryActionLabel={inviting ? (
+        <div className="flex items-center gap-2">
+          <UniversalLoader size={16} color="white" />
+          <span>Sending...</span>
+        </div>
+      ) : "Send Invite"}
       onPrimaryAction={handleSend}
-      primaryActionDisabled={!allFilled}
+      primaryActionDisabled={!allFilled || inviting}
       width={600}
     >
       <div className="flex flex-col gap-5">

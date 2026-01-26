@@ -125,6 +125,7 @@ export default function SampleTable({
   pageSize = 30, // Updated to show 30 rows per page
   total = 200,
   onPageChange,
+  onPageSizeChange,
   stickyLeftWidth = 280,
   stickyRightWidth = 120,
   onRowClick,
@@ -371,6 +372,7 @@ export default function SampleTable({
           canPrev={page > 1}
           canNext={page < totalPages}
           goto={goto}
+          onPageSizeChange={onPageSizeChange}
         />
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import useDoctorAuthStore from "../../../store/useDoctorAuthStore";
+import useHospitalAuthStore from "../../../store/useHospitalAuthStore";
 import {
   getDoctorDashboardAnalytics,
   getOutOfOfficeStatus
@@ -110,8 +111,10 @@ const DocDashboard = () => {
     }
   }, [doctorDetails, doctorLoading, fetchDoctorDetails, fdUser]);
 
-  const clinicId = doctorDetails?.clinicId || doctorDetails?.associatedWorkplaces?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id;
-  const doctorId = doctorDetails?.id || doctorDetails?.userId || fdUser?.doctorId;
+  const { hospitalId: hHospitalId, user: hospitalUser } = useHospitalAuthStore();
+
+  const clinicId = doctorDetails?.clinicId || doctorDetails?.associatedWorkplaces?.clinic?.id || fdUser?.clinicId || fdUser?.clinic?.id || hHospitalId || hospitalUser?.clinicId || hospitalUser?.clinic?.id;
+  const doctorId = doctorDetails?.id || doctorDetails?.userId || fdUser?.doctorId || hHospitalId && (hospitalUser?.doctorId || hospitalUser?.id);
 
   useEffect(() => {
     if (clinicId) {

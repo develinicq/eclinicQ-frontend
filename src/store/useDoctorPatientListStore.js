@@ -1,93 +1,59 @@
 import { create } from 'zustand'
-import axios from '../lib/axios'
+import { getPatientsForDoctor } from '../services/patientService'
 
 // Separate store for doctor's patient list. Keep it isolated from other stores.
 const useDoctorPatientListStore = create((set, get) => ({
   patients: [],
+  pagination: null,
   loading: false,
   error: null,
   lastFetchedParams: null,
   // fetch patients for doctor. Accept optional params object for pagination/filtering in future.
   fetchPatients: async (opts = {}) => {
-    const { clinicId, doctorId, roleContext } = opts;
-    const { lastFetchedParams, patients } = get();
-
-    // Check if params are the same and data exists
-    if (lastFetchedParams &&
-      lastFetchedParams.clinicId === clinicId &&
-      lastFetchedParams.doctorId === doctorId &&
-      patients.length > 0) {
-      console.log("[useDoctorPatientListStore] Skipping fetch: Params same and data exists.");
-      return;
-    }
+    const { clinicId, doctorId, hospitalId, page = 1, limit = 20 } = opts;
 
     set({ loading: true, error: null });
     try {
-      const res = await axios.get('/patients/for-doctor/patients-list', {
-        params: { clinicId, doctorId },
-        roleContext: roleContext // Pass internal context to axios interceptor
-      });
-      // API might return { data: [...] } or { data: { patients: [...] } }
-      const rawRes = res?.data?.data;
-      const data = Array.isArray(rawRes) ? rawRes : (rawRes?.patients || []);
+      const res = await getPatientsForDoctor({ clinicId, doctorId, hospitalId, page, limit });
 
-      // Normalize API shape to what PatientTable expects
-      const mapped = data.map((p) => {
-        const dobRaw = p?.dob || p?.dateOfBirth || null;
-        let dob = '';
-        try {
-          dob = dobRaw ? new Date(dobRaw).toLocaleDateString() : '';
-        } catch (e) {
-          dob = String(dobRaw || '');
-        }
-        // Format lastVisit: prefer lastVisitDateTime if provided; try to parse and format with AM/PM
-        let lastVisitRaw = p?.lastVisitDateTime || (p?.lastVisitDate && p?.lastVisitTime ? `${p.lastVisitDate} | ${p.lastVisitTime}` : '') || '';
-        let lastVisit = lastVisitRaw;
-        try {
-          // If it's already in 'DD/MM/YYYY | HH:mm' or 'DD/MM/YYYY | H:mm' format, parse manually
-          const ddmmyyyyWithPipe = lastVisitRaw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*\|\s*(\d{1,2}):(\d{2})$/);
-          if (ddmmyyyyWithPipe) {
-            const [, dd, mm, yyyy, hh, min] = ddmmyyyyWithPipe.map((v) => v);
-            // Create a Date in local time
-            const dt = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
-            const date = dt.toLocaleDateString('en-GB');
-            const time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-            lastVisit = `${date} | ${time}`;
-          } else {
-            // Try generic parse (ISO etc.)
-            const parsed = new Date(lastVisitRaw);
-            if (!isNaN(parsed)) {
-              const date = parsed.toLocaleDateString('en-GB'); // DD/MM/YYYY
-              const time = parsed.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); // h:mm AM/PM
-              lastVisit = `${date} | ${time}`;
-            }
-          }
-        } catch (e) {
-          // leave as-is
-        }
-        // derive location from several possible fields
-        const locationVal = p?.location || p?.locationText || (p?.address ? [p.address.city, p.address.state].filter(Boolean).join(', ') : '') || '';
+      // Response structure: { success: true, data: { patients: [...], pagination: {...} } }
+      const rawData = res?.data;
+      const patientsList = rawData?.patients || (Array.isArray(rawData) ? rawData : []);
+      const pagination = rawData?.pagination || null;
 
+      // Normalize API shape to what PatientTable expects (aligning with Hospital module)
+      const mapped = patientsList.map((p) => {
         return {
-          // Keep the true patient UUID in `patientId` for routing, and expose `patientCode` for human-friendly display.
+          id: p?.patientId || p?.id || '',
           patientId: p?.patientId || p?.id || '',
-          patientCode: p?.patientCode || p?.patientId || '',
-          name: p?.name || p?.displayName || '',
-          contact: p?.contactNumber || p?.contact || '',
-          email: p?.email || '',
-          location: locationVal,
+          patientCode: p?.patientCode || '',
+          name: p?.name || '',
           gender: p?.genderInitial || p?.gender || '',
-          dob,
-          age: p?.age || '', // Ensure age is included
-          lastVisit,
+          genderInitial: p?.genderInitial || '',
+          dob: p?.dob || '',
+          age: p?.age || '',
+          contact: p?.contactNumber || p?.contact || '',
+          contactNumber: p?.contactNumber || '',
+          email: p?.email || '',
+          location: p?.location || '',
+          lastVisit: p?.lastVisitDateTime || '',
+          lastVisitDate: p?.lastVisitDate || '',
+          lastVisitTime: p?.lastVisitTime || '',
           reason: p?.reasonForLastVisit || p?.reason || '',
+          reasonForLastVisit: p?.reasonForLastVisit || '',
           profilePhoto: p?.profilePhoto || null,
+          status: p?.status || 'Active', // Default to Active if not provided
           raw: p,
         };
       });
 
-      set({ patients: mapped, loading: false, lastFetchedParams: { clinicId, doctorId } });
-      return data;
+      set({
+        patients: mapped,
+        pagination,
+        loading: false,
+        lastFetchedParams: { clinicId, doctorId, hospitalId, page, limit }
+      });
+      return patientsList;
     } catch (e) {
       const err = e?.response?.data?.message || e.message || 'Failed to load patients';
       set({ error: err, loading: false });
@@ -95,7 +61,7 @@ const useDoctorPatientListStore = create((set, get) => ({
     }
   },
   // Clear store state (keeps separation)
-  clearPatientsStore: () => set({ patients: [], loading: false, error: null, lastFetchedParams: null }),
+  clearPatientsStore: () => set({ patients: [], pagination: null, loading: false, error: null, lastFetchedParams: null }),
 }))
 
 export default useDoctorPatientListStore
