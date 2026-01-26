@@ -1652,11 +1652,15 @@ const Queue = () => {
   const handleActionMenuClick = (e, token) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
-    // Align right edge of menu to right edge of button
+    // For slot_dropdown, left-align with button. For others, align right edge.
     const menuWidth = token === "slot_dropdown" ? 300 : 220;
+    const left = token === "slot_dropdown"
+      ? rect.left + window.scrollX
+      : rect.left + window.scrollX - menuWidth + rect.width;
+
     setDropdownPosition({
       top: rect.bottom + window.scrollY + 8,
-      left: rect.left + window.scrollX - menuWidth + rect.width,
+      left: left,
     });
     setActiveActionMenuToken(activeActionMenuToken === token ? null : token);
   };
@@ -1723,8 +1727,8 @@ const Queue = () => {
           <div className="relative mr-6">
             <button
               type="button"
-              className="flex w-[300px] items-center bg-white gap-1 text-[16px] text-secondary-grey400 hover:w-fit hover:bg-gray-50"
-              onClick={(e) => handleActionMenuClick(e, "slot_dropdown")}
+              className="flex w-[300px] items-center bg-white gap-1 text-[16px] text-secondary-grey400 hover:bg-gray-50 transition-all"
+              onMouseDown={(e) => handleActionMenuClick(e, "slot_dropdown")}
             >
               <span className="mr-1">
                 {timeSlots.find((t) => t.key === slotValue)?.label || (timeSlots.length > 0 ? timeSlots[0].label : "Morning")} ({timeSlots.find((t) => t.key === slotValue)?.time || (timeSlots.length > 0 ? timeSlots[0].time : "10:00am-12:00pm")})
@@ -1903,7 +1907,7 @@ const Queue = () => {
                   <button
                     type="button"
                     className="relative w-4 h-6 flex items-center justify-center rounded hover:bg-gray-100"
-                    onClick={(e) => handleActionMenuClick(e, "queue_actions_dropdown")}
+                    onMouseDown={(e) => handleActionMenuClick(e, "queue_actions_dropdown")}
                   >
                     <img src={action_dot} alt="Actions" className="w-4" />
                   </button>

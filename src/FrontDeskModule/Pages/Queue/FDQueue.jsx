@@ -613,14 +613,29 @@ export default function FDQueue() {
 	const handleActionMenuClick = (e, token) => {
 		e.stopPropagation();
 		const rect = e.currentTarget.getBoundingClientRect();
-		// Align right edge of menu to right edge of button (approx width 200px)
-		const menuWidth = 200;
+		// For slot_dropdown, left-align with button. For others, align right edge.
+		const menuWidth = token === "slot_dropdown" ? 300 : 200;
+		const left = token === "slot_dropdown"
+			? rect.left + window.scrollX
+			: rect.left + window.scrollX - menuWidth + rect.width;
+
 		setDropdownPosition({
 			top: rect.bottom + window.scrollY + 4,
-			left: rect.left + window.scrollX - menuWidth + rect.width,
+			left: left,
 		});
 		setActiveActionMenuToken(activeActionMenuToken === token ? null : token);
 	};
+
+	useEffect(() => {
+		const handleClickOutside = () => setActiveActionMenuToken(null);
+		const handleScroll = () => setActiveActionMenuToken(null);
+		window.addEventListener('mousedown', handleClickOutside);
+		window.addEventListener('scroll', handleScroll, true);
+		return () => {
+			window.removeEventListener('mousedown', handleClickOutside);
+			window.removeEventListener('scroll', handleScroll, true);
+		};
+	}, []);
 
 	const [isMarkingNoShow, setIsMarkingNoShow] = useState(false);
 
@@ -753,8 +768,9 @@ export default function FDQueue() {
 						<div className='relative '>
 							<button
 								type='button'
-								onClick={(e) => handleActionMenuClick(e, 'slot_dropdown')}
-								className='flex w-[300px] items-center bg-white gap-1 text-[16px] text-secondary-grey400 hover:w-fit hover:bg-gray-50'
+								onMouseDown={(e) => handleActionMenuClick(e, 'slot_dropdown')}
+								onClick={(e) => e.stopPropagation()}
+								className='flex w-[300px] items-center bg-white gap-1 text-[16px] text-secondary-grey400 hover:bg-gray-50 transition-all'
 							>
 								<span className='mr-1'>{timeSlots.find(t => t.key === slotValue)?.label || 'Morning'} ({timeSlots.find(t => t.key === slotValue)?.time || '10:00am-12:00pm'})</span>
 								<ChevronDown className='pl-1 h-4 border-l-[0.5px] border-secondary-grey100/50 text-gray-500' />
@@ -809,7 +825,8 @@ export default function FDQueue() {
 							<div className='bg-secondary-grey100/50 h-5 w-[1px]' ></div>
 
 							<button
-								onClick={(e) => handleActionMenuClick(e, 'queue_actions_dropdown')}
+								onMouseDown={(e) => handleActionMenuClick(e, 'queue_actions_dropdown')}
+								onClick={(e) => e.stopPropagation()}
 								className='hover:bg-secondary-grey50 rounded-sm'
 							>
 								<img src={more} alt="" />

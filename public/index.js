@@ -138,6 +138,11 @@ import timerOrange from "./timer-orange.svg";
 import restartQueueIcon from "./restart-queue-icon.svg";
 import tickLogin from "./tick-login.svg";
 import dangerIcon from "./danger-icon.svg";
+// Module Switch Icons
+import hospital_selected_module from "./hospital_module/switch/hospital_selected.svg";
+import hospital_unselected_module from "./hospital_module/switch/hospital_unselected.svg";
+import user_selected_module from "./hospital_module/switch/user_selected.svg";
+import user_unselected_module from "./hospital_module/switch/user_unselected.svg";
 
 export {
   // Root PNGs
@@ -272,5 +277,9 @@ export {
   timerOrange,
   restartQueueIcon,
   tickLogin,
-  dangerIcon
+  dangerIcon,
+  hospital_selected_module,
+  hospital_unselected_module,
+  user_selected_module,
+  user_unselected_module
 };

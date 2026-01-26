@@ -23,10 +23,12 @@ export default function Dropdown({
   // value of currently selected item for highlighting
   selectedValue,
   direction = "down",
+  align = "left",
+  useAnchorWidth = true,
 }) {
   const panelRef = useRef(null);
   const anchorRef = useRef(null);
-  const [position, setPosition] = React.useState({ top: 0, left: 0, width: 0 });
+  const [position, setPosition] = React.useState({ top: 0, left: 0, right: 0, width: 0 });
 
   useEffect(() => {
     if (!open) return;
@@ -44,9 +46,14 @@ export default function Dropdown({
       const GAP = 8;
 
       const pos = {
-        left: rect.left,
         width: rect.width,
       };
+
+      if (align === "right") {
+        pos.right = window.innerWidth - rect.right;
+      } else {
+        pos.left = rect.left;
+      }
 
       if (direction === "up") {
         pos.bottom = window.innerHeight - rect.top + GAP;
@@ -56,15 +63,20 @@ export default function Dropdown({
 
       setPosition(pos);
     }
-  }, [open, direction]);
+  }, [open, direction, align]);
 
 
   if (!open) return <div ref={anchorRef} className={anchorClassName} />;
 
   const dropdownStyle = {
-    left: `${position.left}px`,
-    width: position.width ? `${position.width}px` : "360px",
+    ...(useAnchorWidth && position.width ? { width: `${position.width}px` } : {}),
   };
+
+  if (align === "right") {
+    dropdownStyle.right = `${position.right}px`;
+  } else {
+    dropdownStyle.left = `${position.left}px`;
+  }
 
   if (direction === "up") {
     dropdownStyle.bottom = `${position.bottom}px`;

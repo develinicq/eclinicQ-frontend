@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Download, ChevronLeft, ChevronRight, UserPlus, Check, ChevronsUpDown } from 'lucide-react'
+import { Download, ChevronLeft, ChevronRight, UserPlus, Check, ChevronsUpDown, User, ChevronDown } from 'lucide-react'
 import { angelDown, calenderArrowLeft, calenderArrowRight } from '../../../../public/index.js'
 import Overview_cards from '../../../components/Dashboard/Overview_cards'
 import AvatarCircle from '../../../components/AvatarCircle'
-import BookAppointmentDrawer from '../../../components/Appointment/BookAppointmentDrawer.jsx'
+import BookWalkinAppointment2 from '../../../components/Appointment/BookWalkinAppointment2.jsx'
 import SampleTable from '../../../pages/SampleTable'
 import TableHeader from '../../../components/TableHeader'
 import DropdownMenu from '../../../components/GeneralDrawer/DropdownMenu'
@@ -13,6 +13,9 @@ import {
 } from "../../../../public/index.js";
 import useHospitalAuthStore from '../../../store/useHospitalAuthStore'
 import axiosInstance from '../../../lib/axios'
+import Dropdown from '../../../components/GeneralDrawer/Dropdown'
+import { getAllDoctorsForQueue } from '../../../services/hospitalService'
+import UniversalLoader from '../../../components/UniversalLoader'
 const PeriodTabs = ({ value, onChange }) => {
   const ranges = ['Daily', 'Weekly', 'Monthly', 'Yearly']
   return (
@@ -70,12 +73,20 @@ export default function HDashboard() {
   const handleNextYear = () => setSelectedYear(prev => prev + 1);
 
   const [bookOpen, setBookOpen] = useState(false)
-  const { hospitalId } = useHospitalAuthStore()
+  const { hospitalId, user } = useHospitalAuthStore()
   const [analyticsData, setAnalyticsData] = useState(null)
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
 
   const [doctorOverviewData, setDoctorOverviewData] = useState(null)
   const [loadingDoctorOverview, setLoadingDoctorOverview] = useState(false)
+
+  const [doctorList, setDoctorList] = useState([])
+  const [selectedDoctorId, setSelectedDoctorId] = useState('all')
+  const [openDoctorDD, setOpenDoctorDD] = useState(false)
+  const [loadingDoctors, setLoadingDoctors] = useState(false)
+
+  const [appointmentAnalyticsData, setAppointmentAnalyticsData] = useState(null)
+  const [loadingAppointmentAnalytics, setLoadingAppointmentAnalytics] = useState(false)
 
   const fetchAnalyticsSummary = async () => {
     if (!hospitalId) return
@@ -109,7 +120,7 @@ export default function HDashboard() {
           hospitalId,
           year: selectedYear,
           month: queryMonth,
-          aggregationType: 'weekly'
+          aggregationType: period.toLowerCase()
         }
       })
       if (res.data?.success) {
@@ -122,13 +133,62 @@ export default function HDashboard() {
     }
   }
 
+  const fetchAppointmentAnalytics = async () => {
+    if (!hospitalId) return
+    setLoadingAppointmentAnalytics(true)
+    try {
+      const monthIndex = months.indexOf(selectedMonth)
+      const queryMonth = monthIndex === 0 ? 13 : monthIndex
+
+      const res = await axiosInstance.get(`/hospitals/analytics/appointments`, {
+        params: {
+          hospitalId,
+          year: selectedYear,
+          month: queryMonth,
+          aggregationType: period.toLowerCase(),
+          ...(selectedDoctorId !== 'all' && { doctorId: selectedDoctorId })
+        }
+      })
+      if (res.data?.success) {
+        setAppointmentAnalyticsData(res.data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching appointment analytics:', error)
+    } finally {
+      setLoadingAppointmentAnalytics(false)
+    }
+  }
+
+  const fetchDoctors = async () => {
+    if (!hospitalId) return
+    setLoadingDoctors(true)
+    try {
+      const res = await getAllDoctorsForQueue(hospitalId)
+      if (res.success && res.data?.doctors) {
+        setDoctorList(res.data.doctors)
+      }
+    } catch (err) {
+      console.error('Failed to fetch doctors', err)
+    } finally {
+      setLoadingDoctors(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'appointment' && doctorList.length === 0) {
+      fetchDoctors()
+    }
+  }, [activeTab, hospitalId])
+
   useEffect(() => {
     if (activeTab === 'hospital') {
       fetchAnalyticsSummary()
     } else if (activeTab === 'doctors') {
       fetchDoctorOverview()
+    } else if (activeTab === 'appointment') {
+      fetchAppointmentAnalytics()
     }
-  }, [hospitalId, selectedYear, selectedMonth, activeTab])
+  }, [hospitalId, selectedYear, selectedMonth, activeTab, period, selectedDoctorId])
 
   useEffect(() => {
     const onClick = (e) => {
@@ -149,7 +209,7 @@ export default function HDashboard() {
     <div className="p-4">
       {/* Welcome + Walk-In */}
       <div className="flex items-center justify-between gap-3 mb-3">
-        <p className="text-sm text-[#626060]">Welcome, Manipal Hospital. Here's an overview of your practice.</p>
+        <p className="text-sm text-[#626060]">Welcome, {user?.name || 'Hospital'}. Here's an overview of your practice.</p>
         <div className="flex items-center gap-2">
           <div className="hidden sm:block w-px h-6 bg-[#E5F0FF]" />
           <button
@@ -395,18 +455,105 @@ export default function HDashboard() {
         activeTab === 'appointment' && (
           <>
             {/* Appointment Overview header: title only (controls moved to tabs row) */}
-            <div className="mb-3">
+            <div className="flex items-center justify-between mb-3">
               <span className="text-sm sm:text-base font-medium text-[#424242]">Appointment Overview</span>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={loadingDoctors}
+                  onClick={() => setOpenDoctorDD(!openDoctorDD)}
+                  className="flex items-center gap-2 px-3 h-8 rounded-lg border border-secondary-grey100 bg-white text-sm text-[#424242] transition-colors hover:border-[#2372EC]/30"
+                >
+                  <span className="text-secondary-grey400 font-medium">
+                    {loadingDoctors ? 'Loading...' : (selectedDoctorId === 'all' ? 'All Doctor' : (doctorList.find(d => d.doctorId === selectedDoctorId)?.doctorName || 'All Doctor'))}
+                  </span>
+                  {loadingDoctors ? (
+                    <UniversalLoader size={12} style={{ width: 'auto', height: 'auto' }} />
+                  ) : (
+                    <ChevronDown className={`w-3 h-3 text-secondary-grey400 transition-transform ${openDoctorDD ? 'rotate-180' : ''}`} />
+                  )}
+                </button>
+
+                <Dropdown
+                  open={openDoctorDD}
+                  onClose={() => setOpenDoctorDD(false)}
+                  items={[
+                    { label: 'All Doctor', value: 'all' },
+                    ...doctorList.map((d) => ({
+                      label: (
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            <AvatarCircle name={d.doctorName} size="s" color="orange" />
+                          </div>
+                          <div className="flex flex-col text-left overflow-hidden">
+                            <span className="font-medium text-secondary-grey400 text-sm leading-tight flex-wrap">
+                              {d.doctorName}
+                            </span>
+                            <span className="text-[11px] text-secondary-grey300 leading-tight truncate">
+                              {d.medicalPracticeType || ''}
+                            </span>
+                          </div>
+                        </div>
+                      ),
+                      value: d.doctorId,
+                    })),
+                  ]}
+                  onSelect={(it) => {
+                    setSelectedDoctorId(it.value)
+                  }}
+                  className="w-[250px]"
+                  align="right"
+                  useAnchorWidth={false}
+                  selectedValue={selectedDoctorId}
+                />
+              </div>
             </div>
 
             {/* Appointment Overview KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-2">
-              <Overview_cards title="Avg. Appointment Booked" value={103} percent={12} periodText="from last Year" variant="profit" />
-              <Overview_cards title="Avg. Engage Patient" value={80} percent={-8} periodText="from last Year" variant="loss" />
-              <Overview_cards title="Avg. Patient Admitted" value={4} percent={12} periodText="from last Year" variant="profit" />
-              <Overview_cards title="Avg. No-Show Patients" value={5} percent={-12} periodText="from last Year" variant="loss" />
-              <Overview_cards title="Avg. New Patient Visit" value={'12 Patients'} percent={12} periodText="from last year" variant="profit" />
-              <Overview_cards title="Avg. Token Utilization" value={'85 Tokens'} percent={12} periodText="from last year" variant="profit" />
+              <Overview_cards
+                title="Avg. Appointment Booked"
+                value={appointmentAnalyticsData?.metrics?.avgAppointmentsBooked?.current ?? 0}
+                percent={appointmentAnalyticsData?.metrics?.avgAppointmentsBooked?.percentageChange ?? 0}
+                periodText={`from previous ${appointmentAnalyticsData?.summary?.aggregationType ?? 'period'}`}
+                variant={appointmentAnalyticsData?.metrics?.avgAppointmentsBooked?.trend === 'increase' ? "profit" : "loss"}
+              />
+              <Overview_cards
+                title="Avg. Engage Patient"
+                value={appointmentAnalyticsData?.metrics?.avgEngagedPatients?.current ?? 0}
+                percent={appointmentAnalyticsData?.metrics?.avgEngagedPatients?.percentageChange ?? 0}
+                periodText={`from previous ${appointmentAnalyticsData?.summary?.aggregationType ?? 'period'}`}
+                variant={appointmentAnalyticsData?.metrics?.avgEngagedPatients?.trend === 'increase' ? "profit" : "loss"}
+              />
+              <Overview_cards
+                title="Avg. Patient Admitted"
+                value={appointmentAnalyticsData?.metrics?.avgPatientAdmitted?.current ?? 0}
+                percent={appointmentAnalyticsData?.metrics?.avgPatientAdmitted?.percentageChange ?? 0}
+                periodText={`from previous ${appointmentAnalyticsData?.summary?.aggregationType ?? 'period'}`}
+                variant={appointmentAnalyticsData?.metrics?.avgPatientAdmitted?.trend === 'increase' ? "profit" : "loss"}
+              />
+              <Overview_cards
+                title="Avg. No-Show Patients"
+                value={appointmentAnalyticsData?.metrics?.avgNoShowPatients?.current ?? 0}
+                percent={appointmentAnalyticsData?.metrics?.avgNoShowPatients?.percentageChange ?? 0}
+                periodText={`from previous ${appointmentAnalyticsData?.summary?.aggregationType ?? 'period'}`}
+                variant={appointmentAnalyticsData?.metrics?.avgNoShowPatients?.trend === 'increase' ? "loss" : "profit"}
+              />
+              <Overview_cards
+                title="Avg. New Patient Visit"
+                value={`${appointmentAnalyticsData?.metrics?.avgNewPatientVisit?.current ?? 0} Patients`}
+                percent={appointmentAnalyticsData?.metrics?.avgNewPatientVisit?.percentageChange ?? 0}
+                periodText={`from previous ${appointmentAnalyticsData?.summary?.aggregationType ?? 'period'}`}
+                variant={appointmentAnalyticsData?.metrics?.avgNewPatientVisit?.trend === 'increase' ? "profit" : "loss"}
+              />
+              <Overview_cards
+                title="Avg. Token Utilization"
+                value={`${appointmentAnalyticsData?.metrics?.avgTokenUtilization?.current ?? 0}${appointmentAnalyticsData?.metrics?.avgTokenUtilization?.unit === 'percentage' ? '%' : ''}`}
+                percent={appointmentAnalyticsData?.metrics?.avgTokenUtilization?.percentageChange ?? 0}
+                periodText={`from previous ${appointmentAnalyticsData?.summary?.aggregationType ?? 'period'}`}
+                variant={appointmentAnalyticsData?.metrics?.avgTokenUtilization?.trend === 'increase' ? "profit" : "loss"}
+              />
             </div>
 
             {/* Analytics Overview */}
@@ -537,7 +684,7 @@ export default function HDashboard() {
       }
 
       {/* Appointment booking drawer */}
-      <BookAppointmentDrawer open={bookOpen} onClose={() => setBookOpen(false)} />
+      <BookWalkinAppointment2 open={bookOpen} onClose={() => setBookOpen(false)} hospitalId={hospitalId} />
     </div >
   )
 }

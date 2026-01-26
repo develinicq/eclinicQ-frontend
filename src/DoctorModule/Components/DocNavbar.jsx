@@ -10,6 +10,10 @@ import {
   whiteProfileLink,
   whiteLogout,
   searchIcon,
+  hospital_selected_module,
+  hospital_unselected_module,
+  user_selected_module,
+  user_unselected_module
 } from "../../../public/index.js";
 // import useAuthStore from "../../store/useAuthStore";
 import useDoctorAuthStore from "@/store/useDoctorAuthStore";
@@ -95,13 +99,20 @@ const ProfileMenuItem = ({
   );
 };
 
-const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) => {
+const DocNavbar = ({
+  moduleSwitcher,
+  hospitalAdminData,
+  hospitalAdminPhoto,
+  BookDrawer = BookAppointmentDrawer
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const searchRef = useRef(null);
 
   const getTitle = () => {
     const path = location.pathname;
+
+    // Doctor Module Paths
     if (path === "/doc" || path === "/doc/") return "Dashboard";
     if (path.startsWith("/doc/queue")) return "Queue Management";
     if (path.startsWith("/doc/calendar")) return "Calendar";
@@ -116,6 +127,29 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
     if (path.includes("/doc/settings/security")) return "Security Settings";
     if (path.includes("/doc/settings/billing")) return "Subscriptions/Billing";
     if (path.includes("/doc/settings/rx-template")) return "Rx Template";
+
+    // Hospital Module Paths
+    if (path === "/hospital" || path === "/hospital/") return "Dashboard";
+    if (path.startsWith("/hospital/queue")) return "Queue Management";
+    if (path.startsWith("/hospital/calendar")) return "Calendar";
+    if (path.startsWith("/hospital/patients")) {
+      if (matchPath("/hospital/patients/:id", path)) return "Patient Profile";
+      return "Patients List";
+    }
+    if (path.startsWith("/hospital/doctors")) return "Doctor List";
+    if (matchPath("/hospital/doctor/:id", path)) return "Doctor Profile";
+
+    if (
+      path.includes("/hospital/settings/account") ||
+      path.includes("/hospital/settings/timing") ||
+      path.includes("/hospital/settings/surgeries")
+    ) return "Hospital Profile Details";
+
+    if (path.includes("/hospital/settings/staff-permissions")) return "Staff Permissions";
+    if (path.includes("/hospital/settings/rx-template")) return "Rx Template";
+    if (path.includes("/hospital/settings/subscriptions-billing")) return "Subscriptions/Billing";
+    if (path.includes("/hospital/settings/security")) return "Security Settings";
+
     return "Dashboard";
   };
 
@@ -182,20 +216,28 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
       <button
         type="button"
         onClick={switchToHospital}
-        className={`flex items-center justify-center h-8 w-8 rounded-[6px] border ${activeModule === 'hospital' ? 'bg-[#2372EC] border-[#2372EC]' : 'bg-white border-[#D6D6D6]'} hover:bg-blue-50 transition-colors`}
+        className={`flex items-center justify-center py-1 px-[6px] h-7 w-7 rounded-[4px]  ${activeModule === 'hospital' ? 'border bg-blue-primary250 border-blue-primary150/50' : 'bg-white hover:bg-secondary-grey100'}  transition-colors`}
         aria-label="Hospital Module"
         title="Hospital"
       >
-        <img src={hospitalIcon} alt="Hospital" className="w-4 h-4" />
+        <img
+          src={activeModule === 'hospital' ? hospital_selected_module : hospital_unselected_module}
+          alt="Hospital"
+          className="w-4 h-4"
+        />
       </button>
       <button
         type="button"
         onClick={switchToDoctor}
-        className={`flex items-center justify-center h-8 w-8 rounded-[6px] border ${activeModule === 'doctor' ? 'bg-[#2372EC] border-[#2372EC]' : 'bg-white border-[#D6D6D6]'} hover:bg-blue-50 transition-colors`}
+        className={`flex items-center justify-center h-7 w-7 rounded-[4px]  ${activeModule === 'doctor' ? 'bg-blue-primary250 border border-blue-primary150/50' : 'bg-white hover:bg-secondary-grey100/50'}  transition-colors`}
         aria-label="Doctor Module"
         title="Doctor"
       >
-        <img src={stethoscopeBlue} alt="Doctor" className="w-4 h-4" />
+        <img
+          src={activeModule === 'doctor' ? user_selected_module : user_unselected_module}
+          alt="Doctor"
+          className="w-4 h-4"
+        />
       </button>
     </div>
   ) : null;
@@ -682,7 +724,7 @@ const DocNavbar = ({ moduleSwitcher, hospitalAdminData, hospitalAdminPhoto }) =>
         onClose={() => setAddPatientOpen(false)}
         onSave={() => setAddPatientOpen(false)}
       />
-      <BookAppointmentDrawer
+      <BookDrawer
         open={bookApptOpen}
         onClose={() => setBookApptOpen(false)}
         doctorId={doctorDetails?.userId || doctorDetails?.id}

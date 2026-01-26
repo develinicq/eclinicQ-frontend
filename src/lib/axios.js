@@ -28,10 +28,13 @@ axiosInstance.interceptors.request.use(
       })();
 
       let hToken = null;
+      let hRoles = [];
       try {
         // Dynamic import to avoid circular dependency if store imports axios
         const store = (await import('../store/useHospitalAuthStore')).default;
-        hToken = store.getState().token;
+        const state = store.getState();
+        hToken = state.token;
+        hRoles = state.roleNames || [];
       } catch (e) { /* ignore */ }
 
       let dToken = null;
@@ -84,8 +87,12 @@ axiosInstance.interceptors.request.use(
         // Strictly prioritize FD token in FD module
         token = fdToken || genericToken || saToken || hToken || dToken || lsToken;
       } else if (isDoctorModule) {
-        // Strictly prioritize Doctor token in Doctor module
-        token = dToken || fdToken || saToken || hToken || genericToken || lsToken;
+        // Dual-role check: If signed in via Hospital but acting as Doctor, prefer Hospital token
+        if (hToken && hRoles.includes("DOCTOR")) {
+          token = hToken;
+        } else {
+          token = dToken || fdToken || saToken || hToken || genericToken || lsToken;
+        }
       } else if (isHospitalFDModule) {
         // Strictly prioritize HFD token in HFD module
         token = hfdToken || hToken || saToken || dToken || genericToken || lsToken;
