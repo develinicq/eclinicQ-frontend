@@ -536,3 +536,14 @@ export const createPatientProfileForHospital = async (hospitalId, payload) => {
     throw error;
   }
 };
+export const getDoctorActiveSlot = async (hospitalId, doctorId) => {
+  if (!hospitalId || !doctorId) throw new Error('hospitalId and doctorId are required');
+  try {
+    const res = await axios.get('/hospitals/queue/doctor-active-slot', {
+      params: { hospitalId, doctorId }
+    });
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};

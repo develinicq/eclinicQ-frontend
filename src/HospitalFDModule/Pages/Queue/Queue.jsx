@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   ArrowRight,
@@ -23,7 +23,7 @@ const appt = '/fd/appt.svg'
 const active = '/fd/active.svg'
 import useHospitalFrontDeskAuthStore from '../../../store/useHospitalFrontDeskAuthStore';
 
-import { getAvailableDoctorsForQueue } from '../../../services/hospitalService';
+import { getAvailableDoctorsForQueue, getDoctorActiveSlot } from '../../../services/hospitalService';
 
 const toggle_open = '/fd/toggle_open.svg'
 
@@ -53,6 +53,7 @@ export default function HFDQueue() {
           slotId: d.slotId,
           starting: false,
           paused: d.sessionStatus === 'PAUSED',
+          currentToken: 0,
           pauseDuration: null,
           pauseStartTime: null
         }));
@@ -94,10 +95,76 @@ export default function HFDQueue() {
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [pauseMinutes, setPauseMinutes] = useState(null);
   const [pendingPauseDocId, setPendingPauseDocId] = useState(null);
+  const [pendingPauseSlotId, setPendingPauseSlotId] = useState(null);
   const [pauseSubmitting, setPauseSubmitting] = useState(false);
   const [pauseError, setPauseError] = useState(null);
 
   const { addToast } = useToastStore();
+  const doctorsRef = useRef(doctors);
+
+  useEffect(() => {
+    doctorsRef.current = doctors;
+  }, [doctors]);
+
+  const pollDoctorStatuses = async () => {
+    const currentDocs = doctorsRef.current;
+    if (!hospitalId || currentDocs.length === 0) return;
+
+    try {
+      const updatedDoctors = await Promise.all(
+        currentDocs.map(async (doc) => {
+          try {
+            const res = await getDoctorActiveSlot(hospitalId, doc.id);
+            if (res.success && res.data) {
+              return {
+                ...doc,
+                sessionStarted: res.data.status === 'STARTED' || res.data.status === 'PAUSED',
+                paused: res.data.status === 'PAUSED',
+                currentToken: res.data.currentToken || 0,
+                slotId: res.data.slotId || doc.slotId
+              };
+            }
+            return doc;
+          } catch (err) {
+            console.error(`Failed to fetch status for doctor ${doc.id}:`, err);
+            return doc;
+          }
+        })
+      );
+      setDoctors(updatedDoctors);
+    } catch (error) {
+      console.error('Error polling doctor statuses:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (hospitalId && doctors.length > 0) {
+      // Immediate fetch on load
+      pollDoctorStatuses();
+
+      const interval = setInterval(pollDoctorStatuses, 120000); // 2 minutes
+      return () => clearInterval(interval);
+    }
+  }, [hospitalId, doctors.length > 0]);
+
+  const handleSlotStatusUpdate = (update) => {
+    if (!selectedDoctorId) return;
+
+    setDoctors(prev => prev.map(d => {
+      // Only update if it's the selected doctor AND the update belongs to the active slot
+      // (or if we don't have a slotId for the doctor yet)
+      if (d.id === selectedDoctorId && (d.slotId === update.slotId || !d.slotId)) {
+        return {
+          ...d,
+          sessionStarted: update.status === 'STARTED' || update.status === 'PAUSED' || update.status === 'COMPLETED',
+          paused: update.status === 'PAUSED',
+          currentToken: update.currentToken ?? d.currentToken,
+          slotId: update.slotId || d.slotId
+        };
+      }
+      return d;
+    }));
+  };
 
   const handleToggleSession = async (docId) => {
     const doc = doctors.find(d => d.id === docId);
@@ -106,6 +173,7 @@ export default function HFDQueue() {
     if (doc.sessionStarted) {
       // If session is active, we are pausing it -> Open Modal
       setPendingPauseDocId(docId);
+      setPendingPauseSlotId(doc.slotId);
       setShowPauseModal(true);
     } else {
       // If session is inactive, just start it
@@ -182,12 +250,13 @@ export default function HFDQueue() {
   const confirmPauseQueue = async () => {
     if (!pendingPauseDocId || !pauseMinutes) return;
     const doc = doctors.find(d => d.id === pendingPauseDocId);
-    if (!doc?.slotId) return;
+    const slotId = pendingPauseSlotId || doc?.slotId;
+    if (!slotId) return;
 
     setPauseSubmitting(true);
     setPauseError(null);
     try {
-      const res = await pauseSlotEta(doc.slotId, pauseMinutes);
+      const res = await pauseSlotEta(slotId, pauseMinutes);
       if (res.success) {
         setDoctors(prev => prev.map(d =>
           d.id === pendingPauseDocId ? {
@@ -217,12 +286,13 @@ export default function HFDQueue() {
     }
   };
 
-  const handleResumeQueue = async (docId) => {
+  const handleResumeQueue = async (docId, slotId) => {
     const doc = doctors.find(d => d.id === docId);
-    if (!doc?.slotId) return;
+    const targetSlotId = slotId || doc?.slotId;
+    if (!targetSlotId) return;
 
     try {
-      const res = await resumeSlotEta(doc.slotId);
+      const res = await resumeSlotEta(targetSlotId);
       if (res.success) {
         setDoctors(prev => prev.map(d =>
           d.id === docId ? { ...d, paused: false, pauseDuration: null } : d
@@ -316,7 +386,9 @@ export default function HFDQueue() {
                         '--blink-on': '#3EAF3F',
                         '--blink-off': '#ffffff',
                       } : {}}></div>
-                    <span className={`text-[20px] font-bold ${doc.paused ? 'text-warning-400' : 'text-success-300'}`}>00</span>
+                    <span className={`text-[20px] font-bold ${doc.paused ? 'text-warning-400' : 'text-success-300'}`}>
+                      {String(doc.currentToken || 0).padStart(2, '0')}
+                    </span>
                   </div>
                 )}
               </div>
@@ -331,13 +403,16 @@ export default function HFDQueue() {
           doctorId={selectedDoctorId}
           sessionStarted={selectedDoctor?.sessionStarted}
           isPaused={selectedDoctor?.paused}
+          currentToken={selectedDoctor?.currentToken}
           pauseDuration={selectedDoctor?.pauseDuration}
           pauseStartTime={selectedDoctor?.pauseStartTime}
-          onPauseQueue={() => {
+          onPauseQueue={(slotId) => {
             setPendingPauseDocId(selectedDoctorId);
+            setPendingPauseSlotId(slotId);
             setShowPauseModal(true);
           }}
-          onResumeQueue={() => handleResumeQueue(selectedDoctorId)}
+          onResumeQueue={(slotId) => handleResumeQueue(selectedDoctorId, slotId)}
+          onStatusUpdate={handleSlotStatusUpdate}
         />
       </div>
 

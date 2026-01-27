@@ -10,6 +10,9 @@ import useFrontDeskAuthStore from "../../../store/useFrontDeskAuthStore";
 import useSlotStore from "../../../store/useSlotStore";
 import useDoctorAnalyticsStore from "../../../store/useDoctorAnalyticsStore";
 import Overview_cards from "../../../components/Dashboard/Overview_cards";
+import { PatientsServedChart } from "../../../components/ui/Graphs/PatientsServedChart";
+import { AppointmentBookingChart } from "../../../components/ui/Graphs/AppointmentBookingChart";
+import { AppointmentBookingStatusChart } from "../../../components/ui/Graphs/AppointmentBookingStatusChart";
 import BookAppointmentDrawer from "../../../components/Appointment/BookAppointmentDrawer.jsx";
 import OutOfOfficeDrawer from "../../Components/OutOfOfficeDrawer";
 import DropdownMenu from "../../../components/GeneralDrawer/DropdownMenu";
@@ -337,31 +340,18 @@ const DocDashboard = () => {
         </div>
 
         {/* Analytics Overview section */}
-        <div className="mb-2">
+        <div className="">
           <span className="text-sm sm:text-base font-medium text-[#424242]">
             Analytics Overview
           </span>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <SectionCard title="Patients Served">
-            <div className="h-[300px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">
-              Chart placeholder — to be added
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Appointment Booking Through">
-            <div className="h-[300px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">
-              Chart placeholder — to be added
-            </div>
-          </SectionCard>
+          <PatientsServedChart />
+          <AppointmentBookingChart />
         </div>
 
         {/* Bottom section */}
-        <SectionCard title="Appointment Booking Through">
-          <div className="h-[220px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">
-            Additional charts/table placeholder — to be added
-          </div>
-        </SectionCard>
+        <AppointmentBookingStatusChart height="320px" />
 
         {/* Appointment booking drawer */}
         <BookAppointmentDrawer

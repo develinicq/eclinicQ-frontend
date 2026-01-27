@@ -70,7 +70,7 @@ const calculateAge = (dob) => {
 
 
 
-export default function MiddleQueue({ doctorId: propsDoctorId, sessionStarted = false, onPauseQueue, isPaused, pauseDuration, pauseStartTime, onResumeQueue }) {
+export default function MiddleQueue({ doctorId: propsDoctorId, sessionStarted = false, onPauseQueue, isPaused, pauseDuration, pauseStartTime, onResumeQueue, currentToken = 0, onStatusUpdate }) {
 	// Timer Logic for Pause
 	const [remainingTime, setRemainingTime] = useState('00:00');
 
@@ -107,6 +107,7 @@ export default function MiddleQueue({ doctorId: propsDoctorId, sessionStarted = 
 	const [selectedSlotId, setSelectedSlotId] = useState('');
 	const [slotLoading, setSlotLoading] = useState(false);
 	const [slotError, setSlotError] = useState('');
+	const [localSlotStatus, setLocalSlotStatus] = useState('CREATED');
 
 	const [appointmentsData, setAppointmentsData] = useState({
 		checkedIn: [],
@@ -208,20 +209,37 @@ export default function MiddleQueue({ doctorId: propsDoctorId, sessionStarted = 
 		try {
 			const res = await axiosInstance.get(`/eta/slot/${selectedSlotId}/status`);
 			if (res.data?.success) {
-				const { activePatientDetails } = res.data.data;
-				if (activePatientDetails) {
-					const p = activePatientDetails;
-					setPolledActivePatient({
-						patientName: `${p.firstName} ${p.lastName}`.trim(),
-						token: p.tokenNumber,
-						gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
-						age: calculateAge(p.dob),
-						reasonForVisit: p.reason,
-						patientId: p.patientId,
-						startedAt: p.startedAt
-					});
-				} else {
-					setPolledActivePatient(null);
+				// Handle variant response shapes
+				const statusData = typeof res.data.message === 'object' ? res.data.message : res.data.data;
+
+				if (statusData && typeof statusData === 'object') {
+					const { activePatientDetails, currentToken: apiToken, slotStatus } = statusData;
+
+					// Update active patient
+					if (activePatientDetails) {
+						const p = activePatientDetails;
+						setPolledActivePatient({
+							patientName: `${p.firstName} ${p.lastName}`.trim(),
+							token: p.tokenNumber,
+							gender: p.gender === 'MALE' ? 'M' : p.gender === 'FEMALE' ? 'F' : 'O',
+							age: calculateAge(p.dob),
+							reasonForVisit: p.reason,
+							patientId: p.patientId,
+							startedAt: p.startedAt
+						});
+					} else {
+						setPolledActivePatient(null);
+					}
+
+					// Notify parent of status/token updates
+					if (onStatusUpdate) {
+						onStatusUpdate({
+							currentToken: apiToken,
+							status: slotStatus,
+							slotId: selectedSlotId
+						});
+					}
+					setLocalSlotStatus(slotStatus);
 				}
 			}
 		} catch (error) {
@@ -362,7 +380,7 @@ export default function MiddleQueue({ doctorId: propsDoctorId, sessionStarted = 
 	const [showTerminateModal, setShowTerminateModal] = useState(false);
 
 	// Derived States
-	const sessionActive = sessionStarted || !!polledActivePatient;
+	const sessionActive = localSlotStatus === 'STARTED' || localSlotStatus === 'PAUSED' || !!polledActivePatient;
 	const activePatient = polledActivePatient;
 
 	const getTableData = () => {
@@ -469,7 +487,9 @@ export default function MiddleQueue({ doctorId: propsDoctorId, sessionStarted = 
 							<span className=' text-[20px] mr-3'>Current Token Number</span>
 							<span className={`w-4 h-4 rounded-full animate-colorBlink ${isPaused ? 'bg-warning-400' : 'bg-white '} transition-all duration-1000`}
 								style={!isPaused ? { '--blink-on': '#22c55e', '--blink-off': '#ffffff' } : { '--blink-on': '#EC7600', '--blink-off': '#ffffff' }}></span>
-							<span className={`font-bold text-[20px] ${isPaused ? 'text-warning-400' : 'text-white'}`}>00</span>
+							<span className={`font-bold text-[20px] ${isPaused ? 'text-warning-400' : 'text-white'}`}>
+								{String(currentToken || 0).padStart(2, '0')}
+							</span>
 							{isPaused && (
 								<div className='flex items-center ml-2 border border-warning-400 py-[2px] rounded px-[6px] bg-white gap-1'>
 									<img src={stopwatch} alt="" className='w-[14px] h-[14px]' />
@@ -483,14 +503,14 @@ export default function MiddleQueue({ doctorId: propsDoctorId, sessionStarted = 
 						<div className="ml-auto">
 							{!isPaused ? (
 								<button
-									onClick={onPauseQueue}
+									onClick={() => onPauseQueue(selectedSlotId)}
 									className='bg-white text-[#ef4444] h-[24px] py-1 px-[6px] rounded text-[12px] font-medium border border-error-200/50 flex items-center gap-2 hover:bg-error-400 hover:text-white transition-colors '
 								>
 									<img src={pause} alt="" className='' /> Pause Queue
 								</button>
 							) : (
 								<button
-									onClick={onResumeQueue}
+									onClick={() => onResumeQueue(selectedSlotId)}
 									className='bg-blue-primary250 text-white h-[24px] py-1 px-[6px] rounded text-[12px] font-medium flex items-center gap-1.5 hover:bg-blue-primary300 transition-colors '
 								>
 									<RotateCcw className='w-[14px] h-[14px] -scale-y-100 rotate-180' /> Restart Queue

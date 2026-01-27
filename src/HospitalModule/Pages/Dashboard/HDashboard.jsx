@@ -16,6 +16,12 @@ import axiosInstance from '../../../lib/axios'
 import Dropdown from '../../../components/GeneralDrawer/Dropdown'
 import { getAllDoctorsForQueue } from '../../../services/hospitalService'
 import UniversalLoader from '../../../components/UniversalLoader'
+import { PatientsServedChart } from '../../../components/ui/Graphs/PatientsServedChart'
+import { AppointmentBookingChart } from '../../../components/ui/Graphs/AppointmentBookingChart'
+import { AppointmentBookingStatusChart } from '../../../components/ui/Graphs/AppointmentBookingStatusChart'
+import { PatientDemographicsChart } from '../../../components/ui/Graphs/PatientDemographicsChart'
+import { SpecialityAppointmentChart } from '../../../components/ui/Graphs/SpecialityAppointmentChart'
+import { AppointmentTypeChart } from '../../../components/ui/Graphs/AppointmentTypeChart'
 const PeriodTabs = ({ value, onChange }) => {
   const ranges = ['Daily', 'Weekly', 'Monthly', 'Yearly']
   return (
@@ -435,16 +441,8 @@ export default function HDashboard() {
               </div>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <SectionCard title="Patients Count Per Month" right={<span className="text-xs text-[#626060]">Patients added over the Year</span>}>
-                <div className="h-[320px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">
-                  Bar chart placeholder — to be added
-                </div>
-              </SectionCard>
-              <SectionCard title="Patient Demographics" right={<span className="text-xs text-[#626060]">Age and gender distribution</span>}>
-                <div className="h-[320px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">
-                  Bar chart placeholder — to be added
-                </div>
-              </SectionCard>
+              <PatientsServedChart title="Patients Count Per Month" subtitle="Patients added over the Year" />
+              <PatientDemographicsChart />
             </div>
           </>
         )
@@ -511,7 +509,7 @@ export default function HDashboard() {
             </div>
 
             {/* Appointment Overview KPIs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
               <Overview_cards
                 title="Avg. Appointment Booked"
                 value={appointmentAnalyticsData?.metrics?.avgAppointmentsBooked?.current ?? 0}
@@ -561,20 +559,12 @@ export default function HDashboard() {
               <span className="text-sm sm:text-base font-medium text-[#424242]">Analytics Overview</span>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <SectionCard title="Appointment Booking Through" right={<span className="text-xs text-[#626060]">Online vs Walk-In</span>}>
-                <div className="h-[320px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">Line chart placeholder — Online vs Walk-In</div>
-              </SectionCard>
-              <SectionCard title="Patients Served">
-                <div className="h-[320px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">Bar chart placeholder — Monthly</div>
-              </SectionCard>
+              <AppointmentBookingChart  />
+              <PatientsServedChart />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-2 sm:mb-4">
-              <SectionCard title="Appointment Booking Status">
-                <div className="h-[240px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">Stacked bar placeholder</div>
-              </SectionCard>
-              <SectionCard title="Appointment Type vs. Patient" right={<span className="text-xs text-[#626060]">Breakdown by visit type over time</span>}>
-                <div className="h-[240px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">Grouped bar placeholder</div>
-              </SectionCard>
+              <AppointmentBookingStatusChart />
+              <AppointmentTypeChart />
             </div>
           </>
         )
@@ -585,7 +575,7 @@ export default function HDashboard() {
         activeTab === 'doctors' && (
           <>
             {/* Single KPI card row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
               <Overview_cards
                 title="Total Doctors Onboarded"
                 value={doctorOverviewData?.totalDoctorsOnboarded?.total ?? 0}
@@ -671,14 +661,10 @@ export default function HDashboard() {
             </div>
 
             {/* Analytics: Speciality Performance */}
-            <div className="mt-4">
+            <div className="mt-4 mb-3">
               <span className="text-sm sm:text-base font-medium text-[#424242]">Analytics</span>
             </div>
-            <SectionCard title="Speciality Performance" right={<span className="text-xs text-[#626060]">Appointment metrics by speciality</span>}>
-              <div className="h-[420px] sm:h-[520px] rounded-md border border-dashed border-gray-300 flex items-center justify-center text-gray-500 text-sm">
-                Horizontal bar chart placeholder — Specialities
-              </div>
-            </SectionCard>
+            <SpecialityAppointmentChart title="Speciality Performance" />
           </>
         )
       }

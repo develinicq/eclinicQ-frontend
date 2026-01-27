@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import Overview_cards from '../../../components/Dashboard/Overview_cards'
-import AppointmentsChart from '../../../components/Dashboard/AppointmentsChart'
+import { PatientsServedChart } from '../../../components/ui/Graphs/PatientsServedChart'
+import { AppointmentBookingChart } from '../../../components/ui/Graphs/AppointmentBookingChart'
+import { AppointmentBookingStatusChart } from '../../../components/ui/Graphs/AppointmentBookingStatusChart'
+import { SpecialityAppointmentChart } from '../../../components/ui/Graphs/SpecialityAppointmentChart'
 import Button from '../../../components/Button'
 import { angelDown, calenderArrowLeft, calenderArrowRight } from '../../../../public/index.js'
 import { getPlatformOverview } from '../../../services/superAdminService'
@@ -187,16 +190,10 @@ const Dashboard = () => {
         <div className='flex flex-col gap-3'>
           <div className='text-sm font-medium text-[#424242]'>Analytics Overview</div>
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-            <div className='bg-white rounded-lg border border-gray-200 p-3'>
-              <div className='text-sm text-gray-600 mb-2'>Patients Served</div>
-              {/* placeholder chart */}
-              <AppointmentsChart />
-            </div>
-            <div className='bg-white rounded-lg border border-gray-200 p-3'>
-              <div className='text-sm text-gray-600 mb-2'>Appointment Booking Through</div>
-              {/* placeholder chart */}
-              <AppointmentsChart />
-            </div>
+            <PatientsServedChart />
+            <AppointmentBookingChart />
+            <AppointmentBookingStatusChart />
+            <SpecialityAppointmentChart />
           </div>
         </div>
 
