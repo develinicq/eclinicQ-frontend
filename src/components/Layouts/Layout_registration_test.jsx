@@ -17,7 +17,7 @@ import useDoctorStep1Store from '../../store/useDoctorStep1Store';
 import useHospitalDoctorDetailsStore from '../../store/useHospitalDoctorDetailsStore';
 import Navbar from '../Navbar';
 
-const Layout_registration_new = () => {
+const Layout_registration_test = () => {
   const { currentStep, nextStep, prevStep, registrationType, setRegistrationType, formData, updateFormData, setCurrentStep } = useRegistration();
   // const doctorRegisterStore = useDoctorRegisterStore();
   const [footerLoading, setFooterLoading] = useState(false);
@@ -45,13 +45,16 @@ const Layout_registration_new = () => {
     } else if (location.pathname.includes('/hospital')) {
       setRegistrationType('hospital');
       setCurrentStep(1); // Always start at step 1
+    } else {
+      setRegistrationType('doctor');
+      setCurrentStep(1);
     }
   }, [location.pathname, setRegistrationType, setCurrentStep]);
 
   // Inject mock userId for testing purposes if missing
   React.useEffect(() => {
     if (registrationType === 'doctor' && !regUserId && !step1UserId) {
-      console.log("Layout_new: Injecting mock userId for testing");
+      console.log("Layout_test: Injecting mock userId for testing");
       setRegField('userId', 'TEST_DOC_123');
     }
   }, [registrationType, regUserId, step1UserId, setRegField]);
@@ -176,395 +179,11 @@ const Layout_registration_new = () => {
 
   const store = useHospitalRegistrationStore();
   const handleNext = async () => {
-    if (registrationType === 'doctor') {
-      // Step 1: trigger form submit via ref, only move if valid
-      if (currentStep === 1 && step1Ref.current && step1Ref.current.submit) {
-        setFooterLoading(true);
-        try {
-          const success = await step1Ref.current.submit();
-          if (success) {
-            nextStep();
-          }
-        } catch (error) {
-          console.error("Step 1 submission error", error);
-        } finally {
-          setFooterLoading(false);
-        }
-        return;
-      }
-
-      // Step 2: trigger form submit via ref (Doctor Professional Details)
-      if (currentStep === 2) {
-        if (step2Ref.current && step2Ref.current.submit) {
-          setFooterLoading(true);
-          try {
-            const success = await step2Ref.current.submit();
-            console.log("Layout: Step 2 submit returned", success);
-            if (success) {
-              console.log("Layout: Calling nextStep()");
-              nextStep();
-            }
-          } catch (error) {
-            console.error("Step 2 submission error", error);
-          } finally {
-            setFooterLoading(false);
-          }
-        } else {
-          console.warn("Step 2 Ref or Submit method missing", step2Ref.current);
-        }
-        return;
-      }
-
-      // Step 3: trigger form submit via ref (Doctor Clinic Setup)
-      if (currentStep === 3) {
-        if (step3Ref.current && step3Ref.current.submit) {
-          setFooterLoading(true);
-          try {
-            const success = await step3Ref.current.submit();
-            if (success) {
-              nextStep();
-            }
-          } catch (error) {
-            console.error("Step 3 submission error", error);
-          } finally {
-            setFooterLoading(false);
-          }
-        } else {
-          console.warn("Step 3 Ref or Submit method missing", step3Ref.current);
-          // If no submit handler (e.g. step not fully wired), assume next for now to unblock UI?
-          // No, safer to wait for Ref. If missing, it log warning.
-          // But wait, the hook useRef is step1Ref, step2Ref... do we have step3Ref?
-        }
-        return;
-      }
-
-      // Handle Step 4 sub-steps
-      if (currentStep === 4) {
-        const currentSubStep = formData.step4SubStep || 1;
-
-        if (currentSubStep === 1) {
-          // Move to sub-step 2
-          updateFormData({ step4SubStep: 2 });
-        } else if (currentSubStep === 2) {
-          // Check if terms are accepted before moving to next step
-          if (formData.termsAccepted && formData.privacyAccepted) {
-            nextStep();
-          } else {
-            // Show alert that terms must be accepted
-            alert('Please accept the Terms & Conditions and Data Privacy Agreement to continue.');
-          }
-        }
-      } else if (currentStep === 5) {
-        // Step 5: Activate Doctor via Ref
-        if (step5Ref.current && step5Ref.current.submit) {
-          setFooterLoading(true);
-          try {
-            // The submit method in Step5 returns true on success
-            const success = await step5Ref.current.submit();
-            if (success) {
-              setCurrentStep(7);
-            }
-          } catch (error) {
-            console.error("Step 5 submission error", error);
-          } finally {
-            setFooterLoading(false);
-          }
-        } else {
-          console.warn("Step 5 Ref missing, cannot submit");
-        }
-        return;
-      } else if (currentStep === 6) {
-        // Navigate to doctor profile/dashboard
-        navigate('/doctor');
-      } else if (currentStep < 5) {
-        nextStep();
-      }
-    } else if (registrationType === 'hospital') {
-      // Step 1: trigger form submit via ref, only move if valid and API success
-      if (currentStep === 1 && hos1Ref.current && hos1Ref.current.submit) {
-        setFooterLoading(true);
-        try {
-          const success = await hos1Ref.current.submit();
-          if (success) {
-            // Proceed based on isDoctor selection
-            nextStep();
-          }
-        } catch (error) {
-          console.error('Hospital Step 1 submission error', error);
-        } finally {
-          setFooterLoading(false);
-        }
-        return;
-      }
-      // Handle Step 1 for hospital (Account Creation) - conditional navigation
-      if (currentStep === 1) {
-        // Check if user is a doctor to determine next step
-        if (formData.isDoctor === 'yes') {
-          // User is a doctor, go to Step 2 (Doctor Registration)
-          nextStep();
-        } else {
-          // User is not a doctor, go to Step 2 (Hospital Details)
-          nextStep();
-        }
-      }
-      // Handle Step 2 for hospital (Doctor Registration or Hospital Details)
-      else if (currentStep === 2) {
-        // Check if user is a doctor to determine if this is Doctor Registration or Hospital Details
-        if (formData.isDoctor === 'no') {
-          // When user is not a doctor, Step 2 is Hospital Details (Hos_3) with sub-steps
-          const currentSubStep = formData.hosStep3SubStep || 1;
-          if (currentSubStep === 1) {
-            // Validate SubStep 1 before moving to SubStep 2
-            if (hos3Ref.current?.validateSubStep1) {
-              if (hos3Ref.current.validateSubStep1()) {
-                updateFormData({ hosStep3SubStep: 2 });
-              }
-            } else {
-              updateFormData({ hosStep3SubStep: 2 });
-            }
-          } else if (currentSubStep === 2) {
-            // Call API via ref before moving to next main step
-            if (hos3Ref.current && hos3Ref.current.submit) {
-              setFooterLoading(true);
-              try {
-                const success = await hos3Ref.current.submit();
-                if (success) {
-                  nextStep();
-                }
-              } catch (error) {
-                console.error("Hos_3 submission error", error);
-              } finally {
-                setFooterLoading(false);
-              }
-            } else {
-              nextStep();
-            }
-          }
-        } else {
-          // When user is a doctor, Step 2 is Doctor Registration (Hos_2)
-          if (hos2Ref.current && hos2Ref.current.submit) {
-            setFooterLoading(true);
-            try {
-              const success = await hos2Ref.current.submit();
-              if (success) {
-                nextStep();
-              }
-            } catch (error) {
-              console.error('Hospital Step 2 submission error', error);
-            } finally {
-              setFooterLoading(false);
-            }
-          } else {
-            console.warn('Hos_2 Ref or submit missing');
-          }
-        }
-      }
-      // Handle Step 3 for hospital (Hospital Details or Documents Verification)
-      else if (currentStep === 3) {
-        // Check if user is a doctor to determine if this is Hospital Details or Documents Verification
-        if (formData.isDoctor === 'no') {
-          // When user is not a doctor, Step 3 is Documents Verification (Hos_4) - no sub-steps
-          if (hos4Ref.current && hos4Ref.current.submit) {
-            setFooterLoading(true);
-            try {
-              const success = await hos4Ref.current.submit();
-              if (success) {
-                nextStep();
-              }
-            } catch (error) {
-              console.error("Hos_4 submission error", error);
-            } finally {
-              setFooterLoading(false);
-            }
-          } else {
-            nextStep();
-          }
-        } else {
-          // When user is a doctor, Step 3 is Hospital Details (Hos_3) with sub-steps
-          const currentSubStep = formData.hosStep3SubStep || 1;
-          if (currentSubStep === 1) {
-            // Validate SubStep 1 before moving to SubStep 2
-            if (hos3Ref.current?.validateSubStep1) {
-              if (hos3Ref.current.validateSubStep1()) {
-                updateFormData({ hosStep3SubStep: 2 });
-              }
-            } else {
-              updateFormData({ hosStep3SubStep: 2 });
-            }
-          } else if (currentSubStep === 2) {
-            // Call API via ref before moving to next main step
-            if (hos3Ref.current && hos3Ref.current.submit) {
-              setFooterLoading(true);
-              try {
-                const success = await hos3Ref.current.submit();
-                if (success) {
-                  nextStep();
-                }
-              } catch (error) {
-                console.error("Hos_3 submission error", error);
-              } finally {
-                setFooterLoading(false);
-              }
-            } else {
-              nextStep();
-            }
-          }
-        }
-      }
-      // Handle Step 4 for hospital (Documents Verification - no sub-steps)
-      else if (currentStep === 4) {
-        // Check if user is a doctor to determine if this is Documents Verification or Review & Create
-        if (formData.isDoctor === 'no') {
-          // When user is not a doctor, Step 4 is Review & Create (Hos_5) with sub-steps
-          const currentSubStep = formData.hosStep5SubStep || 1;
-
-          if (currentSubStep === 1) {
-            // Move to sub-step 2 (Terms and Agreement)
-            updateFormData({ hosStep5SubStep: 2 });
-          } else if (currentSubStep === 2) {
-            // Check if terms are accepted before moving to next step
-            if (formData.hosTermsAccepted && formData.hosPrivacyAccepted) {
-              nextStep();
-            } else {
-              // Show alert that terms must be accepted
-              alert('Please accept the Terms & Conditions and Data Privacy Agreement to continue.');
-            }
-          }
-        } else {
-          // When user is a doctor, Step 4 is Documents Verification - no sub-steps
-          if (hos4Ref.current && hos4Ref.current.submit) {
-            setFooterLoading(true);
-            try {
-              const success = await hos4Ref.current.submit();
-              if (success) {
-                nextStep();
-              }
-            } catch (error) {
-              console.error("Hos_4 submission error", error);
-            } finally {
-              setFooterLoading(false);
-            }
-          } else {
-            nextStep();
-          }
-        }
-      }
-      // Handle Step 5 for hospital (Review & Create)
-      else if (currentStep === 5) {
-        // Step 5 (Hos_6) for Non-Doctor Owner
-        if (formData.isDoctor === 'no') {
-          setFooterLoading(true);
-          try {
-            const hid = useHospitalRegistrationStore.getState().hospitalId ||
-              useHospitalStep1Store.getState().hospitalId ||
-              formData.hospitalId;
-
-            if (!hid) {
-              useToastStore.getState().addToast({
-                title: 'Activation Error',
-                message: 'Hospital ID not found. Please review previous steps.',
-                type: 'error'
-              });
-              setFooterLoading(false);
-              return;
-            }
-
-            const res = await activateHospital(hid);
-            if (res?.success) {
-              useToastStore.getState().addToast({
-                title: 'Success',
-                message: res.message || 'Hospital account activated successfully!',
-                type: 'success'
-              });
-              nextStep();
-            } else {
-              throw new Error(res?.message || 'Activation failed');
-            }
-          } catch (err) {
-            useToastStore.getState().addToast({
-              title: 'Activation Error',
-              message: err?.response?.data?.message || err.message || 'Failed to activate hospital',
-              type: 'error'
-            });
-          } finally {
-            setFooterLoading(false);
-          }
-        } else {
-          // User is a doctor, move to sub-steps logic handled in Step 5 (Hos_5)
-          const currentSubStep = formData.hosStep5SubStep || 1;
-          if (currentSubStep === 1) {
-            updateFormData({ hosStep5SubStep: 2 });
-          } else if (currentSubStep === 2) {
-            if (formData.hosTermsAccepted && formData.hosPrivacyAccepted) {
-              nextStep();
-            } else {
-              alert('Please accept the Terms & Conditions and Data Privacy Agreement to continue.');
-            }
-          }
-        }
-      } else if (currentStep === 6) {
-        // Final screen for non-doctor owners is Step 6 (already navigated to profile)
-        if (String(formData.isDoctor || 'no') === 'no') {
-          navigate('/hospitals');
-          return;
-        }
-
-        // On Step 6 (Hos_6) for Doctor-Owners
-        setFooterLoading(true);
-        try {
-          // 1. Submit Doctor Details
-          const doctorOk = await useHospitalDoctorDetailsStore.getState().submit();
-          if (!doctorOk) {
-            console.warn("Hospital doctor details submission failed");
-          }
-
-          // 2. Submit Hospital (Step 1-4 data)
-          const hosOk = await store.submit();
-          if (!hosOk) {
-            throw new Error('Failed to save hospital details');
-          }
-
-          // 3. Finally Activate
-          const hid = useHospitalRegistrationStore.getState().hospitalId ||
-            useHospitalStep1Store.getState().hospitalId ||
-            formData.hospitalId;
-
-          if (!hid) {
-            useToastStore.getState().addToast({
-              title: 'Activation Error',
-              message: 'Hospital ID not found. Please review previous steps.',
-              type: 'error'
-            });
-            setFooterLoading(false);
-            return;
-          }
-
-          const res = await activateHospital(hid);
-          if (res?.success) {
-            useToastStore.getState().addToast({
-              title: 'Success',
-              message: res.message || 'Hospital account activated successfully!',
-              type: 'success'
-            });
-            nextStep();
-          } else {
-            throw new Error(res?.message || 'Activation failed');
-          }
-        } catch (err) {
-          useToastStore.getState().addToast({
-            title: 'Activation Error',
-            message: err?.response?.data?.message || err.message || 'Failed to activate hospital',
-            type: 'error'
-          });
-        } finally {
-          setFooterLoading(false);
-        }
-      } else if (currentStep === (formData.isDoctor === 'no' ? 6 : 7)) {
-        // Navigate to hospital profile/dashboard
-        navigate('/hospitals');
-      } else {
-        nextStep();
-      }
+    if (registrationType === 'doctor' && currentStep === 5) {
+      const success = await step5Ref.current?.submit();
+      if (success) setCurrentStep(7); // Move directly to Step 7 (Success Page)
+    } else {
+      nextStep();
     }
   };
 
@@ -590,7 +209,7 @@ const Layout_registration_new = () => {
       } else if (currentStep === 7) {
         // Move back from success page to Step 5
         setCurrentStep(5);
-        updateFormData({ step5SubStep: 2 }); // Ensure we go back to the summary view
+        updateFormData({ step5SubStep: 2 });
       } else if (currentStep > 1) {
         prevStep();
       }
@@ -705,8 +324,8 @@ const Layout_registration_new = () => {
           return "Save & Next →";
         }
       } else if (currentStep === 5) {
-        // Package & Payment step
-        return "Preview Purchase";
+        const currentSubStep = formData.step5SubStep || 1;
+        return currentSubStep === 1 ? "Preview Purchase" : "Confirm Purchase";
       } else if (currentStep === 6) {
         // Profile completion page
         return "Go to Profile";
@@ -868,4 +487,4 @@ const Layout_registration_new = () => {
   );
 };
 
-export default Layout_registration_new;
+export default Layout_registration_test;

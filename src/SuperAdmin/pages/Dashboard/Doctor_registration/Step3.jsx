@@ -418,7 +418,7 @@ const Step3 = forwardRef((props, ref) => {
               </div>
 
               <CustomUpload
-                label="Upload Profile Picture"
+                label="Upload Clinic Image"
                 variant="box"
                 compulsory={true}
                 uploadContent="Upload"

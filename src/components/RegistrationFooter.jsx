@@ -10,7 +10,7 @@ import useHospitalStep1Store from '../store/useHospitalStep1Store';
 import useHospitalDoctorDetailsStore from '../store/useHospitalDoctorDetailsStore';
 import useHospitalRegistrationStore from '../store/useHospitalRegistrationStore';
 
-const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next", disablePrev = false, loading = false }) => {
+const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, nextLabel = "Save & Next", disablePrev = false, loading = false, bypassValidation = false }) => {
   const { registrationType, formData, setCurrentStep } = useRegistration();
   const [localError, setLocalError] = React.useState(null);
   const [disablePrevLocal, setDisablePrevLocal] = React.useState(false);
@@ -97,13 +97,17 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
   const setReason = (msg) => { if (!disabledReason) disabledReason = msg; };
 
   const validateStep1 = () => {
-    const { firstName, lastName, emailId, phone, gender, city } = step1State;
+    const { firstName, lastName, emailId, phone, gender, city, profilePhotoKey } = step1State;
     if (!firstName?.trim() || !lastName?.trim() || !emailId?.trim() || !phone?.trim() || !gender || !city) {
       setReason("Please fill all required fields");
       return false;
     }
     if (!/^\S+@\S+\.\S+$/.test(emailId)) { setReason("Invalid email"); return false; }
     if (!/^\d{10}$/.test(phone)) { setReason("Phone must be 10 digits"); return false; }
+    if (!profilePhotoKey) {
+      setReason("Please upload a profile picture");
+      return false;
+    }
     return true;
   };
 
@@ -290,6 +294,8 @@ const RegistrationFooter = ({ onCancel, onNext, onPrev, currentStep, maxSteps, n
       else if (currentStep === 6) isNextDisabled = !validateHosStep6(); // Hos_6 (Payment)
     }
   }
+
+  if (bypassValidation) isNextDisabled = false;
 
   const isLastStep = false; // Set to true if this is the final submission step
 

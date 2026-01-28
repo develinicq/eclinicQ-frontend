@@ -309,6 +309,7 @@ const Step2 = forwardRef((props, ref) => {
               <div className="w-full">
                 <InputWithMeta
                   requiredDot
+                  placeholder="Hospital Name"
                   label="Medical Council Registration Number"
                   value={medicalCouncilRegNo}
                   onChange={(val) => handleInputChange({ target: { name: 'medicalCouncilRegNo', value: val } })}
@@ -343,6 +344,7 @@ const Step2 = forwardRef((props, ref) => {
                 <InputWithMeta
                   label="Registration Year"
                   value={medicalCouncilRegYear}
+                  placeholder="Enter Year"
                   requiredDot
                   onChange={(val) => handleInputChange({ target: { name: 'medicalCouncilRegYear', value: val } })}
                   {...commonFieldProps}
@@ -420,6 +422,7 @@ const Step2 = forwardRef((props, ref) => {
               <div className="w-full">
                 <InputWithMeta
                   label="Year of Completion"
+                  placeholder="Enter Year"
                   value={medicalDegreeYearOfCompletion}
                   onChange={(val) => handleInputChange({ target: { name: 'medicalDegreeYearOfCompletion', value: val } })}
                   {...commonFieldProps}
@@ -497,6 +500,7 @@ const Step2 = forwardRef((props, ref) => {
                     {formErrors.pgMedicalDegreeType && <span className="text-red-500 text-xs">{formErrors.pgMedicalDegreeType}</span>}
                     <InputWithMeta
                       label="Year of Completion"
+                      placeholder="Enter Year"
                       requiredDot
                       value={pgMedicalDegreeYearOfCompletion}
                       onChange={(val) => handleInputChange({ target: { name: 'pgMedicalDegreeYearOfCompletion', value: val } })}

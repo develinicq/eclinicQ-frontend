@@ -1311,38 +1311,7 @@ const [isPlanOpen, setIsPlanOpen] = useState(false);
             </div>
           </div>
           </div>
-           <div className="flex items-center justify-between border-t border-border bg-card px-6 py-2 mt-2 rounded-b-xl">
-    <button className="px-8 py-2.5 border border-border rounded-lg text-sm font-medium text-secondary-grey400 hover:bg-muted">
-      Cancel
-    </button>
-
-    <div className="flex items-center gap-4">
-      <button
-        onClick={() => navigate("/step6/test")}
-        className="flex items-center gap-2 text-sm text-secondary-grey300 hover:text-secondary-grey400"
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M13.3327 8H2.66602M2.66602 8L6.66602 4M2.66602 8L6.66602 12" stroke="#626060" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
- Previous
-      </button>
-
-      <button
-        onClick={handleConfirm}
-        disabled={!agreedToTerms}
-        className={`px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 ${
-          agreedToTerms
-            ? "bg-blue-primary250 text-monochrom-white hover:bg-blue-primary300"
-            : "bg-secondary-grey100 text-secondary-grey200 cursor-not-allowed"
-        }`}
-      >
-        Confirm Purchase <svg width="12" height="9" viewBox="0 0 12 9" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M0.5 4.5H11.1667M11.1667 4.5L7.16667 0.5M11.1667 4.5L7.16667 8.5"  stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-
-      </button>
-    </div>
-  </div>
+        
 
         </main>
       </div>

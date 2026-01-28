@@ -6,6 +6,7 @@ import Hospitals from "./SuperAdmin/pages/Hospitals/Hospitals";
 import Patients from "./SuperAdmin/pages/Patients/Patients";
 import Settings from "./SuperAdmin/pages/Settings/Settings";
 import Layout_registration_new from "./components/Layouts/Layout_registration_new";
+import Layout_registration_test from "./components/Layouts/Layout_registration_test";
 import DoctorDetailsPage from "./SuperAdmin/pages/Doctors/DoctorList/DoctorInfo/DoctorDetailsPage";
 import HospitalDetailsPage from "./SuperAdmin/pages/Hospitals/HospitalList/HospitalInfo/HospitalDetailsPage";
 import { RegistrationProvider } from "./SuperAdmin/context/RegistrationContext";
@@ -118,6 +119,14 @@ function App() {
         element={
           <RegistrationProvider>
             <Layout_registration_new />
+          </RegistrationProvider>
+        }
+      />
+      <Route
+        path="register/test"
+        element={
+          <RegistrationProvider>
+            <Layout_registration_test />
           </RegistrationProvider>
         }
       />
@@ -251,32 +260,32 @@ function App() {
       {/* testing and building */}
       <Route
 
-  path="step6/test"
-  element={
-    <RegistrationProvider>
-      <Step6 />
-    </RegistrationProvider>
-  }
-/>
-   <Route
-  path="step6/test/payment"
-  element={
-    <RegistrationProvider>
-      <Step6Payment/>
-    </RegistrationProvider>
-  }
-/>
-         <Route
-  path="/success"
-  element={
-    <RegistrationProvider>
-      <Step7/>
-    </RegistrationProvider>
-  }
-/>
+        path="step6/test"
+        element={
+          <RegistrationProvider>
+            <Step6 />
+          </RegistrationProvider>
+        }
+      />
+      <Route
+        path="step6/test/payment"
+        element={
+          <RegistrationProvider>
+            <Step6Payment />
+          </RegistrationProvider>
+        }
+      />
+      <Route
+        path="/success"
+        element={
+          <RegistrationProvider>
+            <Step7 />
+          </RegistrationProvider>
+        }
+      />
 
-{/* grpah routes for testing and displaying */}
-<Route path="/testGraph" element={<DisplayGraph/>}/>
+      {/* grpah routes for testing and displaying */}
+      <Route path="/testGraph" element={<DisplayGraph />} />
 
     </Routes>
   );

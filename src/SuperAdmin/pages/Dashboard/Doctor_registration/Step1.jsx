@@ -153,8 +153,8 @@ const Step1 = forwardRef((props, ref) => {
   }));
 
   const genderOptions = [
-    { value: "male", label: "Male" },
-    { value: "female", label: "Female" },
+    { value: "Male", label: "Male" },
+    { value: "Female", label: "Female" },
     { value: "Other", label: "Other" },
     { value: "Prefer not to say", label: "Prefer not to say" },
   ];

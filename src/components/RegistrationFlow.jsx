@@ -8,6 +8,7 @@ import Step3 from '../SuperAdmin/pages/Dashboard/Doctor_registration/Step3';
 import Step4 from '../SuperAdmin/pages/Dashboard/Doctor_registration/Step4';
 import Step5 from '../SuperAdmin/pages/Dashboard/Doctor_registration/Step5';
 import Step6 from '../SuperAdmin/pages/Dashboard/Doctor_registration/Step6';
+import Step7 from '../SuperAdmin/pages/Dashboard/Doctor_registration/Step7';
 
 // Hospital Registration Steps
 import Hos_1 from '../SuperAdmin/pages/Dashboard/Hospital_registration/Hos_1';
@@ -39,6 +40,8 @@ const RegistrationFlow = React.forwardRef(({ type }, ref) => {
           return <Step5 />;
         case 6:
           return <Step6 />;
+        case 7:
+          return <Step7 />;
         default:
           return <Step1 />;
       }
