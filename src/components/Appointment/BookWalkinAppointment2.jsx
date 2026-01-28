@@ -74,7 +74,11 @@ export default function BookWalkinAppointment2({
     "Review Visit",
   ];
   const reasonSuggestions = ["Cough", "Cold", "Headache", "Nausea", "Dizziness", "Muscle Pain", "Sore Throat"];
-  const genders = ["Male", "Female", "Other"];
+  const genders = [
+    { label: "Male", value: "Male" },
+    { label: "Female", value: "Female" },
+    { label: "Other", value: "Other" },
+  ];
   const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
   // Dropdown open states
   const [openApptTypeDD, setOpenApptTypeDD] = useState(false);
@@ -627,20 +631,13 @@ export default function BookWalkinAppointment2({
                   label="Gender"
                   requiredDot
                   value={gender}
-                  onChange={setGender}
                   placeholder="Select Gender"
                   RightIcon={ChevronDown}
-                  onFieldOpen={() => toggleOpen("gender")}
+                  onFieldOpen={() => setOpenGenderDD(!openGenderDD)}
                   dropdownOpen={openGenderDD}
-                />
-                <Dropdown
-                  open={openGenderDD}
-                  onClose={() => setOpenGenderDD(false)}
-                  items={genders.map((g) => ({ label: g, value: g }))}
-                  onSelect={(it) => setGender(it.value)}
-                  anchorClassName=""
-                  className="w-full"
-                  selectedValue={gender}
+                  dropdownItems={genders}
+                  onSelectItem={(it) => setGender(it.value)}
+                  onRequestClose={() => setOpenGenderDD(false)}
                 />
               </div>
             </div>
@@ -851,22 +848,16 @@ export default function BookWalkinAppointment2({
                     </span>
                   );
                 })()}
-                onChange={() => { }}
                 placeholder="Select"
                 RightIcon={ChevronDown}
-                onFieldOpen={() => openOnly("bucket")}
+                onFieldOpen={() => setOpenBucketDD(!openBucketDD)}
                 dropdownOpen={openBucketDD}
                 onRequestClose={() => setOpenBucketDD(false)}
-              />
-              <Dropdown
-                open={openBucketDD}
-                onClose={() => setOpenBucketDD(false)}
-                direction="down"
-                items={timeBuckets.map(({ key, label, time }) => ({
+                dropdownItems={timeBuckets.map(({ key, label, time }) => ({
                   label: `${label} (${time || "loading…"})`,
                   value: key,
                 }))}
-                onSelect={(it) => {
+                onSelectItem={(it) => {
                   const key = it.value;
                   setBucketKey(key);
                   const firstSlot = (grouped[key] || [])[0] || null;
@@ -877,7 +868,6 @@ export default function BookWalkinAppointment2({
                   );
                   setOpenBucketDD(false);
                 }}
-                className="w-full"
                 selectedValue={bucketKey}
               />
             </div>

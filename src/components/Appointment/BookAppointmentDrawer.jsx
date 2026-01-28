@@ -22,6 +22,7 @@ import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import calendarWhite from "/Doctor_module/sidebar/calendar_white.png";
 import AvatarCircle from "../../components/AvatarCircle";
 import { searchPatientsForWalkIn } from "../../services/patientService";
+import useClinicStore from "../../store/settings/useClinicStore";
 
 // UI-only Book Appointment Drawer using GeneralDrawer and shared inputs
 // Integrated Book Appointment Drawer fetching real slots and booking via APIs
@@ -71,8 +72,21 @@ export default function BookAppointmentDrawer({
     "Review Visit",
   ];
   const reasonSuggestions = ["Cough", "Cold", "Headache", "Nausea", "Dizziness", "Muscle Pain", "Sore Throat"];
-  const genders = ["Male", "Female", "Other"];
-  const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+  const genders = [
+    { label: "Male", value: "Male" },
+    { label: "Female", value: "Female" },
+    { label: "Other", value: "Other" },
+  ];
+  const bloodGroups = [
+    { label: "A+", value: "A+" },
+    { label: "A-", value: "A-" },
+    { label: "B+", value: "B+" },
+    { label: "B-", value: "B-" },
+    { label: "AB+", value: "AB+" },
+    { label: "AB-", value: "AB-" },
+    { label: "O+", value: "O+" },
+    { label: "O-", value: "O-" },
+  ];
   // Dropdown open states
   const [openApptTypeDD, setOpenApptTypeDD] = useState(false);
   const [openGenderDD, setOpenGenderDD] = useState(false);
@@ -176,11 +190,32 @@ export default function BookAppointmentDrawer({
   }, [showDobCalendar, showApptDateCalendar]);
 
   // Load slots when opened or date/ids change
+  const { selectedClinicId, selectedWorkplaceType } = useClinicStore();
+
   useEffect(() => {
     let ignore = false;
     const load = async () => {
       if (!open) return;
-      if (!doctorId || (!clinicId && !hospitalId)) return;
+
+      // Determine IDs based on selection or props
+      let activeClinicId = undefined;
+      let activeHospitalId = undefined;
+
+      if (selectedClinicId && selectedWorkplaceType) {
+        const type = selectedWorkplaceType.toLowerCase();
+        if (type === "clinic") {
+          activeClinicId = selectedClinicId;
+        } else if (type === "hospital") {
+          activeHospitalId = selectedClinicId;
+        }
+      } else {
+        // Fallback to props
+        activeClinicId = clinicId;
+        activeHospitalId = hospitalId;
+      }
+
+      if (!doctorId || (!activeClinicId && !activeHospitalId)) return;
+
       setSelectedSlotId(null);
       setGrouped({ morning: [], afternoon: [], evening: [], night: [] });
       setTimeBuckets([]);
@@ -190,8 +225,8 @@ export default function BookAppointmentDrawer({
         const resp = await findPatientSlots({
           doctorId,
           date: apptDate,
-          clinicId,
-          hospitalId,
+          clinicId: activeClinicId,
+          hospitalId: activeHospitalId,
         });
         const arr = Array.isArray(resp)
           ? resp
@@ -268,7 +303,7 @@ export default function BookAppointmentDrawer({
     return () => {
       ignore = true;
     };
-  }, [open, apptDate, doctorId, clinicId, hospitalId]);
+  }, [open, apptDate, doctorId, clinicId, hospitalId, selectedClinicId, selectedWorkplaceType]);
 
   const requestClose = () => {
     setClosing(true);
@@ -297,6 +332,23 @@ export default function BookAppointmentDrawer({
     setBooking(true);
     setErrorMsg("");
     setFieldErrors({});
+
+    // Determine IDs based on selection or props (consistent with slot loading)
+    let activeClinicId = undefined;
+    let activeHospitalId = undefined;
+
+    if (selectedClinicId && selectedWorkplaceType) {
+      const type = selectedWorkplaceType.toLowerCase();
+      if (type === "clinic") {
+        activeClinicId = selectedClinicId;
+      } else if (type === "hospital") {
+        activeHospitalId = selectedClinicId;
+      }
+    } else {
+      activeClinicId = clinicId;
+      activeHospitalId = hospitalId;
+    }
+
     try {
       let payload;
       if (isExisting) {
@@ -305,6 +357,8 @@ export default function BookAppointmentDrawer({
           patientId: selectedPatient?.id,
           reason: reason.trim(),
           slotId: selectedSlotId,
+          clinicId: activeClinicId,
+          hospitalId: activeHospitalId,
           bookingType: apptType?.toUpperCase().includes("FOLLOW")
             ? "FOLLOW_UP"
             : apptType?.toUpperCase().includes("REVIEW")
@@ -323,6 +377,8 @@ export default function BookAppointmentDrawer({
           bloodGroup: mapBloodGroup(bloodGroup),
           reason: reason.trim(),
           slotId: selectedSlotId,
+          clinicId: activeClinicId,
+          hospitalId: activeHospitalId,
           bookingType: apptType?.toUpperCase().includes("REVIEW")
             ? "FOLLOW_UP"
             : "NEW",
@@ -540,20 +596,13 @@ export default function BookAppointmentDrawer({
                   label="Blood Group"
                   requiredDot
                   value={bloodGroup}
-                  onChange={setBloodGroup}
                   placeholder="Select Blood Group"
                   RightIcon={ChevronDown}
-                  onFieldOpen={() => toggleOpen("blood")}
+                  onFieldOpen={() => setOpenBloodDD(!openBloodDD)}
                   dropdownOpen={openBloodDD}
-                />
-                <Dropdown
-                  open={openBloodDD}
-                  onClose={() => setOpenBloodDD(false)}
-                  items={bloodGroups.map((bg) => ({ label: bg, value: bg }))}
-                  onSelect={(it) => setBloodGroup(it.value)}
-                  anchorClassName=""
-                  className="w-full"
-                  selectedValue={bloodGroup}
+                  dropdownItems={bloodGroups}
+                  onSelectItem={(it) => setBloodGroup(it.value)}
+                  onRequestClose={() => setOpenBloodDD(false)}
                 />
               </div>
               <div className="relative">
@@ -561,20 +610,13 @@ export default function BookAppointmentDrawer({
                   label="Gender"
                   requiredDot
                   value={gender}
-                  onChange={setGender}
                   placeholder="Select Gender"
                   RightIcon={ChevronDown}
-                  onFieldOpen={() => toggleOpen("gender")}
+                  onFieldOpen={() => setOpenGenderDD(!openGenderDD)}
                   dropdownOpen={openGenderDD}
-                />
-                <Dropdown
-                  open={openGenderDD}
-                  onClose={() => setOpenGenderDD(false)}
-                  items={genders.map((g) => ({ label: g, value: g }))}
-                  onSelect={(it) => setGender(it.value)}
-                  anchorClassName=""
-                  className="w-full"
-                  selectedValue={gender}
+                  dropdownItems={genders}
+                  onSelectItem={(it) => setGender(it.value)}
+                  onRequestClose={() => setOpenGenderDD(false)}
                 />
               </div>
             </div>
@@ -597,13 +639,9 @@ export default function BookAppointmentDrawer({
             onChange={setApptType}
             placeholder="Select or Enter Appointment Type"
             RightIcon={ChevronDown}
-            onFieldOpen={() => toggleOpen("appt")}
+            onFieldOpen={() => setOpenApptTypeDD(!openApptTypeDD)}
             dropdownOpen={openApptTypeDD}
-          />
-          <Dropdown
-            open={openApptTypeDD}
-            onClose={() => setOpenApptTypeDD(false)}
-            items={[
+            dropdownItems={[
               "New Consultation",
               "Follow-up Consultation",
               "Review Visit",
@@ -611,9 +649,8 @@ export default function BookAppointmentDrawer({
               "Emergency OPD (Non-admission)",
               "Second Opinion",
             ].map((t) => ({ label: t, value: t }))}
-            onSelect={(it) => setApptType(it.value)}
-            className="w-full"
-            selectedValue={apptType}
+            onSelectItem={(it) => setApptType(it.value)}
+            onRequestClose={() => setOpenApptTypeDD(false)}
           />
           <div className="flex gap-2 items-center mt-1">
             <div className="text-xs text-blue-primary250">Suggestion:</div>
@@ -734,35 +771,26 @@ export default function BookAppointmentDrawer({
                   const avail = curSlot.availableTokens !== undefined ? curSlot.availableTokens : (curSlot.maxTokens || 0);
                   return `${avail} Tokens Available`;
                 })()}
-                onChange={() => { }}
                 placeholder="Select"
                 RightIcon={ChevronDown}
-                onFieldOpen={() => openOnly("bucket")}
+                onFieldOpen={() => setOpenBucketDD(!openBucketDD)}
                 dropdownOpen={openBucketDD}
                 onRequestClose={() => setOpenBucketDD(false)}
-                dropdown={
-                  <Dropdown
-                    open={openBucketDD}
-                    onClose={() => setOpenBucketDD(false)}
-                    items={timeBuckets.map(({ key, label, time }) => ({
-                      label: `${label} - (${time || "loading…"})`,
-                      value: key,
-                    }))}
-                    onSelect={(it) => {
-                      const key = it.value;
-                      setBucketKey(key);
-                      const firstSlot = (grouped[key] || [])[0] || null;
-                      setSelectedSlotId(
-                        firstSlot
-                          ? firstSlot.id || firstSlot.slotId || firstSlot._id
-                          : null
-                      );
-                      setOpenBucketDD(false);
-                    }}
-                    className="w-full"
-                    selectedValue={bucketKey}
-                  />
-                }
+                dropdownItems={timeBuckets.map(({ key, label, time }) => ({
+                  label: `${label} - (${time || "loading…"})`,
+                  value: key,
+                }))}
+                onSelectItem={(it) => {
+                  const key = it.value;
+                  setBucketKey(key);
+                  const firstSlot = (grouped[key] || [])[0] || null;
+                  setSelectedSlotId(
+                    firstSlot
+                      ? firstSlot.id || firstSlot.slotId || firstSlot._id
+                      : null
+                  );
+                }}
+                selectedValue={bucketKey}
               />
             </div>
             {loadingSlots && (

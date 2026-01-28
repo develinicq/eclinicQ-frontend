@@ -35,7 +35,6 @@ import FDConsultation from "./FrontDeskModule/Pages/Settings/FDConsultation";
 import FDStaffPermissions from "./FrontDeskModule/Pages/Settings/FDStaffPermissions";
 import HospitalLayout from "./HospitalModule/Components/Layout/HospitalLayout";
 import HDashboard from "./HospitalModule/Pages/Dashboard/HDashboard";
-import HQueue from "./HospitalModule/Pages/Queue/Queue";
 import HPatients from "./HospitalModule/Pages/Patients/Patient";
 import HPatientDetails from "./HospitalModule/Pages/Patients/PatientDetails";
 import HSettings from "./HospitalModule/Pages/Settings/HSettings";
@@ -214,7 +213,6 @@ function App() {
       <Route element={<ProtectedHospitalRoute />}>
         <Route path="hospital" element={<HospitalLayout />}>
           <Route index element={<HDashboard />} />
-          <Route path="queue" element={<HQueue />} />
           <Route path="patients" element={<HPatients />} />
           <Route path="calendar" element={<HCalendar />} />
           <Route path="doctors" element={<HDoctors />} />
